@@ -2,6 +2,8 @@
 
 **The pulse of autonomous intelligence.**
 
+Repository: [github.com/sujaydavalgi/Spanda](https://github.com/sujaydavalgi/Spanda)
+
 Spanda is an AI-native autonomous systems programming language for robotics, agents, human-machine interaction, digital twins, simulation, and edge intelligence.
 
 ## Philosophy
@@ -34,6 +36,8 @@ Source files use the **`.sd`** extension. The legacy **`.syn`** extension is sti
 ## Quick Start
 
 ```bash
+git clone https://github.com/sujaydavalgi/Spanda.git
+cd Spanda
 npm install
 npm test
 npm run build
@@ -280,6 +284,8 @@ The native CLI is at `target/release/spanda`. TypeScript `compile.ts` can delega
 API contract (JSON diagnostics, run results): `docs/api-contract.json`
 
 Golden fixtures: `tests/golden/manifest.json`
+
+Documentation index: `docs/README.md`
 
 ## Project Structure
 
