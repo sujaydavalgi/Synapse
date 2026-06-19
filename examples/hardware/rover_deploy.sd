@@ -1,0 +1,38 @@
+hardware RoverV1 {
+  cpu: CortexA78;
+  memory: 4 GB;
+  sensors [
+    Camera,
+    Lidar,
+    IMU,
+  ];
+  actuators [
+    DifferentialDrive,
+  ];
+  battery {
+    capacity: 100 Wh;
+  }
+}
+
+robot RoverProgram {
+  sensor camera: Camera on "/camera";
+  sensor lidar: Lidar on "/scan";
+  sensor imu: IMU;
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 2.0 m/s;
+  }
+
+  verify {
+    robot.velocity().linear <= 2.0 m/s;
+  }
+
+  behavior patrol() {
+    let scan = lidar.read();
+    let _ = scan;
+    wheels.drive(linear: 0.3 m/s, angular: 0.0 rad/s);
+  }
+}
+
+deploy RoverProgram to RoverV1;
