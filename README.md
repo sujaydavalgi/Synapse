@@ -233,9 +233,54 @@ robot PatrolBot {
 | `synapse sim <file.syn>` | Run simulation with detailed output |
 | `synapse check <file.syn>` | Type-check only |
 
+## Architecture: Rust core + TypeScript tooling
+
+Synapse uses a **dual-layer architecture**:
+
+| Layer | Technology | Responsibility |
+|-------|------------|----------------|
+| **Language core** | Rust (`crates/synapse-core`) | Lexer, parser, type checker, interpreter, safety, AI mock, simulator |
+| **Native CLI** | Rust (`crates/synapse-cli`) | `check`, `run`, `sim` with human or `--json` output |
+| **Node bindings** | N-API (`crates/synapse-node`) | In-process calls from Node.js |
+| **Browser bindings** | WASM (`crates/synapse-wasm`) | Playground and web IDE |
+| **Developer UX** | TypeScript + React (`packages/web`, `src/cli`) | CLI wrapper, web playground, tests |
+
+### Build commands
+
+```bash
+# Rust core + native CLI
+npm run build:rust          # or: cargo build -p synapse-cli --release
+
+# Rust tests (44+ unit/integration tests)
+npm run test:rust           # or: cargo test --workspace
+
+# WASM for web playground
+npm run build:wasm          # requires wasm-pack
+
+# Web IDE
+npm run web:dev             # http://localhost:5173
+
+# TypeScript tests (58 vitest cases; TS interpreter fallback)
+npm test
+```
+
+The native CLI is at `target/release/synapse`. TypeScript `compile.ts` can delegate to Rust via `compileAsync(source, 'rust-cli')` or `runSource(source, { rustCli: true, ... })`.
+
+API contract (JSON diagnostics, run results): `docs/api-contract.json`
+
+Golden fixtures: `tests/golden/manifest.json`
+
 ## Project Structure
 
 ```
+crates/
+  synapse-core/    Rust language implementation
+  synapse-cli/     Native synapse binary
+  synapse-node/    N-API bindings
+  synapse-wasm/    WebAssembly bindings
+packages/
+  native/          Node.js native module wrapper
+  web/             React playground (Monaco-style editor)
 src/
   lexer/       Tokenizer
   parser/      Recursive descent parser
