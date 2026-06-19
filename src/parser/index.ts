@@ -28,6 +28,23 @@ import type {
   TopicDecl,
   UnitKind,
 } from "../ast/nodes.js";
+import type {
+  CapabilityDecl,
+  EnumDecl,
+  EventDecl,
+  EventHandlerDecl,
+  FieldDecl,
+  MatchArm,
+  StateMachineDecl,
+  StructDecl,
+  TaskDecl,
+  TraitDecl,
+  TraitImplDecl,
+  TraitMethodDecl,
+  TraitParamDecl,
+  TransitionDecl,
+  TwinDecl,
+} from "../foundations.js";
 
 export class ParseError extends Error {
   constructor(
@@ -90,9 +107,46 @@ class Parser {
     };
   }
 
+  private parseLabel(message: string): string {
+    const labelTypes: Token["type"][] = [
+      "IDENT",
+      "PLAN",
+      "TWIN",
+      "SKILL",
+      "MATCH",
+      "STATE",
+      "EVENT",
+      "TASK",
+      "ACTION",
+      "GOAL",
+      "MEMORY",
+      "ON",
+      "REPLAY",
+      "MIRROR",
+      "ENTER",
+      "EMIT",
+    ];
+    if (labelTypes.includes(this.peek().type)) {
+      return this.advance().lexeme;
+    }
+    const t = this.peek();
+    throw new ParseError(message, t.line, t.column);
+  }
+
   parseProgram(): Program {
     const start = this.peek();
+    let moduleName: string | null = null;
+
+    if (this.check("MODULE")) {
+      this.advance();
+      moduleName = this.parseLabel("Expected module name after 'module'");
+      this.expect("SEMICOLON", "Expected ';' after module declaration");
+    }
+
     const imports: ImportDecl[] = [];
+    const structs: StructDecl[] = [];
+    const enums: EnumDecl[] = [];
+    const traits: TraitDecl[] = [];
     const robots: RobotDecl[] = [];
 
     while (this.check("IMPORT")) {
@@ -100,13 +154,28 @@ class Parser {
     }
 
     while (!this.check("EOF")) {
-      robots.push(this.parseRobot());
+      if (this.check("STRUCT")) {
+        structs.push(this.parseStruct());
+      } else if (this.check("ENUM")) {
+        enums.push(this.parseEnum());
+      } else if (this.check("TRAIT")) {
+        traits.push(this.parseTrait());
+      } else if (this.check("ROBOT")) {
+        robots.push(this.parseRobot());
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected struct, enum, trait, or robot declaration", t.line, t.column);
+      }
     }
 
     const end = this.previous();
     return {
       kind: "Program",
+      moduleName,
       imports,
+      structs,
+      enums,
+      traits,
       robots,
       span: this.spanFrom(start, end),
     };
@@ -114,15 +183,106 @@ class Parser {
 
   private parseImport(): ImportDecl {
     const start = this.advance();
-    const vendor = this.expect("IDENT", "Expected library vendor name");
+    const vendor = this.parseLabel("Expected library vendor name");
     this.expect("DOT", "Expected '.' in import path");
-    const module = this.expect("IDENT", "Expected library module name");
+    const module = this.parseLabel("Expected library module name");
     this.expect("SEMICOLON", "Expected ';' after import");
     const end = this.previous();
     return {
       kind: "ImportDecl",
-      path: `${vendor.lexeme}.${module.lexeme}`,
+      path: `${vendor}.${module}`,
       span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseStruct(): StructDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected struct name");
+    this.expect("LBRACE", "Expected '{' after struct name");
+    const fields: FieldDecl[] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      const fieldStart = this.peek();
+      const fieldName = this.expect("IDENT", "Expected field name");
+      this.expect("COLON", "Expected ':' after field name");
+      const typeName = this.expect("IDENT", "Expected field type");
+      this.expect("SEMICOLON", "Expected ';' after field");
+      fields.push({
+        name: fieldName.lexeme,
+        typeName: typeName.lexeme,
+        span: this.spanFrom(fieldStart, this.previous()),
+      });
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close struct");
+    return {
+      kind: "StructDecl",
+      name: name.lexeme,
+      fields,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseEnum(): EnumDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected enum name");
+    this.expect("LBRACE", "Expected '{' after enum name");
+    const variants: string[] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      variants.push(this.expect("IDENT", "Expected enum variant").lexeme);
+      if (this.match("COMMA")) continue;
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close enum");
+    return {
+      kind: "EnumDecl",
+      name: name.lexeme,
+      variants,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseTrait(): TraitDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected trait name");
+    this.expect("LBRACE", "Expected '{' after trait name");
+    const methods: TraitMethodDecl[] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      methods.push(this.parseTraitMethod());
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close trait");
+    return {
+      kind: "TraitDecl",
+      name: name.lexeme,
+      methods,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseTraitMethod(): TraitMethodDecl {
+    const start = this.advance(); // fn
+    const name = this.parseLabel("Expected method name after fn");
+    this.expect("LPAREN", "Expected '(' after method name");
+    const params: TraitParamDecl[] = [];
+    if (!this.check("RPAREN")) {
+      do {
+        const paramStart = this.peek();
+        const paramName = this.parseLabel("Expected parameter name");
+        this.expect("COLON", "Expected ':' after parameter name");
+        const typeName = this.expect("IDENT", "Expected parameter type");
+        params.push({
+          name: paramName,
+          typeName: typeName.lexeme,
+          span: this.spanFrom(paramStart, this.previous()),
+        });
+      } while (this.match("COMMA"));
+    }
+    this.expect("RPAREN", "Expected ')' after parameters");
+    this.expect("ARROW", "Expected '->' after trait method parameters");
+    const returnType = this.expect("IDENT", "Expected return type");
+    this.expect("SEMICOLON", "Expected ';' after trait method");
+    return {
+      name,
+      params,
+      returnType: returnType.lexeme,
+      span: this.spanFrom(start, this.previous()),
     };
   }
 
@@ -143,6 +303,12 @@ class Parser {
     const ai_models: AiModelDecl[] = [];
     const agents: AgentDecl[] = [];
     const behaviors: BehaviorDecl[] = [];
+    const tasks: TaskDecl[] = [];
+    const stateMachines: StateMachineDecl[] = [];
+    const events: EventDecl[] = [];
+    const eventHandlers: EventHandlerDecl[] = [];
+    let twin: TwinDecl | null = null;
+    const traitImpls: TraitImplDecl[] = [];
 
     while (!this.check("RBRACE") && !this.check("EOF")) {
       if (this.check("SOC")) {
@@ -169,6 +335,18 @@ class Parser {
         agents.push(this.parseAgent());
       } else if (this.check("BEHAVIOR")) {
         behaviors.push(this.parseBehavior());
+      } else if (this.check("TASK")) {
+        tasks.push(this.parseTask());
+      } else if (this.check("STATE_MACHINE")) {
+        stateMachines.push(this.parseStateMachine());
+      } else if (this.check("EVENT")) {
+        events.push(this.parseEvent());
+      } else if (this.check("ON")) {
+        eventHandlers.push(this.parseEventHandler());
+      } else if (this.check("TWIN")) {
+        twin = this.parseTwin();
+      } else if (this.check("IMPL")) {
+        traitImpls.push(this.parseTraitImpl());
       } else {
         const t = this.peek();
         throw new ParseError("Expected robot member declaration", t.line, t.column);
@@ -191,6 +369,65 @@ class Parser {
       ai_models,
       agents,
       behaviors,
+      tasks,
+      stateMachines,
+      events,
+      eventHandlers,
+      twin,
+      traitImpls,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseTraitImpl(): TraitImplDecl {
+    const start = this.expect("IMPL", "Expected 'impl'");
+    const traitName = this.parseLabel("Expected trait name after 'impl'");
+    this.expect("FOR", "Expected 'for' after trait name");
+    const agentName = this.parseLabel("Expected agent name after 'for'");
+    this.expect("LBRACE", "Expected '{' after trait impl header");
+    const methods = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      methods.push(this.parseTraitImplMethod());
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close trait impl");
+    return {
+      kind: "TraitImplDecl",
+      traitName,
+      agentName,
+      methods,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseTraitImplMethod(): import("../foundations.js").TraitImplMethodDecl {
+    const start = this.advance(); // fn
+    const name = this.parseLabel("Expected method name");
+    this.expect("LPAREN", "Expected '(' after method name");
+    const params: TraitParamDecl[] = [];
+    if (!this.check("RPAREN")) {
+      do {
+        const paramStart = this.peek();
+        const paramName = this.parseLabel("Expected parameter name");
+        this.expect("COLON", "Expected ':' after parameter name");
+        const typeName = this.expect("IDENT", "Expected parameter type");
+        params.push({
+          name: paramName,
+          typeName: typeName.lexeme,
+          span: this.spanFrom(paramStart, this.previous()),
+        });
+      } while (this.match("COMMA"));
+    }
+    this.expect("RPAREN", "Expected ')' after parameters");
+    this.expect("ARROW", "Expected '->' after trait impl parameters");
+    const returnType = this.expect("IDENT", "Expected return type");
+    this.expect("LBRACE", "Expected '{' after trait impl method signature");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close trait impl method");
+    return {
+      name,
+      params,
+      returnType: returnType.lexeme,
+      body,
       span: this.spanFrom(start, end),
     };
   }
@@ -537,6 +774,8 @@ class Parser {
     const usesAi: string[] = [];
     let memoryKind: "short_term" | "long_term" | null = null;
     const tools: string[] = [];
+    const skills: string[] = [];
+    const capabilities: CapabilityDecl[] = [];
     let goal = "";
     let planBody: Stmt[] = [];
 
@@ -562,6 +801,18 @@ class Parser {
         }
         this.expect("RBRACKET", "Expected ']' after tools list");
         this.expect("SEMICOLON", "Expected ';' after tools");
+      } else if (this.match("SKILL")) {
+        skills.push(this.expect("IDENT", "Expected skill name").lexeme);
+        this.expect("SEMICOLON", "Expected ';' after skill");
+      } else if (this.match("CAN")) {
+        this.expect("LBRACKET", "Expected '[' after can");
+        if (!this.check("RBRACKET")) {
+          do {
+            capabilities.push(this.parseCapability());
+          } while (this.match("COMMA"));
+        }
+        this.expect("RBRACKET", "Expected ']' after capability list");
+        this.expect("SEMICOLON", "Expected ';' after can");
       } else if (this.match("GOAL")) {
         const goalTok = this.expect("STRING", "Expected goal string");
         goal = goalTok.value as string;
@@ -569,20 +820,22 @@ class Parser {
       } else if (this.match("PLAN")) {
         this.expect("LBRACE", "Expected '{' after plan");
         planBody = this.parseBlock();
-        this.expect("RBRACE", "Expected 'GNUC to close plan");
+        this.expect("RBRACE", "Expected '}' to close plan");
       } else {
         const t = this.peek();
         throw new ParseError("Expected agent member", t.line, t.column);
       }
     }
 
-    const end = this.expect("RBRACE", "Expected 'GNUC to close agent block");
+    const end = this.expect("RBRACE", "Expected '}' to close agent block");
     return {
       kind: "AgentDecl",
       name: name.lexeme,
       usesAi,
       memoryKind,
       tools,
+      skills,
+      capabilities,
       goal,
       planBody,
       span: this.spanFrom(start, end),
@@ -665,28 +918,185 @@ class Parser {
     return { kind: "StopIfRule", condition, span: this.spanFrom(start, end) };
   }
 
+  private parseContractClauses(): {
+    requires: Expr | null;
+    ensures: Expr | null;
+    invariant: Expr | null;
+  } {
+    let requires: Expr | null = null;
+    let ensures: Expr | null = null;
+    let invariant: Expr | null = null;
+    while (!this.check("LBRACE") && !this.check("EOF")) {
+      if (this.match("REQUIRES")) {
+        requires = this.parseExpr();
+      } else if (this.match("ENSURES")) {
+        ensures = this.parseExpr();
+      } else if (this.match("INVARIANT")) {
+        invariant = this.parseExpr();
+      } else {
+        break;
+      }
+    }
+    return { requires, ensures, invariant };
+  }
+
   private parseBehavior(): BehaviorDecl {
     const start = this.advance();
     const name = this.expect("IDENT", "Expected behavior name");
     this.expect("LPAREN", "Expected '(' after behavior name");
     this.expect("RPAREN", "Expected ')' after behavior parameters");
+    const { requires, ensures, invariant } = this.parseContractClauses();
     this.expect("LBRACE", "Expected '{' after behavior signature");
     const body = this.parseBlock();
     const end = this.expect("RBRACE", "Expected '}' to close behavior");
     return {
       kind: "BehaviorDecl",
       name: name.lexeme,
+      requires,
+      ensures,
+      invariant,
       body,
       span: this.spanFrom(start, end),
     };
   }
 
-  private parseLocalName(message: string): Token {
-    if (this.check("IDENT") || this.check("ACTION")) {
-      return this.advance();
+  private parseTask(): TaskDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected task name");
+    this.expect("EVERY", "Expected 'every' after task name");
+    const intervalMs = this.parseDuration();
+    const { requires, ensures, invariant } = this.parseContractClauses();
+    this.expect("LBRACE", "Expected '{' after task signature");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close task");
+    return {
+      kind: "TaskDecl",
+      name: name.lexeme,
+      intervalMs,
+      requires,
+      ensures,
+      invariant,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseStateMachine(): StateMachineDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected state machine name");
+    this.expect("LBRACE", "Expected '{' after state machine name");
+    const states: string[] = [];
+    const transitions: TransitionDecl[] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.match("STATE")) {
+        states.push(this.expect("IDENT", "Expected state name").lexeme);
+        this.expect("SEMICOLON", "Expected ';' after state");
+      } else if (this.match("TRANSITION")) {
+        const from = this.expect("IDENT", "Expected source state");
+        this.expect("ARROW", "Expected '->' in transition");
+        const to = this.expect("IDENT", "Expected target state");
+        this.expect("SEMICOLON", "Expected ';' after transition");
+        transitions.push({
+          from: from.lexeme,
+          to: to.lexeme,
+          span: this.spanFrom(from, this.previous()),
+        });
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected state or transition in state machine", t.line, t.column);
+      }
     }
-    const t = this.peek();
-    throw new ParseError(message, t.line, t.column);
+    const end = this.expect("RBRACE", "Expected '}' to close state machine");
+    return {
+      kind: "StateMachineDecl",
+      name: name.lexeme,
+      states,
+      transitions,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseEvent(): EventDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected event name");
+    this.expect("SEMICOLON", "Expected ';' after event");
+    return {
+      kind: "EventDecl",
+      name: name.lexeme,
+      span: this.spanFrom(start, this.previous()),
+    };
+  }
+
+  private parseEventHandler(): EventHandlerDecl {
+    const start = this.advance(); // on
+    const eventName = this.expect("IDENT", "Expected event name after on");
+    this.expect("LBRACE", "Expected '{' after event handler");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close event handler");
+    return {
+      kind: "EventHandlerDecl",
+      eventName: eventName.lexeme,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseTwin(): TwinDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected twin name");
+    this.expect("LBRACE", "Expected '{' after twin name");
+    const mirrors: string[] = [];
+    let replay = false;
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.match("MIRROR")) {
+        mirrors.push(this.expect("IDENT", "Expected mirror field").lexeme);
+        this.expect("SEMICOLON", "Expected ';' after mirror");
+      } else if (this.match("REPLAY")) {
+        replay = this.match("TRUE");
+        if (!replay) {
+          this.expect("FALSE", "Expected true or false after replay");
+        }
+        this.expect("SEMICOLON", "Expected ';' after replay");
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected mirror or replay in twin block", t.line, t.column);
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close twin");
+    return {
+      kind: "TwinDecl",
+      name: name.lexeme,
+      mirrors,
+      replay,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseCapability(): CapabilityDecl {
+    const start = this.peek();
+    const action = this.expect("IDENT", "Expected capability action");
+    let target: string | null = null;
+    if (this.match("LPAREN")) {
+      target = this.expect("IDENT", "Expected capability target").lexeme;
+      this.expect("RPAREN", "Expected ')' after capability target");
+    }
+    return {
+      action: action.lexeme,
+      target,
+      span: this.spanFrom(start, this.previous()),
+    };
+  }
+
+  private parseLocalName(message: string): Token {
+    const lexeme = this.parseLabel(message);
+    return {
+      type: "IDENT",
+      lexeme,
+      value: lexeme,
+      line: this.previous().line,
+      column: this.previous().column,
+      offset: this.previous().offset,
+    };
   }
 
   private parseBlock(): Stmt[] {
@@ -802,6 +1212,20 @@ class Parser {
       this.expect("SEMICOLON", "Expected ';' after reset_emergency_stop");
       const end = this.previous();
       return { kind: "ResetEmergencyStopStmt", span: this.spanFrom(start, end) };
+    }
+
+    if (this.match("EMIT")) {
+      const eventName = this.parseLabel("Expected event name after emit");
+      this.expect("SEMICOLON", "Expected ';' after emit statement");
+      const end = this.previous();
+      return { kind: "EmitStmt", eventName, span: this.spanFrom(start, end) };
+    }
+
+    if (this.match("ENTER")) {
+      const stateName = this.parseLabel("Expected state name after enter");
+      this.expect("SEMICOLON", "Expected ';' after enter statement");
+      const end = this.previous();
+      return { kind: "EnterStmt", stateName, span: this.spanFrom(start, end) };
     }
 
     const expr = this.parseExpr();
@@ -1024,6 +1448,36 @@ class Parser {
             end,
           ),
         };
+      } else if (this.check("LBRACE")) {
+        if (expr.kind === "IdentExpr" && /^[A-Z]/.test(expr.name)) {
+          this.advance();
+          const fields: import("../ast/nodes.js").StructFieldInit[] = [];
+          if (!this.check("RBRACE")) {
+            do {
+              const fieldStart = this.peek();
+              const fieldName = this.parseLabel("Expected struct field name");
+              this.expect("COLON", "Expected ':' after struct field name");
+              const value = this.parseExpr();
+              fields.push({
+                name: fieldName,
+                value,
+                span: this.spanFrom(fieldStart, this.previous()),
+              });
+            } while (this.match("COMMA"));
+          }
+          const end = this.expect("RBRACE", "Expected '}' to close struct literal");
+          expr = {
+            kind: "StructLiteralExpr",
+            typeName: expr.name,
+            fields,
+            span: this.spanFrom(
+              { line: expr.span.start.line, column: expr.span.start.column, offset: 0, type: "IDENT", lexeme: expr.name, value: null },
+              end,
+            ),
+          };
+          continue;
+        }
+        break;
       } else {
         break;
       }
@@ -1034,6 +1488,37 @@ class Parser {
 
   private parsePrimary(): Expr {
     const start = this.peek();
+
+    if (this.match("MATCH")) {
+      const scrutinee = this.parseExpr();
+      this.expect("LBRACE", "Expected '{' after match scrutinee");
+      const arms: MatchArm[] = [];
+      while (!this.check("RBRACE") && !this.check("EOF")) {
+        const armStart = this.peek();
+        const variant = this.parseLabel("Expected match arm variant");
+        this.expect("FAT_ARROW", "Expected '=>' in match arm");
+        let body: Stmt[];
+        if (this.check("LBRACE")) {
+          this.advance();
+          body = this.parseBlock();
+          this.expect("RBRACE", "Expected '}' to close match arm");
+        } else {
+          body = [this.parseStmt()];
+        }
+        arms.push({
+          variant,
+          body,
+          span: this.spanFrom(armStart, this.previous()),
+        });
+      }
+      const end = this.expect("RBRACE", "Expected '}' to close match");
+      return {
+        kind: "MatchExpr",
+        scrutinee,
+        arms,
+        span: this.spanFrom(start, end),
+      };
+    }
 
     if (this.match("ROBOT")) {
       const tok = this.previous();
@@ -1098,7 +1583,20 @@ class Parser {
         span: this.spanFrom(start, this.previous()),
       };
     }
-    if (this.match("IDENT") || this.match("ACTION")) {
+    if (
+      this.match(
+        "IDENT",
+        "ACTION",
+        "STATE",
+        "PLAN",
+        "GOAL",
+        "SKILL",
+        "EVENT",
+        "TASK",
+        "TWIN",
+        "MATCH",
+      )
+    ) {
       const tok = this.previous();
       return {
         kind: "IdentExpr",
@@ -1117,11 +1615,9 @@ class Parser {
   }
 
   private parsePropertyName(): Token {
-    if (this.check("IDENT") || this.check("PLAN")) {
-      return this.advance();
-    }
-    const t = this.peek();
-    throw new ParseError("Expected property name after '.'", t.line, t.column);
+    const lexeme = this.parseLabel("Expected property name after '.'");
+    const end = this.previous();
+    return { type: "IDENT", lexeme, value: null, line: end.line, column: end.column, offset: end.offset };
   }
 
   private isNamedArgStart(): boolean {

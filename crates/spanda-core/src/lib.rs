@@ -1,4 +1,8 @@
 pub mod ast;
+pub mod events;
+pub mod foundations;
+pub mod state_machine;
+pub mod twin;
 pub mod lexer;
 pub mod parser;
 pub mod types;
@@ -6,11 +10,13 @@ pub mod runtime;
 pub mod safety;
 pub mod ai;
 pub mod simulator;
+pub mod format;
 pub mod hal;
 pub mod soc;
 pub mod lib_registry;
 mod error;
 
+pub use format::format_source;
 pub use ast::*;
 pub use error::*;
 

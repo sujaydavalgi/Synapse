@@ -9,6 +9,8 @@ import type {
   UnitKind,
   SpandaType,
 } from "../ast/nodes.js";
+import type { CapabilityDecl, MatchArm, TraitImplDecl } from "../foundations.js";
+import { resolveModuleImport, resolveTypeAlias } from "../foundations.js";
 import { resolveImport } from "../lib/registry.js";
 import { resolveAiImport } from "../ai/registry.js";
 import { getSocProfile, validateHalAgainstSoc } from "../soc/index.js";
@@ -46,6 +48,10 @@ type SymbolEntry = {
 };
 
 export function typeCheck(program: Program): void {
+  check(program);
+}
+
+export function check(program: Program): void {
   const checker = new TypeChecker();
   checker.checkProgram(program);
   if (checker.errors.length > 0) {
@@ -56,16 +62,32 @@ export function typeCheck(program: Program): void {
 class TypeChecker {
   errors: TypeError[] = [];
   private symbols = new Map<string, SymbolEntry>();
+  private enumVariants = new Map<string, string[]>();
+  private variantOwner = new Map<string, string>();
+  private structDefs = new Map<string, Array<{ name: string; typeName: string }>>();
+  private traitDefs = new Map<string, Map<string, { params: Array<{ name: string; typeName: string }>; returnType: string }>>();
+  private agentTraitMethods = new Map<string, Map<string, SpandaType>>();
+  private stateMachineStates = new Set<string>();
   private currentRobot: RobotDecl | null = null;
 
   checkProgram(program: Program): void {
     const imported = new Set<string>();
     for (const imp of program.imports) {
-      if (!resolveImport(imp.path) && !resolveAiImport(imp.path)) {
-        this.error(`Unknown library '${imp.path}'`, imp.span.start.line, imp.span.start.column);
+      if (!resolveImport(imp.path) && !resolveAiImport(imp.path) && !resolveModuleImport(imp.path)) {
+        this.error(`Unknown import '${imp.path}'`, imp.span.start.line, imp.span.start.column);
       } else {
         imported.add(imp.path);
       }
+    }
+
+    for (const structDecl of program.structs) {
+      this.checkStruct(structDecl);
+    }
+    for (const enumDecl of program.enums) {
+      this.checkEnum(enumDecl);
+    }
+    for (const traitDecl of program.traits) {
+      this.checkTrait(traitDecl);
     }
 
     for (const robot of program.robots) {
@@ -73,9 +95,101 @@ class TypeChecker {
     }
   }
 
+  private checkStruct(decl: import("../foundations.js").StructDecl): void {
+    for (const field of decl.fields) {
+      if (
+        !resolveTypeAlias(field.typeName) &&
+        !["Pose", "Velocity", "Scan", "String", "Bool", "Path"].includes(field.typeName)
+      ) {
+        this.error(`Unknown field type '${field.typeName}'`, field.span.start.line, field.span.start.column);
+      }
+    }
+    this.symbols.set(decl.name, {
+      name: decl.name,
+      roboType: { kind: "named", name: decl.name },
+      kind: "variable",
+    });
+    this.structDefs.set(
+      decl.name,
+      decl.fields.map((f) => ({ name: f.name, typeName: f.typeName })),
+    );
+  }
+
+  private checkEnum(decl: import("../foundations.js").EnumDecl): void {
+    if (decl.variants.length === 0) {
+      this.error(`Enum '${decl.name}' must declare at least one variant`, decl.span.start.line, decl.span.start.column);
+    }
+    this.symbols.set(decl.name, {
+      name: decl.name,
+      roboType: { kind: "named", name: decl.name },
+      kind: "variable",
+    });
+    this.enumVariants.set(decl.name, [...decl.variants]);
+    for (const variant of decl.variants) {
+      const existing = this.variantOwner.get(variant);
+      if (existing) {
+        this.error(
+          `Enum variant '${variant}' already declared in enum '${existing}'`,
+          decl.span.start.line,
+          decl.span.start.column,
+        );
+      } else {
+        this.variantOwner.set(variant, decl.name);
+      }
+    }
+  }
+
+  private checkTrait(decl: import("../foundations.js").TraitDecl): void {
+    if (decl.methods.length === 0) {
+      this.error(`Trait '${decl.name}' must declare at least one method`, decl.span.start.line, decl.span.start.column);
+    }
+    const methodMap = new Map<string, { params: Array<{ name: string; typeName: string }>; returnType: string }>();
+    for (const method of decl.methods) {
+      methodMap.set(method.name, {
+        params: method.params.map((p) => ({ name: p.name, typeName: p.typeName })),
+        returnType: method.returnType,
+      });
+    }
+    this.traitDefs.set(decl.name, methodMap);
+  }
+
+  private typeNameToSpanda(typeName: string): SpandaType {
+    switch (resolveTypeAlias(typeName)) {
+      case "distance":
+        return { kind: "number", unit: "m" };
+      case "angle":
+        return { kind: "number", unit: "rad" };
+      case "path":
+        return { kind: "trajectory" };
+      case "velocity":
+        return { kind: "velocity" };
+      case "pose":
+        return { kind: "pose" };
+      default:
+        return { kind: "named", name: typeName };
+    }
+  }
+
   private checkRobot(robot: RobotDecl, imported: Set<string>): void {
     this.currentRobot = robot;
     this.symbols.clear();
+    this.stateMachineStates.clear();
+    this.agentTraitMethods.clear();
+
+    for (const enumName of this.enumVariants.keys()) {
+      this.symbols.set(enumName, {
+        name: enumName,
+        roboType: { kind: "named", name: enumName },
+        kind: "variable",
+      });
+    }
+    for (const structName of this.structDefs.keys()) {
+      this.symbols.set(structName, {
+        name: structName,
+        roboType: { kind: "named", name: structName },
+        kind: "variable",
+      });
+    }
 
     if (robot.soc) {
       if (!getSocProfile(robot.soc.profile)) {
@@ -202,14 +316,166 @@ class TypeChecker {
       this.checkAgent(agent);
     }
 
+    for (const traitImpl of robot.traitImpls) {
+      this.checkTraitImpl(traitImpl);
+    }
+
+    for (const sm of robot.stateMachines) {
+      if (sm.states.length === 0) {
+        this.error(
+          `State machine '${sm.name}' must declare at least one state`,
+          sm.span.start.line,
+          sm.span.start.column,
+        );
+      }
+      const stateSet = new Set(sm.states);
+      for (const transition of sm.transitions) {
+        if (!stateSet.has(transition.from) || !stateSet.has(transition.to)) {
+          this.error(
+            `Invalid transition ${transition.from} -> ${transition.to} in state machine '${sm.name}'`,
+            transition.span.start.line,
+            transition.span.start.column,
+          );
+        }
+      }
+      for (const state of sm.states) {
+        this.stateMachineStates.add(state);
+      }
+    }
+
+    if (robot.twin) {
+      if (robot.twin.mirrors.length === 0) {
+        this.error("Digital twin must mirror at least one field", robot.twin.span.start.line, robot.twin.span.start.column);
+      }
+      const allowedMirrorFields = ["pose", "velocity", "battery", "status", "scan"];
+      for (const mirror of robot.twin.mirrors) {
+        if (!allowedMirrorFields.includes(mirror)) {
+          this.error(`Unknown twin mirror field '${mirror}'`, robot.twin.span.start.line, robot.twin.span.start.column);
+        }
+      }
+      this.symbols.set(robot.twin.name, {
+        name: robot.twin.name,
+        roboType: { kind: "named", name: "Twin" },
+        kind: "variable",
+      });
+    }
+
     for (const behavior of robot.behaviors) {
+      if (behavior.requires) {
+        const t = this.checkExpr(behavior.requires);
+        if (t.kind !== "bool") {
+          this.error("requires clause must be boolean", behavior.span.start.line, behavior.span.start.column);
+        }
+      }
+      if (behavior.ensures) this.checkExpr(behavior.ensures);
+      if (behavior.invariant) this.checkExpr(behavior.invariant);
       this.symbols.set(behavior.name, {
         name: behavior.name,
         roboType: { kind: "void" },
         kind: "behavior",
       });
-      this.checkBehavior(behavior);
+      this.checkBehaviorBody(behavior.body);
     }
+
+    for (const task of robot.tasks) {
+      if (task.intervalMs <= 0) {
+        this.error("task interval must be positive", task.span.start.line, task.span.start.column);
+      } else if (task.intervalMs < 1) {
+        this.error("task interval must be at least 1ms", task.span.start.line, task.span.start.column);
+      }
+      if (task.requires) this.checkExpr(task.requires);
+      if (task.ensures) this.checkExpr(task.ensures);
+      this.symbols.set(task.name, {
+        name: task.name,
+        roboType: { kind: "void" },
+        kind: "behavior",
+      });
+      this.checkBehaviorBody(task.body);
+    }
+
+    for (const handler of robot.eventHandlers) {
+      const declared = robot.events.some((e) => e.name === handler.eventName);
+      if (!declared) {
+        this.error(
+          `No event declared for handler '${handler.eventName}'`,
+          handler.span.start.line,
+          handler.span.start.column,
+        );
+      }
+      this.checkBehaviorBody(handler.body);
+    }
+  }
+
+  private checkTraitImpl(decl: TraitImplDecl): void {
+    const traitMethods = this.traitDefs.get(decl.traitName);
+    if (!traitMethods) {
+      this.error(`Unknown trait '${decl.traitName}'`, decl.span.start.line, decl.span.start.column);
+      return;
+    }
+    const agentSym = this.symbols.get(decl.agentName);
+    if (!agentSym || agentSym.kind !== "agent") {
+      this.error(
+        `Trait impl target '${decl.agentName}' is not a declared agent`,
+        decl.span.start.line,
+        decl.span.start.column,
+      );
+      return;
+    }
+    const registered: Array<[string, SpandaType]> = [];
+    for (const method of decl.methods) {
+      const expected = traitMethods.get(method.name);
+      if (!expected) {
+        this.error(
+          `Trait '${decl.traitName}' has no method '${method.name}'`,
+          method.span.start.line,
+          method.span.start.column,
+        );
+        continue;
+      }
+      if (method.returnType !== expected.returnType) {
+        this.error(
+          `Trait method '${method.name}' return type mismatch: expected ${expected.returnType}, got ${method.returnType}`,
+          method.span.start.line,
+          method.span.start.column,
+        );
+      }
+      if (method.params.length !== expected.params.length) {
+        this.error(
+          `Trait method '${method.name}' parameter count mismatch`,
+          method.span.start.line,
+          method.span.start.column,
+        );
+      }
+      for (let i = 0; i < method.params.length; i++) {
+        const actual = method.params[i];
+        const exp = expected.params[i];
+        if (!exp || actual.name !== exp.name || actual.typeName !== exp.typeName) {
+          this.error(
+            `Trait method '${method.name}' parameter '${exp?.name ?? actual.name}' type mismatch`,
+            actual.span.start.line,
+            actual.span.start.column,
+          );
+        }
+      }
+      const saved = new Map(this.symbols);
+      for (const param of method.params) {
+        this.symbols.set(param.name, {
+          name: param.name,
+          roboType: this.typeNameToSpanda(param.typeName),
+          kind: "variable",
+        });
+      }
+      for (const stmt of method.body) {
+        this.checkStmt(stmt);
+      }
+      this.symbols = saved;
+      registered.push([method.name, this.typeNameToSpanda(method.returnType)]);
+    }
+    const agentMethods = this.agentTraitMethods.get(decl.agentName) ?? new Map<string, SpandaType>();
+    for (const [name, ret] of registered) {
+      agentMethods.set(name, ret);
+    }
+    this.agentTraitMethods.set(decl.agentName, agentMethods);
   }
 
   private checkSafetyRule(rule: SafetyRule): void {
@@ -294,11 +560,14 @@ class TypeChecker {
     for (const tool of agent.tools) {
       if (!this.symbols.has(tool)) {
         this.error(
-          `Agent '${agent.name} references unknown tool '${tool}`,
+          `Agent '${agent.name}' references unknown tool '${tool}'`,
           agent.span.start.line,
           agent.span.start.column,
         );
       }
+    }
+    for (const cap of agent.capabilities) {
+      this.checkCapability(agent.name, cap);
     }
     this.symbols.set(agent.name, {
       name: agent.name,
@@ -313,7 +582,28 @@ class TypeChecker {
     this.symbols = saved;
   }
 
-  private checkBehavior(behavior: BehaviorDecl): void {
+  private checkCapability(agentName: string, cap: CapabilityDecl): void {
+    const allowed = ["read", "propose_motion", "summarize", "detect", "plan"];
+    if (!allowed.includes(cap.action)) {
+      this.error(`Unknown capability '${cap.action}'`, cap.span.start.line, cap.span.start.column);
+      return;
+    }
+    if (cap.action === "read") {
+      if (cap.target) {
+        if (!this.symbols.has(cap.target)) {
+          this.error(
+            `Agent '${agentName}' capability read(${cap.target}) references unknown resource`,
+            cap.span.start.line,
+            cap.span.start.column,
+          );
+        }
+      } else {
+        this.error(`Agent '${agentName}' read capability requires a target`, cap.span.start.line, cap.span.start.column);
+      }
+    }
+  }
+
+  private checkBehaviorBody(body: Stmt[]): void {
     const parentScope = new Map(this.symbols);
     this.symbols = new Map(parentScope);
     this.symbols.set("robot", {
@@ -321,7 +611,7 @@ class TypeChecker {
       roboType: { kind: "named", name: "Robot" },
       kind: "robot",
     });
-    for (const stmt of behavior.body) {
+    for (const stmt of body) {
       this.checkStmt(stmt);
     }
     this.symbols = parentScope;
@@ -382,6 +672,16 @@ class TypeChecker {
       }
       case "EmergencyStopStmt":
       case "ResetEmergencyStopStmt":
+      case "EmitStmt":
+        break;
+      case "EnterStmt":
+        if (!this.stateMachineStates.has(stmt.stateName)) {
+          this.error(
+            `Unknown state '${stmt.stateName}' for enter statement`,
+            stmt.span.start.line,
+            stmt.span.start.column,
+          );
+        }
         break;
       case "ExprStmt":
         this.checkExpr(stmt.expr);
@@ -404,6 +704,10 @@ class TypeChecker {
         return { kind: "number", unit: expr.unit };
 
       case "IdentExpr": {
+        const enumName = this.variantOwner.get(expr.name);
+        if (enumName) {
+          return { kind: "enum_variant", enumName, variant: expr.name };
+        }
         const sym = this.symbols.get(expr.name);
         if (!sym) {
           this.error(`Undefined identifier '${expr.name}'`, expr.span.start.line, expr.span.start.column);
@@ -444,8 +748,85 @@ class TypeChecker {
       case "CallExpr":
         return this.checkCall(expr);
 
+      case "MatchExpr":
+        return this.checkMatch(expr);
+
+      case "StructLiteralExpr":
+        return this.checkStructLiteral(expr);
+
       default:
         return { kind: "void" };
+    }
+  }
+
+  private checkStructLiteral(expr: import("../ast/nodes.js").StructLiteralExpr): SpandaType {
+    const def = this.structDefs.get(expr.typeName);
+    if (!def) {
+      this.error(`Unknown struct type '${expr.typeName}'`, expr.span.start.line, expr.span.start.column);
+      return { kind: "void" };
+    }
+    const provided = new Set<string>();
+    for (const field of expr.fields) {
+      if (provided.has(field.name)) {
+        this.error(`Duplicate struct field '${field.name}'`, field.span.start.line, field.span.start.column);
+      }
+      provided.add(field.name);
+      const fieldDef = def.find((f) => f.name === field.name);
+      if (!fieldDef) {
+        this.error(
+          `Struct '${expr.typeName}' has no field '${field.name}'`,
+          field.span.start.line,
+          field.span.start.column,
+        );
+        continue;
+      }
+      const expected = this.typeNameToSpanda(fieldDef.typeName);
+      const actual = this.checkExpr(field.value);
+      this.assertCompatible(expected, actual, field.span.start.line, field.span.start.column);
+    }
+    for (const { name } of def) {
+      if (!provided.has(name)) {
+        this.error(
+          `Missing struct field '${name}' in '${expr.typeName}' literal`,
+          expr.span.start.line,
+          expr.span.start.column,
+        );
+      }
+    }
+    return { kind: "named", name: expr.typeName };
+  }
+
+  private checkMatch(expr: import("../ast/nodes.js").MatchExpr): SpandaType {
+    this.checkExpr(expr.scrutinee);
+    if (expr.arms.length === 0) {
+      this.error("match expression requires at least one arm", expr.span.start.line, expr.span.start.column);
+    }
+    for (const arm of expr.arms) {
+      for (const stmt of arm.body) {
+        this.checkStmt(stmt);
+      }
+    }
+    this.checkMatchExhaustiveness(expr.arms, expr.span);
+    return { kind: "void" };
+  }
+
+  private checkMatchExhaustiveness(arms: MatchArm[], span: import("../ast/nodes.js").Span): void {
+    const armNames = new Set(arms.map((a) => a.variant));
+    if (armNames.size === 0) return;
+
+    for (const variants of this.enumVariants.values()) {
+      const variantSet = new Set(variants);
+      if ([...armNames].every((name) => variantSet.has(name))) {
+        if (armNames.size < variantSet.size) {
+          const missing = variants.filter((v) => !armNames.has(v));
+          this.error(
+            `Non-exhaustive match: missing variants ${missing.join(", ")}`,
+            span.start.line,
+            span.start.column,
+          );
+        }
+        return;
+      }
     }
   }
 
@@ -487,6 +868,16 @@ class TypeChecker {
     }
 
     if (objType.kind === "named") {
+      const enumVariants = this.enumVariants.get(objType.name);
+      if (enumVariants?.includes(expr.property)) {
+        return { kind: "enum_variant", enumName: objType.name, variant: expr.property };
+      }
+      const structFields = this.structDefs.get(objType.name);
+      const structField = structFields?.find((f) => f.name === expr.property);
+      if (structField) {
+        return this.typeNameToSpanda(structField.typeName);
+      }
+
       const objProps = OBJECT_PROPERTIES[objType.name];
       if (objProps?.[expr.property]) return objProps[expr.property];
 
@@ -551,6 +942,10 @@ class TypeChecker {
     }
 
     if (sym.kind === "agent") {
+      const traitMethods = this.agentTraitMethods.get(targetName);
+      if (traitMethods?.has(member.property)) {
+        return traitMethods.get(member.property)!;
+      }
       const agentMethod = BUILTIN_METHODS.Agent?.[member.property];
       if (!agentMethod) {
         this.error(`Unknown agent method '${member.property}`, expr.span.start.line, expr.span.start.column);
@@ -592,6 +987,17 @@ class TypeChecker {
         const expected = method.namedParams[arg.name];
         if (!expected) {
           this.error(`Unknown named argument '${arg.name}'`, arg.span.start.line, arg.span.start.column);
+          continue;
+        }
+        if (typeName === "Twin" && arg.name === "field" && arg.value.kind === "IdentExpr") {
+          const allowedMirrorFields = ["pose", "velocity", "battery", "status", "scan"];
+          if (!allowedMirrorFields.includes(arg.value.name)) {
+            this.error(
+              `Unknown twin mirror field '${arg.value.name}'`,
+              arg.span.start.line,
+              arg.span.start.column,
+            );
+          }
           continue;
         }
         const actual = this.checkExpr(arg.value);
@@ -662,5 +1068,3 @@ class TypeChecker {
     this.errors.push({ message, line, column });
   }
 }
-
-export { typeCheck as check };

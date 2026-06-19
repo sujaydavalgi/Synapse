@@ -1,0 +1,57 @@
+module warehouse;
+
+import navigation.planning;
+
+enum DeliveryPhase {
+  Idle,
+  Loading,
+  InTransit,
+  Delivered
+}
+
+robot WarehouseRobot {
+  node logistics on "/warehouse";
+
+  topic status: String publish on "/status";
+  service clear_map: ClearCostmap;
+  action follow_route: FollowPath;
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  event LoadComplete;
+
+  on LoadComplete {
+    publish status with "loaded";
+  }
+
+  state_machine DeliveryFlow {
+    state Idle;
+    state Loading;
+    state InTransit;
+    state Delivered;
+    transition Idle -> Loading;
+    transition Loading -> InTransit;
+    transition InTransit -> Delivered;
+  }
+
+  twin WarehouseTwin {
+    mirror pose;
+    replay true;
+  }
+
+  safety {
+    max_speed = 0.8 m/s;
+    zone dock rect at (2.0 m, 1.0 m) size (1.5 m, 1.0 m);
+    stop_if robot.in_zone("dock");
+  }
+
+  task patrol every 100ms requires lidar.nearest_distance > 0.4 m {
+    let start = robot.pose();
+    let dock = pose(x: 2.5 m, y: 1.5 m, theta: 0.0 rad);
+    let path = trajectory(from: start, to: dock, steps: 8);
+    call clear_map();
+    send_goal follow_route with path;
+    wheels.follow(path: path);
+  }
+}

@@ -1,5 +1,10 @@
 use crate::ai::resolve_ai_import;
 use crate::ast::*;
+use crate::foundations::{
+    resolve_module_import, resolve_type_alias, CapabilityDecl, EnumDecl, EventDecl,
+    EventHandlerDecl, MatchArm, StateMachineDecl, StructDecl, TaskDecl, TraitDecl, TraitImplDecl,
+    TwinDecl,
+};
 use crate::error::{Diagnostic, SpandaError};
 use crate::hal::hal_member_from_decl;
 use crate::lib_registry::{all_library_sensor_types, resolve_import};
@@ -115,6 +120,12 @@ enum SymbolKind {
 pub struct TypeChecker {
     pub errors: Vec<Diagnostic>,
     symbols: HashMap<String, SymbolEntry>,
+    enum_variants: HashMap<String, Vec<String>>,
+    variant_owner: HashMap<String, String>,
+    struct_defs: HashMap<String, Vec<(String, String)>>,
+    trait_defs: HashMap<String, HashMap<String, (Vec<(String, String)>, String)>>,
+    agent_trait_methods: HashMap<String, HashMap<String, SpandaType>>,
+    state_machine_states: std::collections::HashSet<String>,
 }
 
 impl TypeChecker {
@@ -122,17 +133,33 @@ impl TypeChecker {
         Self {
             errors: Vec::new(),
             symbols: HashMap::new(),
+            enum_variants: HashMap::new(),
+            variant_owner: HashMap::new(),
+            struct_defs: HashMap::new(),
+            trait_defs: HashMap::new(),
+            agent_trait_methods: HashMap::new(),
+            state_machine_states: std::collections::HashSet::new(),
         }
     }
 
     pub fn check_program(&mut self, program: &Program) {
-        let Program::Program { imports, robots, .. } = program;
+        let Program::Program {
+            imports,
+            structs,
+            enums,
+            traits,
+            robots,
+            ..
+        } = program;
         let mut imported = std::collections::HashSet::new();
         for imp in imports {
             let ImportDecl::ImportDecl { path, span } = imp;
-            if resolve_import(path).is_none() && resolve_ai_import(path).is_none() {
+            if resolve_import(path).is_none()
+                && resolve_ai_import(path).is_none()
+                && !resolve_module_import(path)
+            {
                 self.error(
-                    format!("Unknown library '{path}'"),
+                    format!("Unknown import '{path}'"),
                     span.start.line,
                     span.start.column,
                 );
@@ -141,8 +168,126 @@ impl TypeChecker {
             }
         }
 
+        for struct_decl in structs {
+            self.check_struct(struct_decl);
+        }
+        for enum_decl in enums {
+            self.check_enum(enum_decl);
+        }
+        for trait_decl in traits {
+            self.check_trait(trait_decl);
+        }
+
         for robot in robots {
             self.check_robot(robot, &imported);
+        }
+    }
+
+    fn check_struct(&mut self, decl: &StructDecl) {
+        let StructDecl::StructDecl { name, fields, span } = decl;
+        for field in fields {
+            if resolve_type_alias(&field.type_name).is_none()
+                && !matches!(
+                    field.type_name.as_str(),
+                    "Pose" | "Velocity" | "Scan" | "String" | "Bool" | "Path"
+                )
+            {
+                self.error(
+                    format!("Unknown field type '{}'", field.type_name),
+                    field.span.start.line,
+                    field.span.start.column,
+                );
+            }
+        }
+        self.symbols.insert(
+            name.clone(),
+            SymbolEntry {
+                robo_type: SpandaType::Named { name: name.clone() },
+                kind: SymbolKind::Variable,
+                sensor_type: None,
+                actuator_type: None,
+            },
+        );
+        self.struct_defs.insert(
+            name.clone(),
+            fields
+                .iter()
+                .map(|f| (f.name.clone(), f.type_name.clone()))
+                .collect(),
+        );
+        let _ = span;
+    }
+
+    fn check_enum(&mut self, decl: &EnumDecl) {
+        let EnumDecl::EnumDecl { name, variants, span } = decl;
+        if variants.is_empty() {
+            self.error(
+                format!("Enum '{name}' must declare at least one variant"),
+                span.start.line,
+                span.start.column,
+            );
+        }
+        self.symbols.insert(
+            name.clone(),
+            SymbolEntry {
+                robo_type: SpandaType::Named { name: name.clone() },
+                kind: SymbolKind::Variable,
+                sensor_type: None,
+                actuator_type: None,
+            },
+        );
+        self.enum_variants.insert(name.clone(), variants.clone());
+        for variant in variants {
+            if let Some(existing) = self.variant_owner.insert(variant.clone(), name.clone()) {
+                self.error(
+                    format!("Enum variant '{variant}' already declared in enum '{existing}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        }
+    }
+
+    fn check_trait(&mut self, decl: &TraitDecl) {
+        let TraitDecl::TraitDecl { name, methods, span } = decl;
+        if methods.is_empty() {
+            self.error(
+                format!("Trait '{name}' must declare at least one method"),
+                span.start.line,
+                span.start.column,
+            );
+        }
+        let mut method_map = HashMap::new();
+        for method in methods {
+            method_map.insert(
+                method.name.clone(),
+                (
+                    method
+                        .params
+                        .iter()
+                        .map(|p| (p.name.clone(), p.type_name.clone()))
+                        .collect(),
+                    method.return_type.clone(),
+                ),
+            );
+        }
+        self.trait_defs.insert(name.clone(), method_map);
+    }
+
+    fn type_name_to_spanda(&self, type_name: &str) -> SpandaType {
+        match resolve_type_alias(type_name) {
+            Some("distance") => SpandaType::Number {
+                unit: UnitKind::M,
+            },
+            Some("angle") => SpandaType::Number {
+                unit: UnitKind::Rad,
+            },
+            Some("path") => SpandaType::Trajectory,
+            Some("velocity") => SpandaType::Velocity,
+            Some("pose") => SpandaType::Pose,
+            _ => SpandaType::Named {
+                name: type_name.to_string(),
+            },
         }
     }
 
@@ -160,10 +305,44 @@ impl TypeChecker {
             ai_models,
             agents,
             behaviors,
+            tasks,
+            state_machines,
+            events,
+            event_handlers,
+            twin,
+            trait_impls,
             ..
         } = robot;
 
         self.symbols.clear();
+        self.state_machine_states.clear();
+        self.agent_trait_methods.clear();
+        for enum_name in self.enum_variants.keys() {
+            self.symbols.insert(
+                enum_name.clone(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: enum_name.clone(),
+                    },
+                    kind: SymbolKind::Variable,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+        }
+        for struct_name in self.struct_defs.keys() {
+            self.symbols.insert(
+                struct_name.clone(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: struct_name.clone(),
+                    },
+                    kind: SymbolKind::Variable,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+        }
 
         if let Some(soc_decl) = soc {
             let SocDecl::SocDecl { profile, span } = soc_decl;
@@ -264,9 +443,98 @@ impl TypeChecker {
         for agent in agents {
             self.check_agent(agent);
         }
+        for trait_impl in trait_impls {
+            self.check_trait_impl(trait_impl);
+        }
+
+        for sm in state_machines {
+            let StateMachineDecl::StateMachineDecl {
+                name,
+                states,
+                transitions,
+                span,
+            } = sm;
+            if states.is_empty() {
+                self.error(
+                    format!("State machine '{name}' must declare at least one state"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+            let state_set: std::collections::HashSet<_> = states.iter().cloned().collect();
+            for transition in transitions {
+                if !state_set.contains(&transition.from) || !state_set.contains(&transition.to) {
+                    self.error(
+                        format!(
+                            "Invalid transition {} -> {} in state machine '{name}'",
+                            transition.from, transition.to
+                        ),
+                        transition.span.start.line,
+                        transition.span.start.column,
+                    );
+                }
+            }
+            self.state_machine_states.extend(states.iter().cloned());
+        }
+
+        if let Some(twin_decl) = twin {
+            let TwinDecl::TwinDecl {
+                name,
+                mirrors,
+                span,
+                ..
+            } = twin_decl;
+            if mirrors.is_empty() {
+                self.error(
+                    "Digital twin must mirror at least one field".into(),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+            const ALLOWED_MIRROR_FIELDS: &[&str] = &["pose", "velocity", "battery", "status", "scan"];
+            for mirror in mirrors {
+                if !ALLOWED_MIRROR_FIELDS.contains(&mirror.as_str()) {
+                    self.error(
+                        format!("Unknown twin mirror field '{mirror}'"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+            }
+            self.symbols.insert(
+                name.clone(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: "Twin".into(),
+                    },
+                    kind: SymbolKind::Variable,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+        }
 
         for behavior in behaviors {
-            let BehaviorDecl::BehaviorDecl { name, body, .. } = behavior;
+            let BehaviorDecl::BehaviorDecl {
+                name,
+                requires,
+                ensures,
+                invariant,
+                body,
+                ..
+            } = behavior;
+            if let Some(req) = requires {
+                let t = self.check_expr(req);
+                if !matches!(t, SpandaType::Bool) {
+                    self.error("requires clause must be boolean".into(), 0, 0);
+                }
+            }
+            if let Some(post) = ensures {
+                self.check_expr(post);
+            }
+            if let Some(inv) = invariant {
+                self.check_expr(inv);
+            }
             self.symbols.insert(
                 name.clone(),
                 SymbolEntry {
@@ -276,6 +544,67 @@ impl TypeChecker {
                     actuator_type: None,
                 },
             );
+            self.check_behavior(body);
+        }
+
+        for task in tasks {
+            let TaskDecl::TaskDecl {
+                name,
+                interval_ms,
+                requires,
+                ensures,
+                body,
+                span,
+                ..
+            } = task;
+            if *interval_ms <= 0.0 {
+                self.error(
+                    "task interval must be positive".into(),
+                    span.start.line,
+                    span.start.column,
+                );
+            } else if *interval_ms < 1.0 {
+                self.error(
+                    "task interval must be at least 1ms".into(),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+            if let Some(req) = requires {
+                self.check_expr(req);
+            }
+            if let Some(post) = ensures {
+                self.check_expr(post);
+            }
+            self.symbols.insert(
+                name.clone(),
+                SymbolEntry {
+                    robo_type: SpandaType::Void,
+                    kind: SymbolKind::Behavior,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+            self.check_behavior(body);
+        }
+
+        for handler in event_handlers {
+            let EventHandlerDecl::EventHandlerDecl {
+                event_name,
+                body,
+                span,
+            } = handler;
+            let declared = events.iter().any(|e| {
+                let EventDecl::EventDecl { name, .. } = e;
+                name == event_name
+            });
+            if !declared {
+                self.error(
+                    format!("No event declared for handler '{event_name}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
             self.check_behavior(body);
         }
     }
@@ -520,6 +849,103 @@ impl TypeChecker {
             }
     }
 
+    fn check_trait_impl(&mut self, decl: &TraitImplDecl) {
+        let TraitImplDecl::TraitImplDecl {
+            trait_name,
+            agent_name,
+            methods,
+            span,
+        } = decl;
+        let Some(trait_methods) = self.trait_defs.get(trait_name).cloned() else {
+            self.error(
+                format!("Unknown trait '{trait_name}'"),
+                span.start.line,
+                span.start.column,
+            );
+            return;
+        };
+        if self
+            .symbols
+            .get(agent_name)
+            .map(|s| s.kind)
+            != Some(SymbolKind::Agent)
+        {
+            self.error(
+                format!("Trait impl target '{agent_name}' is not a declared agent"),
+                span.start.line,
+                span.start.column,
+            );
+            return;
+        }
+        let mut registered: Vec<(String, SpandaType)> = Vec::new();
+        for method in methods {
+            let Some((expected_params, expected_return)) = trait_methods.get(&method.name) else {
+                self.error(
+                    format!("Trait '{trait_name}' has no method '{}'", method.name),
+                    method.span.start.line,
+                    method.span.start.column,
+                );
+                continue;
+            };
+            if method.return_type != *expected_return {
+                self.error(
+                    format!(
+                        "Trait method '{}' return type mismatch: expected {}, got {}",
+                        method.name, expected_return, method.return_type
+                    ),
+                    method.span.start.line,
+                    method.span.start.column,
+                );
+            }
+            if method.params.len() != expected_params.len() {
+                self.error(
+                    format!("Trait method '{}' parameter count mismatch", method.name),
+                    method.span.start.line,
+                    method.span.start.column,
+                );
+            }
+            for (actual, (pname, ptype)) in method.params.iter().zip(expected_params.iter()) {
+                if actual.name != *pname || actual.type_name != *ptype {
+                    self.error(
+                        format!(
+                            "Trait method '{}' parameter '{}' type mismatch",
+                            method.name, pname
+                        ),
+                        actual.span.start.line,
+                        actual.span.start.column,
+                    );
+                }
+            }
+            let saved = self.symbols.clone();
+            for param in &method.params {
+                self.symbols.insert(
+                    param.name.clone(),
+                    SymbolEntry {
+                        robo_type: self.type_name_to_spanda(&param.type_name),
+                        kind: SymbolKind::Variable,
+                        sensor_type: None,
+                        actuator_type: None,
+                    },
+                );
+            }
+            for stmt in &method.body {
+                self.check_stmt(stmt);
+            }
+            self.symbols = saved;
+            registered.push((
+                method.name.clone(),
+                self.type_name_to_spanda(&method.return_type),
+            ));
+        }
+        let agent_methods = self
+            .agent_trait_methods
+            .entry(agent_name.clone())
+            .or_default();
+        for (name, ret) in registered {
+            agent_methods.insert(name, ret);
+        }
+    }
+
     fn check_ai_model(&mut self, model: &AiModelDecl) {
         let AiModelDecl::AiModelDecl {
             name,
@@ -552,11 +978,41 @@ impl TypeChecker {
             );
     }
 
+    fn check_capability(&mut self, agent_name: &str, cap: &CapabilityDecl) {
+        let allowed = ["read", "propose_motion", "summarize", "detect", "plan"];
+        if !allowed.contains(&cap.action.as_str()) {
+            self.error(
+                format!("Unknown capability '{}'", cap.action),
+                cap.span.start.line,
+                cap.span.start.column,
+            );
+            return;
+        }
+        if cap.action == "read" {
+            if let Some(target) = &cap.target {
+                if !self.symbols.contains_key(target) {
+                    self.error(
+                        format!("Agent '{agent_name}' capability read({target}) references unknown resource"),
+                        cap.span.start.line,
+                        cap.span.start.column,
+                    );
+                }
+            } else {
+                self.error(
+                    format!("Agent '{agent_name}' read capability requires a target"),
+                    cap.span.start.line,
+                    cap.span.start.column,
+                );
+            }
+        }
+    }
+
     fn check_agent(&mut self, agent: &AgentDecl) {
         let AgentDecl::AgentDecl {
             name,
             uses_ai,
             tools,
+            capabilities,
             plan_body,
             span,
             ..
@@ -586,6 +1042,9 @@ impl TypeChecker {
                         span.start.column,
                     );
                 }
+            }
+            for cap in capabilities {
+                self.check_capability(name, cap);
             }
             self.symbols.insert(
                 name.clone(),
@@ -737,6 +1196,19 @@ impl TypeChecker {
                 }
             }
             Stmt::EmergencyStopStmt { .. } | Stmt::ResetEmergencyStopStmt { .. } => {}
+            Stmt::EmitStmt { .. } => {}
+            Stmt::EnterStmt {
+                state_name,
+                span,
+            } => {
+                if !self.state_machine_states.contains(state_name) {
+                    self.error(
+                        format!("Unknown state '{state_name}' for enter statement"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+            }
             Stmt::ExprStmt { expr, .. } => {
                 self.check_expr(expr);
             }
@@ -760,6 +1232,12 @@ impl TypeChecker {
             },
             Expr::UnitLiteralExpr { value: _, unit, .. } => SpandaType::Number { unit: *unit },
             Expr::IdentExpr { name, span } => {
+                if let Some(enum_name) = self.variant_owner.get(name) {
+                    return SpandaType::EnumVariant {
+                        enum_name: enum_name.clone(),
+                        variant: name.clone(),
+                    };
+                }
                 if let Some(sym) = self.symbols.get(name) {
                     sym.robo_type.clone()
                 } else {
@@ -817,6 +1295,119 @@ impl TypeChecker {
                 named_args,
                 span,
             } => self.check_call(callee, args, named_args, span),
+            Expr::MatchExpr {
+                scrutinee,
+                arms,
+                span,
+            } => self.check_match(scrutinee, arms, span),
+            Expr::StructLiteralExpr {
+                type_name,
+                fields,
+                span,
+            } => self.check_struct_literal(type_name, fields, span),
+        }
+    }
+
+    fn check_struct_literal(
+        &mut self,
+        type_name: &str,
+        fields: &[crate::ast::StructFieldInit],
+        span: &Span,
+    ) -> SpandaType {
+        let Some(def) = self.struct_defs.get(type_name).cloned() else {
+            self.error(
+                format!("Unknown struct type '{type_name}'"),
+                span.start.line,
+                span.start.column,
+            );
+            return SpandaType::Void;
+        };
+        let mut provided = std::collections::HashSet::new();
+        for field in fields {
+            if provided.contains(&field.name) {
+                self.error(
+                    format!("Duplicate struct field '{}'", field.name),
+                    field.span.start.line,
+                    field.span.start.column,
+                );
+            }
+            provided.insert(field.name.clone());
+            let expected = def
+                .iter()
+                .find(|(name, _)| name == &field.name)
+                .map(|(_, t)| self.type_name_to_spanda(t));
+            let Some(expected) = expected else {
+                self.error(
+                    format!("Struct '{type_name}' has no field '{}'", field.name),
+                    field.span.start.line,
+                    field.span.start.column,
+                );
+                continue;
+            };
+            let actual = self.check_expr(&field.value);
+            self.assert_compatible(
+                &expected,
+                &actual,
+                field.span.start.line,
+                field.span.start.column,
+            );
+        }
+        for (name, _) in &def {
+            if !provided.contains(name) {
+                self.error(
+                    format!("Missing struct field '{name}' in '{type_name}' literal"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        }
+        SpandaType::Named {
+            name: type_name.to_string(),
+        }
+    }
+
+    fn check_match(
+        &mut self,
+        scrutinee: &Expr,
+        arms: &[MatchArm],
+        span: &Span,
+    ) -> SpandaType {
+        let _scrutinee_type = self.check_expr(scrutinee);
+        if arms.is_empty() {
+            self.error(
+                "match expression requires at least one arm".into(),
+                span.start.line,
+                span.start.column,
+            );
+        }
+        for arm in arms {
+            for stmt in &arm.body {
+                self.check_stmt(stmt);
+            }
+        }
+        self.check_match_exhaustiveness(arms, span);
+        SpandaType::Void
+    }
+
+    fn check_match_exhaustiveness(&mut self, arms: &[MatchArm], span: &Span) {
+        use std::collections::HashSet;
+        let arm_names: HashSet<String> = arms.iter().map(|a| a.variant.clone()).collect();
+        if arm_names.is_empty() {
+            return;
+        }
+        for variants in self.enum_variants.values() {
+            let variant_set: HashSet<String> = variants.iter().cloned().collect();
+            if arm_names.is_subset(&variant_set) {
+                if arm_names.len() < variant_set.len() {
+                    let missing: Vec<_> = variant_set.difference(&arm_names).cloned().collect();
+                    self.error(
+                        format!("Non-exhaustive match: missing variants {}", missing.join(", ")),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+                return;
+            }
         }
     }
 
@@ -851,6 +1442,19 @@ impl TypeChecker {
                 SpandaType::Void
             }),
             SpandaType::Named { name } => {
+                if let Some(variants) = self.enum_variants.get(name) {
+                    if variants.iter().any(|v| v == property) {
+                        return SpandaType::EnumVariant {
+                            enum_name: name.clone(),
+                            variant: property.to_string(),
+                        };
+                    }
+                }
+                if let Some(fields) = self.struct_defs.get(name) {
+                    if let Some((_, type_name)) = fields.iter().find(|(field, _)| field == property) {
+                        return self.type_name_to_spanda(type_name);
+                    }
+                }
                 if let Some(prop) = object_property(name, property) {
                     return prop;
                 }
@@ -954,6 +1558,14 @@ impl TypeChecker {
             return SpandaType::Void;
         }
 
+        if sym.kind == SymbolKind::Agent {
+            if let Some(methods) = self.agent_trait_methods.get(target_name) {
+                if let Some(return_type) = methods.get(property.as_str()) {
+                    return return_type.clone();
+                }
+            }
+        }
+
         let type_name = match sym.kind {
             SymbolKind::Sensor => sym.sensor_type.clone().unwrap_or_default(),
             SymbolKind::Actuator => sym.actuator_type.clone().unwrap_or_default(),
@@ -966,7 +1578,13 @@ impl TypeChecker {
                 }
             }
             SymbolKind::Agent => "Agent".into(),
-            _ => String::new(),
+            _ => {
+                if let SpandaType::Named { name } = sym.robo_type {
+                    name
+                } else {
+                    String::new()
+                }
+            }
         };
 
         if type_name == "LLM" && property == "drive" {
@@ -996,6 +1614,19 @@ impl TypeChecker {
 
         for arg in named_args {
             if let Some(expected) = method.named_params.get(&arg.name) {
+                if type_name == "Twin" && arg.name == "field" {
+                    if let Expr::IdentExpr { name, span } = &arg.value {
+                        const ALLOWED: &[&str] = &["pose", "velocity", "battery", "status", "scan"];
+                        if !ALLOWED.contains(&name.as_str()) {
+                            self.error(
+                                format!("Unknown twin mirror field '{name}'"),
+                                span.start.line,
+                                span.start.column,
+                            );
+                        }
+                        continue;
+                    }
+                }
                 let actual = self.check_expr(&arg.value);
                 self.assert_compatible(
                     expected,
@@ -1030,6 +1661,22 @@ impl TypeChecker {
                 }
                 (SpandaType::Named { name: en }, SpandaType::Named { name: an }) => {
                     en == an || an.contains(en.as_str())
+                }
+                (
+                    SpandaType::EnumVariant {
+                        enum_name: e1,
+                        variant: v1,
+                    },
+                    SpandaType::EnumVariant {
+                        enum_name: e2,
+                        variant: v2,
+                    },
+                ) => e1 == e2 && v1 == v2,
+                (SpandaType::Named { name }, SpandaType::EnumVariant { enum_name, .. }) => {
+                    name == enum_name
+                }
+                (SpandaType::EnumVariant { enum_name, .. }, SpandaType::Named { name }) => {
+                    name == enum_name
                 }
                 _ => true,
             }
@@ -1122,6 +1769,7 @@ impl SpandaTypeExt for SpandaType {
             SpandaType::Velocity => "velocity",
             SpandaType::Trajectory => "trajectory",
             SpandaType::Transform => "transform",
+            SpandaType::EnumVariant { .. } => "enum_variant",
         }
     }
 }
@@ -1538,6 +2186,47 @@ fn builtin_methods(type_name: &str) -> Option<HashMap<&'static str, MethodSig>> 
                 },
             ),
         )])),
+        "Twin" => Some(HashMap::from([
+            (
+                "frame_count",
+                m(
+                    vec![],
+                    HashMap::new(),
+                    SpandaType::Number {
+                        unit: UnitKind::None,
+                    },
+                ),
+            ),
+            (
+                "mirror",
+                m(
+                    vec![],
+                    HashMap::from([("field", SpandaType::String)]),
+                    SpandaType::Pose,
+                ),
+            ),
+            (
+                "replay",
+                m(
+                    vec![],
+                    HashMap::from([
+                        (
+                            "index",
+                            SpandaType::Number {
+                                unit: UnitKind::None,
+                            },
+                        ),
+                        ("field", SpandaType::String),
+                    ]),
+                    SpandaType::Pose,
+                ),
+            ),
+            ("pose", m(vec![], HashMap::new(), SpandaType::Pose)),
+            (
+                "velocity",
+                m(vec![], HashMap::new(), SpandaType::Velocity),
+            ),
+        ])),
         "Agent" => Some(HashMap::from([(
             "plan",
             m(vec![], HashMap::new(), SpandaType::Void),
@@ -1733,7 +2422,7 @@ pub fn BUILTIN_METHODS() -> HashMap<String, HashMap<String, MethodSig>> {
     let mut map: HashMap<String, HashMap<String, MethodSig>> = HashMap::new();
     for ty in [
         "Lidar", "Camera", "DifferentialDrive", "RoboticArm", "DroneRotors", "LLM", "VisionModel",
-        "Agent", "Safety",
+        "Agent", "Safety", "Twin",
     ] {
         if let Some(methods) = builtin_methods(ty) {
             map.insert(

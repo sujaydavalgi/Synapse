@@ -1,0 +1,43 @@
+module ros2_bridge;
+
+import sensors.lidar;
+import motion.drive;
+
+robot BridgeBot {
+  node navigation on "/nav";
+
+  topic cmd_vel: Velocity publish on "/cmd_vel";
+  topic pose_out: Pose publish on "/pose";
+  topic scan_out: Scan publish on "/scan";
+
+  service reset_map: ResetCostmap;
+  service clear_map: ClearCostmap;
+  service set_pose: SetPose;
+
+  action navigate: NavigateTo;
+  action follow: FollowPath;
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.2 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  behavior bridge() {
+    let start = robot.pose();
+    let goal = pose(x: 3.0 m, y: 0.0 m, theta: 0.0 rad);
+    let path = trajectory(from: start, to: goal, steps: 10);
+
+    publish cmd_vel with velocity(linear: 0.3 m/s, angular: 0.0 rad/s);
+    call reset_map();
+    send_goal navigate with goal;
+
+    loop every 100ms {
+      let scan = lidar.read();
+      publish scan_out with scan;
+      wheels.follow(path: path);
+    }
+  }
+}

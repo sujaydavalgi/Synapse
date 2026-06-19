@@ -1,0 +1,48 @@
+module aerial;
+
+struct Altitude {
+  value: Distance;
+}
+
+enum DroneMode {
+  Hover,
+  Ascend,
+  Descend,
+  Patrol
+}
+
+robot PatrolDrone {
+  sensor altimeter: AltitudeSensor on "/altitude";
+  actuator rotors: DroneRotors;
+
+  safety {
+    max_speed = 2.0 m/s;
+    stop_if altimeter.read() < 0.5 m;
+  }
+
+  state_machine Flight {
+    state Hover;
+    state Patrol;
+    state ReturnHome;
+    transition Hover -> Patrol;
+    transition Patrol -> ReturnHome;
+  }
+
+  task altitude_hold every 50ms {
+    let altitude = altimeter.read();
+    let mode = "Patrol";
+
+    match mode {
+      Hover => rotors.hover();
+      Ascend => rotors.set_thrust(thrust: 0.7);
+      Descend => rotors.set_thrust(thrust: 0.3);
+      Patrol => {
+        if altitude < 1.0 m {
+          rotors.set_thrust(thrust: 0.7);
+        } else {
+          rotors.hover();
+        }
+      }
+    };
+  }
+}

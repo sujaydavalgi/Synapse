@@ -7,6 +7,32 @@ use std::collections::HashMap;
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TokenType {
     Import,
+    Module,
+    Struct,
+    Enum,
+    Trait,
+    Impl,
+    For,
+    Match,
+    Fn,
+    StateMachine,
+    Task,
+    Skill,
+    Event,
+    Twin,
+    State,
+    Resource,
+    Requires,
+    Ensures,
+    Invariant,
+    Can,
+    Transition,
+    Mirror,
+    Replay,
+    Emit,
+    Enter,
+    Arrow,
+    FatArrow,
     Hal,
     Soc,
     From,
@@ -102,6 +128,10 @@ pub enum UnitLexeme {
     Rad,
     #[serde(rename = "m/s")]
     MPerS,
+    #[serde(rename = "m/s²")]
+    MPerS2,
+    #[serde(rename = "m/s2")]
+    MPerS2Ascii,
     #[serde(rename = "rad/s")]
     RadPerS,
     #[serde(rename = "deg")]
@@ -118,6 +148,8 @@ impl UnitLexeme {
             UnitLexeme::Ms => "ms",
             UnitLexeme::Rad => "rad",
             UnitLexeme::MPerS => "m/s",
+            UnitLexeme::MPerS2 => "m/s²",
+            UnitLexeme::MPerS2Ascii => "m/s2",
             UnitLexeme::RadPerS => "rad/s",
             UnitLexeme::Deg => "deg",
             UnitLexeme::Hz => "Hz",
@@ -152,6 +184,8 @@ pub fn unit_from_lexeme(lexeme: UnitLexeme) -> UnitKind {
 }
 
 const UNIT_SUFFIXES: &[UnitLexeme] = &[
+    UnitLexeme::MPerS2Ascii,
+    UnitLexeme::MPerS2,
     UnitLexeme::MPerS,
     UnitLexeme::RadPerS,
     UnitLexeme::Ms,
@@ -165,6 +199,30 @@ const UNIT_SUFFIXES: &[UnitLexeme] = &[
 fn keywords() -> HashMap<&'static str, TokenType> {
     HashMap::from([
         ("import", TokenType::Import),
+        ("module", TokenType::Module),
+        ("struct", TokenType::Struct),
+        ("enum", TokenType::Enum),
+        ("trait", TokenType::Trait),
+        ("impl", TokenType::Impl),
+        ("for", TokenType::For),
+        ("match", TokenType::Match),
+        ("fn", TokenType::Fn),
+        ("state_machine", TokenType::StateMachine),
+        ("task", TokenType::Task),
+        ("skill", TokenType::Skill),
+        ("event", TokenType::Event),
+        ("twin", TokenType::Twin),
+        ("state", TokenType::State),
+        ("resource", TokenType::Resource),
+        ("requires", TokenType::Requires),
+        ("ensures", TokenType::Ensures),
+        ("invariant", TokenType::Invariant),
+        ("can", TokenType::Can),
+        ("transition", TokenType::Transition),
+        ("mirror", TokenType::Mirror),
+        ("replay", TokenType::Replay),
+        ("emit", TokenType::Emit),
+        ("enter", TokenType::Enter),
         ("hal", TokenType::Hal),
         ("soc", TokenType::Soc),
         ("from", TokenType::From),
@@ -314,6 +372,19 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
                 i += 1;
                 column += 1;
             }
+            '-' if i + 1 < chars.len() && chars[i + 1] == '>' => {
+                tokens.push(Token {
+                    token_type: TokenType::Arrow,
+                    lexeme: "->".to_string(),
+                    value: TokenValue::Null,
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+                i += 2;
+                column += 2;
+            }
             '-' => {
                 push_single(&mut tokens, TokenType::Minus, "-", start_line, start_column, start_offset);
                 i += 1;
@@ -382,6 +453,19 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
                 tokens.push(Token {
                     token_type: TokenType::Neq,
                     lexeme: "!=".to_string(),
+                    value: TokenValue::Null,
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+                i += 2;
+                column += 2;
+            }
+            '=' if i + 1 < chars.len() && chars[i + 1] == '>' => {
+                tokens.push(Token {
+                    token_type: TokenType::FatArrow,
+                    lexeme: "=>".to_string(),
                     value: TokenValue::Null,
                     unit: None,
                     line: start_line,

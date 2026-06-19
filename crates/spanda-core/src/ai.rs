@@ -314,6 +314,7 @@ fn runtime_value_kind(value: &RuntimeValue) -> &'static str {
         RuntimeValue::Trajectory { .. } => "trajectory",
         RuntimeValue::Transform { .. } => "transform",
         RuntimeValue::Object { .. } => "object",
+        RuntimeValue::Enum { .. } => "enum",
         RuntimeValue::Sensor { .. } => "sensor",
         RuntimeValue::Actuator { .. } => "actuator",
         RuntimeValue::Topic { .. } => "topic",
@@ -321,6 +322,7 @@ fn runtime_value_kind(value: &RuntimeValue) -> &'static str {
         RuntimeValue::Action { .. } => "action",
         RuntimeValue::Robot => "robot",
         RuntimeValue::Agent { .. } => "agent",
+        RuntimeValue::Twin { .. } => "twin",
         RuntimeValue::SafetyCtx => "safety_ctx",
         RuntimeValue::AiModel { .. } => "ai_model",
         RuntimeValue::ActionProposal { .. } => "action_proposal",
@@ -468,14 +470,17 @@ pub fn agent_uses_models(decl: &AgentDecl) -> Vec<String> {
 }
 
 pub trait PlanExecutor {
-    fn execute_block(&mut self, stmts: &[Stmt]);
+    fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), crate::error::SpandaError>;
 }
 
-pub fn execute_agent_plan(agent: &AgentRuntime, executor: &mut dyn PlanExecutor) {
+pub fn execute_agent_plan(
+    agent: &AgentRuntime,
+    executor: &mut dyn PlanExecutor,
+) -> Result<(), crate::error::SpandaError> {
     let plan_body = match &agent.decl {
         AgentDecl::AgentDecl { plan_body, .. } => plan_body,
     };
-    executor.execute_block(plan_body);
+    executor.execute_block(plan_body)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

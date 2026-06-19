@@ -1,3 +1,17 @@
+import type {
+  CapabilityDecl,
+  EnumDecl,
+  EventDecl,
+  EventHandlerDecl,
+  MatchArm,
+  StateMachineDecl,
+  StructDecl,
+  TaskDecl,
+  TraitDecl,
+  TraitImplDecl,
+  TwinDecl,
+} from "../foundations.js";
+
 export type SourceLocation = {
   line: number;
   column: number;
@@ -16,6 +30,7 @@ export type UnitKind =
   | "ms"
   | "rad"
   | "m/s"
+  | "m/s²"
   | "rad/s"
   | "deg"
   | "Hz";
@@ -30,11 +45,16 @@ export type SpandaType =
   | { kind: "pose" }
   | { kind: "velocity" }
   | { kind: "trajectory" }
-  | { kind: "transform" };
+  | { kind: "transform" }
+  | { kind: "enum_variant"; enumName: string; variant: string };
 
 export type Program = {
   kind: "Program";
+  moduleName: string | null;
   imports: ImportDecl[];
+  structs: StructDecl[];
+  enums: EnumDecl[];
+  traits: TraitDecl[];
   robots: RobotDecl[];
   span: Span;
 };
@@ -60,6 +80,12 @@ export type RobotDecl = {
   ai_models: AiModelDecl[];
   agents: AgentDecl[];
   behaviors: BehaviorDecl[];
+  tasks: TaskDecl[];
+  stateMachines: StateMachineDecl[];
+  events: EventDecl[];
+  eventHandlers: EventHandlerDecl[];
+  twin: TwinDecl | null;
+  traitImpls: TraitImplDecl[];
   span: Span;
 };
 
@@ -205,6 +231,8 @@ export type AgentDecl = {
   usesAi: string[];
   memoryKind: "short_term" | "long_term" | null;
   tools: string[];
+  skills: string[];
+  capabilities: CapabilityDecl[];
   goal: string;
   planBody: Stmt[];
   span: Span;
@@ -239,6 +267,9 @@ export type SafetyZoneDecl = {
 export type BehaviorDecl = {
   kind: "BehaviorDecl";
   name: string;
+  requires: Expr | null;
+  ensures: Expr | null;
+  invariant: Expr | null;
   body: Stmt[];
   span: Span;
 };
@@ -253,7 +284,9 @@ export type Stmt =
   | ServiceCallStmt
   | ActionSendStmt
   | EmergencyStopStmt
-  | ResetEmergencyStopStmt;
+  | ResetEmergencyStopStmt
+  | EmitStmt
+  | EnterStmt;
 
 export type VarDecl = {
   kind: "VarDecl";
@@ -319,6 +352,18 @@ export type ResetEmergencyStopStmt = {
   span: Span;
 };
 
+export type EmitStmt = {
+  kind: "EmitStmt";
+  eventName: string;
+  span: Span;
+};
+
+export type EnterStmt = {
+  kind: "EnterStmt";
+  stateName: string;
+  span: Span;
+};
+
 export type Expr =
   | LiteralExpr
   | UnitLiteralExpr
@@ -326,7 +371,9 @@ export type Expr =
   | BinaryExpr
   | UnaryExpr
   | CallExpr
-  | MemberExpr;
+  | MemberExpr
+  | MatchExpr
+  | StructLiteralExpr;
 
 export type LiteralExpr = {
   kind: "LiteralExpr";
@@ -380,6 +427,26 @@ export type MemberExpr = {
   kind: "MemberExpr";
   object: Expr;
   property: string;
+  span: Span;
+};
+
+export type MatchExpr = {
+  kind: "MatchExpr";
+  scrutinee: Expr;
+  arms: MatchArm[];
+  span: Span;
+};
+
+export type StructFieldInit = {
+  name: string;
+  value: Expr;
+  span: Span;
+};
+
+export type StructLiteralExpr = {
+  kind: "StructLiteralExpr";
+  typeName: string;
+  fields: StructFieldInit[];
   span: Span;
 };
 

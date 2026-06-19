@@ -3,7 +3,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
-use spanda_core::{check, run, RunOptions, SpandaError};
+use spanda_core::{check, format_source, run, RunOptions, SpandaError};
 
 #[derive(Serialize)]
 struct CheckResponse {
@@ -26,7 +26,8 @@ fn usage() {
          Usage:\n\
            spanda check [--json] <file.sd>\n\
            spanda run [--json] [--verbose] <file.sd>\n\
-           spanda sim [--json] <file.sd>\n"
+           spanda sim [--json] <file.sd>\n\
+           spanda fmt <file.sd>\n"
     );
 }
 
@@ -147,7 +148,7 @@ fn main() {
         match arg.as_str() {
             "--json" => json = true,
             "--verbose" | "-v" => verbose = true,
-            "check" | "run" | "sim" if command.is_none() => command = Some(arg),
+            "check" | "run" | "sim" | "fmt" if command.is_none() => command = Some(arg),
             other if !other.starts_with('-') && file.is_none() => file = Some(other),
             other => {
                 eprintln!("Unknown argument: {other}");
@@ -193,6 +194,18 @@ fn main() {
                 print_run_json(run(&source, opts));
             } else {
                 human_run(&source, file, command == "sim" || verbose);
+            }
+        }
+        "fmt" => {
+            let formatted = format_source(&source);
+            if formatted != source {
+                fs::write(file, formatted).unwrap_or_else(|e| {
+                    eprintln!("Error writing {file}: {e}");
+                    process::exit(1);
+                });
+                println!("✓ formatted {file}");
+            } else {
+                println!("✓ {file} — already formatted");
             }
         }
         _ => {

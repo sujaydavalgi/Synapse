@@ -3,6 +3,10 @@ use crate::ai::{
     mock_analyze_frame, mock_camera_frame, proposal_from_value, safe_action_from_proposal,
     AgentRuntime, AiModel, MemoryStore, PlanExecutor,
 };
+use crate::events::EventBus;
+use crate::foundations::{CapabilityDecl, StateMachineDecl, TaskDecl, TwinDecl};
+use crate::state_machine::StateMachineRuntime;
+use crate::twin::TwinRuntime;
 use crate::ast::{
     ActuatorDecl, ActionDecl, AgentDecl, BehaviorDecl, BinaryOp, Expr, LiteralValue,
     Program, RobotDecl, SafetyRule, SafetyZoneDecl, SensorBinding, SensorDecl, ServiceDecl, Stmt,
@@ -64,6 +68,10 @@ pub enum RuntimeValue {
         type_name: String,
         fields: HashMap<String, RuntimeValue>,
     },
+    Enum {
+        enum_name: String,
+        variant: String,
+    },
     Sensor {
         name: String,
         sensor_type: String,
@@ -90,6 +98,7 @@ pub enum RuntimeValue {
     },
     Robot,
     Agent { name: String },
+    Twin { name: String },
     SafetyCtx,
     AiModel {
         name: String,
@@ -285,7 +294,16 @@ pub struct Interpreter<B: RobotBackend> {
     hal: SimHalBackend,
     ai_models: HashMap<String, AiModel>,
     agents: HashMap<String, AgentRuntime>,
+    agent_capabilities: HashMap<String, Vec<CapabilityDecl>>,
+    current_agent: Option<String>,
     stop_if_conditions: Vec<Expr>,
+    event_bus: EventBus,
+    twin: Option<TwinRuntime>,
+    state_machines: HashMap<String, StateMachineRuntime>,
+    enum_variants: HashMap<String, Vec<String>>,
+    variant_owner: HashMap<String, String>,
+    struct_defs: HashMap<String, Vec<(String, String)>>,
+    agent_trait_impls: HashMap<String, HashMap<String, (Vec<crate::foundations::TraitParamDecl>, Vec<Stmt>)>>,
 }
 
 impl<B: RobotBackend> Interpreter<B> {
@@ -299,7 +317,16 @@ impl<B: RobotBackend> Interpreter<B> {
             hal: create_sim_hal(),
             ai_models: HashMap::new(),
             agents: HashMap::new(),
+            agent_capabilities: HashMap::new(),
+            current_agent: None,
             stop_if_conditions: Vec::new(),
+            event_bus: EventBus::new(),
+            twin: None,
+            state_machines: HashMap::new(),
+            enum_variants: HashMap::new(),
+            variant_owner: HashMap::new(),
+            struct_defs: HashMap::new(),
+            agent_trait_impls: HashMap::new(),
         }
     }
 
@@ -313,18 +340,64 @@ impl<B: RobotBackend> Interpreter<B> {
         entry_behavior: Option<&str>,
     ) -> Result<RobotState, SpandaError> {
         let Program::Program { robots, .. } = program;
+        self.load_program_metadata(program);
         for robot in robots {
             self.setup_robot(robot)?;
             let behavior_name = entry_behavior
                 .map(String::from)
                 .or_else(|| robot.first_behavior_name());
             if let Some(name) = behavior_name {
-                if let Some(body) = robot.behavior_body(&name) {
-                    self.execute_block(&body)?;
-                }
+            if let Some((body, requires, ensures, invariant)) = robot.behavior_with_contracts(&name)
+            {
+                self.execute_with_contracts(&body, &requires, &ensures, &invariant)?;
+            } else if let Some((body, interval_ms, requires, ensures, invariant)) =
+                robot.task_with_contracts(&name)
+            {
+                self.execute_task_loop_with_contracts(
+                    &body,
+                    interval_ms,
+                    &requires,
+                    &ensures,
+                    &invariant,
+                )?;
+            }
             }
         }
         Ok(self.backend.get_state())
+    }
+
+    fn load_program_metadata(&mut self, program: &Program) {
+        use crate::foundations::{EnumDecl, StructDecl, TraitDecl};
+        let Program::Program {
+            structs, enums, traits, ..
+        } = program;
+        self.enum_variants.clear();
+        self.variant_owner.clear();
+        self.struct_defs.clear();
+        for enum_decl in enums {
+            if let EnumDecl::EnumDecl { name, variants, .. } = enum_decl {
+                self.enum_variants.insert(name.clone(), variants.clone());
+                for variant in variants {
+                    self.variant_owner.insert(variant.clone(), name.clone());
+                }
+            }
+        }
+        for struct_decl in structs {
+            if let StructDecl::StructDecl { name, fields, .. } = struct_decl {
+                self.struct_defs.insert(
+                    name.clone(),
+                    fields
+                        .iter()
+                        .map(|f| (f.name.clone(), f.type_name.clone()))
+                        .collect(),
+                );
+            }
+        }
+        let _ = traits;
+        for trait_decl in traits {
+            let TraitDecl::TraitDecl { name, .. } = trait_decl;
+            let _ = name;
+        }
     }
 
     fn setup_robot(&mut self, robot: &RobotDecl) -> Result<(), SpandaError> {
@@ -339,12 +412,23 @@ impl<B: RobotBackend> Interpreter<B> {
             safety,
             ai_models,
             agents,
+            state_machines,
+            events,
+            event_handlers,
+            twin,
+            trait_impls,
             ..
         } = robot;
 
         self.env = Environment::new();
         self.zones.clear();
         self.stop_if_conditions.clear();
+        self.event_bus = EventBus::new();
+        self.twin = None;
+        self.state_machines.clear();
+        self.agent_capabilities.clear();
+        self.agent_trait_impls.clear();
+        self.current_agent = None;
 
         if let Some(soc_decl) = soc {
             let profile_name = soc_decl.profile();
@@ -404,6 +488,76 @@ impl<B: RobotBackend> Interpreter<B> {
 
         for agent_decl in agents {
             self.setup_agent(agent_decl);
+        }
+        for trait_impl in trait_impls {
+            use crate::foundations::TraitImplDecl;
+            if let TraitImplDecl::TraitImplDecl {
+                agent_name,
+                methods,
+                ..
+            } = trait_impl
+            {
+                let agent_methods = self
+                    .agent_trait_impls
+                    .entry(agent_name.clone())
+                    .or_default();
+                for method in methods {
+                    agent_methods.insert(
+                        method.name.clone(),
+                        (method.params.clone(), method.body.clone()),
+                    );
+                }
+            }
+        }
+
+        for event in events {
+            let crate::foundations::EventDecl::EventDecl { name, .. } = event;
+            self.log(format!("event declared: {name}"));
+        }
+        for handler in event_handlers {
+            let crate::foundations::EventHandlerDecl::EventHandlerDecl {
+                event_name,
+                body,
+                ..
+            } = handler;
+            self.event_bus
+                .register(event_name.clone(), body.clone());
+            self.log(format!("handler registered for {event_name}"));
+        }
+
+        if let Some(twin_decl) = twin {
+            let TwinDecl::TwinDecl {
+                name,
+                mirrors,
+                replay,
+                ..
+            } = twin_decl;
+            self.twin = Some(TwinRuntime::new(name.clone(), mirrors.clone(), *replay));
+            self.env
+                .define(name.clone(), RuntimeValue::Twin { name: name.clone() });
+            self.log(format!(
+                "twin {name}: mirrors [{}], replay={replay}",
+                mirrors.join(", ")
+            ));
+        }
+
+        for sm in state_machines {
+            let StateMachineDecl::StateMachineDecl {
+                name,
+                states,
+                transitions,
+                ..
+            } = sm;
+            let pairs: Vec<(String, String)> = transitions
+                .iter()
+                .map(|t| (t.from.clone(), t.to.clone()))
+                .collect();
+            let runtime = StateMachineRuntime::new(name.clone(), states.clone(), pairs);
+            self.log(format!(
+                "state_machine {name}: initial state {}",
+                runtime.current
+            ));
+            self.state_machines.insert(name.clone(), runtime);
         }
 
         if safety.is_some() {
@@ -618,14 +772,201 @@ impl<B: RobotBackend> Interpreter<B> {
             name,
             goal,
             memory_kind,
+            capabilities,
             ..
         } = agent_decl;
         let memory = memory_kind.map(|k| MemoryStore::new(k.into(), None));
         let agent = create_agent_runtime(agent_decl.clone(), memory);
         self.agents.insert(name.clone(), agent);
+        self.agent_capabilities
+            .insert(name.clone(), capabilities.clone());
         self.env
             .define(name.clone(), RuntimeValue::Agent { name: name.clone() });
         self.log(format!("Agent '{name}': {goal}"));
+    }
+
+    fn eval_contract(&mut self, expr: &Expr) -> Result<bool, SpandaError> {
+        match self.eval_expr(expr)? {
+            RuntimeValue::Bool { value, .. } => Ok(value),
+            _ => Err(RuntimeError::new("Contract expression must be boolean", 0).into_spanda()),
+        }
+    }
+
+    fn execute_with_contracts(
+        &mut self,
+        body: &[Stmt],
+        requires: &Option<Expr>,
+        ensures: &Option<Expr>,
+        invariant: &Option<Expr>,
+    ) -> Result<(), SpandaError> {
+        if let Some(req) = requires {
+            if !self.eval_contract(req)? {
+                return Err(RuntimeError::new("requires contract failed", 0).into_spanda());
+            }
+        }
+        self.execute_block(body)?;
+        if let Some(ens) = ensures {
+            if !self.eval_contract(ens)? {
+                return Err(RuntimeError::new("ensures contract failed", 0).into_spanda());
+            }
+        }
+        if let Some(inv) = invariant {
+            if !self.eval_contract(inv)? {
+                return Err(RuntimeError::new("invariant contract failed", 0).into_spanda());
+            }
+        }
+        Ok(())
+    }
+
+    fn execute_task_loop_with_contracts(
+        &mut self,
+        body: &[Stmt],
+        interval_ms: f64,
+        requires: &Option<Expr>,
+        ensures: &Option<Expr>,
+        invariant: &Option<Expr>,
+    ) -> Result<(), SpandaError> {
+        for _ in 0..self.options.max_loop_iterations {
+            self.backend.tick(interval_ms);
+            if let Some(req) = requires {
+                if !self.eval_contract(req)? {
+                    self.log("task requires contract failed — skipping iteration".into());
+                    continue;
+                }
+            }
+            self.execute_block(body)?;
+            if let Some(ens) = ensures {
+                if !self.eval_contract(ens)? {
+                    return Err(RuntimeError::new("task ensures contract failed", 0).into_spanda());
+                }
+            }
+            if let Some(inv) = invariant {
+                if !self.eval_contract(inv)? {
+                    return Err(
+                        RuntimeError::new("task invariant contract failed", 0).into_spanda(),
+                    );
+                }
+            }
+            self.update_twin_snapshot();
+            if self
+                .safety_monitor
+                .as_ref()
+                .map(|m| m.is_emergency_stop())
+                .unwrap_or(false)
+            {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn update_twin_snapshot(&mut self) {
+        self.refresh_twin_shadow_from_backend();
+        let Some(twin) = &mut self.twin else {
+            return;
+        };
+        twin.commit_frame();
+        let twin_name = twin.name.clone();
+        let field_count = twin.shadow.len();
+        let replay_frames = twin.replay_frame_count();
+        if field_count > 0 {
+            self.log(format!(
+                "twin {twin_name} mirrored {field_count} field(s), replay frames={replay_frames}"
+            ));
+        }
+    }
+
+    fn refresh_twin_shadow_from_backend(&mut self) {
+        let Some(twin) = &mut self.twin else {
+            return;
+        };
+        let state = self.backend.get_state();
+        if twin.mirrors.iter().any(|m| m == "pose") {
+            twin.snapshot(
+                "pose",
+                RuntimeValue::Pose {
+                    x: state.pose.x,
+                    y: state.pose.y,
+                    theta: state.pose.theta,
+                    z: state.pose.z.unwrap_or(0.0),
+                },
+            );
+        }
+        if twin.mirrors.iter().any(|m| m == "velocity") {
+            twin.snapshot(
+                "velocity",
+                RuntimeValue::Velocity {
+                    linear: state.velocity.linear,
+                    angular: state.velocity.angular,
+                },
+            );
+        }
+    }
+
+    fn dispatch_event(&mut self, event_name: &str) -> Result<(), SpandaError> {
+        if let Some(body) = self.event_bus.handler_body(event_name).map(|b| b.to_vec()) {
+            self.log(format!("emit {event_name}"));
+            self.execute_block(&body)?;
+        } else {
+            self.log(format!("emit {event_name} (no handler)"));
+        }
+        Ok(())
+    }
+
+    fn execute_enter(&mut self, state_name: &str, line: u32) -> Result<(), SpandaError> {
+        let mut logs = Vec::new();
+        let mut transitioned = false;
+        for (sm_name, sm) in &mut self.state_machines {
+            if let Some(previous) = sm.try_enter(state_name) {
+                logs.push(format!("state_machine {sm_name}: {previous} -> {state_name}"));
+                transitioned = true;
+            }
+        }
+        for msg in logs {
+            self.log(msg);
+        }
+        if !transitioned {
+            return Err(RuntimeError::new(
+                format!("No valid transition to state '{state_name}'"),
+                line,
+            )
+            .into_spanda());
+        }
+        Ok(())
+    }
+
+    fn check_agent_capability(
+        &self,
+        agent: &str,
+        action: &str,
+        target: Option<&str>,
+        line: u32,
+    ) -> Result<(), SpandaError> {
+        let caps = self
+            .agent_capabilities
+            .get(agent)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[]);
+        if caps.is_empty() {
+            return Ok(());
+        }
+        let allowed = caps.iter().any(|c| {
+            c.action == action
+                && (target.is_none() || c.target.as_deref() == target)
+        });
+        if !allowed {
+            return Err(RuntimeError::new(
+                format!(
+                    "Agent '{agent}' lacks capability {action}{}",
+                    target
+                        .map(|t| format!("({t})"))
+                        .unwrap_or_default()
+                ),
+                line,
+            )
+            .into_spanda());
+        }
+        Ok(())
     }
 
     fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), SpandaError> {
@@ -729,6 +1070,15 @@ impl<B: RobotBackend> Interpreter<B> {
                 self.backend.set_emergency_stop(false);
                 self.log("Emergency stop reset".into());
             }
+            Stmt::EmitStmt { event_name, .. } => {
+                self.dispatch_event(event_name)?;
+            }
+            Stmt::EnterStmt {
+                state_name,
+                span,
+            } => {
+                self.execute_enter(state_name, span.start.line)?;
+            }
             Stmt::ExprStmt { expr, .. } => {
                 self.eval_expr(expr)?;
             }
@@ -752,9 +1102,18 @@ impl<B: RobotBackend> Interpreter<B> {
                 value: *value,
                 unit: *unit,
             }),
-            Expr::IdentExpr { name, span } => self.env.get(name).cloned().ok_or_else(|| {
-                RuntimeError::new(format!("Undefined variable '{name}'"), span.start.line).into_spanda()
-            }),
+            Expr::IdentExpr { name, span } => {
+                if let Some(enum_name) = self.variant_owner.get(name) {
+                    return Ok(RuntimeValue::Enum {
+                        enum_name: enum_name.clone(),
+                        variant: name.clone(),
+                    });
+                }
+                self.env.get(name).cloned().ok_or_else(|| {
+                    RuntimeError::new(format!("Undefined variable '{name}'"), span.start.line)
+                        .into_spanda()
+                })
+            }
             Expr::BinaryExpr { op, left, right, span } => {
                 let left_val = self.eval_expr(left)?;
                 let right_val = self.eval_expr(right)?;
@@ -778,14 +1137,83 @@ impl<B: RobotBackend> Interpreter<B> {
                     }
                 }
             }
-            Expr::MemberExpr { object, property, .. } => {
+            Expr::MemberExpr { object, property, span } => {
+                if let Expr::IdentExpr { name, .. } = object.as_ref() {
+                    if let Some(variants) = self.enum_variants.get(name) {
+                        if variants.iter().any(|v| v == property) {
+                            return Ok(RuntimeValue::Enum {
+                                enum_name: name.clone(),
+                                variant: property.clone(),
+                            });
+                        }
+                    }
+                }
                 let obj = self.eval_expr(object)?;
                 self.eval_member(&obj, property)
             }
             Expr::CallExpr { callee, args, named_args, span } => {
                 self.eval_call(callee, args, named_args, span.start.line)
             }
+            Expr::MatchExpr { scrutinee, arms, .. } => {
+                let value = self.eval_expr(scrutinee)?;
+                let variant = match &value {
+                    RuntimeValue::Enum { variant, .. } => variant.clone(),
+                    RuntimeValue::String { value } => value.clone(),
+                    RuntimeValue::Object { type_name, .. } => type_name.clone(),
+                    _ => String::new(),
+                };
+                for arm in arms {
+                    if arm.variant == variant {
+                        for stmt in &arm.body {
+                            self.execute_stmt(stmt)?;
+                        }
+                        break;
+                    }
+                }
+                Ok(RuntimeValue::Void)
+            }
+            Expr::StructLiteralExpr { type_name, fields, span } => {
+                self.eval_struct_literal(type_name, fields, span.start.line)
+            }
         }
+    }
+
+    fn eval_struct_literal(
+        &mut self,
+        type_name: &str,
+        fields: &[crate::ast::StructFieldInit],
+        line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        let mut values = HashMap::new();
+        for field in fields {
+            values.insert(field.name.clone(), self.eval_expr(&field.value)?);
+        }
+        if type_name == "Pose" {
+            let x = values
+                .get("x")
+                .and_then(|v| v.as_number())
+                .ok_or_else(|| RuntimeError::new("Pose.x must be numeric", line).into_spanda())?;
+            let y = values
+                .get("y")
+                .and_then(|v| v.as_number())
+                .ok_or_else(|| RuntimeError::new("Pose.y must be numeric", line).into_spanda())?;
+            let heading = values
+                .get("heading")
+                .or_else(|| values.get("theta"))
+                .and_then(|v| v.as_number())
+                .unwrap_or(0.0);
+            let z = values.get("z").and_then(|v| v.as_number()).unwrap_or(0.0);
+            return Ok(RuntimeValue::Pose {
+                x,
+                y,
+                theta: heading,
+                z,
+            });
+        }
+        Ok(RuntimeValue::Object {
+            type_name: type_name.to_string(),
+            fields: values,
+        })
     }
 
     fn eval_member(&mut self, obj: &RuntimeValue, property: &str) -> Result<RuntimeValue, SpandaError> {
@@ -884,8 +1312,15 @@ impl<B: RobotBackend> Interpreter<B> {
             return self.eval_robot_method(property, args, named_args);
         }
 
+        if matches!(target, RuntimeValue::Twin { .. }) {
+            return self.eval_twin_method(property, args, named_args, line);
+        }
+
         if let RuntimeValue::Sensor { sensor_type, .. } = &target {
             if property == "read" {
+                if let Some(agent) = self.current_agent.as_deref() {
+                    self.check_agent_capability(agent, "read", Some(target_name), line)?;
+                }
                 return self.read_sensor_value(&target);
             }
             if sensor_type == "Camera" {
@@ -900,6 +1335,27 @@ impl<B: RobotBackend> Interpreter<B> {
         }
 
         if let RuntimeValue::Agent { name } = &target {
+            if let Some((params, body)) = self
+                .agent_trait_impls
+                .get(name)
+                .and_then(|methods| methods.get(property))
+                .cloned()
+            {
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+                let saved = self.env.clone();
+                for (param, value) in params.iter().zip(arg_values.into_iter()) {
+                    self.env.define(param.name.clone(), value);
+                }
+                self.current_agent = Some(name.clone());
+                self.execute_block(&body)?;
+                self.current_agent = None;
+                self.env = saved;
+                self.log(format!("agent {name}.{property}()"));
+                return Ok(RuntimeValue::Void);
+            }
             if property == "plan" {
                 let agent = self.agents.get(name).ok_or_else(|| {
                     RuntimeError::new(format!("Unknown agent '{name}'"), line).into_spanda()
@@ -907,14 +1363,21 @@ impl<B: RobotBackend> Interpreter<B> {
                 let agent = agent.clone();
                 struct PlanRunner<'a, B: RobotBackend> {
                     interp: &'a mut Interpreter<B>,
+                    agent_name: String,
                 }
                 impl<B: RobotBackend> PlanExecutor for PlanRunner<'_, B> {
-                    fn execute_block(&mut self, stmts: &[Stmt]) {
-                        let _ = self.interp.execute_block(stmts);
+                    fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), SpandaError> {
+                        self.interp.current_agent = Some(self.agent_name.clone());
+                        let result = self.interp.execute_block(stmts);
+                        self.interp.current_agent = None;
+                        result
                     }
                 }
-                let mut runner = PlanRunner { interp: self };
-                execute_agent_plan(&agent, &mut runner);
+                let mut runner = PlanRunner {
+                    interp: self,
+                    agent_name: name.clone(),
+                };
+                execute_agent_plan(&agent, &mut runner)?;
                 self.log(format!("agent {name}.plan()"));
                 return Ok(RuntimeValue::Void);
             }
@@ -1163,6 +1626,122 @@ impl<B: RobotBackend> Interpreter<B> {
         }
     }
 
+    fn eval_twin_method(
+        &mut self,
+        method: &str,
+        args: &[Expr],
+        named_args: &[crate::ast::NamedArg],
+        line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        if self.twin.is_none() {
+            return Err(RuntimeError::new("No digital twin configured", line).into_spanda());
+        }
+
+        self.refresh_twin_shadow_from_backend();
+
+        match method {
+            "frame_count" => {
+                let count = self.twin.as_ref().unwrap().replay_frame_count();
+                Ok(RuntimeValue::Number {
+                    value: count as f64,
+                    unit: UnitKind::None,
+                })
+            }
+            "mirror" => {
+                let field = self.twin_field_name(args, named_args, line)?;
+                self.twin
+                    .as_ref()
+                    .unwrap()
+                    .shadow_field(&field)
+                    .cloned()
+                    .ok_or_else(|| {
+                        RuntimeError::new(
+                            format!("Twin has no mirrored shadow field '{field}'"),
+                            line,
+                        )
+                        .into_spanda()
+                    })
+            }
+            "replay" => {
+                if !self.twin.as_ref().unwrap().replay {
+                    return Err(RuntimeError::new(
+                        "Twin replay is disabled — set replay true in twin block",
+                        line,
+                    )
+                    .into_spanda());
+                }
+                let index =
+                    get_number(&self.get_named_arg_value(named_args, "index")?, 0.0) as usize;
+                let field = self.twin_field_name(args, named_args, line)?;
+                self.twin
+                    .as_ref()
+                    .unwrap()
+                    .replay_field(index, &field)
+                    .cloned()
+                    .ok_or_else(|| {
+                        RuntimeError::new(
+                            format!("Twin replay frame {index} has no field '{field}'"),
+                            line,
+                        )
+                        .into_spanda()
+                    })
+            }
+            method => {
+                if self
+                    .twin
+                    .as_ref()
+                    .unwrap()
+                    .mirrors
+                    .iter()
+                    .any(|m| m == method)
+                {
+                    self.twin
+                        .as_ref()
+                        .unwrap()
+                        .shadow_field(method)
+                        .cloned()
+                        .ok_or_else(|| {
+                            RuntimeError::new(
+                                format!("Twin shadow field '{method}' not yet mirrored"),
+                                line,
+                            )
+                            .into_spanda()
+                        })
+                } else {
+                    Ok(RuntimeValue::Void)
+                }
+            }
+        }
+    }
+
+    fn twin_field_name(
+        &mut self,
+        args: &[Expr],
+        named_args: &[crate::ast::NamedArg],
+        line: u32,
+    ) -> Result<String, SpandaError> {
+        for arg in named_args {
+            if arg.name == "field" {
+                return Ok(self.twin_field_from_expr(&arg.value, line)?);
+            }
+        }
+        if let Some(arg) = args.first() {
+            return self.twin_field_from_expr(arg, line);
+        }
+        Err(RuntimeError::new("Expected 'field' argument for twin method", line).into_spanda())
+    }
+
+    fn twin_field_from_expr(&mut self, expr: &Expr, _line: u32) -> Result<String, SpandaError> {
+        match expr {
+            Expr::LiteralExpr {
+                value: LiteralValue::String(s),
+                ..
+            } => Ok(s.clone()),
+            Expr::IdentExpr { name, .. } => Ok(name.clone()),
+            _ => Ok(get_string(&self.eval_expr(expr)?, "")),
+        }
+    }
+
     fn execute_actuator_method(
         &mut self,
         name: &str,
@@ -1251,6 +1830,9 @@ impl<B: RobotBackend> Interpreter<B> {
                     .execute_motion(MotionCommand::Hover { actuator: name.to_string() });
             }
             "execute" => {
+                if let Some(agent) = self.current_agent.as_deref() {
+                    self.check_agent_capability(agent, "propose_motion", None, line)?;
+                }
                 let action_val = if let Some(first) = args.first() {
                     self.eval_expr(first)?
                 } else {
@@ -1324,6 +1906,29 @@ impl<B: RobotBackend> Interpreter<B> {
                     || matches!(right, RuntimeValue::Bool { value: true, .. }),
             }),
             _ => {
+                if matches!(op, BinaryOp::Eq | BinaryOp::Neq)
+                    && matches!(left, RuntimeValue::Enum { .. })
+                    && matches!(right, RuntimeValue::Enum { .. })
+                {
+                    let RuntimeValue::Enum {
+                        enum_name: e1,
+                        variant: v1,
+                    } = left
+                    else {
+                        unreachable!()
+                    };
+                    let RuntimeValue::Enum {
+                        enum_name: e2,
+                        variant: v2,
+                    } = right
+                    else {
+                        unreachable!()
+                    };
+                    let equal = e1 == e2 && v1 == v2;
+                    return Ok(RuntimeValue::Bool {
+                        value: if op == BinaryOp::Eq { equal } else { !equal },
+                    });
+                }
                 if matches!(op, BinaryOp::Eq | BinaryOp::Neq)
                     && matches!(left, RuntimeValue::Bool { .. })
                     && matches!(right, RuntimeValue::Bool { .. })
@@ -1455,21 +2060,73 @@ fn pose_value_to_state(pose: &PoseValue) -> PoseState {
 // AST accessor extensions
 trait RobotDeclExt {
     fn first_behavior_name(&self) -> Option<String>;
-    fn behavior_body(&self, name: &str) -> Option<Vec<Stmt>>;
+    fn behavior_with_contracts(
+        &self,
+        name: &str,
+    ) -> Option<(Vec<Stmt>, Option<Expr>, Option<Expr>, Option<Expr>)>;
+    fn task_with_contracts(
+        &self,
+        name: &str,
+    ) -> Option<(Vec<Stmt>, f64, Option<Expr>, Option<Expr>, Option<Expr>)>;
 }
 
 impl RobotDeclExt for RobotDecl {
     fn first_behavior_name(&self) -> Option<String> {
-        let RobotDecl::RobotDecl { behaviors, .. } = self;
-        behaviors.first().map(|b| match b {
-            BehaviorDecl::BehaviorDecl { name, .. } => name.clone(),
+        let RobotDecl::RobotDecl { behaviors, tasks, .. } = self;
+        if let Some(b) = behaviors.first() {
+            return match b {
+                BehaviorDecl::BehaviorDecl { name, .. } => Some(name.clone()),
+            };
+        }
+        tasks.first().map(|t| match t {
+            TaskDecl::TaskDecl { name, .. } => name.clone(),
         })
     }
 
-    fn behavior_body(&self, name: &str) -> Option<Vec<Stmt>> {
+    fn behavior_with_contracts(
+        &self,
+        name: &str,
+    ) -> Option<(Vec<Stmt>, Option<Expr>, Option<Expr>, Option<Expr>)> {
         let RobotDecl::RobotDecl { behaviors, .. } = self;
         behaviors.iter().find_map(|b| match b {
-            BehaviorDecl::BehaviorDecl { name: n, body, .. } if n == name => Some(body.clone()),
+            BehaviorDecl::BehaviorDecl {
+                name: n,
+                requires,
+                ensures,
+                invariant,
+                body,
+                ..
+            } if n == name => Some((
+                body.clone(),
+                requires.clone(),
+                ensures.clone(),
+                invariant.clone(),
+            )),
+            _ => None,
+        })
+    }
+
+    fn task_with_contracts(
+        &self,
+        name: &str,
+    ) -> Option<(Vec<Stmt>, f64, Option<Expr>, Option<Expr>, Option<Expr>)> {
+        let RobotDecl::RobotDecl { tasks, .. } = self;
+        tasks.iter().find_map(|t| match t {
+            TaskDecl::TaskDecl {
+                name: n,
+                interval_ms,
+                requires,
+                ensures,
+                invariant,
+                body,
+                ..
+            } if n == name => Some((
+                body.clone(),
+                *interval_ms,
+                requires.clone(),
+                ensures.clone(),
+                invariant.clone(),
+            )),
             _ => None,
         })
     }

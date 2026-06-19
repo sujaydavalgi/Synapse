@@ -1,0 +1,36 @@
+module digital_twin;
+
+struct TwinPose {
+  x: Distance;
+  y: Distance;
+  heading: Angle;
+}
+
+robot PhysicalBot {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  twin RobotTwin {
+    mirror pose;
+    mirror velocity;
+    replay true;
+  }
+
+  safety {
+    max_speed = 1.0 m/s;
+    stop_if lidar.nearest_distance < 0.6 m;
+  }
+
+  task sync every 50ms {
+    let physical = robot.pose();
+    let shadow = RobotTwin.pose();
+    let frames = RobotTwin.frame_count();
+    let scan = lidar.read();
+
+    if scan.nearest_distance < 1.0 m {
+      wheels.stop();
+    } else {
+      wheels.drive(linear: 0.4 m/s, angular: 0.0 rad/s);
+    }
+  }
+}

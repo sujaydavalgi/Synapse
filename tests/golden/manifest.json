@@ -2,7 +2,36 @@
   "version": 1,
   "fixtures": [
     {
-      "file": "examples/rover.sd",
+      "file": "examples/hello_world.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/rover_navigation.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 5 }
+    },
+    {
+      "file": "examples/warehouse_robot.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 3 }
+    },
+    {
+      "file": "examples/digital_twin.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 3 }
+    },
+    {
+      "file": "examples/drone_patrol.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 3 }
+    },
+    {
+      "file": "examples/humanoid_assistant.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 3 }
+    },
+    {
+      "file": "examples/ros2_bridge.sd",
       "check": "pass"
     },
     {

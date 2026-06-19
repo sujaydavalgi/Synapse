@@ -28,6 +28,8 @@ pub enum UnitKind {
     Rad,
     #[serde(rename = "m/s")]
     MPerS,
+    #[serde(rename = "m/s²")]
+    MPerS2,
     #[serde(rename = "rad/s")]
     RadPerS,
     #[serde(rename = "deg")]
@@ -45,6 +47,7 @@ impl UnitKind {
             UnitKind::Ms => "ms",
             UnitKind::Rad => "rad",
             UnitKind::MPerS => "m/s",
+            UnitKind::MPerS2 => "m/s²",
             UnitKind::RadPerS => "rad/s",
             UnitKind::Deg => "deg",
             UnitKind::Hz => "Hz",
@@ -58,6 +61,7 @@ impl UnitKind {
             "ms" => UnitKind::Ms,
             "rad" => UnitKind::Rad,
             "m/s" => UnitKind::MPerS,
+            "m/s²" | "m/s2" => UnitKind::MPerS2,
             "rad/s" => UnitKind::RadPerS,
             "deg" => UnitKind::Deg,
             "Hz" => UnitKind::Hz,
@@ -89,13 +93,19 @@ pub enum SpandaType {
     Trajectory,
     #[serde(rename = "transform")]
     Transform,
+    #[serde(rename = "enum_variant")]
+    EnumVariant { enum_name: String, variant: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum Program {
     Program {
+        module_name: Option<String>,
         imports: Vec<ImportDecl>,
+        structs: Vec<crate::foundations::StructDecl>,
+        enums: Vec<crate::foundations::EnumDecl>,
+        traits: Vec<crate::foundations::TraitDecl>,
         robots: Vec<RobotDecl>,
         span: Span,
     },
@@ -124,6 +134,12 @@ pub enum RobotDecl {
         ai_models: Vec<AiModelDecl>,
         agents: Vec<AgentDecl>,
         behaviors: Vec<BehaviorDecl>,
+        tasks: Vec<crate::foundations::TaskDecl>,
+        state_machines: Vec<crate::foundations::StateMachineDecl>,
+        events: Vec<crate::foundations::EventDecl>,
+        event_handlers: Vec<crate::foundations::EventHandlerDecl>,
+        twin: Option<crate::foundations::TwinDecl>,
+        trait_impls: Vec<crate::foundations::TraitImplDecl>,
         span: Span,
     },
 }
@@ -298,6 +314,8 @@ pub enum AgentDecl {
         uses_ai: Vec<String>,
         memory_kind: Option<MemoryKind>,
         tools: Vec<String>,
+        skills: Vec<String>,
+        capabilities: Vec<crate::foundations::CapabilityDecl>,
         goal: String,
         plan_body: Vec<Stmt>,
         span: Span,
@@ -353,6 +371,9 @@ pub enum ZoneShape {
 pub enum BehaviorDecl {
     BehaviorDecl {
         name: String,
+        requires: Option<Expr>,
+        ensures: Option<Expr>,
+        invariant: Option<Expr>,
         body: Vec<Stmt>,
         span: Span,
     },
@@ -388,6 +409,8 @@ pub enum Stmt {
     },
     EmergencyStopStmt { span: Span },
     ResetEmergencyStopStmt { span: Span },
+    EmitStmt { event_name: String, span: Span },
+    EnterStmt { state_name: String, span: Span },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -422,6 +445,23 @@ pub enum Expr {
         property: String,
         span: Span,
     },
+    MatchExpr {
+        scrutinee: Box<Expr>,
+        arms: Vec<crate::foundations::MatchArm>,
+        span: Span,
+    },
+    StructLiteralExpr {
+        type_name: String,
+        fields: Vec<StructFieldInit>,
+        span: Span,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StructFieldInit {
+    pub name: String,
+    pub value: Expr,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

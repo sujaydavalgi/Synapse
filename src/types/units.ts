@@ -302,6 +302,24 @@ export const BUILTIN_METHODS: Record<
   Agent: {
     plan: { params: [], returns: { kind: "void" } },
   },
+  Twin: {
+    frame_count: { params: [], returns: { kind: "number", unit: "none" } },
+    mirror: {
+      params: [],
+      namedParams: { field: { kind: "string" } },
+      returns: { kind: "pose" },
+    },
+    replay: {
+      params: [],
+      namedParams: {
+        index: { kind: "number", unit: "none" },
+        field: { kind: "string" },
+      },
+      returns: { kind: "pose" },
+    },
+    pose: { params: [], returns: { kind: "pose" } },
+    velocity: { params: [], returns: { kind: "velocity" } },
+  },
   Safety: {
     validate: {
       params: [{ kind: "named", name: "ActionProposal" }],

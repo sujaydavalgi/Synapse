@@ -1,5 +1,31 @@
 export type TokenType =
   | "IMPORT"
+  | "MODULE"
+  | "STRUCT"
+  | "ENUM"
+  | "TRAIT"
+  | "IMPL"
+  | "FOR"
+  | "MATCH"
+  | "FN"
+  | "STATE_MACHINE"
+  | "TASK"
+  | "SKILL"
+  | "EVENT"
+  | "TWIN"
+  | "STATE"
+  | "RESOURCE"
+  | "REQUIRES"
+  | "ENSURES"
+  | "INVARIANT"
+  | "CAN"
+  | "TRANSITION"
+  | "MIRROR"
+  | "REPLAY"
+  | "EMIT"
+  | "ENTER"
+  | "ARROW"
+  | "FAT_ARROW"
   | "HAL"
   | "SOC"
   | "FROM"
@@ -82,7 +108,7 @@ export type TokenType =
   | "NEQ"
   | "EOF";
 
-export type UnitLexeme = "m" | "s" | "ms" | "rad" | "m/s" | "rad/s" | "deg" | "Hz";
+export type UnitLexeme = "m" | "s" | "ms" | "rad" | "m/s" | "m/s²" | "m/s2" | "rad/s" | "deg" | "Hz";
 
 export type Token = {
   type: TokenType;
@@ -107,6 +133,30 @@ export class LexerError extends Error {
 
 const KEYWORDS: Record<string, TokenType> = {
   import: "IMPORT",
+  module: "MODULE",
+  struct: "STRUCT",
+  enum: "ENUM",
+  trait: "TRAIT",
+  impl: "IMPL",
+  for: "FOR",
+  match: "MATCH",
+  fn: "FN",
+  state_machine: "STATE_MACHINE",
+  task: "TASK",
+  skill: "SKILL",
+  event: "EVENT",
+  twin: "TWIN",
+  state: "STATE",
+  resource: "RESOURCE",
+  requires: "REQUIRES",
+  ensures: "ENSURES",
+  invariant: "INVARIANT",
+  can: "CAN",
+  transition: "TRANSITION",
+  mirror: "MIRROR",
+  replay: "REPLAY",
+  emit: "EMIT",
+  enter: "ENTER",
   hal: "HAL",
   soc: "SOC",
   from: "FROM",
@@ -164,7 +214,7 @@ const KEYWORDS: Record<string, TokenType> = {
   not: "NOT",
 };
 
-const UNIT_SUFFIXES: UnitLexeme[] = ["m/s", "rad/s", "ms", "deg", "rad", "m", "s", "Hz"];
+const UNIT_SUFFIXES: UnitLexeme[] = ["m/s2", "m/s²", "m/s", "rad/s", "ms", "deg", "rad", "m", "s", "Hz"];
 
 export function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -265,6 +315,12 @@ export function tokenize(source: string): Token[] {
       column++;
       continue;
     }
+    if (ch === "-" && source[i + 1] === ">") {
+      tokens.push({ type: "ARROW", lexeme: "->", value: null, ...start });
+      i += 2;
+      column += 2;
+      continue;
+    }
     if (ch === "-") {
       tokens.push({ type: "MINUS", lexeme: "-", value: null, ...start });
       i++;
@@ -315,6 +371,12 @@ export function tokenize(source: string): Token[] {
     }
     if (ch === "!" && source[i + 1] === "=") {
       tokens.push({ type: "NEQ", lexeme: "!=", value: null, ...start });
+      i += 2;
+      column += 2;
+      continue;
+    }
+    if (ch === "=" && source[i + 1] === ">") {
+      tokens.push({ type: "FAT_ARROW", lexeme: "=>", value: null, ...start });
       i += 2;
       column += 2;
       continue;
@@ -451,5 +513,6 @@ function isIdentChar(ch: string): boolean {
 }
 
 export function unitFromLexeme(lexeme: UnitLexeme): import("../ast/nodes.js").UnitKind {
+  if (lexeme === "m/s2" || lexeme === "m/s²") return "m/s²";
   return lexeme;
 }

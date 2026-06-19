@@ -1,0 +1,57 @@
+module humanoid;
+
+import ai.reasoning;
+
+struct JointPose {
+  x: Distance;
+  y: Distance;
+  z: Distance;
+}
+
+robot Assistant {
+  sensor camera: Camera on "/camera";
+  sensor lidar: Lidar on "/scan";
+  actuator arm: RoboticArm;
+  actuator gripper: Gripper;
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  ai_model assistant: LLM {
+    provider: "mock";
+    model: "humanoid-assistant";
+    temperature: 0.2;
+    max_tokens: 512;
+  }
+
+  agent Helper {
+    uses assistant;
+    tools [camera, lidar, arm, gripper];
+    memory short_term;
+    skill manipulation;
+    skill dialogue;
+    goal "Assist the operator safely";
+    can [ read(camera), read(lidar), propose_motion ];
+
+    plan {
+      let scene = camera.analyze();
+      let summary = assistant.summarize(input: scene);
+      let proposal = assistant.reason(prompt: "Suggest safe arm motion", input: scene);
+      let action = safety.validate(proposal);
+      arm.move_to(x: 0.3 m, y: 0.0 m, z: 0.2 m);
+    }
+  }
+
+  event OperatorRequest;
+
+  on OperatorRequest {
+    Helper.plan();
+  }
+
+  behavior assist() {
+    loop every 200ms {
+      Helper.plan();
+    }
+  }
+}

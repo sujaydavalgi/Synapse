@@ -49,6 +49,7 @@ export type RuntimeValue =
   | { kind: "trajectory"; waypoints: PoseValue[] }
   | { kind: "transform"; fromFrame: string; toFrame: string; pose: PoseValue }
   | { kind: "object"; typeName: string; fields: Record<string, RuntimeValue> }
+  | { kind: "enum"; enumName: string; variant: string }
   | { kind: "sensor"; name: string; sensorType: string; library?: string | null; halBinding?: string | null; topic?: string | null }
   | { kind: "actuator"; name: string; actuatorType: string }
   | { kind: "topic"; name: string; messageType: string; topicPath: string }
@@ -56,6 +57,7 @@ export type RuntimeValue =
   | { kind: "action"; name: string; actionType: string }
   | { kind: "robot" }
   | { kind: "agent"; name: string }
+  | { kind: "twin"; name: string }
   | { kind: "safety_ctx" }
   | { kind: "ai_model"; name: string; modelType: string; provider: string }
   | { kind: "action_proposal"; linear: number; angular: number; source: string; trusted: false }
@@ -129,29 +131,281 @@ export class Interpreter {
   private hal: HalBackend | null = null;
   private ai_models = new Map<string, AIModel>();
   private agents = new Map<string, AgentRuntime>();
+  private agentCapabilities = new Map<string, import("../foundations.js").CapabilityDecl[]>();
+  private currentAgent: string | null = null;
+  private eventHandlers = new Map<string, Stmt[]>();
+  private stateMachines = new Map<
+    string,
+    { current: string; states: string[]; transitions: Array<{ from: string; to: string }> }
+  >();
+  private twinRuntime: {
+    name: string;
+    mirrors: string[];
+    replay: boolean;
+    shadow: Record<string, RuntimeValue>;
+    replayBuffer: Array<Record<string, RuntimeValue>>;
+  } | null = null;
   private currentRobot: RobotDecl | null = null;
   private currentProgram: Program | null = null;
+  private enumVariants = new Map<string, string[]>();
+  private variantOwner = new Map<string, string>();
+  private structDefs = new Map<string, Array<{ name: string; typeName: string }>>();
+  private agentTraitImpls = new Map<
+    string,
+    Map<string, { params: import("../foundations.js").TraitParamDecl[]; body: Stmt[] }>
+  >();
 
   constructor(private options: InterpreterOptions) {}
 
   run(program: Program, entryBehavior?: string): RobotState {
     this.currentProgram = program;
+    this.loadProgramMetadata(program);
     for (const robot of program.robots) {
       this.setupRobot(robot);
-      const behaviorName = entryBehavior ?? robot.behaviors[0]?.name;
+      const behaviorName =
+        entryBehavior ?? robot.behaviors[0]?.name ?? robot.tasks[0]?.name;
       if (!behaviorName) continue;
+
       const behavior = robot.behaviors.find((b) => b.name === behaviorName);
       if (behavior) {
-        this.executeBlock(behavior.body);
+        this.executeWithContracts(behavior.body, behavior.requires, behavior.ensures, behavior.invariant);
+        continue;
+      }
+
+      const task = robot.tasks.find((t) => t.name === behaviorName);
+      if (task) {
+        this.executeTaskLoop(task.body, task.intervalMs, task.requires, task.ensures, task.invariant);
       }
     }
     return this.options.backend.getState();
+  }
+
+  private loadProgramMetadata(program: Program): void {
+    this.enumVariants.clear();
+    this.variantOwner.clear();
+    this.structDefs.clear();
+    for (const enumDecl of program.enums) {
+      this.enumVariants.set(enumDecl.name, [...enumDecl.variants]);
+      for (const variant of enumDecl.variants) {
+        this.variantOwner.set(variant, enumDecl.name);
+      }
+    }
+    for (const structDecl of program.structs) {
+      this.structDefs.set(
+        structDecl.name,
+        structDecl.fields.map((f) => ({ name: f.name, typeName: f.typeName })),
+      );
+    }
+  }
+
+  private evalContract(expr: Expr): boolean {
+    const val = this.evalExpr(expr);
+    if (val.kind === "bool") return val.value;
+    throw new RuntimeError("Contract expression must be boolean", 0);
+  }
+
+  private executeWithContracts(
+    body: Stmt[],
+    requires: Expr | null,
+    ensures: Expr | null,
+    invariant: Expr | null,
+  ): void {
+    if (requires && !this.evalContract(requires)) {
+      throw new RuntimeError("requires contract failed", 0);
+    }
+    this.executeBlock(body);
+    if (ensures && !this.evalContract(ensures)) {
+      throw new RuntimeError("ensures contract failed", 0);
+    }
+    if (invariant && !this.evalContract(invariant)) {
+      throw new RuntimeError("invariant contract failed", 0);
+    }
+  }
+
+  private executeTaskLoop(
+    body: Stmt[],
+    intervalMs: number,
+    requires: Expr | null,
+    ensures: Expr | null,
+    invariant: Expr | null,
+  ): void {
+    const maxIter = this.options.maxLoopIterations ?? 10;
+    for (let i = 0; i < maxIter; i++) {
+      this.options.backend.tick(intervalMs);
+      if (requires && !this.evalContract(requires)) {
+        this.options.onLog?.("task requires contract failed — skipping iteration");
+        continue;
+      }
+      this.executeBlock(body);
+      if (ensures && !this.evalContract(ensures)) {
+        throw new RuntimeError("task ensures contract failed", 0);
+      }
+      if (invariant && !this.evalContract(invariant)) {
+        throw new RuntimeError("task invariant contract failed", 0);
+      }
+      this.updateTwinSnapshot();
+      if (this.safetyMonitor?.isEmergencyStop()) break;
+    }
+  }
+
+  private refreshTwinShadowFromBackend(): void {
+    if (!this.twinRuntime) return;
+    const state = this.options.backend.getState();
+    if (this.twinRuntime.mirrors.includes("pose")) {
+      this.twinRuntime.shadow.pose = {
+        kind: "pose",
+        x: state.pose.x,
+        y: state.pose.y,
+        theta: state.pose.theta,
+        z: state.pose.z ?? 0,
+      };
+    }
+    if (this.twinRuntime.mirrors.includes("velocity")) {
+      this.twinRuntime.shadow.velocity = {
+        kind: "velocity",
+        linear: state.velocity.linear,
+        angular: state.velocity.angular,
+      };
+    }
+  }
+
+  private updateTwinSnapshot(): void {
+    if (!this.twinRuntime) return;
+    this.refreshTwinShadowFromBackend();
+    if (this.twinRuntime.replay && Object.keys(this.twinRuntime.shadow).length > 0) {
+      this.twinRuntime.replayBuffer.push({ ...this.twinRuntime.shadow });
+    }
+    const fieldCount = Object.keys(this.twinRuntime.shadow).length;
+    if (fieldCount > 0) {
+      this.options.onLog?.(
+        `twin ${this.twinRuntime.name} mirrored ${fieldCount} field(s), replay frames=${this.twinRuntime.replayBuffer.length}`,
+      );
+    }
+  }
+
+  private twinFieldFromExpr(expr: Expr): string {
+    if (expr.kind === "LiteralExpr" && typeof expr.value === "string") return expr.value;
+    if (expr.kind === "IdentExpr") return expr.name;
+    return getString(this.evalExpr(expr), "");
+  }
+
+  private evalTwinMethod(
+    method: string,
+    expr: import("../ast/nodes.js").CallExpr,
+  ): RuntimeValue {
+    if (!this.twinRuntime) {
+      throw new RuntimeError("No digital twin configured", expr.span.start.line);
+    }
+    this.refreshTwinShadowFromBackend();
+    const twin = this.twinRuntime;
+
+    if (method === "frame_count") {
+      return { kind: "number", value: twin.replayBuffer.length, unit: "none" };
+    }
+    if (method === "mirror") {
+      const fieldArg = expr.namedArgs.find((a) => a.name === "field");
+      const field = fieldArg
+        ? this.twinFieldFromExpr(fieldArg.value)
+        : expr.args[0]
+          ? this.twinFieldFromExpr(expr.args[0])
+          : "";
+      const value = twin.shadow[field];
+      if (!value) {
+        throw new RuntimeError(`Twin has no mirrored shadow field '${field}'`, expr.span.start.line);
+      }
+      return value;
+    }
+    if (method === "replay") {
+      if (!twin.replay) {
+        throw new RuntimeError("Twin replay is disabled — set replay true in twin block", expr.span.start.line);
+      }
+      const indexArg = expr.namedArgs.find((a) => a.name === "index");
+      const index = indexArg
+        ? getNumber(this.evalExpr(indexArg.value), 0)
+        : expr.args[0]
+          ? getNumber(this.evalExpr(expr.args[0]), 0)
+          : 0;
+      const fieldArg = expr.namedArgs.find((a) => a.name === "field");
+      const field = fieldArg
+        ? this.twinFieldFromExpr(fieldArg.value)
+        : expr.args[1]
+          ? this.twinFieldFromExpr(expr.args[1])
+          : "";
+      const frame = twin.replayBuffer[Math.floor(index)];
+      const value = frame?.[field];
+      if (!value) {
+        throw new RuntimeError(
+          `Twin replay frame ${Math.floor(index)} has no field '${field}'`,
+          expr.span.start.line,
+        );
+      }
+      return value;
+    }
+    if (twin.mirrors.includes(method)) {
+      const value = twin.shadow[method];
+      if (!value) {
+        throw new RuntimeError(`Twin shadow field '${method}' not yet mirrored`, expr.span.start.line);
+      }
+      return value;
+    }
+    return { kind: "void" };
+  }
+
+  private checkAgentCapability(
+    agent: string,
+    action: string,
+    target: string | undefined,
+    line: number,
+  ): void {
+    const caps = this.agentCapabilities.get(agent) ?? [];
+    if (caps.length === 0) {
+      return;
+    }
+    const allowed = caps.some(
+      (c) => c.action === action && (target === undefined || c.target === target),
+    );
+    if (!allowed) {
+      const suffix = target ? `(${target})` : "";
+      throw new RuntimeError(`Agent '${agent}' lacks capability ${action}${suffix}`, line);
+    }
+  }
+
+  private dispatchEvent(eventName: string): void {
+    const body = this.eventHandlers.get(eventName);
+    if (body) {
+      this.options.onLog?.(`emit ${eventName}`);
+      this.executeBlock(body);
+    } else {
+      this.options.onLog?.(`emit ${eventName} (no handler)`);
+    }
+  }
+
+  private executeEnter(stateName: string, line: number): void {
+    let transitioned = false;
+    for (const [smName, sm] of this.stateMachines) {
+      if (!sm.states.includes(stateName)) continue;
+      const allowed = sm.transitions.some((t) => t.from === sm.current && t.to === stateName);
+      if (!allowed) continue;
+      const previous = sm.current;
+      sm.current = stateName;
+      this.options.onLog?.(`state_machine ${smName}: ${previous} -> ${stateName}`);
+      transitioned = true;
+    }
+    if (!transitioned) {
+      throw new RuntimeError(`No valid transition to state '${stateName}'`, line);
+    }
   }
 
   private setupRobot(robot: RobotDecl): void {
     this.currentRobot = robot;
     this.env = new Environment();
     this.zones = [];
+    this.eventHandlers.clear();
+    this.stateMachines.clear();
+    this.twinRuntime = null;
+    this.agentCapabilities.clear();
+    this.agentTraitImpls.clear();
+    this.currentAgent = null;
 
     if (robot.soc) {
       const profile = getSocProfile(robot.soc.profile);
@@ -226,8 +480,49 @@ export class Interpreter {
       const memory = agentDecl.memoryKind ? new MemoryStore(agentDecl.memoryKind) : null;
       const agent = createAgentRuntime(agentDecl, memory);
       this.agents.set(agentDecl.name, agent);
+      this.agentCapabilities.set(agentDecl.name, agentDecl.capabilities);
       this.env.define(agentDecl.name, { kind: "agent", name: agentDecl.name });
       this.options.onLog?.(`Agent '${agentDecl.name}': ${agentDecl.goal}`);
+    }
+
+    for (const traitImpl of robot.traitImpls ?? []) {
+      const agentMethods = this.agentTraitImpls.get(traitImpl.agentName) ?? new Map();
+      for (const method of traitImpl.methods) {
+        agentMethods.set(method.name, { params: method.params, body: method.body });
+      }
+      this.agentTraitImpls.set(traitImpl.agentName, agentMethods);
+    }
+
+    for (const event of robot.events ?? []) {
+      this.options.onLog?.(`event declared: ${event.name}`);
+    }
+    for (const handler of robot.eventHandlers ?? []) {
+      this.eventHandlers.set(handler.eventName, handler.body);
+      this.options.onLog?.(`handler registered for ${handler.eventName}`);
+    }
+
+    if (robot.twin) {
+      this.twinRuntime = {
+        name: robot.twin.name,
+        mirrors: [...robot.twin.mirrors],
+        replay: robot.twin.replay,
+        shadow: {},
+        replayBuffer: [],
+      };
+      this.env.define(robot.twin.name, { kind: "twin", name: robot.twin.name });
+      this.options.onLog?.(
+        `twin ${robot.twin.name}: mirrors [${robot.twin.mirrors.join(", ")}], replay=${robot.twin.replay}`,
+      );
+    }
+
+    for (const sm of robot.stateMachines ?? []) {
+      const initial = sm.states[0] ?? "unknown";
+      this.stateMachines.set(sm.name, {
+        current: initial,
+        states: [...sm.states],
+        transitions: sm.transitions.map((t) => ({ from: t.from, to: t.to })),
+      });
+      this.options.onLog?.(`state_machine ${sm.name}: initial state ${initial}`);
     }
 
     if (robot.safety) {
@@ -348,6 +643,12 @@ export class Interpreter {
         this.options.backend.setEmergencyStop?.(false);
         this.options.onLog?.("Emergency stop reset");
         break;
+      case "EmitStmt":
+        this.dispatchEvent(stmt.eventName);
+        break;
+      case "EnterStmt":
+        this.executeEnter(stmt.stateName, stmt.span.start.line);
+        break;
       case "ExprStmt":
         this.evalExpr(stmt.expr);
         break;
@@ -366,6 +667,10 @@ export class Interpreter {
       case "UnitLiteralExpr":
         return { kind: "number", value: expr.value, unit: expr.unit };
       case "IdentExpr": {
+        const enumName = this.variantOwner.get(expr.name);
+        if (enumName) {
+          return { kind: "enum", enumName, variant: expr.name };
+        }
         const val = this.env.get(expr.name);
         if (!val) throw new RuntimeError(`Undefined variable '${expr.name}'`, expr.span.start.line);
         return val;
@@ -386,12 +691,54 @@ export class Interpreter {
         return this.evalMember(expr);
       case "CallExpr":
         return this.evalCall(expr);
+      case "MatchExpr": {
+        const value = this.evalExpr(expr.scrutinee);
+        let variant = "";
+        if (value.kind === "enum") variant = value.variant;
+        else if (value.kind === "string") variant = value.value;
+        else if (value.kind === "object") variant = value.typeName;
+        for (const arm of expr.arms) {
+          if (arm.variant === variant) {
+            this.executeBlock(arm.body);
+            break;
+          }
+        }
+        return { kind: "void" };
+      }
+      case "StructLiteralExpr":
+        return this.evalStructLiteral(expr);
       default:
         return { kind: "void" };
     }
   }
 
+  private evalStructLiteral(expr: import("../ast/nodes.js").StructLiteralExpr): RuntimeValue {
+    const values: Record<string, RuntimeValue> = {};
+    for (const field of expr.fields) {
+      values[field.name] = this.evalExpr(field.value);
+    }
+    if (expr.typeName === "Pose") {
+      const x = values.x?.kind === "number" ? values.x.value : 0;
+      const y = values.y?.kind === "number" ? values.y.value : 0;
+      const heading = values.heading?.kind === "number"
+        ? values.heading.value
+        : values.theta?.kind === "number"
+          ? values.theta.value
+          : 0;
+      const z = values.z?.kind === "number" ? values.z.value : 0;
+      return { kind: "pose", x, y, theta: heading, z };
+    }
+    return { kind: "object", typeName: expr.typeName, fields: values };
+  }
+
   private evalMember(expr: import("../ast/nodes.js").MemberExpr): RuntimeValue {
+    if (expr.object.kind === "IdentExpr") {
+      const variants = this.enumVariants.get(expr.object.name);
+      if (variants?.includes(expr.property)) {
+        return { kind: "enum", enumName: expr.object.name, variant: expr.property };
+      }
+    }
+
     const obj = this.evalExpr(expr.object);
 
     if (obj.kind === "scan" && expr.property === "nearest_distance") {
@@ -462,8 +809,15 @@ export class Interpreter {
       return this.evalRobotMethod(method, expr);
     }
 
+    if (target.kind === "twin") {
+      return this.evalTwinMethod(method, expr);
+    }
+
     if (target.kind === "sensor") {
       if (method === "read") {
+        if (this.currentAgent) {
+          this.checkAgentCapability(this.currentAgent, "read", targetName, expr.span.start.line);
+        }
         return this.readSensorValue(target);
       }
       if (target.sensorType === "Camera") {
@@ -475,14 +829,39 @@ export class Interpreter {
       }
     }
 
-    if (target.kind === "agent" && method === "plan") {
-      const agent = this.agents.get(targetName);
-      if (!agent) {
-        throw new RuntimeError(`Unknown agent '${targetName}'`, expr.span.start.line);
+    if (target.kind === "agent") {
+      const traitImpl = this.agentTraitImpls.get(targetName)?.get(method);
+      if (traitImpl) {
+        const saved = this.env.clone();
+        for (let i = 0; i < traitImpl.params.length; i++) {
+          const param = traitImpl.params[i];
+          const argVal = expr.args[i] ? this.evalExpr(expr.args[i]) : { kind: "void" as const };
+          this.env.define(param.name, argVal);
+        }
+        this.currentAgent = targetName;
+        try {
+          this.executeBlock(traitImpl.body);
+        } finally {
+          this.currentAgent = null;
+          this.env = saved;
+        }
+        this.options.onLog?.(`agent ${targetName}.${method}()`);
+        return { kind: "void" };
       }
-      executeAgentPlan(agent, { executeBlock: (stmts) => this.executeBlock(stmts) });
-      this.options.onLog?.(`agent ${targetName}.plan()`);
-      return { kind: "void" };
+      if (method === "plan") {
+        const agent = this.agents.get(targetName);
+        if (!agent) {
+          throw new RuntimeError(`Unknown agent '${targetName}'`, expr.span.start.line);
+        }
+        this.currentAgent = targetName;
+        try {
+          executeAgentPlan(agent, { executeBlock: (stmts) => this.executeBlock(stmts) });
+        } finally {
+          this.currentAgent = null;
+        }
+        this.options.onLog?.(`agent ${targetName}.plan()`);
+        return { kind: "void" };
+      }
     }
 
     if (target.kind === "safety_ctx" && method === "validate") {
@@ -670,6 +1049,9 @@ export class Interpreter {
         this.options.backend.executeMotion({ kind: "hover", actuator: name });
         break;
       case "execute": {
+        if (this.currentAgent) {
+          this.checkAgentCapability(this.currentAgent, "propose_motion", undefined, expr.span.start.line);
+        }
         const actionVal = expr.args[0]
           ? this.evalExpr(expr.args[0])
           : this.getNamedArgValue(expr, "action");
