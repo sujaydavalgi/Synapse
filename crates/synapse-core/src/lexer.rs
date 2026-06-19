@@ -1,0 +1,660 @@
+use crate::ast::UnitKind;
+use crate::error::SynapseError;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TokenType {
+    Import,
+    Hal,
+    Soc,
+    From,
+    I2c,
+    Spi,
+    Uart,
+    Gpio,
+    Pwm,
+    Adc,
+    Out,
+    In,
+    Baud,
+    Frequency,
+    Pin,
+    Robot,
+    Node,
+    Topic,
+    Service,
+    Action,
+    Sensor,
+    Actuator,
+    Safety,
+    AiModel,
+    Agent,
+    Uses,
+    Tools,
+    Goal,
+    Plan,
+    Memory,
+    Provider,
+    Behavior,
+    Loop,
+    Every,
+    Let,
+    If,
+    Else,
+    StopIf,
+    Publish,
+    Call,
+    SendGoal,
+    With,
+    Zone,
+    Circle,
+    Rect,
+    At,
+    Radius,
+    Size,
+    EmergencyStop,
+    ResetEmergencyStop,
+    On,
+    True,
+    False,
+    And,
+    Or,
+    Not,
+    Ident,
+    Number,
+    String,
+    UnitLiteral,
+    Lbrace,
+    Rbrace,
+    Lbracket,
+    Rbracket,
+    Lparen,
+    Rparen,
+    Semicolon,
+    Colon,
+    Comma,
+    Dot,
+    Assign,
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+    Eq,
+    Neq,
+    Eof,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UnitLexeme {
+    #[serde(rename = "m")]
+    M,
+    #[serde(rename = "s")]
+    S,
+    #[serde(rename = "ms")]
+    Ms,
+    #[serde(rename = "rad")]
+    Rad,
+    #[serde(rename = "m/s")]
+    MPerS,
+    #[serde(rename = "rad/s")]
+    RadPerS,
+    #[serde(rename = "deg")]
+    Deg,
+    #[serde(rename = "Hz")]
+    Hz,
+}
+
+impl UnitLexeme {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            UnitLexeme::M => "m",
+            UnitLexeme::S => "s",
+            UnitLexeme::Ms => "ms",
+            UnitLexeme::Rad => "rad",
+            UnitLexeme::MPerS => "m/s",
+            UnitLexeme::RadPerS => "rad/s",
+            UnitLexeme::Deg => "deg",
+            UnitLexeme::Hz => "Hz",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Token {
+    #[serde(rename = "type")]
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub value: TokenValue,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unit: Option<UnitLexeme>,
+    pub line: u32,
+    pub column: u32,
+    pub offset: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TokenValue {
+    String(String),
+    Number(f64),
+    Bool(bool),
+    Null,
+}
+
+pub fn unit_from_lexeme(lexeme: UnitLexeme) -> UnitKind {
+    UnitKind::from_lexeme(lexeme.as_str())
+}
+
+const UNIT_SUFFIXES: &[UnitLexeme] = &[
+    UnitLexeme::MPerS,
+    UnitLexeme::RadPerS,
+    UnitLexeme::Ms,
+    UnitLexeme::Deg,
+    UnitLexeme::Rad,
+    UnitLexeme::M,
+    UnitLexeme::S,
+    UnitLexeme::Hz,
+];
+
+fn keywords() -> HashMap<&'static str, TokenType> {
+    HashMap::from([
+        ("import", TokenType::Import),
+        ("hal", TokenType::Hal),
+        ("soc", TokenType::Soc),
+        ("from", TokenType::From),
+        ("i2c", TokenType::I2c),
+        ("spi", TokenType::Spi),
+        ("uart", TokenType::Uart),
+        ("gpio", TokenType::Gpio),
+        ("pwm", TokenType::Pwm),
+        ("adc", TokenType::Adc),
+        ("out", TokenType::Out),
+        ("in", TokenType::In),
+        ("baud", TokenType::Baud),
+        ("frequency", TokenType::Frequency),
+        ("pin", TokenType::Pin),
+        ("robot", TokenType::Robot),
+        ("node", TokenType::Node),
+        ("topic", TokenType::Topic),
+        ("service", TokenType::Service),
+        ("action", TokenType::Action),
+        ("sensor", TokenType::Sensor),
+        ("actuator", TokenType::Actuator),
+        ("safety", TokenType::Safety),
+        ("ai_model", TokenType::AiModel),
+        ("agent", TokenType::Agent),
+        ("uses", TokenType::Uses),
+        ("tools", TokenType::Tools),
+        ("goal", TokenType::Goal),
+        ("plan", TokenType::Plan),
+        ("memory", TokenType::Memory),
+        ("provider", TokenType::Provider),
+        ("behavior", TokenType::Behavior),
+        ("loop", TokenType::Loop),
+        ("every", TokenType::Every),
+        ("let", TokenType::Let),
+        ("if", TokenType::If),
+        ("else", TokenType::Else),
+        ("stop_if", TokenType::StopIf),
+        ("publish", TokenType::Publish),
+        ("call", TokenType::Call),
+        ("send_goal", TokenType::SendGoal),
+        ("with", TokenType::With),
+        ("zone", TokenType::Zone),
+        ("circle", TokenType::Circle),
+        ("rect", TokenType::Rect),
+        ("at", TokenType::At),
+        ("radius", TokenType::Radius),
+        ("size", TokenType::Size),
+        ("emergency_stop", TokenType::EmergencyStop),
+        ("reset_emergency_stop", TokenType::ResetEmergencyStop),
+        ("on", TokenType::On),
+        ("true", TokenType::True),
+        ("false", TokenType::False),
+        ("and", TokenType::And),
+        ("or", TokenType::Or),
+        ("not", TokenType::Not),
+    ])
+}
+
+pub fn tokenize(source: &str) -> Result<Vec<Token>, SynapseError> {
+    let keywords = keywords();
+    let mut tokens = Vec::new();
+    let mut line: u32 = 1;
+    let mut column: u32 = 1;
+    let mut i = 0;
+    let chars: Vec<char> = source.chars().collect();
+
+    let loc = |line: u32, column: u32, offset: usize| (line, column, offset);
+
+    while i < chars.len() {
+        let ch = chars[i];
+
+        if ch == ' ' || ch == '\t' || ch == '\r' {
+            i += 1;
+            column += 1;
+            continue;
+        }
+
+        if ch == '\n' {
+            i += 1;
+            line += 1;
+            column = 1;
+            continue;
+        }
+
+        if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+            while i < chars.len() && chars[i] != '\n' {
+                i += 1;
+            }
+            continue;
+        }
+
+        let (start_line, start_column, start_offset) = loc(line, column, i);
+
+        match ch {
+            '[' => {
+                push_single(&mut tokens, TokenType::Lbracket, "[", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            ']' => {
+                push_single(&mut tokens, TokenType::Rbracket, "]", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '{' => {
+                push_single(&mut tokens, TokenType::Lbrace, "{", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '}' => {
+                push_single(&mut tokens, TokenType::Rbrace, "}", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '(' => {
+                push_single(&mut tokens, TokenType::Lparen, "(", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            ')' => {
+                push_single(&mut tokens, TokenType::Rparen, ")", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            ';' => {
+                push_single(&mut tokens, TokenType::Semicolon, ";", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            ':' => {
+                push_single(&mut tokens, TokenType::Colon, ":", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            ',' => {
+                push_single(&mut tokens, TokenType::Comma, ",", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '.' => {
+                push_single(&mut tokens, TokenType::Dot, ".", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '+' => {
+                push_single(&mut tokens, TokenType::Plus, "+", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '-' => {
+                push_single(&mut tokens, TokenType::Minus, "-", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '*' => {
+                push_single(&mut tokens, TokenType::Star, "*", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '/' => {
+                push_single(&mut tokens, TokenType::Slash, "/", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '<' if i + 1 < chars.len() && chars[i + 1] == '=' => {
+                tokens.push(Token {
+                    token_type: TokenType::Lte,
+                    lexeme: "<=".to_string(),
+                    value: TokenValue::Null,
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+                i += 2;
+                column += 2;
+            }
+            '<' => {
+                push_single(&mut tokens, TokenType::Lt, "<", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '>' if i + 1 < chars.len() && chars[i + 1] == '=' => {
+                tokens.push(Token {
+                    token_type: TokenType::Gte,
+                    lexeme: ">=".to_string(),
+                    value: TokenValue::Null,
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+                i += 2;
+                column += 2;
+            }
+            '>' => {
+                push_single(&mut tokens, TokenType::Gt, ">", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '=' if i + 1 < chars.len() && chars[i + 1] == '=' => {
+                tokens.push(Token {
+                    token_type: TokenType::Eq,
+                    lexeme: "==".to_string(),
+                    value: TokenValue::Null,
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+                i += 2;
+                column += 2;
+            }
+            '!' if i + 1 < chars.len() && chars[i + 1] == '=' => {
+                tokens.push(Token {
+                    token_type: TokenType::Neq,
+                    lexeme: "!=".to_string(),
+                    value: TokenValue::Null,
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+                i += 2;
+                column += 2;
+            }
+            '=' => {
+                push_single(&mut tokens, TokenType::Assign, "=", start_line, start_column, start_offset);
+                i += 1;
+                column += 1;
+            }
+            '"' => {
+                i += 1;
+                column += 1;
+                let mut value = String::new();
+                while i < chars.len() && chars[i] != '"' {
+                    if chars[i] == '\\' && i + 1 < chars.len() {
+                        value.push(chars[i + 1]);
+                        i += 2;
+                        column += 2;
+                    } else {
+                        value.push(chars[i]);
+                        i += 1;
+                        column += 1;
+                    }
+                }
+                if i >= chars.len() {
+                    return Err(SynapseError::Lexer {
+                        message: "Unterminated string".to_string(),
+                        line: start_line,
+                        column: start_column,
+                    });
+                }
+                i += 1;
+                column += 1;
+                tokens.push(Token {
+                    token_type: TokenType::String,
+                    lexeme: value.clone(),
+                    value: TokenValue::String(value),
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+            }
+            '0' if i + 1 < chars.len() && (chars[i + 1] == 'x' || chars[i + 1] == 'X') => {
+                i += 2;
+                column += 2;
+                let mut hex_str = String::new();
+                while i < chars.len() && is_hex_digit(chars[i]) {
+                    hex_str.push(chars[i]);
+                    i += 1;
+                    column += 1;
+                }
+                let num = i64::from_str_radix(&hex_str, 16).unwrap_or(0) as f64;
+                tokens.push(Token {
+                    token_type: TokenType::Number,
+                    lexeme: format!("0x{hex_str}"),
+                    value: TokenValue::Number(num),
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+            }
+            _ if is_digit(ch) || (ch == '.' && i + 1 < chars.len() && is_digit(chars[i + 1])) => {
+                let mut num_str = String::new();
+                while i < chars.len() && (is_digit(chars[i]) || chars[i] == '.') {
+                    num_str.push(chars[i]);
+                    i += 1;
+                    column += 1;
+                }
+                let num: f64 = num_str.parse().unwrap_or(0.0);
+
+                while i < chars.len() && (chars[i] == ' ' || chars[i] == '\t') {
+                    i += 1;
+                    column += 1;
+                }
+
+                let mut matched_unit: Option<UnitLexeme> = None;
+                for suffix in UNIT_SUFFIXES {
+                    let suffix_str = suffix.as_str();
+                    let suffix_chars: Vec<char> = suffix_str.chars().collect();
+                    if i + suffix_chars.len() <= chars.len() {
+                        let slice: String = chars[i..i + suffix_chars.len()].iter().collect();
+                        if slice == suffix_str {
+                            let next = chars.get(i + suffix_chars.len()).copied();
+                            if let Some(n) = next {
+                                if is_ident_char(n) || n == '/' {
+                                    continue;
+                                }
+                            }
+                            matched_unit = Some(*suffix);
+                            i += suffix_chars.len();
+                            column += suffix_chars.len() as u32;
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(unit) = matched_unit {
+                    tokens.push(Token {
+                        token_type: TokenType::UnitLiteral,
+                        lexeme: format!("{num_str}{}", unit.as_str()),
+                        value: TokenValue::Number(num),
+                        unit: Some(unit),
+                        line: start_line,
+                        column: start_column,
+                        offset: start_offset,
+                    });
+                } else {
+                    tokens.push(Token {
+                        token_type: TokenType::Number,
+                        lexeme: num_str,
+                        value: TokenValue::Number(num),
+                        unit: None,
+                        line: start_line,
+                        column: start_column,
+                        offset: start_offset,
+                    });
+                }
+            }
+            _ if is_ident_start(ch) => {
+                let mut ident = String::new();
+                while i < chars.len() && is_ident_char(chars[i]) {
+                    ident.push(chars[i]);
+                    i += 1;
+                    column += 1;
+                }
+                let token_type = keywords
+                    .get(ident.as_str())
+                    .copied()
+                    .unwrap_or(TokenType::Ident);
+                tokens.push(Token {
+                    token_type,
+                    lexeme: ident.clone(),
+                    value: TokenValue::String(ident),
+                    unit: None,
+                    line: start_line,
+                    column: start_column,
+                    offset: start_offset,
+                });
+            }
+            _ => {
+                return Err(SynapseError::Lexer {
+                    message: format!("Unexpected character '{ch}'"),
+                    line,
+                    column,
+                });
+            }
+        }
+    }
+
+    tokens.push(Token {
+        token_type: TokenType::Eof,
+        lexeme: String::new(),
+        value: TokenValue::Null,
+        unit: None,
+        line,
+        column,
+        offset: i,
+    });
+
+    Ok(tokens)
+}
+
+fn is_hex_digit(ch: char) -> bool {
+    is_digit(ch) || ('a'..='f').contains(&ch) || ('A'..='F').contains(&ch)
+}
+
+fn is_digit(ch: char) -> bool {
+    ch.is_ascii_digit()
+}
+
+fn is_ident_start(ch: char) -> bool {
+    ch.is_ascii_alphabetic() || ch == '_'
+}
+
+fn is_ident_char(ch: char) -> bool {
+    is_ident_start(ch) || is_digit(ch)
+}
+
+fn push_single(
+    tokens: &mut Vec<Token>,
+    token_type: TokenType,
+    lexeme: &str,
+    line: u32,
+    column: u32,
+    offset: usize,
+) {
+    tokens.push(Token {
+        token_type,
+        lexeme: lexeme.to_string(),
+        value: TokenValue::Null,
+        unit: None,
+        line,
+        column,
+        offset,
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tokenizes_robot_keywords() {
+        let tokens = tokenize("robot Rover { sensor lidar: Lidar; }").unwrap();
+        let types: Vec<_> = tokens.iter().map(|t| t.token_type).collect();
+        assert!(types.contains(&TokenType::Robot));
+        assert!(types.contains(&TokenType::Sensor));
+        assert!(types.contains(&TokenType::Ident));
+        assert_eq!(types.last(), Some(&TokenType::Eof));
+    }
+
+    #[test]
+    fn tokenizes_unit_literals() {
+        let tokens = tokenize("1.5m/s").unwrap();
+        let unit_tok = tokens.iter().find(|t| t.token_type == TokenType::UnitLiteral);
+        assert!(unit_tok.is_some());
+        let t = unit_tok.unwrap();
+        assert_eq!(t.value, TokenValue::Number(1.5));
+        assert_eq!(t.unit, Some(UnitLexeme::MPerS));
+    }
+
+    #[test]
+    fn tokenizes_spaced_unit_literals() {
+        let tokens = tokenize("1.5 m/s").unwrap();
+        let unit_tok = tokens.iter().find(|t| t.token_type == TokenType::UnitLiteral);
+        assert!(unit_tok.is_some());
+    }
+
+    #[test]
+    fn tokenizes_duration_units() {
+        let tokens = tokenize("loop every 50ms").unwrap();
+        let ms_tok = tokens.iter().find(|t| t.token_type == TokenType::UnitLiteral);
+        assert!(ms_tok.is_some());
+        assert_eq!(ms_tok.unwrap().unit, Some(UnitLexeme::Ms));
+    }
+
+    #[test]
+    fn tokenizes_stop_if() {
+        let tokens = tokenize("stop_if x < 0.5 m;").unwrap();
+        assert!(tokens.iter().any(|t| t.token_type == TokenType::StopIf));
+    }
+
+    #[test]
+    fn skips_comments() {
+        let tokens = tokenize("// comment\nrobot R {}").unwrap();
+        assert_eq!(tokens[0].token_type, TokenType::Robot);
+    }
+
+    #[test]
+    fn tokenizes_comparisons() {
+        let tokens = tokenize("< <= > >= == !=").unwrap();
+        let types: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.token_type != TokenType::Eof)
+            .map(|t| t.token_type)
+            .collect();
+        assert_eq!(
+            types,
+            vec![
+                TokenType::Lt,
+                TokenType::Lte,
+                TokenType::Gt,
+                TokenType::Gte,
+                TokenType::Eq,
+                TokenType::Neq,
+            ]
+        );
+    }
+}

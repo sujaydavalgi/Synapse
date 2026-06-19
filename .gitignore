@@ -1,4 +1,14 @@
 node_modules/
 dist/
+target/
+packages/web/wasm/
+packages/native/*.node
+packages/native/native.js
+packages/native/native.d.ts
+packages/native/dist/
+packages/native/index.js
+packages/native/index.js.map
+packages/native/index.d.ts
+.synapse-*.syn
 *.log
 .DS_Store
