@@ -77,9 +77,25 @@ Namespace: `import std.sensors;`
 
 ## AI types
 
-`LLM`, `VisionModel`, `EmbeddingModel`, `Prompt`, `Completion`, `Embedding`, `Token`, `Context`, `Memory`, `Plan`, `ReasoningTrace`.
+`LLM`, `VisionModel`, `EmbeddingModel`, `Prompt`, `Completion`, `Embedding`, `Token`, `Context`, `Memory`, `Plan`, `ReasoningTrace`, `Goal`.
 
 Namespace: `import std.ai;`
+
+### AI model hardware config
+
+`ai_model` blocks accept config keys used by hardware verification:
+
+```spanda
+ai_model Vision: VisionModel {
+  memory_required: 2 GB;
+  gpu_required: true;
+}
+```
+
+| Config key | Verification |
+|------------|----------------|
+| `memory_required` | Compared to target profile `memory` |
+| `gpu_required` | Target must have GPU / `gpu_tops` |
 
 ## Agent and autonomy types
 
@@ -118,6 +134,25 @@ Namespace: `import std.safety;`
 `Twin`, `SimulationState`, `Telemetry`, `Replay`, `Fault`, `Scenario`.
 
 Namespace: `import std.twin;`
+
+Fault types for `simulate_compatibility` (verification, not runtime twin API): `CameraFailure`, `LidarFailure`, `ImuFailure`, `BatteryDegradation`, `NetworkOutage`.
+
+## Hardware compatibility types
+
+Declared in programs, not runtime values:
+
+| Construct | Role |
+|-----------|------|
+| `hardware Profile { }` | Platform capability declaration |
+| `deploy Robot to Target` | Deployment binding |
+| `requires_hardware { }` | Minimum platform requirements |
+| `requires_network { }` | Connectivity requirements |
+| `budget { }` | Per-task resource limits |
+| `mission { duration }` | Mission length for power estimation |
+
+Verification output types (Rust/JSON): `CompatibilityReport`, `CompatItem`, `CompatibilityMatrix`.
+
+See [hardware-compatibility.md](./hardware-compatibility.md).
 
 ## Networking / distributed robotics
 

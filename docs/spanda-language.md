@@ -89,7 +89,7 @@ The Rust CLI includes a basic formatter:
 spanda fmt program.sd
 ```
 
-It trims trailing whitespace and normalizes the final newline. The LSP package (`packages/lsp/`) surfaces `spanda check --json` diagnostics in editors.
+It trims trailing whitespace and normalizes the final newline. The LSP package (`packages/lsp/`) surfaces `spanda check` and `spanda verify` diagnostics in editors.
 
 ## Agents, skills, and capabilities
 
@@ -115,12 +115,111 @@ agent Navigator {
 
 ```spanda
 task control_loop every 20ms requires lidar.nearest_distance > 0.4 m {
+  budget {
+    battery <= 10%;
+    memory <= 512 MB;
+    cpu <= 20%;
+  }
   perceive();
   act();
 }
 ```
 
-Tasks are scheduled with fixed intervals and validated by the type checker.
+Tasks are scheduled with fixed intervals and validated by the type checker. Optional `budget { }` declares per-task resource limits checked at hardware verification time.
+
+## Hardware profiles and deployment
+
+Declare platform capabilities and bind programs to targets:
+
+```spanda
+hardware RoverV1 {
+  cpu: CortexA78;
+  memory: 4 GB;
+  sensors [ Camera, Lidar, IMU ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+  network { bandwidth: 100 Mbps; latency: 20 ms; }
+  timing { min_period: 10 ms; }
+  resource: 15 W;
+}
+
+requires_hardware {
+  memory >= 2 GB;
+  sensors [ Camera, Lidar ];
+}
+
+requires_network {
+  bandwidth >= 10 Mbps;
+  latency <= 50 ms;
+}
+
+robot Rover {
+  sensor camera: Camera on "/camera";
+  actuator wheels: DifferentialDrive;
+  mission { duration: 1 h; }
+  behavior run() { wheels.stop(); }
+}
+
+deploy Rover to RoverV1;
+deploy Rover to [ RoverV1, ESP32 ];
+```
+
+Verify before deploy:
+
+```bash
+spanda verify program.sd
+spanda verify program.sd --target RoverV1 --all-targets --simulate
+```
+
+Full reference: [hardware-compatibility.md](./hardware-compatibility.md)
+
+## Simulation compatibility (fault injection)
+
+```spanda
+simulate_compatibility {
+  fault CameraFailure;
+  fault BatteryDegradation;
+  fault NetworkOutage;
+}
+```
+
+Faults modify the target profile during verification (camera/lidar/IMU removal, battery halving, network outage).
+
+## Behavioral verification
+
+Distinct from hardware `spanda verify` — runtime assertions after behavior/task execution:
+
+```spanda
+verify {
+  robot.velocity().linear <= 2.0 m/s;
+}
+```
+
+## Goals and memory
+
+```spanda
+agent Navigator {
+  goal "Reach the dock";
+  plan {
+    let mission = goal(text: "Reach the dock");
+    remember("last_scan", lidar.read());
+    let prior = recall("last_scan");
+  }
+}
+```
+
+## Sensor fusion
+
+```spanda
+observe {
+  lidar;
+  camera;
+}
+
+behavior fuse() {
+  let fused = fusion.read();
+}
+```
 
 ## State machines
 
@@ -186,4 +285,9 @@ let past_pose = RobotTwin.replay(index: 0, field: pose);
 
 ## Examples
 
-See `examples/` including `hello_world.sd`, `rover_navigation.sd`, `warehouse_robot.sd`, `drone_patrol.sd`, `humanoid_assistant.sd`, `digital_twin.sd`, and `ros2_bridge.sd`.
+See `examples/` including:
+
+- `hello_world.sd`, `humanoid_assistant.sd`
+- `hardware/rover_deploy.sd`, `hardware/full_compat.sd`
+- `types/goals.sd`, `types/memory.sd`, `types/verify.sd`, `types/fusion.sd`, `types/multitask.sd`
+- `rover_navigation.sd`, `warehouse_robot.sd`, `digital_twin.sd`, `ros2_bridge.sd`

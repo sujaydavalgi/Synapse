@@ -9,6 +9,7 @@ flowchart TB
   subgraph sources ["Source (.sd)"]
     MOD[module / import]
     TYPES[struct / enum / trait]
+    HW[hardware / deploy / requires_*]
     ROBOT[robot / agent / task]
   end
 
@@ -17,6 +18,7 @@ flowchart TB
     PAR[parser.rs]
     AST[ast.rs + foundations.rs]
     TC[types.rs]
+    HWV[hardware.rs]
     RT[runtime.rs]
     SAF[safety.rs]
     AI[ai.rs]
@@ -34,13 +36,17 @@ flowchart TB
   subgraph ux ["Developer UX"]
     TS[src/ TypeScript mirror]
     WEB[packages/web playground]
-    LSP[LSP — planned]
+    LSP[packages/lsp]
   end
 
-  sources --> LEX --> PAR --> AST --> TC --> RT
+  sources --> LEX --> PAR --> AST --> TC
+  TC --> HWV
+  TC --> RT
   RT --> SAF & AI & HAL & SIM
+  HWV --> CLI
   RT --> CLI & NODE & WASM --> WEB
-  TC -.->|mirror in progress| TS
+  CLI --> LSP
+  TC -.->|mirror partial| TS
 ```
 
 ## Language layers
@@ -50,19 +56,43 @@ flowchart TB
 | **Foundations** | `module`, `struct`, `enum`, `trait`, `match` | Implemented (Rust) |
 | **Autonomous primitives** | `robot`, `sensor`, `actuator`, `agent`, `skill`, `goal`, `memory` | Implemented |
 | **Scheduling** | `task every Nms`, `behavior`, contracts (`requires` / `ensures`) | Implemented (Rust) |
-| **State machines** | `state_machine`, `state`, `transition` | Parsed, validated, logged |
-| **Capabilities** | `can [ read(lidar), propose_motion ]` | Type-checked |
+| **State machines** | `state_machine`, `state`, `transition`, `enter` | Implemented |
+| **Capabilities** | `can [ read(lidar), propose_motion ]` | Type-checked + runtime enforced |
 | **Events** | `event`, `on Event { }` | Parsed + runtime handlers |
-| **Digital twins** | `twin { mirror pose; replay true; }` | Parsed + validated |
+| **Digital twins** | `twin { mirror pose; replay true; }` | Parsed + runtime replay |
+| **Behavioral verify** | `verify { robot.velocity().linear <= 2.0 m/s; }` | Type-checked + runtime |
+| **Sensor fusion** | `observe { lidar, camera; }`, `fusion.read()` | Implemented |
+| **Hardware compatibility** | `hardware`, `deploy`, `requires_hardware`, `verify` CLI | **Implemented** |
 | **Safety** | `ActionProposal` → `safety.validate` → `SafeAction` | Enforced at compile + run time |
 | **ROS2 surface** | `node`, `topic`, `service`, `action` | Implemented |
 
 ## Compiler pipeline
 
-1. **Lex** — tokenize keywords, units, `->`, `=>`
-2. **Parse** — build AST (`Program`, `RobotDecl`, foundations)
+1. **Lex** — tokenize keywords, units, `->`, `=>`, hardware/requirements tokens
+2. **Parse** — build AST (`Program`, `RobotDecl`, `HardwareDecl`, foundations)
 3. **Type-check** — units, capabilities, state machines, AI safety, SoC/HAL
-4. **Run** — interpreter + simulator; tasks scheduled deterministically
+4. **Verify** (optional) — hardware compatibility against deployment targets (`hardware.rs`)
+5. **Run** — interpreter + simulator; tasks scheduled deterministically
+
+## Hardware verification engine
+
+Separate from behavioral `verify { }` blocks. Invoked via `spanda verify` or LSP.
+
+| Check | Source |
+|-------|--------|
+| Sensors / actuators | Robot declarations vs profile lists |
+| `requires_hardware` | Memory, storage, GPU, sensor/actuator mins |
+| `requires_network` | Bandwidth, latency |
+| Task `budget { }` | CPU, memory, battery, network, storage caps |
+| Timing | Task/loop intervals vs `min_period`; aggregate CPU |
+| Power | `mission { duration }` vs battery capacity |
+| AI models | `memory_required`, `gpu_required` in `ai_model` config |
+| Adapters | Logical sensor/actuator → adapter trait mapping |
+| Simulation | `simulate_compatibility` fault injection |
+
+Output: `CompatibilityReport` with pass/warning/error items and optional matrix.
+
+See [hardware-compatibility.md](./hardware-compatibility.md).
 
 ## Safety model
 
@@ -78,4 +108,4 @@ Direct `planner.drive(...)` or `wheels.execute(proposal)` is rejected by the typ
 
 ## Self-hosting roadmap
 
-See [roadmap.md](./roadmap.md). Phase 0–2 are in progress in Rust; TypeScript mirror and LSP follow.
+See [roadmap.md](./roadmap.md). Phase 0–4 and hardware verification are implemented in Rust; TypeScript mirror catches up incrementally.

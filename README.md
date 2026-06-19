@@ -31,6 +31,9 @@ Source files use the **`.sd`** extension.
 - **Deterministic loop scheduling** — `loop every 50ms { ... }`
 - **Safety rules** — always evaluated before motion commands
 - **Simulation backend** — test without hardware
+- **Hardware compatibility verification** — compile-time deploy validation against hardware profiles
+- **Autonomous primitives** — `goal`, `memory`, `verify { }`, `observe { }`, multi-task scheduling
+- **Foundations** — `module`, `struct`, `enum`, `trait`, `match`, `task`, `state_machine`, `twin`, `event`
 - **ROS2 adapter interface** — stub ready for future integration
 
 ## Quick Start
@@ -45,6 +48,18 @@ npm run lint
 npm run spanda -- run examples/rover.sd
 npm run spanda -- sim examples/rover.sd
 npm run spanda -- check examples/rover.sd
+npm run spanda:native -- verify examples/hardware/rover_deploy.sd
+```
+
+Native CLI (after `npm run build:rust`):
+
+```bash
+spanda check examples/rover.sd
+spanda verify examples/hardware/rover_deploy.sd --target RoverV1
+spanda verify robot.sd --all-targets
+spanda run examples/rover.sd
+spanda sim examples/rover.sd
+spanda fmt examples/rover.sd
 ```
 
 ## HAL, SoC, and Sensor Libraries
@@ -202,6 +217,62 @@ wheels.execute(action);
 
 Import-based ONNX/TFLite/TensorRT backends remain available under `src/ai/registry.ts` for classical model inference workflows.
 
+## Hardware Compatibility Verification
+
+Spanda verifies that autonomous programs **fit the deployment target before they run on hardware** — sensors, actuators, memory, GPU, timing, network, power, and AI model requirements.
+
+```spanda
+hardware RoverV1 {
+  cpu: CortexA78;
+  memory: 4 GB;
+  sensors [ Camera, Lidar, IMU ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+  timing { min_period: 10 ms; }
+}
+
+requires_hardware {
+  memory >= 2 GB;
+  sensors [ Camera, Lidar ];
+}
+
+robot RoverProgram {
+  sensor camera: Camera on "/camera";
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  ai_model Vision: VisionModel {
+    memory_required: 512 MB;
+    gpu_required: false;
+  }
+
+  mission { duration: 1 h; }
+
+  task control every 50ms {
+    budget { cpu <= 25%; memory <= 256 MB; }
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+}
+
+deploy RoverProgram to RoverV1;
+```
+
+```bash
+spanda verify rover.sd
+spanda verify rover.sd --target RoverV1
+spanda verify rover.sd --all-targets    # compatibility matrix
+spanda verify rover.sd --simulate     # fault injection
+```
+
+Built-in profiles: `RoverV1`, `RoverV2`, `JetsonOrin`, `RaspberryPi5`, `ESP32`.
+
+Full reference: [docs/hardware-compatibility.md](docs/hardware-compatibility.md)
+
+### Hardware examples
+
+- `examples/hardware/rover_deploy.sd` — deploy to custom or builtin profile
+- `examples/hardware/full_compat.sd` — requirements, budgets, multi-target, simulation
+
 ## Language Overview
 
 ```spanda
@@ -244,9 +315,17 @@ robot PatrolBot {
 
 | Command | Description |
 |---------|-------------|
+| `spanda check <file.sd>` | Type-check only |
+| `spanda verify <file.sd>` | Hardware compatibility verification |
+| `spanda verify --target <Profile>` | Verify against a specific hardware profile |
+| `spanda verify --all-targets` | Generate robot × profile compatibility matrix |
+| `spanda verify --simulate` | Run with fault injection scenarios |
+| `spanda compatibility <file.sd>` | Alias for `verify` |
 | `spanda run <file.sd>` | Run with simulated backend |
 | `spanda sim <file.sd>` | Run simulation with detailed output |
-| `spanda check <file.sd>` | Type-check only |
+| `spanda fmt <file.sd>` | Format source file |
+
+All commands support `--json` for machine-readable output.
 
 ## Architecture: Rust core + TypeScript tooling
 
@@ -254,10 +333,11 @@ Spanda uses a **dual-layer architecture**:
 
 | Layer | Technology | Responsibility |
 |-------|------------|----------------|
-| **Language core** | Rust (`crates/spanda-core`) | Lexer, parser, type checker, interpreter, safety, AI mock, simulator |
-| **Native CLI** | Rust (`crates/spanda-cli`) | `check`, `run`, `sim` with human or `--json` output |
+| **Language core** | Rust (`crates/spanda-core`) | Lexer, parser, type checker, interpreter, safety, AI, simulator, **hardware verifier** |
+| **Native CLI** | Rust (`crates/spanda-cli`) | `check`, `verify`, `run`, `sim`, `fmt` with human or `--json` output |
 | **Node bindings** | N-API (`crates/spanda-node`) | In-process calls from Node.js |
 | **Browser bindings** | WASM (`crates/spanda-wasm`) | Playground and web IDE |
+| **Language Server** | TypeScript (`packages/lsp`) | Type-check + hardware compatibility diagnostics |
 | **Developer UX** | TypeScript + React (`packages/web`, `src/cli`) | CLI wrapper, web playground, tests |
 
 ### Build commands
@@ -266,8 +346,11 @@ Spanda uses a **dual-layer architecture**:
 # Rust core + native CLI
 npm run build:rust          # or: cargo build -p spanda-cli --release
 
-# Rust tests (44+ unit/integration tests)
+# Rust tests (115+ unit/integration tests)
 npm run test:rust           # or: cargo test --workspace
+
+# TypeScript tests (121 vitest cases)
+npm test
 
 # WASM for web playground
 npm run build:wasm          # requires wasm-pack
@@ -279,7 +362,7 @@ npm run web:dev             # http://localhost:5173
 npm test
 ```
 
-The native CLI is at `target/release/spanda`. TypeScript `compile.ts` can delegate to Rust via `compileAsync(source, 'rust-cli')` or `runSource(source, { rustCli: true, ... })`.
+The native CLI is at `target/release/spanda`. TypeScript `compile.ts` can delegate to Rust via `compileAsync(source, 'rust-cli')` or `runSource(source, { rustCli: true, ... })`. Hardware verification uses `verifyViaCli()` from `src/rust-bridge.ts`.
 
 API contract (JSON diagnostics, run results): `docs/api-contract.json`
 
@@ -309,6 +392,7 @@ src/
   ai/          Mock AI provider, agents, memory, prompt runtime
   hal/         Hardware abstraction (I2C, SPI, GPIO, PWM, UART, ADC)
   soc/         SoC profiles and HAL validation
+  hardware/    Hardware profiles and compatibility verification (Rust); types in foundations.ts
   lib/         Manufacturer sensor driver registry
   ros2/        ROS2 adapter stub (future hardware)
   cli/         Command-line interface
@@ -336,7 +420,15 @@ tests/         Lexer, parser, type, safety, interpreter, simulator tests
 | `ActionProposal` / `SafeAction` | Untrusted AI output vs safety-approved motion |
 | `emergency_stop` | Immediate halt and safety lockout |
 | `behavior` | Named control loop or task |
-| `loop every Nms` | Deterministic periodic execution |
+| `task every Nms` | Deterministic periodic task with optional `budget { }` |
+| `loop every Nms` | Deterministic periodic execution inside behaviors |
+| `hardware` / `deploy` | Hardware profile and deployment target binding |
+| `requires_hardware` / `requires_network` | Program-level deployment requirements |
+| `mission { duration }` | Mission duration for power budgeting |
+| `simulate_compatibility` | Fault injection scenarios for verification |
+| `verify { }` | Behavioral assertions checked after execution |
+| `observe { }` / `fusion.read()` | Multi-sensor fusion |
+| `goal` / `remember` / `recall` | Agent goals and memory store |
 | `publish` / `call` / `send_goal` | Topic, service, and action usage |
 
 ## Examples
@@ -358,6 +450,15 @@ tests/         Lexer, parser, type, safety, interpreter, simulator tests
 - `examples/vision_pick_place.sd` — vision model pick-and-place
 - `examples/llm_robot_assistant.sd` — LLM reasoning assistant
 - `examples/ai_safety_violation.sd` — unsafe AI patterns (blocked at compile time)
+- `examples/hardware/rover_deploy.sd` — hardware profile + deploy verification
+- `examples/hardware/full_compat.sd` — full compatibility feature showcase
+- `examples/types/goals.sd` — `Goal` type and agent goal injection
+- `examples/types/memory.sd` — `remember` / `recall`
+- `examples/types/verify.sd` — behavioral `verify { }` block
+- `examples/types/multitask.sd` — multi-task tick multiplexer
+- `examples/types/fusion.sd` — `observe` and sensor fusion
+- `examples/humanoid_assistant.sd` — humanoid agent example
+- `examples/hello_world.sd` — minimal program
 
 ## Safety Model
 

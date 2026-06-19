@@ -1,17 +1,50 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Spanda Core API Contract",
-  "version": 1,
+  "version": 2,
   "description": "Stable JSON boundary between Spanda Rust core and TypeScript/React tooling",
   "definitions": {
     "Diagnostic": {
       "type": "object",
-      "required": ["line", "column", "message", "severity"],
+      "required": ["line", "column", "message"],
       "properties": {
         "line": { "type": "integer", "minimum": 1 },
         "column": { "type": "integer", "minimum": 1 },
         "message": { "type": "string" },
         "severity": { "enum": ["error", "warning"] }
+      }
+    },
+    "CompatSeverity": {
+      "enum": ["pass", "warning", "error"]
+    },
+    "CompatItem": {
+      "type": "object",
+      "required": ["category", "message", "severity", "line", "column"],
+      "properties": {
+        "category": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "$ref": "#/definitions/CompatSeverity" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "MatrixCell": {
+      "type": "object",
+      "required": ["robot", "target", "compatible"],
+      "properties": {
+        "robot": { "type": "string" },
+        "target": { "type": "string" },
+        "compatible": { "type": "boolean" }
+      }
+    },
+    "CompatibilityMatrix": {
+      "type": "object",
+      "required": ["cells"],
+      "properties": {
+        "cells": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/MatrixCell" }
+        }
       }
     },
     "RobotState": {
@@ -46,6 +79,19 @@
           "type": "array",
           "items": { "$ref": "#/definitions/Diagnostic" }
         }
+      }
+    },
+    "VerifyResponse": {
+      "type": "object",
+      "required": ["ok", "items"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "target": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CompatItem" }
+        },
+        "matrix": { "$ref": "#/definitions/CompatibilityMatrix" }
       }
     },
     "RunResponse": {
