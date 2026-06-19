@@ -26,7 +26,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace
-      - run: cargo build -p synapse-cli --release
+      - run: cargo build -p spanda-cli --release
 
   wasm:
     runs-on: ubuntu-latest

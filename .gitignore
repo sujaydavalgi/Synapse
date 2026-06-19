@@ -9,6 +9,6 @@ packages/native/dist/
 packages/native/index.js
 packages/native/index.js.map
 packages/native/index.d.ts
-.synapse-*.syn
+.spanda-*.sd
 *.log
 .DS_Store

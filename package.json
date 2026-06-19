@@ -1,25 +1,26 @@
 {
-  "name": "synapse",
+  "name": "spanda",
   "version": "0.1.0",
-  "description": "Synapse — a safe, strongly typed language for robot control and simulation",
+  "description": "Spanda — the pulse of autonomous intelligence",
   "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "bin": {
-    "synapse": "./dist/cli/index.js"
+    "spanda": "./dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc",
+    "lint": "tsc --noEmit",
     "build:rust": "bash scripts/build-rust.sh",
     "build:wasm": "bash scripts/build-wasm.sh",
     "test": "vitest run",
     "test:rust": "cargo test --workspace",
     "test:watch": "vitest",
-    "synapse": "node --import tsx src/cli/index.ts",
-    "synapse:native": "cargo run -p synapse-cli --",
-    "web:dev": "npm run dev --workspace=@synapse/web",
-    "web:build": "npm run build --workspace=@synapse/web"
+    "spanda": "node --import tsx src/cli/index.ts",
+    "spanda:native": "cargo run -p spanda-cli --",
+    "web:dev": "npm run dev --workspace=@spanda/web",
+    "web:build": "npm run build --workspace=@spanda/web"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

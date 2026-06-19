@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Synapse Core API Contract",
+  "title": "Spanda Core API Contract",
   "version": 1,
   "description": "Stable JSON boundary between Rust core and TypeScript/React tooling",
   "definitions": {

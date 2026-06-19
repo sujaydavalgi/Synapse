@@ -8,6 +8,6 @@ if ! command -v wasm-pack >/dev/null 2>&1; then
   exit 1
 fi
 
-wasm-pack build crates/synapse-wasm --target web --out-dir "$ROOT/packages/web/wasm" --release
+wasm-pack build crates/spanda-wasm --target web --out-dir "$ROOT/packages/web/wasm" --release
 
 echo "WASM built to packages/web/wasm/"

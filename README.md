@@ -1,10 +1,18 @@
-# Synapse
+# Spanda Programming Language
 
-A safe, readable, strongly typed programming language for robot control, sensors, actuators, motion planning, automation, and simulation.
+**The pulse of autonomous intelligence.**
 
-Synapse is designed for robotics engineers and students who want **deterministic**, **safety-first** robot programs that run in simulation first and can connect to hardware later via a ROS2 adapter.
+Spanda is an AI-native autonomous systems programming language for robotics, agents, human-machine interaction, digital twins, simulation, and edge intelligence.
 
-Source files use the **`.syn`** extension.
+## Philosophy
+
+Hardware is the body.  
+Sensors are the senses.  
+AI models are the mind.  
+Actuators are the muscles.  
+Spanda is the intelligent pulse that transforms perception into action.
+
+Source files use the **`.sd`** extension. The legacy **`.syn`** extension is still accepted but deprecated.
 
 ## Features
 
@@ -28,13 +36,16 @@ Source files use the **`.syn`** extension.
 ```bash
 npm install
 npm test
-npm run synapse -- run examples/lidar_avoidance.syn
-npm run synapse -- sim examples/differential_drive.syn
+npm run build
+npm run lint
+npm run spanda -- run examples/rover.sd
+npm run spanda -- sim examples/rover.sd
+npm run spanda -- check examples/rover.sd
 ```
 
 ## HAL, SoC, and Sensor Libraries
 
-```synapse
+```spanda
 import bosch.bno055;
 import velodyne.vlp16;
 
@@ -85,7 +96,7 @@ robot PiBot {
 
 ## AI-Native Autonomous Systems
 
-Synapse combines **robotics**, **AI agents**, **simulation**, and **safety validation** in one language. AI outputs are treated as **untrusted** by default — an LLM or vision model can propose actions, but only a `SafeAction` from `safety.validate()` may reach actuators.
+Spanda combines **robotics**, **AI agents**, **simulation**, and **safety validation** in one language. AI outputs are treated as **untrusted** by default — an LLM or vision model can propose actions, but only a `SafeAction` from `safety.validate()` may reach actuators.
 
 ### Key ideas
 
@@ -95,7 +106,7 @@ Synapse combines **robotics**, **AI agents**, **simulation**, and **safety valid
 - **Real providers later** — optional `AIProvider` interface for OpenAI, local models, etc.
 - **Safety gate** — `ActionProposal` cannot call `actuator.execute()`; only `SafeAction` can
 
-```synapse
+```spanda
 robot Rover {
   sensor lidar: Lidar on "/scan";
   sensor camera: Camera on "/camera";
@@ -141,7 +152,7 @@ robot Rover {
 
 ### AI function calls
 
-```synapse
+```spanda
 let proposal = planner.reason(prompt: "Plan safe path", input: scan);
 let objects = vision.detect(camera.frame());
 let summary = planner.summarize(scan);
@@ -151,14 +162,14 @@ let summary = planner.summarize(scan);
 
 Invalid — AI driving actuators directly:
 
-```synapse
+```spanda
 planner.drive(wheels);  // compile error
 wheels.execute(proposal);  // compile error: requires SafeAction
 ```
 
 Valid — propose, validate, then execute:
 
-```synapse
+```spanda
 let proposal = planner.reason(prompt: "...", input: data);
 let action = safety.validate(proposal);
 wheels.execute(action);
@@ -178,10 +189,10 @@ wheels.execute(action);
 
 ### AI examples
 
-- `examples/ai_navigation.syn` — agent + LLM planner with safety validation
-- `examples/vision_pick_place.syn` — vision model for pick-and-place
-- `examples/llm_robot_assistant.syn` — LLM summarization and reasoning
-- `examples/ai_safety_violation.syn` — demonstrates blocked unsafe AI patterns
+- `examples/ai_navigation.sd` — agent + LLM planner with safety validation
+- `examples/vision_pick_place.sd` — vision model for pick-and-place
+- `examples/llm_robot_assistant.sd` — LLM summarization and reasoning
+- `examples/ai_safety_violation.sd` — demonstrates blocked unsafe AI patterns
 
 ### Legacy inference runtimes
 
@@ -189,7 +200,7 @@ Import-based ONNX/TFLite/TensorRT backends remain available under `src/ai/regist
 
 ## Language Overview
 
-```synapse
+```spanda
 robot PatrolBot {
   node navigation on "/nav";
   topic cmd_vel: Velocity publish on "/cmd_vel";
@@ -229,27 +240,27 @@ robot PatrolBot {
 
 | Command | Description |
 |---------|-------------|
-| `synapse run <file.syn>` | Run with simulated backend |
-| `synapse sim <file.syn>` | Run simulation with detailed output |
-| `synapse check <file.syn>` | Type-check only |
+| `spanda run <file.sd>` | Run with simulated backend |
+| `spanda sim <file.sd>` | Run simulation with detailed output |
+| `spanda check <file.sd>` | Type-check only |
 
 ## Architecture: Rust core + TypeScript tooling
 
-Synapse uses a **dual-layer architecture**:
+Spanda uses a **dual-layer architecture**:
 
 | Layer | Technology | Responsibility |
 |-------|------------|----------------|
-| **Language core** | Rust (`crates/synapse-core`) | Lexer, parser, type checker, interpreter, safety, AI mock, simulator |
-| **Native CLI** | Rust (`crates/synapse-cli`) | `check`, `run`, `sim` with human or `--json` output |
-| **Node bindings** | N-API (`crates/synapse-node`) | In-process calls from Node.js |
-| **Browser bindings** | WASM (`crates/synapse-wasm`) | Playground and web IDE |
+| **Language core** | Rust (`crates/spanda-core`) | Lexer, parser, type checker, interpreter, safety, AI mock, simulator |
+| **Native CLI** | Rust (`crates/spanda-cli`) | `check`, `run`, `sim` with human or `--json` output |
+| **Node bindings** | N-API (`crates/spanda-node`) | In-process calls from Node.js |
+| **Browser bindings** | WASM (`crates/spanda-wasm`) | Playground and web IDE |
 | **Developer UX** | TypeScript + React (`packages/web`, `src/cli`) | CLI wrapper, web playground, tests |
 
 ### Build commands
 
 ```bash
 # Rust core + native CLI
-npm run build:rust          # or: cargo build -p synapse-cli --release
+npm run build:rust          # or: cargo build -p spanda-cli --release
 
 # Rust tests (44+ unit/integration tests)
 npm run test:rust           # or: cargo test --workspace
@@ -264,7 +275,7 @@ npm run web:dev             # http://localhost:5173
 npm test
 ```
 
-The native CLI is at `target/release/synapse`. TypeScript `compile.ts` can delegate to Rust via `compileAsync(source, 'rust-cli')` or `runSource(source, { rustCli: true, ... })`.
+The native CLI is at `target/release/spanda`. TypeScript `compile.ts` can delegate to Rust via `compileAsync(source, 'rust-cli')` or `runSource(source, { rustCli: true, ... })`.
 
 API contract (JSON diagnostics, run results): `docs/api-contract.json`
 
@@ -274,10 +285,10 @@ Golden fixtures: `tests/golden/manifest.json`
 
 ```
 crates/
-  synapse-core/    Rust language implementation
-  synapse-cli/     Native synapse binary
-  synapse-node/    N-API bindings
-  synapse-wasm/    WebAssembly bindings
+  spanda-core/    Rust language implementation
+  spanda-cli/     Native spanda binary
+  spanda-node/    N-API bindings
+  spanda-wasm/    WebAssembly bindings
 packages/
   native/          Node.js native module wrapper
   web/             React playground (Monaco-style editor)
@@ -295,7 +306,7 @@ src/
   lib/         Manufacturer sensor driver registry
   ros2/        ROS2 adapter stub (future hardware)
   cli/         Command-line interface
-examples/      Sample Synapse programs (.syn)
+examples/      Sample Spanda programs (.sd)
 tests/         Lexer, parser, type, safety, interpreter, simulator tests
 ```
 
@@ -324,18 +335,18 @@ tests/         Lexer, parser, type, safety, interpreter, simulator tests
 
 ## Examples
 
-- `examples/hello_robot.syn` — minimal robot
-- `examples/differential_drive.syn` — wheeled robot motion
-- `examples/lidar_avoidance.syn` — obstacle avoidance with safety
-- `examples/robotic_arm_pick_place.syn` — arm pick-and-place sequence
-- `examples/drone_altitude_hold.syn` — altitude control loop
-- `examples/patrol_with_zones.syn` — topics, services, actions, zones, trajectories
-- `examples/raspberry_pi_hal.syn` — Raspberry Pi with HAL and Velodyne/Bosch libraries
-- `examples/esp32_sensors.syn` — ESP32 with multi-vendor I2C sensors
-- `examples/ai_navigation.syn` — AI agent navigation with safety validation
-- `examples/vision_pick_place.syn` — vision model pick-and-place
-- `examples/llm_robot_assistant.syn` — LLM reasoning assistant
-- `examples/ai_safety_violation.syn` — unsafe AI patterns (blocked at compile time)
+- `examples/rover.sd` — minimal robot
+- `examples/differential_drive.sd` — wheeled robot motion
+- `examples/lidar_avoidance.sd` — obstacle avoidance with safety
+- `examples/robotic_arm_pick_place.sd` — arm pick-and-place sequence
+- `examples/drone_altitude_hold.sd` — altitude control loop
+- `examples/patrol_with_zones.sd` — topics, services, actions, zones, trajectories
+- `examples/raspberry_pi_hal.sd` — Raspberry Pi with HAL and Velodyne/Bosch libraries
+- `examples/esp32_sensors.sd` — ESP32 with multi-vendor I2C sensors
+- `examples/ai_navigation.sd` — AI agent navigation with safety validation
+- `examples/vision_pick_place.sd` — vision model pick-and-place
+- `examples/llm_robot_assistant.sd` — LLM reasoning assistant
+- `examples/ai_safety_violation.sd` — unsafe AI patterns (blocked at compile time)
 
 ## Safety Model
 
@@ -348,7 +359,7 @@ When a safety rule blocks motion, the actuator receives a `stop()` command and t
 
 ## ROS2 Integration (Future)
 
-The `src/ros2/` module defines a `Ros2Adapter` interface mapping Synapse concepts to ROS2 nodes, topics, services, and actions. The current implementation is a stub for development.
+The `src/ros2/` module defines a `Ros2Adapter` interface mapping Spanda concepts to ROS2 nodes, topics, services, and actions. The current implementation is a stub for development.
 
 ## License
 
