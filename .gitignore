@@ -1,7 +1,8 @@
 node_modules/
 dist/
 target/
-packages/web/wasm/
+packages/web/wasm/*.wasm
+packages/web/wasm/spanda_wasm_bg.wasm.d.ts
 packages/native/*.node
 packages/native/native.js
 packages/native/native.d.ts

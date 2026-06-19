@@ -16,10 +16,13 @@ export type RunResponse = {
   diagnostics?: Diagnostic[];
 };
 
-let wasmModule: {
+type SpandaWasmModule = {
+  default: () => Promise<void>;
   wasm_check: (source: string) => unknown;
   wasm_run: (source: string, max: number) => unknown;
-} | null = null;
+};
+
+let wasmModule: SpandaWasmModule | null = null;
 
 export function isWasmLoaded(): boolean {
   return wasmModule !== null;
@@ -30,7 +33,7 @@ async function ensureWasm(): Promise<void> {
   try {
     const init = await import("../wasm/spanda_wasm.js");
     await init.default();
-    wasmModule = init as typeof wasmModule;
+    wasmModule = init as SpandaWasmModule;
   } catch {
     wasmModule = null;
   }
