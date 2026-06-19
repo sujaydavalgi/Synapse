@@ -685,6 +685,7 @@ export class Interpreter {
             expr.span.start.line,
           );
         }
+        const safe = actionVal;
         if (!this.checkSafetyBeforeMotion()) {
           this.options.onMotionBlocked?.("Safety rule triggered — motion blocked");
           this.options.backend.executeMotion({ kind: "stop", actuator: name });
@@ -692,8 +693,8 @@ export class Interpreter {
         }
         this.options.backend.executeMotion({
           kind: "drive",
-          linear: actionVal.linear,
-          angular: actionVal.angular,
+          linear: safe.linear,
+          angular: safe.angular,
           actuator: name,
         });
         break;
