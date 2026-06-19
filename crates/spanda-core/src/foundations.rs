@@ -114,6 +114,7 @@ pub enum TaskDecl {
         requires: Option<Expr>,
         ensures: Option<Expr>,
         invariant: Option<Expr>,
+        budget: Option<ResourceBudgetDecl>,
         body: Vec<Stmt>,
         span: Span,
     },
@@ -132,6 +133,103 @@ pub enum EventHandlerDecl {
     EventHandlerDecl {
         event_name: String,
         body: Vec<Stmt>,
+        span: Span,
+    },
+}
+
+/// First-class hardware profile for deployment compatibility verification.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum HardwareDecl {
+    HardwareDecl {
+        name: String,
+        cpu: Option<String>,
+        memory_mb: Option<f64>,
+        storage_mb: Option<f64>,
+        gpu_tops: Option<f64>,
+        gpu_required: bool,
+        sensors: Vec<String>,
+        actuators: Vec<String>,
+        battery_wh: Option<f64>,
+        network_bandwidth_mbps: Option<f64>,
+        network_latency_ms: Option<f64>,
+        min_control_period_ms: Option<f64>,
+        power_draw_w: Option<f64>,
+        span: Span,
+    },
+}
+
+/// Deployment target binding: `deploy <robot> to <hardware>;`
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum DeployDecl {
+    DeployDecl {
+        robot_name: String,
+        targets: Vec<String>,
+        span: Span,
+    },
+}
+
+/// Program- or robot-level hardware requirements.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum RequiresHardwareDecl {
+    RequiresHardwareDecl {
+        memory_mb_min: Option<f64>,
+        storage_mb_min: Option<f64>,
+        gpu_tops_min: Option<f64>,
+        gpu_required: bool,
+        sensors: Vec<String>,
+        actuators: Vec<String>,
+        span: Span,
+    },
+}
+
+/// Network connectivity requirements.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum RequiresNetworkDecl {
+    RequiresNetworkDecl {
+        bandwidth_mbps_min: Option<f64>,
+        latency_ms_max: Option<f64>,
+        span: Span,
+    },
+}
+
+/// Per-task resource budget constraints.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum ResourceBudgetDecl {
+    ResourceBudgetDecl {
+        battery_pct_max: Option<f64>,
+        memory_mb_max: Option<f64>,
+        cpu_pct_max: Option<f64>,
+        network_mbps_max: Option<f64>,
+        storage_mb_max: Option<f64>,
+        span: Span,
+    },
+}
+
+/// Mission duration for power budgeting.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum MissionDecl {
+    MissionDecl { duration_hours: f64, span: Span },
+}
+
+/// Fault injection scenario for simulation-time compatibility checks.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SimFaultDecl {
+    pub fault_type: String,
+    pub span: Span,
+}
+
+/// `simulate_compatibility { fault CameraFailure; }`
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum SimulateCompatibilityDecl {
+    SimulateCompatibilityDecl {
+        faults: Vec<SimFaultDecl>,
         span: Span,
     },
 }

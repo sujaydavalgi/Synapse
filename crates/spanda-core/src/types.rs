@@ -648,6 +648,7 @@ impl TypeChecker {
                 requires,
                 ensures,
                 invariant,
+                budget: _budget,
                 body,
                 span,
             } = task;

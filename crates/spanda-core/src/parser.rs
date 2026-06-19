@@ -68,6 +68,46 @@ impl Parser {
         }
     }
 
+    fn parse_binding_ident(&mut self, message: &str) -> Result<String, SpandaError> {
+        let t = self.peek();
+        let ok = matches!(
+            t.token_type,
+            TokenType::Ident
+                | TokenType::Plan
+                | TokenType::Twin
+                | TokenType::Skill
+                | TokenType::Match
+                | TokenType::State
+                | TokenType::Event
+                | TokenType::Task
+                | TokenType::Action
+                | TokenType::Goal
+                | TokenType::Memory
+                | TokenType::On
+                | TokenType::Replay
+                | TokenType::Mirror
+                | TokenType::Enter
+                | TokenType::Emit
+                | TokenType::Mission
+                | TokenType::Duration
+                | TokenType::Network
+                | TokenType::Bandwidth
+                | TokenType::Latency
+                | TokenType::Timing
+                | TokenType::Budget
+                | TokenType::Fault
+        );
+        if ok {
+            Ok(self.advance().lexeme)
+        } else {
+            Err(SpandaError::Parse {
+                message: message.to_string(),
+                line: t.line,
+                column: t.column,
+            })
+        }
+    }
+
     fn parse_label(&mut self, message: &str) -> Result<String, SpandaError> {
         let t = self.peek();
         let ok = matches!(
@@ -88,6 +128,33 @@ impl Parser {
                 | TokenType::Mirror
                 | TokenType::Enter
                 | TokenType::Emit
+        );
+        if ok {
+            Ok(self.advance().lexeme)
+        } else {
+            Err(SpandaError::Parse {
+                message: message.to_string(),
+                line: t.line,
+                column: t.column,
+            })
+        }
+    }
+
+    fn parse_hal_binding_name(&mut self, message: &str) -> Result<String, SpandaError> {
+        let t = self.peek();
+        let ok = matches!(
+            t.token_type,
+            TokenType::Ident
+                | TokenType::Battery
+                | TokenType::Memory
+                | TokenType::Cpu
+                | TokenType::Storage
+                | TokenType::Gpu
+                | TokenType::Sensors
+                | TokenType::Actuators
+                | TokenType::Capacity
+                | TokenType::Hardware
+                | TokenType::Deploy
         );
         if ok {
             Ok(self.advance().lexeme)
@@ -156,6 +223,11 @@ impl Parser {
         let mut structs = Vec::new();
         let mut enums = Vec::new();
         let mut traits = Vec::new();
+        let mut hardware_profiles = Vec::new();
+        let mut deployments = Vec::new();
+        let mut requires_hardware = None;
+        let mut requires_network = None;
+        let mut simulate_compatibility = None;
         let mut robots = Vec::new();
         while self.check(TokenType::Import) {
             imports.push(self.parse_import()?);
@@ -167,12 +239,23 @@ impl Parser {
                 enums.push(self.parse_enum()?);
             } else if self.check(TokenType::Trait) {
                 traits.push(self.parse_trait()?);
+            } else if self.check(TokenType::Hardware) {
+                hardware_profiles.push(self.parse_hardware()?);
+            } else if self.check(TokenType::Deploy) {
+                deployments.push(self.parse_deploy()?);
+            } else if self.check(TokenType::RequiresHardware) {
+                requires_hardware = Some(self.parse_requires_hardware()?);
+            } else if self.check(TokenType::RequiresNetwork) {
+                requires_network = Some(self.parse_requires_network()?);
+            } else if self.check(TokenType::SimulateCompatibility) {
+                simulate_compatibility = Some(self.parse_simulate_compatibility()?);
             } else if self.check(TokenType::Robot) {
                 robots.push(self.parse_robot()?);
             } else {
                 let t = self.peek();
                 return Err(SpandaError::Parse {
-                    message: "Expected struct, enum, trait, or robot declaration".into(),
+                    message: "Expected struct, enum, trait, hardware, deploy, or robot declaration"
+                        .into(),
                     line: t.line,
                     column: t.column,
                 });
@@ -184,9 +267,540 @@ impl Parser {
             structs,
             enums,
             traits,
+            hardware_profiles,
+            deployments,
+            requires_hardware,
+            requires_network,
+            simulate_compatibility,
             robots,
             span: self.span_from(&start, self.previous()),
         })
+    }
+
+    fn parse_hardware(&mut self) -> Result<HardwareDecl, SpandaError> {
+        use crate::foundations::HardwareDecl;
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected hardware profile name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after hardware name")?;
+        let mut cpu = None;
+        let mut memory_mb = None;
+        let mut storage_mb = None;
+        let mut gpu_tops = None;
+        let mut gpu_required = false;
+        let mut sensors = Vec::new();
+        let mut actuators = Vec::new();
+        let mut battery_wh = None;
+        let mut network_bandwidth_mbps = None;
+        let mut network_latency_ms = None;
+        let mut min_control_period_ms = None;
+        let mut power_draw_w = None;
+
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Cpu]) {
+                self.expect(TokenType::Colon, "Expected ':' after cpu")?;
+                cpu = Some(self.parse_label("Expected CPU identifier")?);
+                self.expect(TokenType::Semicolon, "Expected ';' after cpu")?;
+            } else if self.match_types(&[TokenType::Memory]) {
+                self.expect(TokenType::Colon, "Expected ':' after memory")?;
+                memory_mb = Some(self.parse_storage_amount()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after memory")?;
+            } else if self.match_types(&[TokenType::Storage]) {
+                self.expect(TokenType::Colon, "Expected ':' after storage")?;
+                storage_mb = Some(self.parse_storage_amount()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after storage")?;
+            } else if self.match_types(&[TokenType::Gpu]) {
+                self.expect(TokenType::Colon, "Expected ':' after gpu")?;
+                if self.check(TokenType::True) {
+                    self.advance();
+                    gpu_required = true;
+                } else {
+                    gpu_tops = Some(self.parse_number_value()?);
+                    if self.check(TokenType::Ident) && self.peek().lexeme == "TOPS" {
+                        self.advance();
+                    }
+                }
+                self.expect(TokenType::Semicolon, "Expected ';' after gpu")?;
+            } else if self.match_types(&[TokenType::Sensors]) {
+                sensors = self.parse_hardware_type_list("sensors")?;
+            } else if self.match_types(&[TokenType::Actuators]) {
+                actuators = self.parse_hardware_type_list("actuators")?;
+            } else if self.match_types(&[TokenType::Battery]) {
+                self.expect(TokenType::Lbrace, "Expected '{' after battery")?;
+                while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                    if self.match_types(&[TokenType::Capacity]) {
+                        self.expect(TokenType::Colon, "Expected ':' after capacity")?;
+                        let value = self.parse_number_value()?;
+                        if self.check(TokenType::Ident) && self.peek().lexeme == "Wh" {
+                            self.advance();
+                        }
+                        battery_wh = Some(value);
+                        self.expect(TokenType::Semicolon, "Expected ';' after capacity")?;
+                    } else {
+                        let t = self.peek();
+                        return Err(SpandaError::Parse {
+                            message: "Expected capacity in battery block".into(),
+                            line: t.line,
+                            column: t.column,
+                        });
+                    }
+                }
+                self.expect(TokenType::Rbrace, "Expected '}' to close battery block")?;
+            } else if self.match_types(&[TokenType::Network]) {
+                self.expect(TokenType::Lbrace, "Expected '{' after network")?;
+                while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                    if self.match_types(&[TokenType::Bandwidth]) {
+                        self.expect(TokenType::Colon, "Expected ':' after bandwidth")?;
+                        network_bandwidth_mbps = Some(self.parse_network_amount()?);
+                        self.expect(TokenType::Semicolon, "Expected ';' after bandwidth")?;
+                    } else if self.match_types(&[TokenType::Latency]) {
+                        self.expect(TokenType::Colon, "Expected ':' after latency")?;
+                        network_latency_ms = Some(self.parse_duration()?);
+                        self.expect(TokenType::Semicolon, "Expected ';' after latency")?;
+                    } else {
+                        let t = self.peek();
+                        return Err(SpandaError::Parse {
+                            message: "Expected bandwidth or latency in network block".into(),
+                            line: t.line,
+                            column: t.column,
+                        });
+                    }
+                }
+                self.expect(TokenType::Rbrace, "Expected '}' to close network block")?;
+            } else if self.match_types(&[TokenType::Timing]) {
+                self.expect(TokenType::Lbrace, "Expected '{' after timing")?;
+                while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                    if self.match_types(&[TokenType::MinPeriod]) {
+                        self.expect(TokenType::Colon, "Expected ':' after min_period")?;
+                        min_control_period_ms = Some(self.parse_duration()?);
+                        self.expect(TokenType::Semicolon, "Expected ';' after min_period")?;
+                    } else {
+                        let t = self.peek();
+                        return Err(SpandaError::Parse {
+                            message: "Expected min_period in timing block".into(),
+                            line: t.line,
+                            column: t.column,
+                        });
+                    }
+                }
+                self.expect(TokenType::Rbrace, "Expected '}' to close timing block")?;
+            } else if self.match_types(&[TokenType::Resource]) {
+                self.expect(TokenType::Colon, "Expected ':' after resource")?;
+                power_draw_w = Some(self.parse_number_value()?);
+                if self.check(TokenType::Ident) && self.peek().lexeme == "W" {
+                    self.advance();
+                }
+                self.expect(TokenType::Semicolon, "Expected ';' after resource power")?;
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected hardware profile member".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close hardware block")?;
+        Ok(HardwareDecl::HardwareDecl {
+            name: name.lexeme,
+            cpu,
+            memory_mb,
+            storage_mb,
+            gpu_tops,
+            gpu_required,
+            sensors,
+            actuators,
+            battery_wh,
+            network_bandwidth_mbps,
+            network_latency_ms,
+            min_control_period_ms,
+            power_draw_w,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_hardware_type_list(&mut self, kind: &str) -> Result<Vec<String>, SpandaError> {
+        self.expect(TokenType::Lbracket, &format!("Expected '[' after {kind}"))?;
+        let mut items = Vec::new();
+        if !self.check(TokenType::Rbracket) {
+            loop {
+                items.push(self.parse_label(&format!("Expected {kind} type name"))?);
+                if self.match_types(&[TokenType::Comma]) {
+                    if self.check(TokenType::Rbracket) {
+                        break;
+                    }
+                    continue;
+                }
+                break;
+            }
+        }
+        self.expect(
+            TokenType::Rbracket,
+            &format!("Expected ']' after {kind} list"),
+        )?;
+        self.expect(
+            TokenType::Semicolon,
+            &format!("Expected ';' after {kind} list"),
+        )?;
+        Ok(items)
+    }
+
+    fn parse_storage_amount(&mut self) -> Result<f64, SpandaError> {
+        let value = self.parse_number_value()?;
+        if self.check(TokenType::Ident) {
+            let unit = self.peek().lexeme.as_str();
+            let mb = match unit {
+                "GB" | "Gb" => value * 1024.0,
+                "MB" | "Mb" => value,
+                "TB" | "Tb" => value * 1024.0 * 1024.0,
+                _ => value,
+            };
+            if unit == "GB"
+                || unit == "MB"
+                || unit == "TB"
+                || unit == "Gb"
+                || unit == "Mb"
+                || unit == "Tb"
+            {
+                self.advance();
+            }
+            return Ok(mb);
+        }
+        Ok(value)
+    }
+
+    fn parse_number_value(&mut self) -> Result<f64, SpandaError> {
+        let tok = self.expect(TokenType::Number, "Expected number")?;
+        match tok.value {
+            TokenValue::Number(n) => Ok(n),
+            _ => Err(SpandaError::Parse {
+                message: "Expected number".into(),
+                line: tok.line,
+                column: tok.column,
+            }),
+        }
+    }
+
+    fn parse_deploy(&mut self) -> Result<DeployDecl, SpandaError> {
+        use crate::foundations::DeployDecl;
+        let start = self.advance();
+        let robot_name = self.parse_label("Expected robot name after deploy")?;
+        self.expect(TokenType::To, "Expected 'to' after deploy robot name")?;
+        let mut targets = Vec::new();
+        if self.match_types(&[TokenType::Lbracket]) {
+            if !self.check(TokenType::Rbracket) {
+                loop {
+                    targets.push(self.parse_label("Expected hardware target name")?);
+                    if !self.match_types(&[TokenType::Comma]) {
+                        break;
+                    }
+                }
+            }
+            self.expect(TokenType::Rbracket, "Expected ']' after deploy targets")?;
+        } else {
+            targets.push(self.parse_label("Expected hardware target name")?);
+        }
+        self.expect(TokenType::Semicolon, "Expected ';' after deploy statement")?;
+        let end = self.previous();
+        Ok(DeployDecl::DeployDecl {
+            robot_name,
+            targets,
+            span: self.span_from(&start, end),
+        })
+    }
+
+    fn parse_network_amount(&mut self) -> Result<f64, SpandaError> {
+        let value = self.parse_number_value()?;
+        if self.check(TokenType::Ident) {
+            let unit = self.peek().lexeme.as_str();
+            if unit == "Mbps" || unit == "mbps" {
+                self.advance();
+                return Ok(value);
+            }
+            if unit == "Gbps" || unit == "gbps" {
+                self.advance();
+                return Ok(value * 1000.0);
+            }
+        }
+        Ok(value)
+    }
+
+    fn parse_requires_hardware(
+        &mut self,
+    ) -> Result<crate::foundations::RequiresHardwareDecl, SpandaError> {
+        use crate::foundations::RequiresHardwareDecl;
+        let start = self.advance();
+        self.expect(TokenType::Lbrace, "Expected '{' after requires_hardware")?;
+        let mut memory_mb_min = None;
+        let mut storage_mb_min = None;
+        let mut gpu_tops_min = None;
+        let mut gpu_required = false;
+        let mut sensors = Vec::new();
+        let mut actuators = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Memory]) {
+                self.expect(
+                    TokenType::Gte,
+                    "Expected '>=' after memory in requires_hardware",
+                )?;
+                memory_mb_min = Some(self.parse_storage_amount()?);
+                self.expect(
+                    TokenType::Semicolon,
+                    "Expected ';' after memory requirement",
+                )?;
+            } else if self.match_types(&[TokenType::Storage]) {
+                self.expect(
+                    TokenType::Gte,
+                    "Expected '>=' after storage in requires_hardware",
+                )?;
+                storage_mb_min = Some(self.parse_storage_amount()?);
+                self.expect(
+                    TokenType::Semicolon,
+                    "Expected ';' after storage requirement",
+                )?;
+            } else if self.match_types(&[TokenType::Gpu]) {
+                if self.check(TokenType::Gte) {
+                    self.advance();
+                    gpu_tops_min = Some(self.parse_number_value()?);
+                    if self.check(TokenType::Ident) && self.peek().lexeme == "TOPS" {
+                        self.advance();
+                    }
+                } else {
+                    self.expect(TokenType::Colon, "Expected ':' or '>=' after gpu")?;
+                    if self.match_types(&[TokenType::True]) {
+                        gpu_required = true;
+                    } else {
+                        gpu_tops_min = Some(self.parse_number_value()?);
+                        if self.check(TokenType::Ident) && self.peek().lexeme == "TOPS" {
+                            self.advance();
+                        }
+                    }
+                }
+                self.expect(TokenType::Semicolon, "Expected ';' after gpu requirement")?;
+            } else if self.match_types(&[TokenType::Sensors]) {
+                sensors = self.parse_hardware_type_list("sensors")?;
+            } else if self.match_types(&[TokenType::Actuators]) {
+                actuators = self.parse_hardware_type_list("actuators")?;
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected requires_hardware member".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close requires_hardware")?;
+        Ok(RequiresHardwareDecl::RequiresHardwareDecl {
+            memory_mb_min,
+            storage_mb_min,
+            gpu_tops_min,
+            gpu_required,
+            sensors,
+            actuators,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_requires_network(
+        &mut self,
+    ) -> Result<crate::foundations::RequiresNetworkDecl, SpandaError> {
+        use crate::foundations::RequiresNetworkDecl;
+        let start = self.advance();
+        self.expect(TokenType::Lbrace, "Expected '{' after requires_network")?;
+        let mut bandwidth_mbps_min = None;
+        let mut latency_ms_max = None;
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Bandwidth]) {
+                self.expect(TokenType::Gte, "Expected '>=' after bandwidth")?;
+                bandwidth_mbps_min = Some(self.parse_network_amount()?);
+                self.expect(
+                    TokenType::Semicolon,
+                    "Expected ';' after bandwidth requirement",
+                )?;
+            } else if self.match_types(&[TokenType::Latency]) {
+                self.expect(TokenType::Lte, "Expected '<=' after latency")?;
+                latency_ms_max = Some(self.parse_duration()?);
+                self.expect(
+                    TokenType::Semicolon,
+                    "Expected ';' after latency requirement",
+                )?;
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected bandwidth or latency in requires_network".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close requires_network")?;
+        Ok(RequiresNetworkDecl::RequiresNetworkDecl {
+            bandwidth_mbps_min,
+            latency_ms_max,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_simulate_compatibility(
+        &mut self,
+    ) -> Result<crate::foundations::SimulateCompatibilityDecl, SpandaError> {
+        use crate::foundations::{SimFaultDecl, SimulateCompatibilityDecl};
+        let start = self.advance();
+        self.expect(
+            TokenType::Lbrace,
+            "Expected '{' after simulate_compatibility",
+        )?;
+        let mut faults = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Fault]) {
+                let fault_start = self.peek().clone();
+                let fault_type = self.parse_label("Expected fault type name")?;
+                self.expect(TokenType::Semicolon, "Expected ';' after fault")?;
+                faults.push(SimFaultDecl {
+                    fault_type,
+                    span: self.span_from(&fault_start, self.previous()),
+                });
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected fault declaration in simulate_compatibility".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(
+            TokenType::Rbrace,
+            "Expected '}' to close simulate_compatibility",
+        )?;
+        Ok(SimulateCompatibilityDecl::SimulateCompatibilityDecl {
+            faults,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_mission(&mut self) -> Result<crate::foundations::MissionDecl, SpandaError> {
+        use crate::foundations::MissionDecl;
+        let start = self.advance();
+        self.expect(TokenType::Lbrace, "Expected '{' after mission")?;
+        let mut duration_hours = None;
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Duration]) {
+                self.expect(TokenType::Colon, "Expected ':' after duration")?;
+                duration_hours = Some(self.parse_duration_hours()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after duration")?;
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected duration in mission block".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close mission")?;
+        let duration_hours = duration_hours.ok_or_else(|| {
+            let t = self.peek();
+            SpandaError::Parse {
+                message: "mission block requires duration".into(),
+                line: t.line,
+                column: t.column,
+            }
+        })?;
+        Ok(MissionDecl::MissionDecl {
+            duration_hours,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_duration_hours(&mut self) -> Result<f64, SpandaError> {
+        let value = self.parse_number_value()?;
+        if self.check(TokenType::Ident) {
+            let unit = self.peek().lexeme.as_str();
+            let hours = match unit {
+                "h" | "hr" | "hrs" | "hour" | "hours" => value,
+                "min" | "mins" | "minute" | "minutes" => value / 60.0,
+                "s" | "sec" | "secs" => value / 3600.0,
+                _ => value,
+            };
+            if unit == "h"
+                || unit == "hr"
+                || unit == "hrs"
+                || unit == "hour"
+                || unit == "hours"
+                || unit == "min"
+                || unit == "mins"
+                || unit == "minute"
+                || unit == "minutes"
+                || unit == "s"
+                || unit == "sec"
+                || unit == "secs"
+            {
+                self.advance();
+            }
+            return Ok(hours);
+        }
+        Ok(value)
+    }
+
+    fn parse_budget(&mut self) -> Result<crate::foundations::ResourceBudgetDecl, SpandaError> {
+        use crate::foundations::ResourceBudgetDecl;
+        let start = self.advance();
+        self.expect(TokenType::Lbrace, "Expected '{' after budget")?;
+        let mut battery_pct_max = None;
+        let mut memory_mb_max = None;
+        let mut cpu_pct_max = None;
+        let mut network_mbps_max = None;
+        let mut storage_mb_max = None;
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Battery]) {
+                self.expect(TokenType::Lte, "Expected '<=' after battery in budget")?;
+                battery_pct_max = Some(self.parse_percent_value()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after battery budget")?;
+            } else if self.match_types(&[TokenType::Memory]) {
+                self.expect(TokenType::Lte, "Expected '<=' after memory in budget")?;
+                memory_mb_max = Some(self.parse_storage_amount()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after memory budget")?;
+            } else if self.match_types(&[TokenType::Cpu]) {
+                self.expect(TokenType::Lte, "Expected '<=' after cpu in budget")?;
+                cpu_pct_max = Some(self.parse_percent_value()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after cpu budget")?;
+            } else if self.match_types(&[TokenType::Network]) {
+                self.expect(TokenType::Lte, "Expected '<=' after network in budget")?;
+                network_mbps_max = Some(self.parse_network_amount()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after network budget")?;
+            } else if self.match_types(&[TokenType::Storage]) {
+                self.expect(TokenType::Lte, "Expected '<=' after storage in budget")?;
+                storage_mb_max = Some(self.parse_storage_amount()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after storage budget")?;
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected budget constraint".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close budget")?;
+        Ok(ResourceBudgetDecl::ResourceBudgetDecl {
+            battery_pct_max,
+            memory_mb_max,
+            cpu_pct_max,
+            network_mbps_max,
+            storage_mb_max,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_percent_value(&mut self) -> Result<f64, SpandaError> {
+        let value = self.parse_number_value()?;
+        if self.check(TokenType::Ident) && self.peek().lexeme == "%" {
+            self.advance();
+        } else if self.match_types(&[TokenType::Percent]) {
+            // consumed
+        }
+        Ok(value)
     }
 
     fn parse_import(&mut self) -> Result<ImportDecl, SpandaError> {
@@ -342,6 +956,9 @@ impl Parser {
         let mut verify = None;
         let mut observe = None;
         let mut trait_impls = Vec::new();
+        let mut requires_hardware = None;
+        let mut requires_network = None;
+        let mut mission = None;
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
             if self.check(TokenType::Soc) {
                 soc = Some(self.parse_soc()?);
@@ -381,6 +998,12 @@ impl Parser {
                 verify = Some(self.parse_verify()?);
             } else if self.check(TokenType::Observe) {
                 observe = Some(self.parse_observe()?);
+            } else if self.check(TokenType::RequiresHardware) {
+                requires_hardware = Some(self.parse_requires_hardware()?);
+            } else if self.check(TokenType::RequiresNetwork) {
+                requires_network = Some(self.parse_requires_network()?);
+            } else if self.check(TokenType::Mission) {
+                mission = Some(self.parse_mission()?);
             } else if self.check(TokenType::Impl) {
                 trait_impls.push(self.parse_trait_impl()?);
             } else {
@@ -414,6 +1037,9 @@ impl Parser {
             twin,
             verify,
             observe,
+            requires_hardware,
+            requires_network,
+            mission,
             trait_impls,
             span: self.span_from(&start, &end),
         })
@@ -515,18 +1141,18 @@ impl Parser {
     fn parse_hal_member(&mut self) -> Result<HalMemberDecl, SpandaError> {
         let start = self.peek().clone();
         if self.match_types(&[TokenType::I2c]) {
-            let name = self.expect(TokenType::Ident, "Expected I2C bus name")?;
+            let name = self.parse_hal_binding_name("Expected I2C bus name")?;
             self.expect(TokenType::At, "Expected 'at' after I2C bus name")?;
             let addr = self.expect(TokenType::Number, "Expected I2C address")?;
             self.expect(TokenType::Semicolon, "Expected ';' after I2C declaration")?;
             return Ok(HalMemberDecl::HalI2cDecl {
-                name: name.lexeme,
+                name,
                 address: num(&addr),
                 span: self.span_from(&start, self.previous()),
             });
         }
         if self.match_types(&[TokenType::Spi]) {
-            let name = self.expect(TokenType::Ident, "Expected SPI bus name")?;
+            let name = self.parse_hal_binding_name("Expected SPI bus name")?;
             self.expect(TokenType::At, "Expected 'at' after SPI bus name")?;
             let bus = self.expect(TokenType::Number, "Expected SPI bus number")?;
             let mut cs_pin = None;
@@ -537,14 +1163,14 @@ impl Parser {
             }
             self.expect(TokenType::Semicolon, "Expected ';' after SPI declaration")?;
             return Ok(HalMemberDecl::HalSpiDecl {
-                name: name.lexeme,
+                name,
                 bus: num(&bus),
                 cs_pin,
                 span: self.span_from(&start, self.previous()),
             });
         }
         if self.match_types(&[TokenType::Gpio]) {
-            let name = self.expect(TokenType::Ident, "Expected GPIO name")?;
+            let name = self.parse_hal_binding_name("Expected GPIO name")?;
             let direction = if self.match_types(&[TokenType::Out]) {
                 GpioDirection::Out
             } else if self.match_types(&[TokenType::In]) {
@@ -556,14 +1182,14 @@ impl Parser {
             let pin = self.expect(TokenType::Number, "Expected GPIO pin number")?;
             self.expect(TokenType::Semicolon, "Expected ';' after GPIO declaration")?;
             return Ok(HalMemberDecl::HalGpioDecl {
-                name: name.lexeme,
+                name,
                 direction,
                 pin: num(&pin),
                 span: self.span_from(&start, self.previous()),
             });
         }
         if self.match_types(&[TokenType::Pwm]) {
-            let name = self.expect(TokenType::Ident, "Expected PWM name")?;
+            let name = self.parse_hal_binding_name("Expected PWM name")?;
             self.expect(TokenType::On, "Expected 'on' after PWM name")?;
             self.expect(TokenType::Pin, "Expected 'pin' after on")?;
             let pin = self.expect(TokenType::Number, "Expected PWM pin")?;
@@ -571,34 +1197,34 @@ impl Parser {
             let freq = self.parse_frequency_hz()?;
             self.expect(TokenType::Semicolon, "Expected ';' after PWM declaration")?;
             return Ok(HalMemberDecl::HalPwmDecl {
-                name: name.lexeme,
+                name,
                 pin: num(&pin),
                 frequency_hz: freq,
                 span: self.span_from(&start, self.previous()),
             });
         }
         if self.match_types(&[TokenType::Uart]) {
-            let name = self.expect(TokenType::Ident, "Expected UART name")?;
+            let name = self.parse_hal_binding_name("Expected UART name")?;
             self.expect(TokenType::On, "Expected 'on' after UART name")?;
             let device = self.expect(TokenType::String, "Expected UART device path")?;
             self.expect(TokenType::Baud, "Expected 'baud' after UART device")?;
             let baud = self.expect(TokenType::Number, "Expected baud rate")?;
             self.expect(TokenType::Semicolon, "Expected ';' after UART declaration")?;
             return Ok(HalMemberDecl::HalUartDecl {
-                name: name.lexeme,
+                name,
                 device: str_val(&device),
                 baud: num(&baud),
                 span: self.span_from(&start, self.previous()),
             });
         }
         if self.match_types(&[TokenType::Adc]) {
-            let name = self.expect(TokenType::Ident, "Expected ADC name")?;
+            let name = self.parse_hal_binding_name("Expected ADC name")?;
             self.expect(TokenType::On, "Expected 'on' after ADC name")?;
             self.expect(TokenType::Ident, "Expected 'channel' keyword")?;
             let ch = self.expect(TokenType::Number, "Expected ADC channel number")?;
             self.expect(TokenType::Semicolon, "Expected ';' after ADC declaration")?;
             return Ok(HalMemberDecl::HalAdcDecl {
-                name: name.lexeme,
+                name,
                 channel: num(&ch),
                 span: self.span_from(&start, self.previous()),
             });
@@ -878,7 +1504,28 @@ impl Parser {
         } else if self.match_types(&[TokenType::False]) {
             Ok(ConfigValue::Bool(false))
         } else if self.match_types(&[TokenType::Number, TokenType::UnitLiteral]) {
-            Ok(ConfigValue::Number(num(self.previous())))
+            let n = num(self.previous());
+            if self.check(TokenType::Ident) {
+                let unit = self.peek().lexeme.as_str();
+                let scaled = match unit {
+                    "GB" | "Gb" => n * 1024.0,
+                    "MB" | "Mb" => n,
+                    "TOPS" | "tops" => n,
+                    _ => n,
+                };
+                if unit == "GB"
+                    || unit == "Gb"
+                    || unit == "MB"
+                    || unit == "Mb"
+                    || unit == "TOPS"
+                    || unit == "tops"
+                {
+                    self.advance();
+                }
+                Ok(ConfigValue::Number(scaled))
+            } else {
+                Ok(ConfigValue::Number(n))
+            }
         } else {
             let t = self.peek();
             Err(SpandaError::Parse {
@@ -1119,6 +1766,10 @@ impl Parser {
         let interval_ms = self.parse_duration()?;
         let (requires, ensures, invariant) = self.parse_contract_clauses()?;
         self.expect(TokenType::Lbrace, "Expected '{' after task signature")?;
+        let mut budget = None;
+        if self.check(TokenType::Budget) {
+            budget = Some(self.parse_budget()?);
+        }
         let body = self.parse_block()?;
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close task")?;
         Ok(TaskDecl::TaskDecl {
@@ -1127,6 +1778,7 @@ impl Parser {
             requires,
             ensures,
             invariant,
+            budget,
             body,
             span: self.span_from(&start, &end),
         })
@@ -1746,6 +2398,14 @@ impl Parser {
             TokenType::Task,
             TokenType::Twin,
             TokenType::Match,
+            TokenType::Mission,
+            TokenType::Duration,
+            TokenType::Network,
+            TokenType::Bandwidth,
+            TokenType::Latency,
+            TokenType::Timing,
+            TokenType::Budget,
+            TokenType::Fault,
         ]) {
             let tok = self.previous();
             return Ok(Expr::IdentExpr {
@@ -1788,7 +2448,7 @@ impl Parser {
     }
 
     fn parse_local_name(&mut self, message: &str) -> Result<Token, SpandaError> {
-        let lexeme = self.parse_label(message)?;
+        let lexeme = self.parse_binding_ident(message)?;
         Ok(Token {
             token_type: TokenType::Ident,
             lexeme,
@@ -1804,12 +2464,15 @@ impl Parser {
         self.tokens.get(self.pos + 1).map(|t| t.token_type) == Some(TokenType::Colon)
             && (self.check(TokenType::Ident)
                 || self.check(TokenType::From)
+                || self.check(TokenType::To)
                 || self.check(TokenType::Goal))
     }
 
     fn parse_named_arg_name(&mut self) -> Result<String, SpandaError> {
         if self.match_types(&[TokenType::From]) {
             Ok("from".into())
+        } else if self.match_types(&[TokenType::To]) {
+            Ok("to".into())
         } else if self.match_types(&[TokenType::Goal]) {
             Ok("goal".into())
         } else {
