@@ -1,0 +1,81 @@
+// Showcase: The Unsafe Planner — flagship Spanda demo
+//
+// Safe program (this file):
+//   spanda check examples/showcase/killer_demo.sd
+//   spanda verify examples/showcase/killer_demo.sd --json
+//   spanda sim examples/showcase/killer_demo.sd
+//
+// Compile-time safety block (minimal unsafe variant):
+//   spanda check examples/showcase/ai_safety_violation.sd
+//
+// Walkthrough: docs/killer-demo.md
+
+requires_hardware {
+  memory >= 2 GB;
+  sensors [ Camera, Lidar ];
+}
+
+hardware RoverV1 {
+  cpu: CortexA78;
+  memory: 4 GB;
+  sensors [ Camera, Lidar, IMU ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+  timing { min_period: 10 ms; }
+}
+
+robot SafePatrol {
+  sensor camera: Camera on "/camera";
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  ai_model planner: LLM {
+    provider: "mock";
+    model: "patrol-planner";
+    temperature: 0.1;
+  }
+
+  ai_model Vision: VisionModel {
+    memory_required: 512 MB;
+    gpu_required: false;
+  }
+
+  safety {
+    max_speed = 0.5 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  mission { duration: 1 h; }
+
+  task control_loop every 50ms {
+    budget {
+      cpu <= 25%;
+      memory <= 256 MB;
+    }
+    let scan = lidar.read();
+    let _ = scan;
+  }
+
+  behavior patrol() {
+    loop every 100ms {
+      let scan = lidar.read();
+      let scene = camera.analyze();
+      let proposal = planner.reason(
+        prompt: "Plan safe forward motion",
+        input: scene
+      );
+      let action = safety.validate(proposal);
+      wheels.execute(action);
+    }
+  }
+
+  verify {
+    robot.velocity().linear <= 2.0 m/s;
+  }
+}
+
+simulate_compatibility {
+  fault BatteryDegradation;
+}
+
+deploy SafePatrol to RoverV1;

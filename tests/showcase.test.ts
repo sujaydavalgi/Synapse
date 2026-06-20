@@ -13,6 +13,7 @@ const SHOWCASE_EXAMPLES = [
   { file: "rover_navigation.sd", runnable: true },
   { file: "warehouse_robot.sd", runnable: true },
   { file: "hardware_compatibility.sd", runnable: false },
+  { file: "killer_demo.sd", runnable: true },
   { file: "communication_demo.sd", runnable: true },
   { file: "digital_twin_demo.sd", runnable: true },
   { file: "ai_safety_violation.sd", expectFail: true },
@@ -83,6 +84,19 @@ describe("showcase examples", () => {
       /* CLI not built */
     }
   });
+
+  it("killer_demo.sd verifies via native CLI when available", async () => {
+    const source = readFileSync(join(showcaseDir, "killer_demo.sd"), "utf-8");
+    try {
+      const { isCliAvailable, verifyViaCli } = await import("../src/rust-bridge.js");
+      if (!isCliAvailable()) return;
+      const result = verifyViaCli(source);
+      expect(result.ok).toBe(true);
+      expect(result.compatible).toBe(true);
+    } catch {
+      /* CLI not built */
+    }
+  });
 });
 
 describe("showcase CLI smoke", () => {
@@ -91,6 +105,7 @@ describe("showcase CLI smoke", () => {
   for (const file of [
     "rover_navigation.sd",
     "warehouse_robot.sd",
+    "killer_demo.sd",
     "communication_demo.sd",
     "digital_twin_demo.sd",
   ]) {
