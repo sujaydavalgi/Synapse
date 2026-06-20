@@ -1,27 +1,8 @@
 //! Spanda type system: primitives, generics, physical units, and domain types.
 
 use crate::ast::{SpandaType, UnitKind};
+use crate::units::{self, PhysicalCategory};
 use std::collections::HashMap;
-
-/// Physical dimension for unit algebra (reject e.g. `speed + voltage`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PhysicalCategory {
-    Scalar,
-    Distance,
-    Duration,
-    Velocity,
-    Acceleration,
-    Angle,
-    AngularVelocity,
-    Mass,
-    Force,
-    Power,
-    Voltage,
-    Current,
-    Temperature,
-    Pressure,
-    Frequency,
-}
 
 /// Generic type constructor arity.
 #[derive(Debug, Clone, Copy)]
@@ -69,11 +50,13 @@ pub fn resolve_type_name(name: &str) -> Result<SpandaType, String> {
         "AngularVelocity" => Ok(SpandaType::Number {
             unit: UnitKind::RadPerS,
         }),
-        "Mass" | "Force" | "Power" | "Voltage" | "Current" | "Temperature" | "Pressure" => {
-            Ok(SpandaType::Named {
-                name: name.to_string(),
-            })
-        }
+        "Mass" | "Force" | "Power" | "Voltage" | "Current" | "Temperature" | "Pressure"
+        | "Humidity" | "Illuminance" | "Luminance" | "Concentration" | "SoundLevel"
+        | "MagneticField" | "RotationalSpeed" | "Torque" | "Energy" | "UvIndex" | "Ph"
+        | "Conductivity" | "ParticulateMatter" | "Turbidity" | "Salinity" | "Radiation"
+        | "SoilMoisture" => Ok(SpandaType::Named {
+            name: name.to_string(),
+        }),
         // Spatial / robotics
         "Point2D" | "Point3D" | "Vector2D" | "Vector3D" | "Quaternion" | "Pose" => {
             Ok(SpandaType::Pose)
@@ -123,6 +106,23 @@ pub fn resolve_type_name(name: &str) -> Result<SpandaType, String> {
                 name: name.to_string(),
             })
         }
+        // Network / communication (std.network)
+        "Transport"
+        | "QosProfile"
+        | "QoS"
+        | "Bandwidth"
+        | "Latency"
+        | "TopicPath"
+        | "ServiceEndpoint"
+        | "MessageEnvelope"
+        | "DiscoveryFilter"
+        | "NetworkRequirements"
+        | "Reliability"
+        | "HistoryPolicy"
+        | "CommBus"
+        | "Endpoint" => Ok(SpandaType::Named {
+            name: name.to_string(),
+        }),
         // Advanced
         "KnowledgeGraph" | "Belief" | "Observation" | "WorldModel" | "Policy" | "Reward"
         | "StateEstimate" | "SensorFusion" | "FusedObservation" => Ok(SpandaType::Named {
@@ -174,6 +174,23 @@ const KNOWN_DOMAIN_TYPES: &[&str] = &[
     "Current",
     "Temperature",
     "Pressure",
+    "Humidity",
+    "Illuminance",
+    "Luminance",
+    "Concentration",
+    "SoundLevel",
+    "MagneticField",
+    "RotationalSpeed",
+    "Torque",
+    "Energy",
+    "UvIndex",
+    "Ph",
+    "Conductivity",
+    "ParticulateMatter",
+    "Turbidity",
+    "Salinity",
+    "Radiation",
+    "SoilMoisture",
     "Time",
     "Timestamp",
     "Interval",
@@ -234,22 +251,27 @@ const KNOWN_DOMAIN_TYPES: &[&str] = &[
     "DepthImage",
     "PointCloud",
     "LidarScan",
+    "Transport",
+    "QosProfile",
+    "QoS",
+    "Bandwidth",
+    "Latency",
+    "TopicPath",
+    "ServiceEndpoint",
+    "MessageEnvelope",
+    "DiscoveryFilter",
+    "NetworkRequirements",
+    "Reliability",
+    "HistoryPolicy",
+    "CommBus",
+    "Endpoint",
 ];
 
 /// Physical category used to reject invalid unit operations.
 pub fn physical_category(ty: &SpandaType) -> PhysicalCategory {
     match ty {
         SpandaType::Int | SpandaType::Float => PhysicalCategory::Scalar,
-        SpandaType::Number { unit, .. } => match unit {
-            UnitKind::M => PhysicalCategory::Distance,
-            UnitKind::S | UnitKind::Ms => PhysicalCategory::Duration,
-            UnitKind::MPerS => PhysicalCategory::Velocity,
-            UnitKind::MPerS2 => PhysicalCategory::Acceleration,
-            UnitKind::Rad | UnitKind::Deg => PhysicalCategory::Angle,
-            UnitKind::RadPerS => PhysicalCategory::AngularVelocity,
-            UnitKind::Hz => PhysicalCategory::Frequency,
-            UnitKind::None => PhysicalCategory::Scalar,
-        },
+        SpandaType::Number { unit, .. } => units::unit_category(*unit),
         SpandaType::Velocity => PhysicalCategory::Velocity,
         SpandaType::Pose => PhysicalCategory::Distance,
         SpandaType::Named { name } => match name.as_str() {
@@ -265,6 +287,23 @@ pub fn physical_category(ty: &SpandaType) -> PhysicalCategory {
             "Current" => PhysicalCategory::Current,
             "Temperature" => PhysicalCategory::Temperature,
             "Pressure" => PhysicalCategory::Pressure,
+            "Humidity" => PhysicalCategory::Humidity,
+            "Illuminance" => PhysicalCategory::Illuminance,
+            "Luminance" => PhysicalCategory::Luminance,
+            "Concentration" => PhysicalCategory::Concentration,
+            "SoundLevel" => PhysicalCategory::SoundLevel,
+            "MagneticField" => PhysicalCategory::MagneticField,
+            "RotationalSpeed" => PhysicalCategory::RotationalSpeed,
+            "Torque" => PhysicalCategory::Torque,
+            "Energy" => PhysicalCategory::Energy,
+            "UvIndex" => PhysicalCategory::UvIndex,
+            "Ph" => PhysicalCategory::Ph,
+            "Conductivity" => PhysicalCategory::Conductivity,
+            "ParticulateMatter" => PhysicalCategory::ParticulateMatter,
+            "Turbidity" => PhysicalCategory::Turbidity,
+            "Salinity" => PhysicalCategory::Salinity,
+            "Radiation" => PhysicalCategory::Radiation,
+            "SoilMoisture" => PhysicalCategory::SoilMoisture,
             _ => PhysicalCategory::Scalar,
         },
         _ => PhysicalCategory::Scalar,
@@ -336,6 +375,23 @@ pub fn std_namespaces() -> HashMap<&'static str, &'static [&'static str]> {
             "Current",
             "Temperature",
             "Pressure",
+            "Humidity",
+            "Illuminance",
+            "Luminance",
+            "Concentration",
+            "SoundLevel",
+            "MagneticField",
+            "RotationalSpeed",
+            "Torque",
+            "Energy",
+            "UvIndex",
+            "Ph",
+            "Conductivity",
+            "ParticulateMatter",
+            "Turbidity",
+            "Salinity",
+            "Radiation",
+            "SoilMoisture",
         ][..],
     );
     m.insert(
@@ -428,6 +484,29 @@ pub fn std_namespaces() -> HashMap<&'static str, &'static [&'static str]> {
             "Gesture",
             "Emotion",
             "Feedback",
+        ][..],
+    );
+    m.insert(
+        "std.network",
+        &[
+            "Transport",
+            "QosProfile",
+            "QoS",
+            "Bandwidth",
+            "Latency",
+            "TopicPath",
+            "ServiceEndpoint",
+            "MessageEnvelope",
+            "DiscoveryFilter",
+            "NetworkRequirements",
+            "Reliability",
+            "HistoryPolicy",
+            "CommBus",
+            "Endpoint",
+            "Topic",
+            "Message",
+            "Service",
+            "Action",
         ][..],
     );
     m

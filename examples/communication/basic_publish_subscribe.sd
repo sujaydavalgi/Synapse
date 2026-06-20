@@ -1,0 +1,30 @@
+module basic_pubsub;
+
+message LidarReading {
+  scan: Scan;
+  timestamp: String;
+}
+
+robot SensorBot {
+  bus sim;
+
+  topic lidar_scan: LidarReading {
+    qos reliable;
+    rate 20Hz;
+    deadline 50ms;
+  } on sim;
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior stream() {
+    loop every 100ms {
+      let reading = lidar.read();
+      publish lidar_scan(reading);
+    }
+  }
+}

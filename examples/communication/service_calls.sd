@@ -1,0 +1,30 @@
+module service_calls;
+
+message BatteryRequest {
+  level: String;
+}
+
+message BatteryStatus {
+  percent: String;
+  voltage: String;
+}
+
+robot ServiceBot {
+  bus ros2;
+
+  service GetBattery {
+    request BatteryRequest;
+    response BatteryStatus;
+  };
+
+  service reset_map: ResetCostmap;
+
+  behavior monitor() {
+    let status = call GetBattery();
+    call reset_map();
+
+    loop every 1000ms {
+      let check = call GetBattery();
+    }
+  }
+}

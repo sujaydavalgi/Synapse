@@ -143,6 +143,106 @@ fn read_bosch_bmp388(ctx: &DriverContext) -> RuntimeValue {
     }
 }
 
+fn read_bosch_bme280_humidity(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let humidity = (55.0 - x * 2.0).clamp(30.0, 90.0);
+    RuntimeValue::Number {
+        value: humidity,
+        unit: UnitKind::Rh,
+    }
+}
+
+fn read_adafruit_bh1750(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let lux = (400.0 - x * 20.0).clamp(0.0, 100_000.0);
+    RuntimeValue::Number {
+        value: lux,
+        unit: UnitKind::Lux,
+    }
+}
+
+fn read_adafruit_veml6075(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let uvi = (6.0 - x * 0.3).clamp(0.0, 11.0);
+    RuntimeValue::Number {
+        value: uvi,
+        unit: UnitKind::Uvi,
+    }
+}
+
+fn read_atlas_ph(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let ph = (7.0 + x * 0.05).clamp(0.0, 14.0);
+    RuntimeValue::Number {
+        value: ph,
+        unit: UnitKind::Ph,
+    }
+}
+
+fn read_sparkfun_ec(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let ec = (500.0 + x * 50.0).clamp(0.0, 20_000.0);
+    RuntimeValue::Number {
+        value: ec,
+        unit: UnitKind::MicroSPerCm,
+    }
+}
+
+fn read_plantower_pms5003(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let pm = (12.0 + x * 3.0).clamp(0.0, 500.0);
+    RuntimeValue::Number {
+        value: pm,
+        unit: UnitKind::UgPerM3,
+    }
+}
+
+fn read_dfrobot_turbidity(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let ntu = (2.0 + x * 0.5).clamp(0.0, 1000.0);
+    RuntimeValue::Number {
+        value: ntu,
+        unit: UnitKind::Ntu,
+    }
+}
+
+fn read_atlas_salinity(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let ppt = (35.0 - x * 0.1).clamp(0.0, 40.0);
+    RuntimeValue::Number {
+        value: ppt,
+        unit: UnitKind::Ppt,
+    }
+}
+
+fn read_gq_gmc(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let dose = (0.1 + x * 0.02).clamp(0.0, 10.0);
+    RuntimeValue::Number {
+        value: dose,
+        unit: UnitKind::MicroSvPerH,
+    }
+}
+
+fn read_vegetronix_soil(ctx: &DriverContext) -> RuntimeValue {
+    use crate::ast::UnitKind;
+    let x = ctx.sim_state.as_ref().map(|s| s.pose.x).unwrap_or(0.0);
+    let vwc = (40.0 - x * 2.0).clamp(0.0, 100.0);
+    RuntimeValue::Number {
+        value: vwc,
+        unit: UnitKind::PercentVwc,
+    }
+}
+
 fn read_intel_d435(ctx: &DriverContext) -> RuntimeValue {
     scan_reading(ctx, 5.0)
 }
@@ -157,6 +257,10 @@ fn read_ydlidar_x4(ctx: &DriverContext) -> RuntimeValue {
 
 fn read_ydlidar_g4(ctx: &DriverContext) -> RuntimeValue {
     scan_reading(ctx, 16.0)
+}
+
+fn read_ouster_os1(ctx: &DriverContext) -> RuntimeValue {
+    scan_reading(ctx, 120.0)
 }
 
 fn read_adafruit_vl53l0x(ctx: &DriverContext) -> RuntimeValue {
@@ -350,6 +454,216 @@ fn build_registry() -> HashMap<String, LibModule> {
             ),
         ),
         (
+            "bosch.bme280".to_string(),
+            lib(
+                "bosch.bme280",
+                "Bosch",
+                "bme280",
+                "Bosch BME280 environmental sensor (humidity, pressure, temperature)",
+                HashMap::from([(
+                    "BoschBME280".to_string(),
+                    sensor(
+                        "BoschBME280",
+                        "Bosch",
+                        "BME280",
+                        &[SensorInterface::I2c, SensorInterface::Spi],
+                        Some(SensorInterface::I2c),
+                        &["read", "calibrate"],
+                        read_bosch_bme280_humidity,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "adafruit.bh1750".to_string(),
+            lib(
+                "adafruit.bh1750",
+                "Adafruit",
+                "bh1750",
+                "Adafruit BH1750 digital light sensor",
+                HashMap::from([(
+                    "AdafruitBH1750".to_string(),
+                    sensor(
+                        "AdafruitBH1750",
+                        "Adafruit",
+                        "BH1750",
+                        &[SensorInterface::I2c],
+                        Some(SensorInterface::I2c),
+                        &["read"],
+                        read_adafruit_bh1750,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "adafruit.veml6075".to_string(),
+            lib(
+                "adafruit.veml6075",
+                "Adafruit",
+                "veml6075",
+                "Adafruit VEML6075 UV index sensor",
+                HashMap::from([(
+                    "AdafruitVEML6075".to_string(),
+                    sensor(
+                        "AdafruitVEML6075",
+                        "Adafruit",
+                        "VEML6075",
+                        &[SensorInterface::I2c],
+                        Some(SensorInterface::I2c),
+                        &["read"],
+                        read_adafruit_veml6075,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "atlas.ph".to_string(),
+            lib(
+                "atlas.ph",
+                "Atlas",
+                "ph",
+                "Atlas Scientific pH sensor",
+                HashMap::from([(
+                    "AtlasPH".to_string(),
+                    sensor(
+                        "AtlasPH",
+                        "Atlas",
+                        "pH",
+                        &[SensorInterface::Uart],
+                        Some(SensorInterface::Uart),
+                        &["read", "calibrate"],
+                        read_atlas_ph,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "sparkfun.ec".to_string(),
+            lib(
+                "sparkfun.ec",
+                "SparkFun",
+                "ec",
+                "SparkFun conductivity sensor",
+                HashMap::from([(
+                    "SparkfunEC".to_string(),
+                    sensor(
+                        "SparkfunEC",
+                        "SparkFun",
+                        "EC",
+                        &[SensorInterface::Uart, SensorInterface::Gpio],
+                        Some(SensorInterface::Uart),
+                        &["read"],
+                        read_sparkfun_ec,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "plantower.pms5003".to_string(),
+            lib(
+                "plantower.pms5003",
+                "Plantower",
+                "pms5003",
+                "Plantower PMS5003 particulate matter sensor",
+                HashMap::from([(
+                    "PlantowerPMS5003".to_string(),
+                    sensor(
+                        "PlantowerPMS5003",
+                        "Plantower",
+                        "PMS5003",
+                        &[SensorInterface::Uart],
+                        Some(SensorInterface::Uart),
+                        &["read"],
+                        read_plantower_pms5003,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "dfrobot.turbidity".to_string(),
+            lib(
+                "dfrobot.turbidity",
+                "DFRobot",
+                "turbidity",
+                "DFRobot turbidity sensor",
+                HashMap::from([(
+                    "DfrobotTurbidity".to_string(),
+                    sensor(
+                        "DfrobotTurbidity",
+                        "DFRobot",
+                        "Turbidity",
+                        &[SensorInterface::Uart, SensorInterface::Gpio],
+                        None,
+                        &["read"],
+                        read_dfrobot_turbidity,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "atlas.salinity".to_string(),
+            lib(
+                "atlas.salinity",
+                "Atlas",
+                "salinity",
+                "Atlas Scientific salinity sensor",
+                HashMap::from([(
+                    "AtlasSalinity".to_string(),
+                    sensor(
+                        "AtlasSalinity",
+                        "Atlas",
+                        "Salinity",
+                        &[SensorInterface::Uart],
+                        Some(SensorInterface::Uart),
+                        &["read", "calibrate"],
+                        read_atlas_salinity,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "gq.gmc".to_string(),
+            lib(
+                "gq.gmc",
+                "GQ",
+                "gmc",
+                "GQ GMC geiger counter",
+                HashMap::from([(
+                    "GqGMC".to_string(),
+                    sensor(
+                        "GqGMC",
+                        "GQ",
+                        "GMC",
+                        &[SensorInterface::Uart, SensorInterface::Usb],
+                        Some(SensorInterface::Uart),
+                        &["read"],
+                        read_gq_gmc,
+                    ),
+                )]),
+            ),
+        ),
+        (
+            "vegetronix.soil".to_string(),
+            lib(
+                "vegetronix.soil",
+                "Vegetronix",
+                "soil",
+                "Vegetronix soil moisture sensor",
+                HashMap::from([(
+                    "VegetronixSoil".to_string(),
+                    sensor(
+                        "VegetronixSoil",
+                        "Vegetronix",
+                        "Soil",
+                        &[SensorInterface::Gpio, SensorInterface::Uart],
+                        None,
+                        &["read"],
+                        read_vegetronix_soil,
+                    ),
+                )]),
+            ),
+        ),
+        (
             "intel.realsense".to_string(),
             lib(
                 "intel.realsense",
@@ -489,6 +803,27 @@ fn build_registry() -> HashMap<String, LibModule> {
                 )]),
             ),
         ),
+        (
+            "ouster.os1".to_string(),
+            lib(
+                "ouster.os1",
+                "Ouster",
+                "os1",
+                "Ouster OS1 digital LiDAR sensor",
+                HashMap::from([(
+                    "OusterOS1".to_string(),
+                    sensor(
+                        "OusterOS1",
+                        "Ouster",
+                        "OS1",
+                        &[SensorInterface::Ethernet],
+                        Some(SensorInterface::Ethernet),
+                        &["read", "calibrate"],
+                        read_ouster_os1,
+                    ),
+                )]),
+            ),
+        ),
     ])
 }
 
@@ -562,6 +897,10 @@ mod tests {
             .unwrap()
             .sensors
             .contains_key("IntelRealSenseD435"));
+        assert!(resolve_import("ouster.os1")
+            .unwrap()
+            .sensors
+            .contains_key("OusterOS1"));
     }
 
     #[test]

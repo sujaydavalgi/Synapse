@@ -1,5 +1,6 @@
 use crate::ai::resolve_ai_import;
 use crate::ast::*;
+use crate::comm::{self, is_comm_capability, MessageRegistry};
 use crate::error::{Diagnostic, SpandaError};
 use crate::foundations::{
     resolve_module_import, resolve_type_alias, CapabilityDecl, EnumDecl, EventDecl,
@@ -10,7 +11,10 @@ use crate::hal::hal_member_from_decl;
 use crate::lib_registry::{all_library_sensor_types, resolve_import};
 use crate::soc::{get_soc_profile, validate_hal_against_soc};
 use crate::stdlib::resolve_std_import;
-use crate::type_system::{binary_physical_op_allowed, is_action_proposal_type, resolve_type_name};
+use crate::type_system::{
+    binary_physical_op_allowed, is_action_proposal_type, physical_category, resolve_type_name,
+};
+use crate::units::{self, unit_matches_named_type};
 use std::collections::HashMap;
 
 pub fn type_check(program: &Program) -> Result<(), SpandaError> {
@@ -30,16 +34,69 @@ pub fn check(program: &Program) -> Result<(), SpandaError> {
 }
 
 pub fn units_compatible(a: UnitKind, b: UnitKind) -> bool {
-    if a == b {
-        return true;
+    units::units_compatible(a, b)
+}
+
+fn physical_types_compatible(left: &SpandaType, right: &SpandaType) -> bool {
+    let cat_l = physical_category(left);
+    let cat_r = physical_category(right);
+    cat_l == cat_r && cat_l != units::PhysicalCategory::Scalar
+}
+
+fn result_number_for_physical(left: &SpandaType, right: &SpandaType) -> Option<SpandaType> {
+    if let SpandaType::Number { unit, .. } = left {
+        return Some(SpandaType::Number { unit: *unit });
     }
-    if a == UnitKind::None || b == UnitKind::None {
-        return true;
+    if let SpandaType::Number { unit, .. } = right {
+        return Some(SpandaType::Number { unit: *unit });
     }
-    matches!(
-        (a, b),
-        (UnitKind::Deg, UnitKind::Rad) | (UnitKind::Rad, UnitKind::Deg)
-    )
+    if let SpandaType::Named { name } = left {
+        if let Some(unit) = named_type_default_unit(name) {
+            return Some(SpandaType::Number { unit });
+        }
+    }
+    if let SpandaType::Named { name } = right {
+        if let Some(unit) = named_type_default_unit(name) {
+            return Some(SpandaType::Number { unit });
+        }
+    }
+    None
+}
+
+fn named_type_default_unit(name: &str) -> Option<UnitKind> {
+    Some(units::canonical_unit(match name {
+        "Distance" => units::PhysicalCategory::Distance,
+        "Duration" => units::PhysicalCategory::Duration,
+        "Velocity" => units::PhysicalCategory::Velocity,
+        "Acceleration" => units::PhysicalCategory::Acceleration,
+        "Angle" => units::PhysicalCategory::Angle,
+        "AngularVelocity" => units::PhysicalCategory::AngularVelocity,
+        "Mass" => units::PhysicalCategory::Mass,
+        "Force" => units::PhysicalCategory::Force,
+        "Power" => units::PhysicalCategory::Power,
+        "Voltage" => units::PhysicalCategory::Voltage,
+        "Current" => units::PhysicalCategory::Current,
+        "Temperature" => units::PhysicalCategory::Temperature,
+        "Pressure" => units::PhysicalCategory::Pressure,
+        "Humidity" => units::PhysicalCategory::Humidity,
+        "Illuminance" => units::PhysicalCategory::Illuminance,
+        "Luminance" => units::PhysicalCategory::Luminance,
+        "Concentration" => units::PhysicalCategory::Concentration,
+        "SoundLevel" => units::PhysicalCategory::SoundLevel,
+        "MagneticField" => units::PhysicalCategory::MagneticField,
+        "RotationalSpeed" => units::PhysicalCategory::RotationalSpeed,
+        "Torque" => units::PhysicalCategory::Torque,
+        "Energy" => units::PhysicalCategory::Energy,
+        "UvIndex" => units::PhysicalCategory::UvIndex,
+        "Ph" => units::PhysicalCategory::Ph,
+        "Conductivity" => units::PhysicalCategory::Conductivity,
+        "ParticulateMatter" => units::PhysicalCategory::ParticulateMatter,
+        "Turbidity" => units::PhysicalCategory::Turbidity,
+        "Salinity" => units::PhysicalCategory::Salinity,
+        "Radiation" => units::PhysicalCategory::Radiation,
+        "SoilMoisture" => units::PhysicalCategory::SoilMoisture,
+        _ => return None,
+    }))
 }
 
 pub fn result_unit_for_binary(
@@ -80,6 +137,9 @@ pub fn result_unit_for_binary(
             if matches!(left, SpandaType::String) && matches!(right, SpandaType::String) {
                 return Some(SpandaType::Bool);
             }
+            if physical_types_compatible(left, right) {
+                return Some(SpandaType::Bool);
+            }
             None
         }
         BinaryOp::Add | BinaryOp::Sub => {
@@ -90,6 +150,9 @@ pub fn result_unit_for_binary(
                     let unit = if *lu != UnitKind::None { *lu } else { *ru };
                     return Some(SpandaType::Number { unit });
                 }
+            }
+            if physical_types_compatible(left, right) {
+                return result_number_for_physical(left, right);
             }
             None
         }
@@ -147,6 +210,11 @@ pub struct TypeChecker {
     trait_defs: HashMap<String, HashMap<String, TraitMethodSig>>,
     agent_trait_methods: HashMap<String, HashMap<String, SpandaType>>,
     state_machine_states: std::collections::HashSet<String>,
+    message_registry: MessageRegistry,
+    subscribed_topics: std::collections::HashSet<String>,
+    agent_names: std::collections::HashSet<String>,
+    device_names: std::collections::HashSet<String>,
+    peer_robot_names: std::collections::HashSet<String>,
 }
 
 impl Default for TypeChecker {
@@ -166,6 +234,11 @@ impl TypeChecker {
             trait_defs: HashMap::new(),
             agent_trait_methods: HashMap::new(),
             state_machine_states: std::collections::HashSet::new(),
+            message_registry: MessageRegistry::new(),
+            subscribed_topics: std::collections::HashSet::new(),
+            agent_names: std::collections::HashSet::new(),
+            device_names: std::collections::HashSet::new(),
+            peer_robot_names: std::collections::HashSet::new(),
         }
     }
 
@@ -175,6 +248,7 @@ impl TypeChecker {
             structs,
             enums,
             traits,
+            messages,
             robots,
             ..
         } = program;
@@ -206,9 +280,48 @@ impl TypeChecker {
             self.check_trait(trait_decl);
         }
 
+        self.message_registry = MessageRegistry::from_program(messages, structs);
+        for msg in messages {
+            self.check_message(msg);
+        }
+
         for robot in robots {
             self.check_robot(robot, &imported);
         }
+    }
+
+    fn check_message(&mut self, decl: &comm::MessageDecl) {
+        let comm::MessageDecl::MessageDecl {
+            name, fields, span, ..
+        } = decl;
+        for field in fields {
+            let known = self
+                .message_registry
+                .resolve_type(&field.type_name)
+                .is_some()
+                || resolve_type_alias(&field.type_name).is_some()
+                || crate::type_system::resolve_type_name(&field.type_name).is_ok();
+            if !known {
+                self.error(
+                    format!(
+                        "Unknown field type '{}' in message '{name}'",
+                        field.type_name
+                    ),
+                    field.span.start.line,
+                    field.span.start.column,
+                );
+            }
+        }
+        self.symbols.insert(
+            name.clone(),
+            SymbolEntry {
+                robo_type: SpandaType::Named { name: name.clone() },
+                kind: SymbolKind::Variable,
+                sensor_type: None,
+                actuator_type: None,
+            },
+        );
+        let _ = span;
     }
 
     fn check_struct(&mut self, decl: &StructDecl) {
@@ -338,9 +451,18 @@ impl TypeChecker {
             verify,
             observe,
             trait_impls,
+            buses,
+            peer_robots,
+            devices,
+            agent_channels,
+            twin_sync,
             ..
         } = robot;
 
+        self.subscribed_topics.clear();
+        self.agent_names.clear();
+        self.device_names.clear();
+        self.peer_robot_names.clear();
         self.symbols.clear();
         self.state_machine_states.clear();
         self.agent_trait_methods.clear();
@@ -433,6 +555,67 @@ impl TypeChecker {
             self.check_actuator(actuator);
         }
 
+        for bus in buses {
+            let comm::BusDecl::BusDecl {
+                name,
+                transport,
+                span,
+            } = bus;
+            if comm::TransportKind::from_ident(name).is_none()
+                && *transport == comm::TransportKind::Local
+            {
+                self.error(
+                    format!("Unknown transport '{name}' in bus declaration"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        }
+        for peer in peer_robots {
+            let comm::PeerRobotDecl::PeerRobotDecl { name, .. } = peer;
+            self.peer_robot_names.insert(name.clone());
+            self.symbols.insert(
+                name.clone(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: "PeerRobot".into(),
+                    },
+                    kind: SymbolKind::Robot,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+        }
+        for device in devices {
+            let comm::DeviceDecl::DeviceDecl {
+                name,
+                device_type,
+                span,
+            } = device;
+            if !["Camera", "IMU", "Lidar", "GPS", "Microphone", "Speaker"]
+                .contains(&device_type.as_str())
+            {
+                self.error(
+                    format!("Unknown device type '{device_type}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+            self.device_names.insert(name.clone());
+            self.symbols.insert(
+                name.clone(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: device_type.clone(),
+                    },
+                    kind: SymbolKind::Sensor,
+                    sensor_type: Some(device_type.clone()),
+                    actuator_type: None,
+                },
+            );
+        }
+        let _ = twin_sync;
+
         if let Some(safety_block) = safety {
             let saved = self.symbols.clone();
             self.symbols.insert(
@@ -471,6 +654,28 @@ impl TypeChecker {
         }
         for agent in agents {
             self.check_agent(agent);
+        }
+        for channel in agent_channels {
+            let comm::AgentChannelDecl::AgentChannelDecl {
+                from_agent,
+                to_agent,
+                span,
+                ..
+            } = channel;
+            if !self.agent_names.contains(from_agent) {
+                self.error(
+                    format!("Agent channel source '{from_agent}' is not declared"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+            if !self.agent_names.contains(to_agent) {
+                self.error(
+                    format!("Agent channel target '{to_agent}' is not declared"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
         }
         for trait_impl in trait_impls {
             self.check_trait_impl(trait_impl);
@@ -732,20 +937,61 @@ impl TypeChecker {
         let TopicDecl::TopicDecl {
             name,
             message_type,
+            topic: topic_path,
+            role,
+            qos,
+            transport,
             span,
-            ..
         } = topic;
-        if message_type_for(message_type).is_none() {
+        if resolve_message_type(&self.message_registry, message_type).is_none() {
             self.error(
                 format!("Unknown message type '{message_type}'"),
                 span.start.line,
                 span.start.column,
             );
         }
+        if topic_path.is_none() && transport.is_none() && matches!(role, comm::TopicRole::Publish) {
+            self.error(
+                format!("Topic '{name}' publisher must specify path or transport"),
+                span.start.line,
+                span.start.column,
+            );
+        }
+        if matches!(role, comm::TopicRole::Subscribe | comm::TopicRole::Both) {
+            if let Some(path) = topic_path {
+                self.subscribed_topics.insert(path.clone());
+            }
+            self.subscribed_topics.insert(name.clone());
+        }
+        if let Some(q) = qos {
+            if let Some(rate) = q.rate_hz {
+                if rate <= 0.0 {
+                    self.error(
+                        "Topic rate must be positive".into(),
+                        q.span.start.line,
+                        q.span.start.column,
+                    );
+                }
+            }
+            if let Some(deadline) = q.deadline_ms {
+                if deadline <= 0.0 {
+                    self.error(
+                        "Topic deadline must be positive".into(),
+                        q.span.start.line,
+                        q.span.start.column,
+                    );
+                }
+            }
+        }
+        if transport.is_some() && topic_path.is_none() {
+            // transport-only topic is valid
+        }
+        let _ = transport;
         self.symbols.insert(
             name.clone(),
             SymbolEntry {
-                robo_type: message_type_for(message_type).unwrap_or(SpandaType::Void),
+                robo_type: resolve_message_type(&self.message_registry, message_type)
+                    .unwrap_or(SpandaType::Void),
                 kind: SymbolKind::Topic,
                 sensor_type: None,
                 actuator_type: None,
@@ -757,12 +1003,36 @@ impl TypeChecker {
         let ServiceDecl::ServiceDecl {
             name,
             service_type,
+            request_type,
+            response_type,
             span,
-            ..
         } = service;
-        if service_type_for(service_type).is_none() {
+        if let (Some(req), Some(res)) = (request_type, response_type) {
+            if resolve_message_type(&self.message_registry, req).is_none() {
+                self.error(
+                    format!("Unknown service request type '{req}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+            if resolve_message_type(&self.message_registry, res).is_none() {
+                self.error(
+                    format!("Unknown service response type '{res}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        } else if let Some(st) = service_type {
+            if service_type_for(st).is_none() {
+                self.error(
+                    format!("Unknown service type '{st}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        } else {
             self.error(
-                format!("Unknown service type '{service_type}'"),
+                format!("Service '{name}' must specify type or request/response"),
                 span.start.line,
                 span.start.column,
             );
@@ -770,7 +1040,7 @@ impl TypeChecker {
         self.symbols.insert(
             name.clone(),
             SymbolEntry {
-                robo_type: service_type_for(service_type).unwrap_or(SpandaType::Void),
+                robo_type: SpandaType::Named { name: name.clone() },
                 kind: SymbolKind::Service,
                 sensor_type: None,
                 actuator_type: None,
@@ -782,12 +1052,32 @@ impl TypeChecker {
         let ActionDecl::ActionDecl {
             name,
             action_type,
+            request_type,
+            feedback_type,
+            result_type,
             span,
-            ..
         } = action;
-        if action_type_for(action_type).is_none() {
+        if let (Some(req), Some(fb), Some(res)) = (request_type, feedback_type, result_type) {
+            for t in [req, fb, res] {
+                if resolve_message_type(&self.message_registry, t).is_none() {
+                    self.error(
+                        format!("Unknown action type '{t}'"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+            }
+        } else if let Some(at) = action_type {
+            if action_type_for(at).is_none() {
+                self.error(
+                    format!("Unknown action type '{at}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        } else {
             self.error(
-                format!("Unknown action type '{action_type}'"),
+                format!("Action '{name}' must specify type or request/feedback/result"),
                 span.start.line,
                 span.start.column,
             );
@@ -795,7 +1085,7 @@ impl TypeChecker {
         self.symbols.insert(
             name.clone(),
             SymbolEntry {
-                robo_type: action_type_for(action_type).unwrap_or(SpandaType::Void),
+                robo_type: SpandaType::Named { name: name.clone() },
                 kind: SymbolKind::Action,
                 sensor_type: None,
                 actuator_type: None,
@@ -1095,8 +1385,19 @@ impl TypeChecker {
     }
 
     fn check_capability(&mut self, agent_name: &str, cap: &CapabilityDecl) {
-        let allowed = ["read", "propose_motion", "summarize", "detect", "plan"];
-        if !allowed.contains(&cap.action.as_str()) {
+        let allowed = [
+            "read",
+            "propose_motion",
+            "summarize",
+            "detect",
+            "plan",
+            "subscribe",
+            "publish",
+            "call",
+            "execute",
+            "discover",
+        ];
+        if !allowed.contains(&cap.action.as_str()) && !is_comm_capability(&cap.action) {
             self.error(
                 format!("Unknown capability '{}'", cap.action),
                 cap.span.start.line,
@@ -1104,18 +1405,32 @@ impl TypeChecker {
             );
             return;
         }
-        if cap.action == "read" {
+        if cap.action == "read"
+            || cap.action == "subscribe"
+            || cap.action == "publish"
+            || cap.action == "call"
+            || cap.action == "execute"
+        {
             if let Some(target) = &cap.target {
-                if !self.symbols.contains_key(target) {
+                let valid = self.symbols.contains_key(target)
+                    || self.peer_robot_names.contains(target)
+                    || self.device_names.contains(target);
+                if !valid {
                     self.error(
-                        format!("Agent '{agent_name}' capability read({target}) references unknown resource"),
+                        format!(
+                            "Agent '{agent_name}' capability {}({target}) references unknown resource",
+                            cap.action
+                        ),
                         cap.span.start.line,
                         cap.span.start.column,
                     );
                 }
-            } else {
+            } else if cap.action == "read" || cap.action == "subscribe" || cap.action == "publish" {
                 self.error(
-                    format!("Agent '{agent_name}' read capability requires a target"),
+                    format!(
+                        "Agent '{agent_name}' {} capability requires a target",
+                        cap.action
+                    ),
                     cap.span.start.line,
                     cap.span.start.column,
                 );
@@ -1162,6 +1477,7 @@ impl TypeChecker {
         for cap in capabilities {
             self.check_capability(name, cap);
         }
+        self.agent_names.insert(name.clone());
         self.symbols.insert(
             name.clone(),
             SymbolEntry {
@@ -1342,6 +1658,62 @@ impl TypeChecker {
                     self.check_expr(v);
                 }
             }
+            Stmt::SubscribeStmt { target, span } => {
+                let (topic_name, _) = target.split_once('.').unwrap_or((target.as_str(), ""));
+                if !self.symbols.contains_key(topic_name)
+                    && !self.peer_robot_names.contains(topic_name)
+                {
+                    self.error(
+                        format!("Unknown subscribe target '{target}'"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+                self.subscribed_topics.insert(target.clone());
+            }
+            Stmt::ExecuteStmt {
+                action_name,
+                goal,
+                span,
+            } => {
+                if self.symbols.get(action_name).map(|s| s.kind) != Some(SymbolKind::Action) {
+                    self.error(
+                        format!("Unknown action '{action_name}'"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                } else {
+                    self.check_expr(goal);
+                }
+            }
+            Stmt::DiscoverStmt { .. } => {}
+            Stmt::ReceiveStmt {
+                topic_name,
+                var_name,
+                span,
+            } => {
+                if self.symbols.get(topic_name).map(|s| s.kind) != Some(SymbolKind::Topic) {
+                    self.error(
+                        format!("Unknown topic '{topic_name}' for receive"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+                let topic_type = self
+                    .symbols
+                    .get(topic_name)
+                    .map(|s| s.robo_type.clone())
+                    .unwrap_or(SpandaType::Void);
+                self.symbols.insert(
+                    var_name.clone(),
+                    SymbolEntry {
+                        robo_type: topic_type,
+                        kind: SymbolKind::Variable,
+                        sensor_type: None,
+                        actuator_type: None,
+                    },
+                );
+            }
         }
     }
 
@@ -1462,6 +1834,39 @@ impl TypeChecker {
                 fields,
                 span,
             } => self.check_struct_literal(type_name, fields, span),
+            Expr::ServiceCallExpr { service_name, span } => {
+                if self.symbols.get(service_name).map(|s| s.kind) != Some(SymbolKind::Service) {
+                    self.error(
+                        format!("Unknown service '{service_name}'"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+                SpandaType::Named {
+                    name: "ServiceResponse".into(),
+                }
+            }
+            Expr::ExecuteExpr {
+                action_name,
+                goal,
+                span,
+            } => {
+                if self.symbols.get(action_name).map(|s| s.kind) != Some(SymbolKind::Action) {
+                    self.error(
+                        format!("Unknown action '{action_name}'"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                } else {
+                    self.check_expr(goal);
+                }
+                SpandaType::Named {
+                    name: "ActionResult".into(),
+                }
+            }
+            Expr::DiscoverExpr { .. } => SpandaType::Named {
+                name: "DiscoveryResult".into(),
+            },
         }
     }
 
@@ -1900,32 +2305,21 @@ impl TypeChecker {
             || matches!(expected, SpandaType::Velocity)
                 && matches!(
                     actual,
-                    SpandaType::Number {
-                        unit: UnitKind::MPerS,
-                        ..
-                    }
+                    SpandaType::Number { unit, .. }
+                        if units::unit_category(*unit) == crate::units::PhysicalCategory::Velocity
                 )
             || matches!(actual, SpandaType::Velocity)
                 && matches!(
                     expected,
-                    SpandaType::Number {
-                        unit: UnitKind::MPerS,
-                        ..
-                    }
+                    SpandaType::Number { unit, .. }
+                        if units::unit_category(*unit) == crate::units::PhysicalCategory::Velocity
                 )
         {
             true
         } else if let (SpandaType::Named { name }, SpandaType::Number { unit, .. }) =
             (expected, actual)
         {
-            match name.as_str() {
-                "Distance" => *unit == UnitKind::M,
-                "Duration" => matches!(*unit, UnitKind::Ms | UnitKind::S),
-                "Angle" => matches!(*unit, UnitKind::Rad | UnitKind::Deg),
-                "Acceleration" => *unit == UnitKind::MPerS2,
-                "AngularVelocity" => *unit == UnitKind::RadPerS,
-                _ => false,
-            }
+            unit_matches_named_type(name, *unit)
         } else if let (SpandaType::Named { name }, SpandaType::String) = (expected, actual) {
             name == "Goal"
         } else if let (SpandaType::String, SpandaType::Named { name }) = (expected, actual) {
@@ -2072,6 +2466,12 @@ impl SafetyBlockRules for SafetyBlock {
 pub struct FnSig {
     named_params: HashMap<String, SpandaType>,
     returns: SpandaType,
+}
+
+fn resolve_message_type(registry: &MessageRegistry, name: &str) -> Option<SpandaType> {
+    registry
+        .resolve_type(name)
+        .or_else(|| message_type_for(name))
 }
 
 fn message_type_for(name: &str) -> Option<SpandaType> {
@@ -2599,6 +2999,7 @@ fn infer_read_return(type_name: &str) -> SpandaType {
         || type_name.contains("Velodyne")
         || type_name.contains("Hokuyo")
         || type_name.contains("Ydlidar")
+        || type_name.contains("Ouster")
         || type_name.contains("RealSense")
     {
         return SpandaType::Scan;
@@ -2610,6 +3011,52 @@ fn infer_read_return(type_name: &str) -> SpandaType {
     }
     if type_name.contains("BMP") || type_name.contains("VL53") || type_name.contains("UWMF") {
         return SpandaType::Number { unit: UnitKind::M };
+    }
+    if type_name.contains("BME") {
+        return SpandaType::Number { unit: UnitKind::Rh };
+    }
+    if type_name.contains("BH1750") || type_name.contains("Light") {
+        return SpandaType::Number {
+            unit: UnitKind::Lux,
+        };
+    }
+    if type_name.contains("VEML") || type_name.contains("UV") || type_name.contains("Si1145") {
+        return SpandaType::Number {
+            unit: UnitKind::Uvi,
+        };
+    }
+    if type_name.contains("pH") || type_name.ends_with("PH") {
+        return SpandaType::Number { unit: UnitKind::Ph };
+    }
+    if type_name.contains("EC") || type_name.contains("Conduct") {
+        return SpandaType::Number {
+            unit: UnitKind::MicroSPerCm,
+        };
+    }
+    if type_name.contains("PMS") || type_name.contains("Particulate") {
+        return SpandaType::Number {
+            unit: UnitKind::UgPerM3,
+        };
+    }
+    if type_name.contains("Turbid") || type_name.contains("NTU") {
+        return SpandaType::Number {
+            unit: UnitKind::Ntu,
+        };
+    }
+    if type_name.contains("Salinity") {
+        return SpandaType::Number {
+            unit: UnitKind::Ppt,
+        };
+    }
+    if type_name.contains("Geiger") || type_name.contains("Radiation") {
+        return SpandaType::Number {
+            unit: UnitKind::MicroSvPerH,
+        };
+    }
+    if type_name.contains("Soil") || type_name.contains("VWC") {
+        return SpandaType::Number {
+            unit: UnitKind::PercentVwc,
+        };
     }
     SpandaType::Void
 }

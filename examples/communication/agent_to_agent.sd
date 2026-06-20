@@ -1,0 +1,56 @@
+module agent_to_agent;
+
+message PathPlan {
+  waypoints: String;
+}
+
+robot MultiAgentBot {
+  bus local;
+
+  topic detections: Scan publish on "/vision/detections";
+  topic plans: PathPlan publish on "/planner/plans";
+
+  sensor camera: Camera on "/camera";
+
+  agent Vision {
+    uses planner_model;
+    can [ read(camera), publish(detections), plan ];
+    goal "Detect obstacles";
+    plan { }
+  }
+
+  agent Planner {
+    uses planner_model;
+    can [ subscribe(detections), publish(plans), plan ];
+    goal "Plan safe paths";
+    plan { }
+  }
+
+  agent Navigator {
+    can [ subscribe(plans), plan ];
+    goal "Execute navigation";
+    plan { }
+  }
+
+  ai_model planner_model: LLM {
+    provider: "mock";
+    model: "planner-v1";
+    temperature: 0.2;
+  }
+
+  action NavigateTo {
+    request Pose;
+    feedback String;
+    result String;
+  };
+
+  safety {
+    max_speed = 1.2 m/s;
+  }
+
+  behavior run() {
+    Vision.plan();
+    Planner.plan();
+    Navigator.plan();
+  }
+}

@@ -1,6 +1,9 @@
 //! Hardware profiles and compile-time deployment compatibility verification.
 
-use crate::ast::{AiModelDecl, BehaviorDecl, ConfigValue, Program, RobotDecl, SensorDecl, Stmt};
+use crate::ast::{
+    AiModelDecl, BehaviorDecl, ConfigValue, Program, RobotDecl, SensorDecl, Stmt, TopicDecl,
+};
+use crate::comm::{default_message_size, estimate_topic_bandwidth_mbps, TopicRole};
 use crate::foundations::{
     DeployDecl, HardwareDecl, MissionDecl, RequiresHardwareDecl, RequiresNetworkDecl,
     ResourceBudgetDecl, SimulateCompatibilityDecl, TaskDecl, TraitDecl,
@@ -1040,6 +1043,74 @@ fn verify_adapters(
     items
 }
 
+fn verify_topic_bandwidth(topics: &[TopicDecl], profile: &HardwareProfile) -> Vec<CompatItem> {
+    let mut total_mbps = 0.0;
+    let mut items = Vec::new();
+
+    for topic in topics {
+        let TopicDecl::TopicDecl {
+            name,
+            message_type,
+            role,
+            qos,
+            span,
+            ..
+        } = topic;
+
+        if matches!(role, TopicRole::Subscribe) {
+            continue;
+        }
+
+        let Some(qos) = qos else { continue };
+        let Some(rate_hz) = qos.rate_hz else { continue };
+
+        let msg_size = default_message_size(message_type);
+        let mbps = estimate_topic_bandwidth_mbps(rate_hz, msg_size);
+        total_mbps += mbps;
+        items.push(pass(
+            "network",
+            format!("Topic '{name}' ({message_type}) at {rate_hz} Hz ≈ {mbps:.2} Mbps",),
+            span.start.line,
+            span.start.column,
+        ));
+    }
+
+    if total_mbps <= 0.0 {
+        return items;
+    }
+
+    match profile.network_bandwidth_mbps {
+        Some(bw) if total_mbps <= bw => {
+            items.push(pass(
+                "network",
+                format!("Estimated topic bandwidth {total_mbps:.2} Mbps within target {bw} Mbps",),
+                1,
+                1,
+            ));
+        }
+        Some(bw) => {
+            items.push(error(
+                "network",
+                format!("Estimated topic bandwidth {total_mbps:.2} Mbps exceeds target {bw} Mbps",),
+                1,
+                1,
+            ));
+        }
+        None => {
+            items.push(warn(
+                "network",
+                format!(
+                    "Estimated topic bandwidth {total_mbps:.2} Mbps — target bandwidth unknown",
+                ),
+                1,
+                1,
+            ));
+        }
+    }
+
+    items
+}
+
 fn verify_robot_against_profile(
     robot: &RobotDecl,
     profile: &HardwareProfile,
@@ -1051,6 +1122,7 @@ fn verify_robot_against_profile(
 ) -> Vec<CompatItem> {
     let RobotDecl::RobotDecl {
         name: robot_name,
+        topics,
         sensors,
         actuators,
         observe,
@@ -1187,6 +1259,7 @@ fn verify_robot_against_profile(
     items.extend(verify_timing(robot, profile));
     items.extend(verify_ai_models(robot, profile));
     items.extend(verify_adapters(robot, profile, program_traits));
+    items.extend(verify_topic_bandwidth(topics, profile));
 
     items
 }

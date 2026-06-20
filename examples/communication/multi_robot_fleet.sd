@@ -1,0 +1,47 @@
+module multi_robot_fleet;
+
+robot FleetManager {
+  bus dds;
+
+  robot RoverA;
+  robot RoverB;
+
+  requires_network {
+    bandwidth >= 5 Mbps;
+    latency <= 50 ms;
+  }
+
+  topic fleet_pose: Pose publish on "/fleet/pose";
+
+  behavior manage() {
+    discover robots where capability includes Navigation;
+
+    loop every 500ms {
+      let pose = pose(x: 0.0 m, y: 0.0 m, theta: 0.0 rad);
+      publish fleet_pose(pose);
+    }
+  }
+}
+
+hardware JetsonOrin {
+  cpu: CortexA78;
+  memory: 8192 MB;
+  storage: 64000 MB;
+  sensors [ Camera, Lidar ];
+  actuators [ DifferentialDrive ];
+}
+
+hardware RaspberryPi5 {
+  cpu: CortexA76;
+  memory: 8192 MB;
+  storage: 32000 MB;
+  sensors [ Camera, IMU ];
+  actuators [ DifferentialDrive ];
+}
+
+deploy FleetManager to JetsonOrin;
+deploy FleetManager to RaspberryPi5;
+
+simulate_compatibility {
+  fault NetworkOutage;
+}

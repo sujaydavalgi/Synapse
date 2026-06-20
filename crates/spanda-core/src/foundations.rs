@@ -124,7 +124,12 @@ pub enum TaskDecl {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum EventDecl {
-    EventDecl { name: String, span: Span },
+    EventDecl {
+        name: String,
+        #[serde(default)]
+        fields: Vec<FieldDecl>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -290,6 +295,7 @@ pub fn resolve_module_import(path: &str) -> bool {
             | "std.safety"
             | "std.twin"
             | "std.hri"
+            | "std.network"
     )
 }
 

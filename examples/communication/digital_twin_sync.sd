@@ -1,0 +1,29 @@
+module digital_twin_sync;
+
+robot WarehouseRobot {
+  bus sim;
+
+  twin WarehouseTwin {
+    mirror pose;
+    replay true;
+  }
+
+  topic telemetry: Pose publish on "/twin/telemetry";
+  topic fault_events: String publish on "/twin/faults";
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.5 m/s;
+  }
+
+  behavior sync_twin() {
+    loop every 100ms {
+      let pose = robot.pose();
+      publish telemetry(pose);
+    }
+  }
+}
+
+deploy WarehouseRobot to JetsonOrin;

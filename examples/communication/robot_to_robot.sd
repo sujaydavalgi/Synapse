@@ -1,0 +1,39 @@
+module robot_to_robot;
+
+robot FleetCoordinator {
+  bus sim;
+
+  robot RoverA;
+  robot RoverB;
+
+  topic pose_updates: Pose publish on "/rover_a/pose";
+
+  behavior coordinate() {
+    subscribe RoverA.pose_updates;
+
+    loop every 200ms {
+      let pose = pose(x: 1.0 m, y: 2.0 m, theta: 0.0 rad);
+      publish pose_updates(pose);
+    }
+  }
+}
+
+robot RoverB {
+  bus sim;
+
+  topic peer_pose: Pose subscribe on "/rover_a/pose";
+
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 0.8 m/s;
+  }
+
+  behavior follow() {
+    subscribe peer_pose;
+
+    loop every 100ms {
+      wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+    }
+  }
+}

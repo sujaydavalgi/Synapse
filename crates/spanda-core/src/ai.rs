@@ -7,6 +7,7 @@ pub enum AiRuntimeKind {
     Onnx,
     Tflite,
     Tensorrt,
+    OpenVino,
 }
 
 impl AiRuntimeKind {
@@ -15,6 +16,7 @@ impl AiRuntimeKind {
             AiRuntimeKind::Onnx => "onnx",
             AiRuntimeKind::Tflite => "tflite",
             AiRuntimeKind::Tensorrt => "tensorrt",
+            AiRuntimeKind::OpenVino => "openvino",
         }
     }
 }
@@ -62,6 +64,17 @@ fn build_ai_registry() -> HashMap<String, AiLibModule> {
                 version: "1.0.0".to_string(),
                 description: "TensorRT inference backend for Jetson".to_string(),
                 runtime: AiRuntimeKind::Tensorrt,
+            },
+        ),
+        (
+            "openvino.runtime".to_string(),
+            AiLibModule {
+                id: "openvino.runtime".to_string(),
+                vendor: "Intel".to_string(),
+                name: "runtime".to_string(),
+                version: "1.0.0".to_string(),
+                description: "OpenVINO inference backend for Intel CPUs and VPUs".to_string(),
+                runtime: AiRuntimeKind::OpenVino,
             },
         ),
     ])
@@ -797,7 +810,8 @@ mod tests {
     #[test]
     fn resolves_ai_imports() {
         assert!(resolve_ai_import("onnx.runtime").is_some());
-        assert!(list_ai_libraries().len() >= 3);
+        assert!(resolve_ai_import("openvino.runtime").is_some());
+        assert!(list_ai_libraries().len() >= 4);
     }
 
     #[test]

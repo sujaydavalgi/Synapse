@@ -18,24 +18,189 @@ pub struct Span {
 pub enum UnitKind {
     #[serde(rename = "none")]
     None,
+    // Distance (canonical: m)
     #[serde(rename = "m")]
     M,
+    #[serde(rename = "mm")]
+    Mm,
+    #[serde(rename = "cm")]
+    Cm,
+    #[serde(rename = "km")]
+    Km,
+    #[serde(rename = "ft")]
+    Ft,
+    #[serde(rename = "in")]
+    In,
+    // Duration (canonical: s)
     #[serde(rename = "s")]
     S,
     #[serde(rename = "ms")]
     Ms,
-    #[serde(rename = "rad")]
-    Rad,
+    #[serde(rename = "us")]
+    Us,
+    #[serde(rename = "min")]
+    Min,
+    #[serde(rename = "h")]
+    H,
+    // Velocity (canonical: m/s)
     #[serde(rename = "m/s")]
     MPerS,
+    #[serde(rename = "km/h")]
+    KmPerH,
+    #[serde(rename = "mph")]
+    Mph,
+    // Acceleration (canonical: m/s²)
     #[serde(rename = "m/s²")]
     MPerS2,
-    #[serde(rename = "rad/s")]
-    RadPerS,
+    #[serde(rename = "g")]
+    G,
+    // Angle (canonical: rad)
+    #[serde(rename = "rad")]
+    Rad,
     #[serde(rename = "deg")]
     Deg,
+    // Angular velocity (canonical: rad/s)
+    #[serde(rename = "rad/s")]
+    RadPerS,
+    #[serde(rename = "deg/s")]
+    DegPerS,
+    // Mass (canonical: kg)
+    #[serde(rename = "kg")]
+    Kg,
+    #[serde(rename = "gram")]
+    Gram,
+    #[serde(rename = "lb")]
+    Lb,
+    // Force (canonical: N)
+    #[serde(rename = "N")]
+    N,
+    #[serde(rename = "kN")]
+    KN,
+    // Power (canonical: W)
+    #[serde(rename = "W")]
+    W,
+    #[serde(rename = "kW")]
+    KW,
+    #[serde(rename = "MW")]
+    MW,
+    // Voltage (canonical: V)
+    #[serde(rename = "V")]
+    V,
+    #[serde(rename = "mV")]
+    MVolt,
+    #[serde(rename = "kV")]
+    KVolt,
+    // Current (canonical: A)
+    #[serde(rename = "A")]
+    A,
+    #[serde(rename = "mA")]
+    MA,
+    // Temperature (canonical: celsius)
+    #[serde(rename = "celsius")]
+    Celsius,
+    #[serde(rename = "fahrenheit")]
+    Fahrenheit,
+    #[serde(rename = "kelvin")]
+    Kelvin,
+    // Pressure (canonical: Pa)
+    #[serde(rename = "Pa")]
+    Pa,
+    #[serde(rename = "kPa")]
+    KPa,
+    #[serde(rename = "bar")]
+    Bar,
+    #[serde(rename = "psi")]
+    Psi,
+    #[serde(rename = "mbar")]
+    Mbar,
+    // Frequency (canonical: Hz)
     #[serde(rename = "Hz")]
     Hz,
+    #[serde(rename = "kHz")]
+    KHz,
+    #[serde(rename = "MHz")]
+    MHz,
+    // Humidity (canonical: rh, 0–100 %RH)
+    #[serde(rename = "rh")]
+    Rh,
+    #[serde(rename = "%RH")]
+    PercentRh,
+    // Illuminance (canonical: lux)
+    #[serde(rename = "lux")]
+    Lux,
+    #[serde(rename = "lx")]
+    Lx,
+    // Luminance (canonical: cd/m²)
+    #[serde(rename = "cd/m²")]
+    CdPerM2,
+    #[serde(rename = "nit")]
+    Nit,
+    // Gas concentration (canonical: ppm)
+    #[serde(rename = "ppm")]
+    Ppm,
+    #[serde(rename = "ppb")]
+    Ppb,
+    // Sound level (canonical: dB)
+    #[serde(rename = "dB")]
+    DB,
+    #[serde(rename = "dBA")]
+    DBA,
+    // Magnetic field (canonical: uT)
+    #[serde(rename = "uT")]
+    MicroTesla,
+    #[serde(rename = "gauss")]
+    Gauss,
+    // Rotational speed (canonical: rpm)
+    #[serde(rename = "rpm")]
+    Rpm,
+    // Torque (canonical: N·m)
+    #[serde(rename = "N·m")]
+    NewtonMeter,
+    #[serde(rename = "Nm")]
+    Nm,
+    // Energy (canonical: J)
+    #[serde(rename = "J")]
+    Joule,
+    #[serde(rename = "Wh")]
+    Wh,
+    #[serde(rename = "kWh")]
+    KWh,
+    // UV index (canonical: uvi)
+    #[serde(rename = "uvi")]
+    Uvi,
+    // Acidity (canonical: pH)
+    #[serde(rename = "pH")]
+    Ph,
+    // Conductivity (canonical: uS/cm)
+    #[serde(rename = "uS/cm")]
+    MicroSPerCm,
+    #[serde(rename = "mS/cm")]
+    MilliSPerCm,
+    #[serde(rename = "S/m")]
+    SPerM,
+    // Particulate matter (canonical: ug/m3)
+    #[serde(rename = "ug/m3")]
+    UgPerM3,
+    // Turbidity (canonical: NTU)
+    #[serde(rename = "NTU")]
+    Ntu,
+    #[serde(rename = "FNU")]
+    Fnu,
+    // Salinity (canonical: ppt)
+    #[serde(rename = "ppt")]
+    Ppt,
+    #[serde(rename = "psu")]
+    Psu,
+    // Radiation dose rate (canonical: uSv/h)
+    #[serde(rename = "uSv/h")]
+    MicroSvPerH,
+    #[serde(rename = "mSv/h")]
+    MilliSvPerH,
+    // Soil moisture (canonical: %VWC)
+    #[serde(rename = "%VWC")]
+    PercentVwc,
+    #[serde(rename = "vwc")]
+    Vwc,
 }
 
 impl UnitKind {
@@ -43,28 +208,161 @@ impl UnitKind {
         match self {
             UnitKind::None => "none",
             UnitKind::M => "m",
+            UnitKind::Mm => "mm",
+            UnitKind::Cm => "cm",
+            UnitKind::Km => "km",
+            UnitKind::Ft => "ft",
+            UnitKind::In => "in",
             UnitKind::S => "s",
             UnitKind::Ms => "ms",
-            UnitKind::Rad => "rad",
+            UnitKind::Us => "us",
+            UnitKind::Min => "min",
+            UnitKind::H => "h",
             UnitKind::MPerS => "m/s",
+            UnitKind::KmPerH => "km/h",
+            UnitKind::Mph => "mph",
             UnitKind::MPerS2 => "m/s²",
-            UnitKind::RadPerS => "rad/s",
+            UnitKind::G => "g",
+            UnitKind::Rad => "rad",
             UnitKind::Deg => "deg",
+            UnitKind::RadPerS => "rad/s",
+            UnitKind::DegPerS => "deg/s",
+            UnitKind::Kg => "kg",
+            UnitKind::Gram => "gram",
+            UnitKind::Lb => "lb",
+            UnitKind::N => "N",
+            UnitKind::KN => "kN",
+            UnitKind::W => "W",
+            UnitKind::KW => "kW",
+            UnitKind::MW => "MW",
+            UnitKind::V => "V",
+            UnitKind::MVolt => "mV",
+            UnitKind::KVolt => "kV",
+            UnitKind::A => "A",
+            UnitKind::MA => "mA",
+            UnitKind::Celsius => "celsius",
+            UnitKind::Fahrenheit => "fahrenheit",
+            UnitKind::Kelvin => "kelvin",
+            UnitKind::Pa => "Pa",
+            UnitKind::KPa => "kPa",
+            UnitKind::Bar => "bar",
+            UnitKind::Psi => "psi",
+            UnitKind::Mbar => "mbar",
             UnitKind::Hz => "Hz",
+            UnitKind::KHz => "kHz",
+            UnitKind::MHz => "MHz",
+            UnitKind::Rh => "rh",
+            UnitKind::PercentRh => "%RH",
+            UnitKind::Lux => "lux",
+            UnitKind::Lx => "lx",
+            UnitKind::CdPerM2 => "cd/m²",
+            UnitKind::Nit => "nit",
+            UnitKind::Ppm => "ppm",
+            UnitKind::Ppb => "ppb",
+            UnitKind::DB => "dB",
+            UnitKind::DBA => "dBA",
+            UnitKind::MicroTesla => "uT",
+            UnitKind::Gauss => "gauss",
+            UnitKind::Rpm => "rpm",
+            UnitKind::NewtonMeter => "N·m",
+            UnitKind::Nm => "Nm",
+            UnitKind::Joule => "J",
+            UnitKind::Wh => "Wh",
+            UnitKind::KWh => "kWh",
+            UnitKind::Uvi => "uvi",
+            UnitKind::Ph => "pH",
+            UnitKind::MicroSPerCm => "uS/cm",
+            UnitKind::MilliSPerCm => "mS/cm",
+            UnitKind::SPerM => "S/m",
+            UnitKind::UgPerM3 => "ug/m3",
+            UnitKind::Ntu => "NTU",
+            UnitKind::Fnu => "FNU",
+            UnitKind::Ppt => "ppt",
+            UnitKind::Psu => "psu",
+            UnitKind::MicroSvPerH => "uSv/h",
+            UnitKind::MilliSvPerH => "mSv/h",
+            UnitKind::PercentVwc => "%VWC",
+            UnitKind::Vwc => "vwc",
         }
     }
 
     pub fn from_lexeme(lexeme: &str) -> Self {
         match lexeme {
             "m" => UnitKind::M,
+            "mm" => UnitKind::Mm,
+            "cm" => UnitKind::Cm,
+            "km" => UnitKind::Km,
+            "ft" => UnitKind::Ft,
+            "in" => UnitKind::In,
             "s" => UnitKind::S,
             "ms" => UnitKind::Ms,
-            "rad" => UnitKind::Rad,
+            "us" => UnitKind::Us,
+            "min" => UnitKind::Min,
+            "h" => UnitKind::H,
             "m/s" => UnitKind::MPerS,
+            "km/h" => UnitKind::KmPerH,
+            "mph" => UnitKind::Mph,
             "m/s²" | "m/s2" => UnitKind::MPerS2,
-            "rad/s" => UnitKind::RadPerS,
+            "g" => UnitKind::G,
+            "rad" => UnitKind::Rad,
             "deg" => UnitKind::Deg,
+            "rad/s" => UnitKind::RadPerS,
+            "deg/s" => UnitKind::DegPerS,
+            "kg" => UnitKind::Kg,
+            "gram" => UnitKind::Gram,
+            "lb" => UnitKind::Lb,
+            "N" => UnitKind::N,
+            "kN" => UnitKind::KN,
+            "W" => UnitKind::W,
+            "kW" => UnitKind::KW,
+            "MW" => UnitKind::MW,
+            "V" => UnitKind::V,
+            "mV" => UnitKind::MVolt,
+            "kV" => UnitKind::KVolt,
+            "A" => UnitKind::A,
+            "mA" => UnitKind::MA,
+            "celsius" => UnitKind::Celsius,
+            "fahrenheit" => UnitKind::Fahrenheit,
+            "kelvin" => UnitKind::Kelvin,
+            "Pa" => UnitKind::Pa,
+            "kPa" => UnitKind::KPa,
+            "bar" => UnitKind::Bar,
+            "psi" => UnitKind::Psi,
+            "mbar" => UnitKind::Mbar,
             "Hz" => UnitKind::Hz,
+            "kHz" => UnitKind::KHz,
+            "MHz" => UnitKind::MHz,
+            "rh" => UnitKind::Rh,
+            "%RH" => UnitKind::PercentRh,
+            "lux" => UnitKind::Lux,
+            "lx" => UnitKind::Lx,
+            "cd/m²" | "cd/m2" => UnitKind::CdPerM2,
+            "nit" => UnitKind::Nit,
+            "ppm" => UnitKind::Ppm,
+            "ppb" => UnitKind::Ppb,
+            "dB" => UnitKind::DB,
+            "dBA" => UnitKind::DBA,
+            "uT" => UnitKind::MicroTesla,
+            "gauss" => UnitKind::Gauss,
+            "rpm" => UnitKind::Rpm,
+            "N·m" | "Nm" => UnitKind::NewtonMeter,
+            "J" => UnitKind::Joule,
+            "Wh" => UnitKind::Wh,
+            "kWh" => UnitKind::KWh,
+            "uvi" => UnitKind::Uvi,
+            "pH" => UnitKind::Ph,
+            "uS/cm" => UnitKind::MicroSPerCm,
+            "mS/cm" => UnitKind::MilliSPerCm,
+            "S/m" => UnitKind::SPerM,
+            "ug/m3" | "µg/m³" => UnitKind::UgPerM3,
+            "NTU" => UnitKind::Ntu,
+            "FNU" => UnitKind::Fnu,
+            "ppt" => UnitKind::Ppt,
+            "psu" => UnitKind::Psu,
+            "uSv/h" => UnitKind::MicroSvPerH,
+            "mSv/h" => UnitKind::MilliSvPerH,
+            "%VWC" => UnitKind::PercentVwc,
+            "vwc" => UnitKind::Vwc,
             _ => UnitKind::None,
         }
     }
@@ -126,6 +424,7 @@ pub enum Program {
         requires_hardware: Option<crate::foundations::RequiresHardwareDecl>,
         requires_network: Option<crate::foundations::RequiresNetworkDecl>,
         simulate_compatibility: Option<crate::foundations::SimulateCompatibilityDecl>,
+        messages: Vec<crate::comm::MessageDecl>,
         robots: Vec<RobotDecl>,
         span: Span,
     },
@@ -165,6 +464,11 @@ pub enum RobotDecl {
         requires_network: Option<crate::foundations::RequiresNetworkDecl>,
         mission: Option<crate::foundations::MissionDecl>,
         trait_impls: Vec<crate::foundations::TraitImplDecl>,
+        buses: Vec<crate::comm::BusDecl>,
+        peer_robots: Vec<crate::comm::PeerRobotDecl>,
+        devices: Vec<crate::comm::DeviceDecl>,
+        agent_channels: Vec<crate::comm::AgentChannelDecl>,
+        twin_sync: Option<crate::comm::TwinSyncDecl>,
         span: Span,
     },
 }
@@ -246,7 +550,14 @@ pub enum TopicDecl {
     TopicDecl {
         name: String,
         message_type: String,
-        topic: String,
+        #[serde(default)]
+        topic: Option<String>,
+        #[serde(default)]
+        role: crate::comm::TopicRole,
+        #[serde(default)]
+        qos: Option<crate::comm::QosDecl>,
+        #[serde(default)]
+        transport: Option<crate::comm::TransportKind>,
         span: Span,
     },
 }
@@ -256,7 +567,12 @@ pub enum TopicDecl {
 pub enum ServiceDecl {
     ServiceDecl {
         name: String,
-        service_type: String,
+        #[serde(default)]
+        service_type: Option<String>,
+        #[serde(default)]
+        request_type: Option<String>,
+        #[serde(default)]
+        response_type: Option<String>,
         span: Span,
     },
 }
@@ -266,7 +582,14 @@ pub enum ServiceDecl {
 pub enum ActionDecl {
     ActionDecl {
         name: String,
-        action_type: String,
+        #[serde(default)]
+        action_type: Option<String>,
+        #[serde(default)]
+        request_type: Option<String>,
+        #[serde(default)]
+        feedback_type: Option<String>,
+        #[serde(default)]
+        result_type: Option<String>,
         span: Span,
     },
 }
@@ -472,6 +795,25 @@ pub enum Stmt {
         value: Expr,
         span: Span,
     },
+    SubscribeStmt {
+        target: String,
+        span: Span,
+    },
+    ExecuteStmt {
+        action_name: String,
+        goal: Expr,
+        span: Span,
+    },
+    DiscoverStmt {
+        target: crate::comm::DiscoverTarget,
+        filter: Option<crate::comm::DiscoverFilter>,
+        span: Span,
+    },
+    ReceiveStmt {
+        topic_name: String,
+        var_name: String,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -520,6 +862,20 @@ pub enum Expr {
     StructLiteralExpr {
         type_name: String,
         fields: Vec<StructFieldInit>,
+        span: Span,
+    },
+    ServiceCallExpr {
+        service_name: String,
+        span: Span,
+    },
+    ExecuteExpr {
+        action_name: String,
+        goal: Box<Expr>,
+        span: Span,
+    },
+    DiscoverExpr {
+        target: crate::comm::DiscoverTarget,
+        filter: Option<crate::comm::DiscoverFilter>,
         span: Span,
     },
 }

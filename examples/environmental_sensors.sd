@@ -1,0 +1,32 @@
+import bosch.bme280;
+import adafruit.bh1750;
+
+robot GreenhouseBot {
+  soc ESP32;
+
+  hal {
+    i2c env_bus at 0x76;
+    i2c light_bus at 0x23;
+  }
+
+  sensor humidity: BoschBME280 from bosch.bme280 on env_bus;
+  sensor light: AdafruitBH1750 from adafruit.bh1750 on light_bus;
+  actuator wheels: DifferentialDrive;
+
+  behavior monitor_climate() {
+    loop every 5 s {
+      let rh: Humidity = humidity.read();
+      let lux: Illuminance = light.read();
+
+      if rh > 80 %RH {
+        wheels.stop();
+      } else {
+        if lux < 50 lux {
+          wheels.stop();
+        } else {
+          wheels.drive(linear: 0.1 m/s, angular: 0 rad/s);
+        }
+      }
+    }
+  }
+}

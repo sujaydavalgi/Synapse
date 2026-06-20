@@ -1,0 +1,36 @@
+module human_interaction;
+
+message Command {
+  text: String;
+}
+
+requires_network {
+  bandwidth >= 1 Mbps;
+  latency <= 100 ms;
+}
+
+robot AssistantBot {
+  bus websocket;
+
+  topic commands: Command publish on "/human/commands";
+
+  event HumanCommand {
+    command: Command;
+  };
+
+  on HumanCommand {
+    emergency_stop;
+  }
+
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  behavior listen() {
+    loop every 500ms {
+      emit HumanCommand;
+    }
+  }
+}

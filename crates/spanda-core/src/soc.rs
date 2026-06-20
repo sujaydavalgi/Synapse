@@ -167,6 +167,30 @@ fn build_profiles() -> HashMap<&'static str, SocProfile> {
             },
         ),
         (
+            "STM32H7",
+            SocProfile {
+                name: "STM32H7".into(),
+                vendor: "STMicroelectronics".into(),
+                architecture: "arm_cortex_m7".into(),
+                clock_mhz: 480.0,
+                ram_mb: 1.0,
+                gpio_pins: 114,
+                i2c_buses: 4,
+                spi_buses: 6,
+                uart_ports: 8,
+                adc_channels: 36,
+                pwm_channels: 20,
+                capabilities: vec![
+                    SocCapability::Gpio,
+                    SocCapability::I2c,
+                    SocCapability::Spi,
+                    SocCapability::Uart,
+                    SocCapability::Pwm,
+                    SocCapability::Adc,
+                ],
+            },
+        ),
+        (
             "JetsonNano",
             SocProfile {
                 name: "JetsonNano".into(),

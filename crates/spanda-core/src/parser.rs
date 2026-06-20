@@ -96,6 +96,17 @@ impl Parser {
                 | TokenType::Timing
                 | TokenType::Budget
                 | TokenType::Fault
+                | TokenType::Execute
+                | TokenType::Discover
+                | TokenType::Subscribe
+                | TokenType::Receive
+                | TokenType::Message
+                | TokenType::Response
+                | TokenType::Feedback
+                | TokenType::Result
+                | TokenType::Request
+                | TokenType::Device
+                | TokenType::Bus
         );
         if ok {
             Ok(self.advance().lexeme)
@@ -128,6 +139,25 @@ impl Parser {
                 | TokenType::Mirror
                 | TokenType::Enter
                 | TokenType::Emit
+                | TokenType::Execute
+                | TokenType::Discover
+                | TokenType::Subscribe
+                | TokenType::Receive
+                | TokenType::Message
+                | TokenType::Response
+                | TokenType::Feedback
+                | TokenType::Result
+                | TokenType::Request
+                | TokenType::Device
+                | TokenType::Bus
+                | TokenType::Qos
+                | TokenType::Reliable
+                | TokenType::BestEffort
+                | TokenType::Rate
+                | TokenType::History
+                | TokenType::Deadline
+                | TokenType::Telemetry
+                | TokenType::Faults
         );
         if ok {
             Ok(self.advance().lexeme)
@@ -228,6 +258,7 @@ impl Parser {
         let mut requires_hardware = None;
         let mut requires_network = None;
         let mut simulate_compatibility = None;
+        let mut messages = Vec::new();
         let mut robots = Vec::new();
         while self.check(TokenType::Import) {
             imports.push(self.parse_import()?);
@@ -249,6 +280,8 @@ impl Parser {
                 requires_network = Some(self.parse_requires_network()?);
             } else if self.check(TokenType::SimulateCompatibility) {
                 simulate_compatibility = Some(self.parse_simulate_compatibility()?);
+            } else if self.check(TokenType::Message) {
+                messages.push(self.parse_message()?);
             } else if self.check(TokenType::Robot) {
                 robots.push(self.parse_robot()?);
             } else {
@@ -272,6 +305,7 @@ impl Parser {
             requires_hardware,
             requires_network,
             simulate_compatibility,
+            messages,
             robots,
             span: self.span_from(&start, self.previous()),
         })
@@ -329,11 +363,7 @@ impl Parser {
                 while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
                     if self.match_types(&[TokenType::Capacity]) {
                         self.expect(TokenType::Colon, "Expected ':' after capacity")?;
-                        let value = self.parse_number_value()?;
-                        if self.check(TokenType::Ident) && self.peek().lexeme == "Wh" {
-                            self.advance();
-                        }
-                        battery_wh = Some(value);
+                        battery_wh = Some(self.parse_energy_wh_value()?);
                         self.expect(TokenType::Semicolon, "Expected ';' after capacity")?;
                     } else {
                         let t = self.peek();
@@ -714,6 +744,12 @@ impl Parser {
     }
 
     fn parse_duration_hours(&mut self) -> Result<f64, SpandaError> {
+        if self.check(TokenType::UnitLiteral) {
+            let tok = self.advance();
+            if let (TokenValue::Number(n), Some(unit_lex)) = (tok.value, tok.unit) {
+                return Ok(Self::duration_to_hours(n, unit_from_lexeme(unit_lex)));
+            }
+        }
         let value = self.parse_number_value()?;
         if self.check(TokenType::Ident) {
             let unit = self.peek().lexeme.as_str();
@@ -739,6 +775,47 @@ impl Parser {
                 self.advance();
             }
             return Ok(hours);
+        }
+        Ok(value)
+    }
+
+    fn duration_to_hours(value: f64, unit: UnitKind) -> f64 {
+        match unit {
+            UnitKind::H => value,
+            UnitKind::Min => value / 60.0,
+            UnitKind::S => value / 3600.0,
+            UnitKind::Ms => value / 3_600_000.0,
+            UnitKind::Us => value / 3_600_000_000.0,
+            _ => value,
+        }
+    }
+
+    fn parse_energy_wh_value(&mut self) -> Result<f64, SpandaError> {
+        if self.check(TokenType::UnitLiteral) {
+            let tok = self.advance();
+            if let (TokenValue::Number(n), Some(unit_lex)) = (tok.value, tok.unit) {
+                let unit = unit_from_lexeme(unit_lex);
+                return Ok(match unit {
+                    UnitKind::Wh => n,
+                    UnitKind::KWh => n * 1000.0,
+                    UnitKind::Joule => n / 3600.0,
+                    _ => n,
+                });
+            }
+        }
+        let value = self.parse_number_value()?;
+        if self.check(TokenType::Ident) {
+            let unit = self.peek().lexeme.as_str();
+            let wh = match unit {
+                "Wh" => value,
+                "kWh" => value * 1000.0,
+                "J" => value / 3600.0,
+                _ => value,
+            };
+            if unit == "Wh" || unit == "kWh" || unit == "J" {
+                self.advance();
+            }
+            return Ok(wh);
         }
         Ok(value)
     }
@@ -959,6 +1036,11 @@ impl Parser {
         let mut requires_hardware = None;
         let mut requires_network = None;
         let mut mission = None;
+        let mut buses = Vec::new();
+        let mut peer_robots = Vec::new();
+        let mut devices = Vec::new();
+        let mut agent_channels = Vec::new();
+        let twin_sync = None;
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
             if self.check(TokenType::Soc) {
                 soc = Some(self.parse_soc()?);
@@ -980,8 +1062,14 @@ impl Parser {
                 safety = Some(self.parse_safety()?);
             } else if self.check(TokenType::AiModel) {
                 ai_models.push(self.parse_ai_model()?);
+            } else if self.check(TokenType::Ident) && self.is_agent_channel() {
+                agent_channels.push(self.parse_agent_channel()?);
             } else if self.check(TokenType::Agent) {
-                agents.push(self.parse_agent()?);
+                if self.is_agent_shorthand() {
+                    self.parse_agent_shorthand(&mut agents)?;
+                } else {
+                    agents.push(self.parse_agent()?);
+                }
             } else if self.check(TokenType::Behavior) {
                 behaviors.push(self.parse_behavior()?);
             } else if self.check(TokenType::Task) {
@@ -1006,6 +1094,12 @@ impl Parser {
                 mission = Some(self.parse_mission()?);
             } else if self.check(TokenType::Impl) {
                 trait_impls.push(self.parse_trait_impl()?);
+            } else if self.check(TokenType::Bus) {
+                buses.push(self.parse_bus()?);
+            } else if self.check(TokenType::Robot) {
+                peer_robots.push(self.parse_peer_robot()?);
+            } else if self.check(TokenType::Device) {
+                devices.push(self.parse_device()?);
             } else {
                 let t = self.peek();
                 return Err(SpandaError::Parse {
@@ -1041,6 +1135,151 @@ impl Parser {
             requires_network,
             mission,
             trait_impls,
+            buses,
+            peer_robots,
+            devices,
+            agent_channels,
+            twin_sync,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn is_agent_shorthand(&mut self) -> bool {
+        let mut idx = self.pos + 1;
+        if idx >= self.tokens.len() {
+            return false;
+        }
+        if self.tokens[idx].token_type != TokenType::Ident {
+            return false;
+        }
+        idx += 1;
+        idx < self.tokens.len() && self.tokens[idx].token_type == TokenType::Semicolon
+    }
+
+    fn is_agent_channel(&self) -> bool {
+        let idx = self.pos;
+        idx + 2 < self.tokens.len()
+            && self.tokens[idx].token_type == TokenType::Ident
+            && self.tokens[idx + 1].token_type == TokenType::Arrow
+            && self.tokens[idx + 2].token_type == TokenType::Ident
+    }
+
+    fn parse_agent_shorthand(&mut self, agents: &mut Vec<AgentDecl>) -> Result<(), SpandaError> {
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected agent name")?;
+        self.expect(TokenType::Semicolon, "Expected ';' after agent reference")?;
+        agents.push(AgentDecl::AgentDecl {
+            name: name.lexeme,
+            uses_ai: Vec::new(),
+            memory_kind: None,
+            tools: Vec::new(),
+            skills: Vec::new(),
+            capabilities: Vec::new(),
+            goal: String::new(),
+            plan_body: Vec::new(),
+            span: self.span_from(&start, self.previous()),
+        });
+        Ok(())
+    }
+
+    fn parse_bus(&mut self) -> Result<crate::comm::BusDecl, SpandaError> {
+        use crate::comm::{BusDecl, TransportKind};
+        let start = self.advance();
+        let transport_name = self.expect(TokenType::Ident, "Expected bus transport name")?;
+        self.expect(TokenType::Semicolon, "Expected ';' after bus declaration")?;
+        let transport =
+            TransportKind::from_ident(&transport_name.lexeme).unwrap_or(TransportKind::Local);
+        Ok(BusDecl::BusDecl {
+            name: transport_name.lexeme.clone(),
+            transport,
+            span: self.span_from(&start, self.previous()),
+        })
+    }
+
+    fn parse_peer_robot(&mut self) -> Result<crate::comm::PeerRobotDecl, SpandaError> {
+        use crate::comm::PeerRobotDecl;
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected peer robot name")?;
+        self.expect(TokenType::Semicolon, "Expected ';' after peer robot")?;
+        Ok(PeerRobotDecl::PeerRobotDecl {
+            name: name.lexeme,
+            span: self.span_from(&start, self.previous()),
+        })
+    }
+
+    fn parse_device(&mut self) -> Result<crate::comm::DeviceDecl, SpandaError> {
+        use crate::comm::DeviceDecl;
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected device name")?;
+        self.expect(TokenType::Colon, "Expected ':' after device name")?;
+        let device_type = self.expect(TokenType::Ident, "Expected device type")?;
+        self.expect(
+            TokenType::Semicolon,
+            "Expected ';' after device declaration",
+        )?;
+        Ok(DeviceDecl::DeviceDecl {
+            name: name.lexeme,
+            device_type: device_type.lexeme,
+            span: self.span_from(&start, self.previous()),
+        })
+    }
+
+    fn parse_agent_channel(&mut self) -> Result<crate::comm::AgentChannelDecl, SpandaError> {
+        use crate::comm::AgentChannelDecl;
+        let start = self.peek().clone();
+        let from_agent = self
+            .expect(TokenType::Ident, "Expected source agent")?
+            .lexeme;
+        self.expect(TokenType::Arrow, "Expected '->' in agent channel")?;
+        let to_agent = self
+            .expect(TokenType::Ident, "Expected target agent")?
+            .lexeme;
+        self.expect(TokenType::Semicolon, "Expected ';' after agent channel")?;
+        Ok(AgentChannelDecl::AgentChannelDecl {
+            from_agent,
+            to_agent,
+            message_type: String::new(),
+            span: self.span_from(&start, self.previous()),
+        })
+    }
+
+    #[allow(dead_code)]
+    fn parse_twin_sync(&mut self) -> Result<crate::comm::TwinSyncDecl, SpandaError> {
+        use crate::comm::TwinSyncDecl;
+        let start = self.advance();
+        self.expect(TokenType::Lbrace, "Expected '{' after twin sync")?;
+        let mut telemetry = false;
+        let mut replay = false;
+        let mut faults = false;
+        let mut events = false;
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Telemetry]) {
+                telemetry = true;
+                self.expect(TokenType::Semicolon, "Expected ';' after telemetry")?;
+            } else if self.match_types(&[TokenType::Replay]) {
+                replay = true;
+                self.expect(TokenType::Semicolon, "Expected ';' after replay")?;
+            } else if self.match_types(&[TokenType::Faults]) {
+                faults = true;
+                self.expect(TokenType::Semicolon, "Expected ';' after faults")?;
+            } else if self.match_types(&[TokenType::Event]) {
+                events = true;
+                self.expect(TokenType::Semicolon, "Expected ';' after events")?;
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected telemetry, replay, faults, or events in twin sync".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close twin sync")?;
+        Ok(TwinSyncDecl::TwinSyncDecl {
+            telemetry,
+            replay,
+            faults,
+            events,
             span: self.span_from(&start, &end),
         })
     }
@@ -1257,6 +1496,88 @@ impl Parser {
         })
     }
 
+    fn parse_message(&mut self) -> Result<crate::comm::MessageDecl, SpandaError> {
+        use crate::comm::MessageDecl;
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected message name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after message name")?;
+        let mut fields = Vec::new();
+        let mut version = None;
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::Ident) && self.peek().lexeme == "version" {
+                self.advance();
+                self.expect(TokenType::Colon, "Expected ':' after version")?;
+                version = Some(self.parse_number_value()? as u32);
+                self.expect(TokenType::Semicolon, "Expected ';' after version")?;
+                continue;
+            }
+            let field_start = self.peek().clone();
+            let field_name = self.expect(TokenType::Ident, "Expected field name")?;
+            self.expect(TokenType::Colon, "Expected ':' after field name")?;
+            let type_name = self.expect(TokenType::Ident, "Expected field type")?;
+            self.expect(TokenType::Semicolon, "Expected ';' after field")?;
+            fields.push(FieldDecl {
+                name: field_name.lexeme,
+                type_name: type_name.lexeme,
+                span: self.span_from(&field_start, self.previous()),
+            });
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close message")?;
+        Ok(MessageDecl::MessageDecl {
+            name: name.lexeme,
+            fields,
+            version,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_qos_block(&mut self) -> Result<crate::comm::QosDecl, SpandaError> {
+        use crate::comm::{QosDecl, QosReliability};
+        let start = self.peek().clone();
+        self.expect(TokenType::Lbrace, "Expected '{' for topic QoS block")?;
+        let mut reliability = None;
+        let mut rate_hz = None;
+        let mut deadline_ms = None;
+        let mut history = None;
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Qos]) {
+                if self.match_types(&[TokenType::Reliable]) {
+                    reliability = Some(QosReliability::Reliable);
+                } else if self.match_types(&[TokenType::BestEffort]) {
+                    reliability = Some(QosReliability::BestEffort);
+                }
+                self.expect(TokenType::Semicolon, "Expected ';' after qos reliability")?;
+            } else if self.match_types(&[TokenType::Rate]) {
+                rate_hz = Some(self.parse_frequency_hz()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after rate")?;
+            } else if self.match_types(&[TokenType::Deadline]) {
+                deadline_ms = Some(self.parse_duration()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after deadline")?;
+            } else if self.match_types(&[TokenType::History]) {
+                history = Some(
+                    self.expect(TokenType::Ident, "Expected history policy")?
+                        .lexeme,
+                );
+                self.expect(TokenType::Semicolon, "Expected ';' after history")?;
+            } else {
+                let t = self.peek();
+                return Err(SpandaError::Parse {
+                    message: "Expected qos, rate, deadline, or history in topic block".into(),
+                    line: t.line,
+                    column: t.column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close QoS block")?;
+        Ok(QosDecl {
+            reliability,
+            rate_hz,
+            deadline_ms,
+            history,
+            span: self.span_from(&start, &end),
+        })
+    }
+
     fn parse_node(&mut self) -> Result<NodeDecl, SpandaError> {
         let start = self.advance();
         let name = self.expect(TokenType::Ident, "Expected node name")?;
@@ -1277,18 +1598,62 @@ impl Parser {
     }
 
     fn parse_topic(&mut self) -> Result<TopicDecl, SpandaError> {
+        use crate::comm::{TopicRole, TransportKind};
         let start = self.advance();
-        let name = self.expect(TokenType::Ident, "Expected topic name")?;
+        let name = self.parse_label("Expected topic name")?;
         self.expect(TokenType::Colon, "Expected ':' after topic name")?;
-        let message_type = self.expect(TokenType::Ident, "Expected message type")?;
-        self.expect(TokenType::Publish, "Expected 'publish' after message type")?;
-        self.expect(TokenType::On, "Expected 'on' after publish")?;
-        let topic = self.expect(TokenType::String, "Expected topic string")?;
+        let message_type = self.parse_label("Expected message type")?;
+
+        let mut role = TopicRole::Both;
+        let mut topic_path = None;
+        let mut qos = None;
+        let mut transport = None;
+
+        if self.match_types(&[TokenType::Publish]) {
+            role = TopicRole::Publish;
+            if self.match_types(&[TokenType::On]) {
+                if self.check(TokenType::String) {
+                    topic_path = Some(str_val(&self.advance()));
+                } else {
+                    let ident =
+                        self.expect(TokenType::Ident, "Expected transport or topic path")?;
+                    transport = TransportKind::from_ident(&ident.lexeme);
+                }
+            }
+        } else if self.match_types(&[TokenType::Subscribe]) {
+            role = TopicRole::Subscribe;
+            if self.match_types(&[TokenType::On]) {
+                if self.check(TokenType::String) {
+                    topic_path = Some(str_val(&self.advance()));
+                } else {
+                    let ident =
+                        self.expect(TokenType::Ident, "Expected transport or topic path")?;
+                    transport = TransportKind::from_ident(&ident.lexeme);
+                }
+            }
+        }
+
+        if self.check(TokenType::Lbrace) {
+            qos = Some(self.parse_qos_block()?);
+        }
+
+        if self.match_types(&[TokenType::On]) && topic_path.is_none() && transport.is_none() {
+            if self.check(TokenType::String) {
+                topic_path = Some(str_val(&self.advance()));
+            } else {
+                let ident = self.expect(TokenType::Ident, "Expected transport name after on")?;
+                transport = TransportKind::from_ident(&ident.lexeme);
+            }
+        }
+
         self.expect(TokenType::Semicolon, "Expected ';' after topic declaration")?;
         Ok(TopicDecl::TopicDecl {
-            name: name.lexeme,
-            message_type: message_type.lexeme,
-            topic: str_val(&topic),
+            name,
+            message_type,
+            topic: topic_path,
+            role,
+            qos,
+            transport,
             span: self.span_from(&start, self.previous()),
         })
     }
@@ -1296,6 +1661,47 @@ impl Parser {
     fn parse_service(&mut self) -> Result<ServiceDecl, SpandaError> {
         let start = self.advance();
         let name = self.expect(TokenType::Ident, "Expected service name")?;
+
+        if self.check(TokenType::Lbrace) {
+            self.advance();
+            let mut request_type = None;
+            let mut response_type = None;
+            while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                if self.match_types(&[TokenType::Request]) {
+                    request_type = Some(
+                        self.expect(TokenType::Ident, "Expected request type")?
+                            .lexeme,
+                    );
+                    self.expect(TokenType::Semicolon, "Expected ';' after request type")?;
+                } else if self.match_types(&[TokenType::Response]) {
+                    response_type = Some(
+                        self.expect(TokenType::Ident, "Expected response type")?
+                            .lexeme,
+                    );
+                    self.expect(TokenType::Semicolon, "Expected ';' after response type")?;
+                } else {
+                    let t = self.peek();
+                    return Err(SpandaError::Parse {
+                        message: "Expected request or response in service block".into(),
+                        line: t.line,
+                        column: t.column,
+                    });
+                }
+            }
+            self.expect(TokenType::Rbrace, "Expected '}' to close service")?;
+            self.expect(
+                TokenType::Semicolon,
+                "Expected ';' after service declaration",
+            )?;
+            return Ok(ServiceDecl::ServiceDecl {
+                name: name.lexeme,
+                service_type: None,
+                request_type,
+                response_type,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+
         self.expect(TokenType::Colon, "Expected ':' after service name")?;
         let service_type = self.expect(TokenType::Ident, "Expected service type")?;
         self.expect(
@@ -1304,7 +1710,9 @@ impl Parser {
         )?;
         Ok(ServiceDecl::ServiceDecl {
             name: name.lexeme,
-            service_type: service_type.lexeme,
+            service_type: Some(service_type.lexeme),
+            request_type: None,
+            response_type: None,
             span: self.span_from(&start, self.previous()),
         })
     }
@@ -1312,6 +1720,55 @@ impl Parser {
     fn parse_action(&mut self) -> Result<ActionDecl, SpandaError> {
         let start = self.advance();
         let name = self.expect(TokenType::Ident, "Expected action name")?;
+
+        if self.check(TokenType::Lbrace) {
+            self.advance();
+            let mut request_type = None;
+            let mut feedback_type = None;
+            let mut result_type = None;
+            while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                if self.match_types(&[TokenType::Request]) {
+                    request_type = Some(
+                        self.expect(TokenType::Ident, "Expected request type")?
+                            .lexeme,
+                    );
+                    self.expect(TokenType::Semicolon, "Expected ';' after request type")?;
+                } else if self.match_types(&[TokenType::Feedback]) {
+                    feedback_type = Some(
+                        self.expect(TokenType::Ident, "Expected feedback type")?
+                            .lexeme,
+                    );
+                    self.expect(TokenType::Semicolon, "Expected ';' after feedback type")?;
+                } else if self.match_types(&[TokenType::Result]) {
+                    result_type = Some(
+                        self.expect(TokenType::Ident, "Expected result type")?
+                            .lexeme,
+                    );
+                    self.expect(TokenType::Semicolon, "Expected ';' after result type")?;
+                } else {
+                    let t = self.peek();
+                    return Err(SpandaError::Parse {
+                        message: "Expected request, feedback, or result in action block".into(),
+                        line: t.line,
+                        column: t.column,
+                    });
+                }
+            }
+            self.expect(TokenType::Rbrace, "Expected '}' to close action")?;
+            self.expect(
+                TokenType::Semicolon,
+                "Expected ';' after action declaration",
+            )?;
+            return Ok(ActionDecl::ActionDecl {
+                name: name.lexeme,
+                action_type: None,
+                request_type,
+                feedback_type,
+                result_type,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+
         self.expect(TokenType::Colon, "Expected ':' after action name")?;
         let action_type = self.expect(TokenType::Ident, "Expected action type")?;
         self.expect(
@@ -1320,7 +1777,10 @@ impl Parser {
         )?;
         Ok(ActionDecl::ActionDecl {
             name: name.lexeme,
-            action_type: action_type.lexeme,
+            action_type: Some(action_type.lexeme),
+            request_type: None,
+            feedback_type: None,
+            result_type: None,
             span: self.span_from(&start, self.previous()),
         })
     }
@@ -1629,9 +2089,20 @@ impl Parser {
         let start = self.peek().clone();
         let action = if self.match_types(&[TokenType::Plan]) {
             "plan".to_string()
+        } else if self.check(TokenType::Ident)
+            || self.check(TokenType::Publish)
+            || self.check(TokenType::Subscribe)
+            || self.check(TokenType::Call)
+            || self.check(TokenType::Execute)
+            || self.check(TokenType::Discover)
+        {
+            self.advance().lexeme
         } else {
-            self.expect(TokenType::Ident, "Expected capability action")?
-                .lexeme
+            return Err(SpandaError::Parse {
+                message: "Expected capability action".into(),
+                line: self.peek().line,
+                column: self.peek().column,
+            });
         };
         let target = if self.match_types(&[TokenType::Lparen]) {
             let t = self.expect(TokenType::Ident, "Expected capability target")?;
@@ -1827,9 +2298,27 @@ impl Parser {
     fn parse_event(&mut self) -> Result<EventDecl, SpandaError> {
         let start = self.advance();
         let name = self.expect(TokenType::Ident, "Expected event name")?;
+        let mut fields = Vec::new();
+        if self.check(TokenType::Lbrace) {
+            self.advance();
+            while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                let field_start = self.peek().clone();
+                let field_name = self.expect(TokenType::Ident, "Expected event field name")?;
+                self.expect(TokenType::Colon, "Expected ':' after event field name")?;
+                let type_name = self.expect(TokenType::Ident, "Expected event field type")?;
+                self.expect(TokenType::Semicolon, "Expected ';' after event field")?;
+                fields.push(FieldDecl {
+                    name: field_name.lexeme,
+                    type_name: type_name.lexeme,
+                    span: self.span_from(&field_start, self.previous()),
+                });
+            }
+            self.expect(TokenType::Rbrace, "Expected '}' to close event")?;
+        }
         self.expect(TokenType::Semicolon, "Expected ';' after event")?;
         Ok(EventDecl::EventDecl {
             name: name.lexeme,
+            fields,
             span: self.span_from(&start, self.previous()),
         })
     }
@@ -1855,10 +2344,7 @@ impl Parser {
         let mut replay = false;
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
             if self.match_types(&[TokenType::Mirror]) {
-                mirrors.push(
-                    self.expect(TokenType::Ident, "Expected mirror field")?
-                        .lexeme,
-                );
+                mirrors.push(self.parse_label("Expected mirror field")?);
                 self.expect(TokenType::Semicolon, "Expected ';' after mirror")?;
             } else if self.match_types(&[TokenType::Replay]) {
                 replay = self.match_types(&[TokenType::True]);
@@ -1955,13 +2441,68 @@ impl Parser {
             });
         }
         if self.match_types(&[TokenType::Publish]) {
-            let topic = self.expect(TokenType::Ident, "Expected topic name after publish")?;
-            self.expect(TokenType::With, "Expected 'with' after topic name")?;
+            let topic_name = self.parse_subscribe_target()?;
+            if self.match_types(&[TokenType::Lparen]) {
+                let value = self.parse_expr()?;
+                self.expect(TokenType::Rparen, "Expected ')' after publish value")?;
+                self.expect(TokenType::Semicolon, "Expected ';' after publish statement")?;
+                return Ok(Stmt::PublishStmt {
+                    topic_name,
+                    value,
+                    span: self.span_from(&start, self.previous()),
+                });
+            }
+            self.expect(TokenType::With, "Expected 'with' or '(' after topic name")?;
             let value = self.parse_expr()?;
             self.expect(TokenType::Semicolon, "Expected ';' after publish statement")?;
             return Ok(Stmt::PublishStmt {
-                topic_name: topic.lexeme,
+                topic_name,
                 value,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Subscribe]) {
+            let target = self.parse_subscribe_target()?;
+            self.expect(TokenType::Semicolon, "Expected ';' after subscribe")?;
+            return Ok(Stmt::SubscribeStmt {
+                target,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Execute]) {
+            let action = self.expect(TokenType::Ident, "Expected action name after execute")?;
+            let goal = if self.match_types(&[TokenType::Lparen]) {
+                let g = self.parse_expr()?;
+                self.expect(TokenType::Rparen, "Expected ')' after execute goal")?;
+                g
+            } else {
+                self.parse_expr()?
+            };
+            self.expect(TokenType::Semicolon, "Expected ';' after execute")?;
+            return Ok(Stmt::ExecuteStmt {
+                action_name: action.lexeme,
+                goal,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Discover]) {
+            let target = self.parse_discover_target()?;
+            let filter = self.parse_discover_filter()?;
+            self.expect(TokenType::Semicolon, "Expected ';' after discover")?;
+            return Ok(Stmt::DiscoverStmt {
+                target,
+                filter,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Receive]) {
+            let topic = self.expect(TokenType::Ident, "Expected topic name after receive")?;
+            self.expect(TokenType::To, "Expected 'to' after topic in receive")?;
+            let var = self.expect(TokenType::Ident, "Expected variable name")?;
+            self.expect(TokenType::Semicolon, "Expected ';' after receive")?;
+            return Ok(Stmt::ReceiveStmt {
+                topic_name: topic.lexeme,
+                var_name: var.lexeme,
                 span: self.span_from(&start, self.previous()),
             });
         }
@@ -2040,6 +2581,52 @@ impl Parser {
             expr,
             span: self.span_from(&start, self.previous()),
         })
+    }
+
+    fn parse_subscribe_target(&mut self) -> Result<String, SpandaError> {
+        let first = self.parse_label("Expected subscribe target")?;
+        if self.match_types(&[TokenType::Dot]) {
+            let second = self.parse_label("Expected member after '.'")?;
+            Ok(format!("{first}.{second}"))
+        } else {
+            Ok(first)
+        }
+    }
+
+    fn parse_discover_target(&mut self) -> Result<crate::comm::DiscoverTarget, SpandaError> {
+        use crate::comm::DiscoverTarget;
+        let name = self
+            .expect(TokenType::Ident, "Expected discover target")?
+            .lexeme;
+        match name.as_str() {
+            "robots" => Ok(DiscoverTarget::Robots),
+            "agents" => Ok(DiscoverTarget::Agents),
+            "devices" => Ok(DiscoverTarget::Devices),
+            other => Err(SpandaError::Parse {
+                message: format!("Expected robots, agents, or devices in discover, got '{other}'"),
+                line: self.previous().line,
+                column: self.previous().column,
+            }),
+        }
+    }
+
+    fn parse_discover_filter(
+        &mut self,
+    ) -> Result<Option<crate::comm::DiscoverFilter>, SpandaError> {
+        if !self.match_types(&[TokenType::Where]) {
+            return Ok(None);
+        }
+        self.expect(TokenType::Ident, "Expected 'capability' in discover filter")?;
+        self.expect(
+            TokenType::Includes,
+            "Expected 'includes' in discover filter",
+        )?;
+        let cap = self
+            .expect(TokenType::Ident, "Expected capability name")?
+            .lexeme;
+        Ok(Some(crate::comm::DiscoverFilter {
+            capability: Some(cap),
+        }))
     }
 
     fn parse_duration(&mut self) -> Result<f64, SpandaError> {
@@ -2335,6 +2922,39 @@ impl Parser {
                 span: self.span_from(&start, &end),
             });
         }
+        if self.match_types(&[TokenType::Call]) {
+            let service = self.expect(TokenType::Ident, "Expected service name after call")?;
+            self.expect(TokenType::Lparen, "Expected '(' after service name")?;
+            self.expect(TokenType::Rparen, "Expected ')' after service arguments")?;
+            return Ok(Expr::ServiceCallExpr {
+                service_name: service.lexeme,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Execute]) {
+            let action = self.expect(TokenType::Ident, "Expected action name after execute")?;
+            let goal = if self.match_types(&[TokenType::Lparen]) {
+                let g = self.parse_expr()?;
+                self.expect(TokenType::Rparen, "Expected ')' after execute goal")?;
+                g
+            } else {
+                self.parse_expr()?
+            };
+            return Ok(Expr::ExecuteExpr {
+                action_name: action.lexeme,
+                goal: Box::new(goal),
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Discover]) {
+            let target = self.parse_discover_target()?;
+            let filter = self.parse_discover_filter()?;
+            return Ok(Expr::DiscoverExpr {
+                target,
+                filter,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
         if self.match_types(&[TokenType::Robot]) {
             return Ok(Expr::IdentExpr {
                 name: "robot".into(),
@@ -2406,6 +3026,15 @@ impl Parser {
             TokenType::Timing,
             TokenType::Budget,
             TokenType::Fault,
+            TokenType::Execute,
+            TokenType::Discover,
+            TokenType::Subscribe,
+            TokenType::Receive,
+            TokenType::Message,
+            TokenType::Response,
+            TokenType::Feedback,
+            TokenType::Result,
+            TokenType::Request,
         ]) {
             let tok = self.previous();
             return Ok(Expr::IdentExpr {
@@ -2517,7 +3146,10 @@ fn expr_span(expr: &Expr) -> Span {
         | Expr::CallExpr { span, .. }
         | Expr::MemberExpr { span, .. }
         | Expr::MatchExpr { span, .. }
-        | Expr::StructLiteralExpr { span, .. } => *span,
+        | Expr::StructLiteralExpr { span, .. }
+        | Expr::ServiceCallExpr { span, .. }
+        | Expr::ExecuteExpr { span, .. }
+        | Expr::DiscoverExpr { span, .. } => *span,
     }
 }
 
@@ -2565,6 +3197,19 @@ fn re_span_expr(expr: Expr, span: Span) -> Expr {
         } => Expr::StructLiteralExpr {
             type_name,
             fields,
+            span,
+        },
+        Expr::ServiceCallExpr { service_name, .. } => Expr::ServiceCallExpr { service_name, span },
+        Expr::ExecuteExpr {
+            action_name, goal, ..
+        } => Expr::ExecuteExpr {
+            action_name,
+            goal,
+            span,
+        },
+        Expr::DiscoverExpr { target, filter, .. } => Expr::DiscoverExpr {
+            target,
+            filter: filter.clone(),
             span,
         },
     }

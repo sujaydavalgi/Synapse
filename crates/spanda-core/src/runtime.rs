@@ -8,6 +8,7 @@ use crate::ast::{
     RobotDecl, SafetyRule, SafetyZoneDecl, SensorBinding, SensorDecl, ServiceDecl, Stmt, TopicDecl,
     UnaryOp, UnitKind, ZoneShape,
 };
+use crate::comm::{CommBus, DiscoverFilter, TransportKind};
 use crate::error::{PoseState, RobotState, SpandaError, VelocityState};
 use crate::events::EventBus;
 use crate::foundations::{CapabilityDecl, StateMachineDecl, TaskDecl, TwinDecl};
@@ -19,7 +20,9 @@ use crate::safety::{
 };
 use crate::soc::get_soc_profile;
 use crate::state_machine::StateMachineRuntime;
+use crate::transport::{RoutingCommBus, TransportConfig};
 use crate::twin::TwinRuntime;
+use crate::units::align_for_binary;
 #[cfg(test)]
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -357,6 +360,8 @@ pub struct Interpreter<B: RobotBackend> {
     agent_trait_impls: HashMap<String, HashMap<String, AgentTraitImplBody>>,
     verify_rules: Vec<Expr>,
     fusion_sensors: Vec<String>,
+    comm_bus: RoutingCommBus,
+    default_transport: TransportKind,
 }
 
 impl<B: RobotBackend> Interpreter<B> {
@@ -382,6 +387,8 @@ impl<B: RobotBackend> Interpreter<B> {
             agent_trait_impls: HashMap::new(),
             verify_rules: Vec::new(),
             fusion_sensors: Vec::new(),
+            comm_bus: RoutingCommBus::new(),
+            default_transport: TransportKind::Sim,
         }
     }
 
@@ -466,6 +473,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
     fn setup_robot(&mut self, robot: &RobotDecl) -> Result<(), SpandaError> {
         let RobotDecl::RobotDecl {
+            name: robot_name,
             soc,
             hal,
             topics,
@@ -483,10 +491,14 @@ impl<B: RobotBackend> Interpreter<B> {
             verify,
             observe,
             trait_impls,
+            buses,
+            peer_robots,
+            devices,
             ..
         } = robot;
 
         self.env = Environment::new();
+        self.comm_bus = RoutingCommBus::new();
         self.zones.clear();
         self.stop_if_conditions.clear();
         self.event_bus = EventBus::new();
@@ -519,6 +531,31 @@ impl<B: RobotBackend> Interpreter<B> {
                 .collect();
             self.hal.configure(&members);
             self.log(format!("HAL configured: {} bus(es)/pin(s)", members.len()));
+        }
+
+        for bus in buses {
+            let crate::comm::BusDecl::BusDecl { transport, .. } = bus;
+            self.default_transport = *transport;
+            self.comm_bus.configure(TransportConfig {
+                node_name: Some(robot_name.clone()),
+                ..Default::default()
+            });
+            self.log(format!("bus transport: {}", transport.as_str()));
+        }
+        for peer in peer_robots {
+            let crate::comm::PeerRobotDecl::PeerRobotDecl { name, .. } = peer;
+            self.comm_bus.register_robot(name);
+        }
+        for device in devices {
+            let crate::comm::DeviceDecl::DeviceDecl { name, .. } = device;
+            self.comm_bus.register_device(name);
+            self.env.define(
+                name.clone(),
+                RuntimeValue::Object {
+                    type_name: "Device".into(),
+                    fields: HashMap::new(),
+                },
+            );
         }
 
         for topic in topics {
@@ -769,40 +806,61 @@ impl<B: RobotBackend> Interpreter<B> {
             name,
             message_type,
             topic: topic_path,
+            transport,
             ..
         } = topic;
+        let path = topic_path.clone().unwrap_or_else(|| format!("/{name}"));
+        let transport = transport.unwrap_or(self.default_transport);
+        self.comm_bus.subscribe(&path, name);
         self.env.define(
             name.clone(),
             RuntimeValue::Topic {
                 name: name.clone(),
                 message_type: message_type.clone(),
-                topic_path: topic_path.clone(),
+                topic_path: path,
             },
         );
+        let _ = transport;
     }
 
     fn define_service(&mut self, service: &ServiceDecl) {
         let ServiceDecl::ServiceDecl {
-            name, service_type, ..
+            name,
+            service_type,
+            request_type,
+            response_type,
+            ..
         } = service;
+        let st = service_type
+            .clone()
+            .or_else(|| response_type.clone())
+            .unwrap_or_else(|| name.clone());
         self.env.define(
             name.clone(),
             RuntimeValue::Service {
                 name: name.clone(),
-                service_type: service_type.clone(),
+                service_type: st,
             },
         );
+        let _ = request_type;
     }
 
     fn define_action(&mut self, action: &ActionDecl) {
         let ActionDecl::ActionDecl {
-            name, action_type, ..
+            name,
+            action_type,
+            result_type,
+            ..
         } = action;
+        let at = action_type
+            .clone()
+            .or_else(|| result_type.clone())
+            .unwrap_or_else(|| name.clone());
         self.env.define(
             name.clone(),
             RuntimeValue::Action {
                 name: name.clone(),
-                action_type: action_type.clone(),
+                action_type: at,
             },
         );
     }
@@ -1198,6 +1256,12 @@ impl<B: RobotBackend> Interpreter<B> {
                     ..
                 }) = topic
                 {
+                    self.comm_bus.publish(
+                        &topic_path,
+                        &message_type,
+                        val.clone(),
+                        self.default_transport,
+                    );
                     self.backend.publish_topic(&topic_path, &message_type, val);
                     self.log(format!("publish {topic_path}"));
                 }
@@ -1218,8 +1282,56 @@ impl<B: RobotBackend> Interpreter<B> {
                     self.env.get(action_name).cloned()
                 {
                     let goal_val = self.eval_expr(goal)?;
+                    self.comm_bus
+                        .send_action(&name, &action_type, goal_val.clone());
                     self.backend.send_action(&name, &action_type, goal_val);
                     self.log(format!("send_goal {name}"));
+                }
+            }
+            Stmt::SubscribeStmt { target, .. } => {
+                let path = if target.contains('.') {
+                    format!("/{}", target.replace('.', "/"))
+                } else if let Some(RuntimeValue::Topic { topic_path, .. }) = self.env.get(target) {
+                    topic_path.clone()
+                } else {
+                    format!("/{target}")
+                };
+                self.comm_bus.subscribe(&path, target);
+                self.log(format!("subscribe {target}"));
+            }
+            Stmt::ExecuteStmt {
+                action_name, goal, ..
+            } => {
+                if let Some(RuntimeValue::Action { name, action_type }) =
+                    self.env.get(action_name).cloned()
+                {
+                    let goal_val = self.eval_expr(goal)?;
+                    self.comm_bus
+                        .send_action(&name, &action_type, goal_val.clone());
+                    self.backend.send_action(&name, &action_type, goal_val);
+                    self.log(format!("execute {name}"));
+                }
+            }
+            Stmt::DiscoverStmt { target, filter, .. } => {
+                let results = self.comm_bus.discover(
+                    *target,
+                    filter
+                        .as_ref()
+                        .unwrap_or(&DiscoverFilter { capability: None }),
+                );
+                self.log(format!("discover {:?}: {:?}", target, results));
+            }
+            Stmt::ReceiveStmt {
+                topic_name,
+                var_name,
+                ..
+            } => {
+                if let Some(RuntimeValue::Topic { topic_path, .. }) = self.env.get(topic_name) {
+                    let path = topic_path.clone();
+                    if let Some(val) = self.comm_bus.receive(&path) {
+                        self.env.define(var_name.clone(), val);
+                        self.log(format!("receive {topic_name} to {var_name}"));
+                    }
                 }
             }
             Stmt::EmergencyStopStmt { .. } => {
@@ -1384,6 +1496,53 @@ impl<B: RobotBackend> Interpreter<B> {
                 fields,
                 span,
             } => self.eval_struct_literal(type_name, fields, span.start.line),
+            Expr::ServiceCallExpr { service_name, .. } => {
+                if let Some(RuntimeValue::Service { name, service_type }) =
+                    self.env.get(service_name).cloned()
+                {
+                    let result = self.comm_bus.call_service(&name, &service_type, None);
+                    self.backend.call_service(&name, &service_type);
+                    self.log(format!("call {name}()"));
+                    Ok(result)
+                } else {
+                    Ok(RuntimeValue::Void)
+                }
+            }
+            Expr::ExecuteExpr {
+                action_name, goal, ..
+            } => {
+                if let Some(RuntimeValue::Action { name, action_type }) =
+                    self.env.get(action_name).cloned()
+                {
+                    let goal_val = self.eval_expr(goal)?;
+                    let result = self
+                        .comm_bus
+                        .send_action(&name, &action_type, goal_val.clone());
+                    self.backend.send_action(&name, &action_type, goal_val);
+                    self.log(format!("execute {name}"));
+                    Ok(result)
+                } else {
+                    Ok(RuntimeValue::Void)
+                }
+            }
+            Expr::DiscoverExpr { target, filter, .. } => {
+                let results = self.comm_bus.discover(
+                    *target,
+                    filter
+                        .as_ref()
+                        .unwrap_or(&DiscoverFilter { capability: None }),
+                );
+                Ok(RuntimeValue::Object {
+                    type_name: "DiscoveryResult".into(),
+                    fields: HashMap::from([(
+                        "count".into(),
+                        RuntimeValue::Number {
+                            value: results.len() as f64,
+                            unit: UnitKind::None,
+                        },
+                    )]),
+                })
+            }
         }
     }
 
@@ -2359,20 +2518,18 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
                 if let (
                     RuntimeValue::Number { value: l, unit: lu },
-                    RuntimeValue::Number {
-                        value: r,
-                        unit: _ru,
-                    },
+                    RuntimeValue::Number { value: r, unit: ru },
                 ) = (left, right)
                 {
+                    let (l, r, result_unit) = align_for_binary(l, lu, r, ru).unwrap_or((l, r, lu));
                     return Ok(match op {
                         BinaryOp::Add => RuntimeValue::Number {
                             value: l + r,
-                            unit: lu,
+                            unit: result_unit,
                         },
                         BinaryOp::Sub => RuntimeValue::Number {
                             value: l - r,
-                            unit: lu,
+                            unit: result_unit,
                         },
                         BinaryOp::Mul => RuntimeValue::Number {
                             value: l * r,

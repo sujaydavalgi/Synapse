@@ -1,0 +1,26 @@
+import ouster.os1;
+import openvino.runtime;
+
+robot LidarBot {
+  soc STM32H7;
+
+  sensor lidar: OusterOS1 from ouster.os1 on "/ouster/points";
+  actuator wheels: DifferentialDrive;
+
+  ai_model detector: VisionModel {
+    provider: "mock";
+    model: "pointcloud-seg";
+  }
+
+  behavior scan_and_drive() {
+    loop every 100ms {
+      let scan = lidar.read();
+
+      if scan.nearest_distance > 1.0 m {
+        wheels.drive(linear: 0.3 m/s, angular: 0 rad/s);
+      } else {
+        wheels.stop();
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+module actions;
+
+message NavigationFeedback {
+  distance_remaining: String;
+}
+
+message NavigationResult {
+  success: String;
+}
+
+robot ActionBot {
+  bus sim;
+
+  action NavigateTo {
+    request Pose;
+    feedback NavigationFeedback;
+    result NavigationResult;
+  };
+
+  action navigate: NavigateTo;
+
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior go_to_goal() {
+    let target = pose(x: 5.0 m, y: 0.0 m, theta: 0.0 rad);
+    let nav_result = execute navigate(target);
+    send_goal navigate with target;
+  }
+}

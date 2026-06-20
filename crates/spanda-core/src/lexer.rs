@@ -108,6 +108,27 @@ pub enum TokenType {
     MinPeriod,
     Duration,
     On,
+    Message,
+    Subscribe,
+    Execute,
+    Discover,
+    Bus,
+    Device,
+    Request,
+    Response,
+    Feedback,
+    Result,
+    Qos,
+    Reliable,
+    BestEffort,
+    Rate,
+    History,
+    Deadline,
+    Where,
+    Includes,
+    Receive,
+    Telemetry,
+    Faults,
     True,
     False,
     And,
@@ -144,41 +165,248 @@ pub enum TokenType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UnitLexeme {
-    #[serde(rename = "m")]
-    M,
-    #[serde(rename = "s")]
-    S,
-    #[serde(rename = "ms")]
-    Ms,
-    #[serde(rename = "rad")]
-    Rad,
-    #[serde(rename = "m/s")]
-    MPerS,
+    #[serde(rename = "%VWC")]
+    PercentVwc,
+    #[serde(rename = "%RH")]
+    PercentRh,
+    #[serde(rename = "µg/m³")]
+    UgPerM3Unicode,
+    #[serde(rename = "ug/m3")]
+    UgPerM3,
+    #[serde(rename = "uS/cm")]
+    MicroSPerCm,
+    #[serde(rename = "mS/cm")]
+    MilliSPerCm,
+    #[serde(rename = "uSv/h")]
+    MicroSvPerH,
+    #[serde(rename = "mSv/h")]
+    MilliSvPerH,
+    #[serde(rename = "S/m")]
+    SPerM,
+    #[serde(rename = "cd/m²")]
+    CdPerM2,
+    #[serde(rename = "cd/m2")]
+    CdPerM2Ascii,
+    #[serde(rename = "N·m")]
+    NewtonMeter,
+    #[serde(rename = "kWh")]
+    KWh,
+    #[serde(rename = "dBA")]
+    DBA,
+    #[serde(rename = "MHz")]
+    MHz,
+    #[serde(rename = "km/h")]
+    KmPerH,
     #[serde(rename = "m/s²")]
     MPerS2,
     #[serde(rename = "m/s2")]
     MPerS2Ascii,
+    #[serde(rename = "m/s")]
+    MPerS,
     #[serde(rename = "rad/s")]
     RadPerS,
+    #[serde(rename = "deg/s")]
+    DegPerS,
+    #[serde(rename = "fahrenheit")]
+    Fahrenheit,
+    #[serde(rename = "celsius")]
+    Celsius,
+    #[serde(rename = "kelvin")]
+    Kelvin,
+    #[serde(rename = "kHz")]
+    KHz,
+    #[serde(rename = "kPa")]
+    KPa,
+    #[serde(rename = "kN")]
+    KN,
+    #[serde(rename = "kW")]
+    KW,
+    #[serde(rename = "kV")]
+    KVolt,
+    #[serde(rename = "mbar")]
+    Mbar,
+    #[serde(rename = "mph")]
+    Mph,
+    #[serde(rename = "gram")]
+    Gram,
+    #[serde(rename = "mm")]
+    Mm,
+    #[serde(rename = "cm")]
+    Cm,
+    #[serde(rename = "km")]
+    Km,
+    #[serde(rename = "ms")]
+    Ms,
+    #[serde(rename = "us")]
+    Us,
+    #[serde(rename = "mV")]
+    MVolt,
+    #[serde(rename = "mA")]
+    MA,
+    #[serde(rename = "min")]
+    Min,
     #[serde(rename = "deg")]
     Deg,
+    #[serde(rename = "rad")]
+    Rad,
+    #[serde(rename = "psi")]
+    Psi,
+    #[serde(rename = "bar")]
+    Bar,
+    #[serde(rename = "Pa")]
+    Pa,
     #[serde(rename = "Hz")]
     Hz,
+    #[serde(rename = "ft")]
+    Ft,
+    #[serde(rename = "in")]
+    In,
+    #[serde(rename = "kg")]
+    Kg,
+    #[serde(rename = "lb")]
+    Lb,
+    #[serde(rename = "MW")]
+    MW,
+    #[serde(rename = "m")]
+    M,
+    #[serde(rename = "s")]
+    S,
+    #[serde(rename = "h")]
+    H,
+    #[serde(rename = "g")]
+    G,
+    #[serde(rename = "N")]
+    N,
+    #[serde(rename = "W")]
+    W,
+    #[serde(rename = "V")]
+    V,
+    #[serde(rename = "A")]
+    A,
+    #[serde(rename = "rh")]
+    Rh,
+    #[serde(rename = "lux")]
+    Lux,
+    #[serde(rename = "lx")]
+    Lx,
+    #[serde(rename = "nit")]
+    Nit,
+    #[serde(rename = "ppm")]
+    Ppm,
+    #[serde(rename = "ppb")]
+    Ppb,
+    #[serde(rename = "dB")]
+    DB,
+    #[serde(rename = "uT")]
+    MicroTesla,
+    #[serde(rename = "gauss")]
+    Gauss,
+    #[serde(rename = "rpm")]
+    Rpm,
+    #[serde(rename = "Nm")]
+    Nm,
+    #[serde(rename = "J")]
+    Joule,
+    #[serde(rename = "Wh")]
+    Wh,
+    #[serde(rename = "uvi")]
+    Uvi,
+    #[serde(rename = "pH")]
+    Ph,
+    #[serde(rename = "NTU")]
+    Ntu,
+    #[serde(rename = "FNU")]
+    Fnu,
+    #[serde(rename = "ppt")]
+    Ppt,
+    #[serde(rename = "psu")]
+    Psu,
+    #[serde(rename = "vwc")]
+    Vwc,
 }
 
 impl UnitLexeme {
     pub fn as_str(self) -> &'static str {
         match self {
-            UnitLexeme::M => "m",
-            UnitLexeme::S => "s",
-            UnitLexeme::Ms => "ms",
-            UnitLexeme::Rad => "rad",
-            UnitLexeme::MPerS => "m/s",
+            UnitLexeme::PercentVwc => "%VWC",
+            UnitLexeme::PercentRh => "%RH",
+            UnitLexeme::UgPerM3Unicode => "µg/m³",
+            UnitLexeme::UgPerM3 => "ug/m3",
+            UnitLexeme::MicroSPerCm => "uS/cm",
+            UnitLexeme::MilliSPerCm => "mS/cm",
+            UnitLexeme::MicroSvPerH => "uSv/h",
+            UnitLexeme::MilliSvPerH => "mSv/h",
+            UnitLexeme::SPerM => "S/m",
+            UnitLexeme::CdPerM2 => "cd/m²",
+            UnitLexeme::CdPerM2Ascii => "cd/m2",
+            UnitLexeme::NewtonMeter => "N·m",
+            UnitLexeme::KWh => "kWh",
+            UnitLexeme::DBA => "dBA",
+            UnitLexeme::MHz => "MHz",
+            UnitLexeme::KmPerH => "km/h",
             UnitLexeme::MPerS2 => "m/s²",
             UnitLexeme::MPerS2Ascii => "m/s2",
+            UnitLexeme::MPerS => "m/s",
             UnitLexeme::RadPerS => "rad/s",
+            UnitLexeme::DegPerS => "deg/s",
+            UnitLexeme::Fahrenheit => "fahrenheit",
+            UnitLexeme::Celsius => "celsius",
+            UnitLexeme::Kelvin => "kelvin",
+            UnitLexeme::KHz => "kHz",
+            UnitLexeme::KPa => "kPa",
+            UnitLexeme::KN => "kN",
+            UnitLexeme::KW => "kW",
+            UnitLexeme::KVolt => "kV",
+            UnitLexeme::Mbar => "mbar",
+            UnitLexeme::Mph => "mph",
+            UnitLexeme::Gram => "gram",
+            UnitLexeme::Mm => "mm",
+            UnitLexeme::Cm => "cm",
+            UnitLexeme::Km => "km",
+            UnitLexeme::Ms => "ms",
+            UnitLexeme::Us => "us",
+            UnitLexeme::MVolt => "mV",
+            UnitLexeme::MA => "mA",
+            UnitLexeme::Min => "min",
             UnitLexeme::Deg => "deg",
+            UnitLexeme::Rad => "rad",
+            UnitLexeme::Psi => "psi",
+            UnitLexeme::Bar => "bar",
+            UnitLexeme::Pa => "Pa",
             UnitLexeme::Hz => "Hz",
+            UnitLexeme::Ft => "ft",
+            UnitLexeme::In => "in",
+            UnitLexeme::Kg => "kg",
+            UnitLexeme::Lb => "lb",
+            UnitLexeme::MW => "MW",
+            UnitLexeme::M => "m",
+            UnitLexeme::S => "s",
+            UnitLexeme::H => "h",
+            UnitLexeme::G => "g",
+            UnitLexeme::N => "N",
+            UnitLexeme::W => "W",
+            UnitLexeme::V => "V",
+            UnitLexeme::A => "A",
+            UnitLexeme::Rh => "rh",
+            UnitLexeme::Lux => "lux",
+            UnitLexeme::Lx => "lx",
+            UnitLexeme::Nit => "nit",
+            UnitLexeme::Ppm => "ppm",
+            UnitLexeme::Ppb => "ppb",
+            UnitLexeme::DB => "dB",
+            UnitLexeme::MicroTesla => "uT",
+            UnitLexeme::Gauss => "gauss",
+            UnitLexeme::Rpm => "rpm",
+            UnitLexeme::Nm => "Nm",
+            UnitLexeme::Joule => "J",
+            UnitLexeme::Wh => "Wh",
+            UnitLexeme::Uvi => "uvi",
+            UnitLexeme::Ph => "pH",
+            UnitLexeme::Ntu => "NTU",
+            UnitLexeme::Fnu => "FNU",
+            UnitLexeme::Ppt => "ppt",
+            UnitLexeme::Psu => "psu",
+            UnitLexeme::Vwc => "vwc",
         }
     }
 }
@@ -210,16 +438,85 @@ pub fn unit_from_lexeme(lexeme: UnitLexeme) -> UnitKind {
 }
 
 const UNIT_SUFFIXES: &[UnitLexeme] = &[
+    UnitLexeme::PercentVwc,
+    UnitLexeme::PercentRh,
+    UnitLexeme::UgPerM3Unicode,
+    UnitLexeme::UgPerM3,
+    UnitLexeme::MicroSPerCm,
+    UnitLexeme::MilliSPerCm,
+    UnitLexeme::MicroSvPerH,
+    UnitLexeme::MilliSvPerH,
+    UnitLexeme::SPerM,
+    UnitLexeme::CdPerM2Ascii,
+    UnitLexeme::CdPerM2,
+    UnitLexeme::NewtonMeter,
+    UnitLexeme::KWh,
+    UnitLexeme::DBA,
+    UnitLexeme::MHz,
+    UnitLexeme::KmPerH,
     UnitLexeme::MPerS2Ascii,
     UnitLexeme::MPerS2,
     UnitLexeme::MPerS,
     UnitLexeme::RadPerS,
+    UnitLexeme::DegPerS,
+    UnitLexeme::Fahrenheit,
+    UnitLexeme::Celsius,
+    UnitLexeme::Kelvin,
+    UnitLexeme::KHz,
+    UnitLexeme::KPa,
+    UnitLexeme::KN,
+    UnitLexeme::KW,
+    UnitLexeme::KVolt,
+    UnitLexeme::Mbar,
+    UnitLexeme::Mph,
+    UnitLexeme::Gram,
+    UnitLexeme::Mm,
+    UnitLexeme::Cm,
+    UnitLexeme::Km,
     UnitLexeme::Ms,
+    UnitLexeme::Us,
+    UnitLexeme::MVolt,
+    UnitLexeme::MA,
+    UnitLexeme::Min,
     UnitLexeme::Deg,
     UnitLexeme::Rad,
+    UnitLexeme::Psi,
+    UnitLexeme::Bar,
+    UnitLexeme::Pa,
+    UnitLexeme::Hz,
+    UnitLexeme::Ft,
+    UnitLexeme::In,
+    UnitLexeme::Kg,
+    UnitLexeme::Lb,
+    UnitLexeme::MW,
     UnitLexeme::M,
     UnitLexeme::S,
-    UnitLexeme::Hz,
+    UnitLexeme::H,
+    UnitLexeme::G,
+    UnitLexeme::N,
+    UnitLexeme::W,
+    UnitLexeme::V,
+    UnitLexeme::A,
+    UnitLexeme::Rh,
+    UnitLexeme::Lux,
+    UnitLexeme::Lx,
+    UnitLexeme::Nit,
+    UnitLexeme::Ppm,
+    UnitLexeme::Ppb,
+    UnitLexeme::DB,
+    UnitLexeme::MicroTesla,
+    UnitLexeme::Gauss,
+    UnitLexeme::Rpm,
+    UnitLexeme::Nm,
+    UnitLexeme::Joule,
+    UnitLexeme::Wh,
+    UnitLexeme::Uvi,
+    UnitLexeme::Ph,
+    UnitLexeme::Ntu,
+    UnitLexeme::Fnu,
+    UnitLexeme::Ppt,
+    UnitLexeme::Psu,
+    UnitLexeme::Vwc,
 ];
 
 fn keywords() -> HashMap<&'static str, TokenType> {
@@ -323,6 +620,27 @@ fn keywords() -> HashMap<&'static str, TokenType> {
         ("timing", TokenType::Timing),
         ("min_period", TokenType::MinPeriod),
         ("duration", TokenType::Duration),
+        ("message", TokenType::Message),
+        ("subscribe", TokenType::Subscribe),
+        ("execute", TokenType::Execute),
+        ("discover", TokenType::Discover),
+        ("bus", TokenType::Bus),
+        ("device", TokenType::Device),
+        ("request", TokenType::Request),
+        ("response", TokenType::Response),
+        ("feedback", TokenType::Feedback),
+        ("result", TokenType::Result),
+        ("qos", TokenType::Qos),
+        ("reliable", TokenType::Reliable),
+        ("best_effort", TokenType::BestEffort),
+        ("rate", TokenType::Rate),
+        ("history", TokenType::History),
+        ("deadline", TokenType::Deadline),
+        ("where", TokenType::Where),
+        ("includes", TokenType::Includes),
+        ("receive", TokenType::Receive),
+        ("telemetry", TokenType::Telemetry),
+        ("faults", TokenType::Faults),
         ("on", TokenType::On),
         ("true", TokenType::True),
         ("false", TokenType::False),

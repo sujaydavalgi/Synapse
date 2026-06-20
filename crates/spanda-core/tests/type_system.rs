@@ -83,12 +83,69 @@ robot R {
     let speed: Velocity = 1.5 m/s;
     let distance: Distance = 2.0 m;
     let total: Distance = distance + 1.0 m;
+    let mixed: Duration = 500 ms + 0.5 s;
+    let payload: Mass = 2.5 kg;
+    let temp: Temperature = 25 celsius;
+    let pressure: Pressure = 101.3 kPa;
     let _ = total;
+    let _ = mixed;
+    let _ = payload;
+    let _ = temp;
+    let _ = pressure;
     wheels.stop();
   }
 }
 "#;
     check(source).expect("valid unit operations should pass");
+}
+
+#[test]
+fn extended_unit_literals_type_check() {
+    let source = r#"
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let d: Distance = 100 cm;
+    let v: Velocity = 36 km/h;
+    let a: Acceleration = 2 g;
+    let angle: Angle = 90 deg;
+    let w: AngularVelocity = 180 deg/s;
+    let f: Force = 10 N;
+    let p: Power = 500 W;
+    let volts: Voltage = 12 V;
+    let amps: Current = 2 A;
+    let _ = d + 1 m;
+    wheels.stop();
+  }
+}
+"#;
+    check(source).expect("extended units should type-check");
+}
+
+#[test]
+fn sensor_environmental_units_type_check() {
+    let source = r#"
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let humidity: Humidity = 65 %RH;
+    let light: Illuminance = 320 lux;
+    let co2: Concentration = 800 ppm;
+    let noise: SoundLevel = 42 dBA;
+    let uv: UvIndex = 6.5 uvi;
+    let acidity: Ph = 7.2 pH;
+    let ec: Conductivity = 850 uS/cm;
+    let pm25: ParticulateMatter = 12 ug/m3;
+    let turbidity: Turbidity = 4.5 NTU;
+    let salt: Salinity = 35 ppt;
+    let dose: Radiation = 0.12 uSv/h;
+    let soil: SoilMoisture = 42 %VWC;
+    let _ = humidity + 5 rh;
+    wheels.stop();
+  }
+}
+"#;
+    check(source).expect("sensor environmental units should type-check");
 }
 
 #[test]

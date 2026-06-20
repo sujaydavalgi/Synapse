@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod ast;
+pub mod comm;
 mod error;
 pub mod events;
 pub mod format;
@@ -15,9 +16,11 @@ pub mod simulator;
 pub mod soc;
 pub mod state_machine;
 pub mod stdlib;
+pub mod transport;
 pub mod twin;
 pub mod type_system;
 pub mod types;
+pub mod units;
 
 pub use ast::*;
 pub use error::*;

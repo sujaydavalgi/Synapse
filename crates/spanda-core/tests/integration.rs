@@ -5,11 +5,21 @@ const NEGATIVE_FIXTURES: &[&str] = &["ai_safety_violation.sd"];
 
 #[test]
 fn examples_compile_and_run() {
-    let pattern = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/*.sd");
-    let paths: Vec<_> = glob(pattern)
-        .expect("glob pattern")
-        .filter_map(|entry| entry.ok())
-        .collect();
+    let patterns = [
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/*.sd"),
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../examples/communication/*.sd"
+        ),
+    ];
+    let mut paths = Vec::new();
+    for pattern in patterns {
+        paths.extend(
+            glob(pattern)
+                .expect("glob pattern")
+                .filter_map(|entry| entry.ok()),
+        );
+    }
 
     assert!(!paths.is_empty(), "expected example .sd files");
 
