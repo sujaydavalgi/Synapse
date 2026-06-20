@@ -339,6 +339,20 @@ pub struct MethodSig {
     returns: SpandaType,
 }
 
+impl MethodSig {
+    pub fn params(&self) -> &[SpandaType] {
+        &self.params
+    }
+
+    pub fn named_params(&self) -> &HashMap<String, SpandaType> {
+        &self.named_params
+    }
+
+    pub fn returns(&self) -> &SpandaType {
+        &self.returns
+    }
+}
+
 #[derive(Clone)]
 struct SymbolEntry {
     robo_type: SpandaType,
@@ -5314,6 +5328,21 @@ impl SafetyBlockRules for SafetyBlock {
 pub struct FnSig {
     named_params: HashMap<String, SpandaType>,
     returns: SpandaType,
+}
+
+impl FnSig {
+    pub fn named_params(&self) -> &HashMap<String, SpandaType> {
+        &self.named_params
+    }
+
+    pub fn returns(&self) -> &SpandaType {
+        &self.returns
+    }
+}
+
+/// Format a [`SpandaType`] for documentation and diagnostics.
+pub fn format_type_name(ty: &SpandaType) -> String {
+    display_type(ty)
 }
 
 fn resolve_message_type(registry: &MessageRegistry, name: &str) -> Option<SpandaType> {

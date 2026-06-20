@@ -767,6 +767,28 @@ fn keywords() -> HashMap<&'static str, TokenType> {
     ])
 }
 
+/// Sorted list of Spanda reserved keywords (from the lexer).
+pub fn reserved_keywords() -> Vec<&'static str> {
+    // Collect reserved keywords for documentation and tooling.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Alphabetically sorted keyword strings.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let kws = spanda_core::lexer::reserved_keywords();
+    // assert!(kws.contains(&"robot"));
+
+    let mut kws: Vec<_> = keywords().keys().copied().collect();
+    kws.sort_unstable();
+    kws
+}
+
 pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
     // Tokenize.
     //

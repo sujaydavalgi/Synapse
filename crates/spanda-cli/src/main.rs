@@ -4,9 +4,10 @@ mod package;
 
 use serde::Serialize;
 use spanda_core::{
-    check, codegen, format_source, generate_markdown, lint, lower_to_sir, playback_mission,
-    replay_mission, run, run_debug, verify_compatibility, wasm_deploy_manifest, CodegenTarget,
-    CompatSeverity, DebugOptions, RunOptions, SchedulerClock, SpandaError, VerifyOptions,
+    check, codegen, format_source, generate_cli_man_pages, generate_language_reference,
+    generate_markdown, lint, lower_to_sir, playback_mission, replay_mission, run, run_debug,
+    verify_compatibility, wasm_deploy_manifest, CodegenTarget, CompatSeverity, DebugOptions,
+    RunOptions, SchedulerClock, SpandaError, VerifyOptions,
 };
 use spanda_llvm::{compile_native, emit_module_ir_with_options, CompileNativeOptions};
 use std::collections::HashSet;
@@ -96,6 +97,7 @@ fn usage() {
            spanda fmt [--json] <file.sd>\n\
            spanda lint [--json] <file.sd>\n\
            spanda doc [--json] [--out <file.md>] <file.sd>\n\
+           spanda reference [--json] [--out <file.md>] [--man-dir <dir>]\n\
            spanda codegen [--target native|wasm|esp32] [--out <file>] <file.sd>\n\
            spanda deploy --target wasm [--out <file.json>] <file.sd>\n\
            spanda debug [--break <line>] <file.sd>\n\
@@ -1039,6 +1041,7 @@ fn main() {
     let mut simulate = false;
     let mut project_mode = false;
     let mut out_path: Option<String> = None;
+    let mut man_dir: Option<String> = None;
     let mut target_triple: Option<String> = None;
     let mut hal_profile: Option<String> = None;
     let mut codegen_target = CodegenTarget::Native;
@@ -1145,6 +1148,16 @@ fn main() {
                     process::exit(1);
                 }
                 out_path = Some(args[i].clone());
+            }
+            "--man-dir" => {
+                i += 1;
+
+                // Take this path when i >= args.len().
+                if i >= args.len() {
+                    eprintln!("--man-dir requires a directory path");
+                    process::exit(1);
+                }
+                man_dir = Some(args[i].clone());
             }
             "--target-triple" => {
                 i += 1;
@@ -1406,6 +1419,48 @@ fn main() {
                     eprintln!("Error: {e}");
                     process::exit(1);
                 }
+            }
+        }
+        "reference" => {
+            let markdown = generate_language_reference();
+
+            // Take this path when let Some(ref out) = out path.
+            if let Some(ref out) = out_path {
+                fs::write(out, &markdown).unwrap_or_else(|e| {
+                    eprintln!("Error writing {out}: {e}");
+                    process::exit(1);
+                });
+
+                // Take the branch when json is false.
+                if !json {
+                    println!("✓ wrote language reference to {out}");
+                }
+            } else if !json {
+                print!("{markdown}");
+            }
+
+            // Write man-page markdown files when --man-dir is set.
+            if let Some(ref dir) = man_dir {
+                fs::create_dir_all(dir).unwrap_or_else(|e| {
+                    eprintln!("Error creating {dir}: {e}");
+                    process::exit(1);
+                });
+                for (name, body) in generate_cli_man_pages() {
+                    let path = Path::new(dir).join(&name);
+                    fs::write(&path, &body).unwrap_or_else(|e| {
+                        eprintln!("Error writing {}: {e}", path.display());
+                        process::exit(1);
+                    });
+                }
+                if !json {
+                    println!("✓ wrote man pages to {dir}");
+                }
+            }
+
+            // Take this path when json.
+            if json {
+                let resp = DocResponse { ok: true, markdown };
+                println!("{}", serde_json::to_string(&resp).unwrap());
             }
         }
         "codegen" => {
