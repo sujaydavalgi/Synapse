@@ -404,6 +404,7 @@ fn runtime_value_kind(value: &RuntimeValue) -> &'static str {
         RuntimeValue::Null => "null",
         RuntimeValue::Future { .. } => "future",
         RuntimeValue::Channel { .. } => "channel",
+        RuntimeValue::TraitObject { .. } => "trait_object",
     }
 }
 

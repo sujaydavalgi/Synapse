@@ -255,6 +255,7 @@ fn type_name(ty: &SpandaType) -> String {
         SpandaType::Trajectory => "Trajectory".into(),
         SpandaType::Transform => "Transform".into(),
         SpandaType::EnumVariant { enum_name, variant } => format!("{enum_name}.{variant}"),
+        SpandaType::TraitObject { trait_name } => format!("dyn {trait_name}"),
     }
 }
 

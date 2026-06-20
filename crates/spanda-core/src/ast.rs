@@ -410,6 +410,8 @@ pub enum SpandaType {
     Transform,
     #[serde(rename = "enum_variant")]
     EnumVariant { enum_name: String, variant: String },
+    #[serde(rename = "trait_object")]
+    TraitObject { trait_name: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

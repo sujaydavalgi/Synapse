@@ -233,6 +233,10 @@ impl Parser {
     fn parse_type_annotation(&mut self) -> Result<SpandaType, SpandaError> {
         use crate::type_system::{resolve_generic_type, resolve_type_name};
         let start = self.peek().clone();
+        if self.match_types(&[TokenType::Dyn]) {
+            let trait_name = self.parse_type_name_part("Expected trait name after dyn")?;
+            return Ok(SpandaType::TraitObject { trait_name });
+        }
         let mut parts = vec![self.parse_type_name_part("Expected type name")?];
         while self.match_types(&[TokenType::Dot]) {
             parts.push(self.parse_type_name_part("Expected type name after '.'")?);

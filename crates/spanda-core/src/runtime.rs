@@ -5,8 +5,8 @@ use crate::ai::{
 };
 use crate::ast::{
     ActionDecl, ActuatorDecl, AgentDecl, BehaviorDecl, BinaryOp, Expr, LiteralValue, Program,
-    RobotDecl, SafetyRule, SafetyZoneDecl, SensorBinding, SensorDecl, ServiceDecl, Stmt, TopicDecl,
-    UnaryOp, UnitKind, ZoneShape,
+    RobotDecl, SafetyRule, SafetyZoneDecl, SensorBinding, SensorDecl, ServiceDecl, SpandaType,
+    Stmt, TopicDecl, UnaryOp, UnitKind, ZoneShape,
 };
 use crate::audit::{
     sha256 as audit_sha256, sign as audit_sign, verify_signature, AuditRuntime, DeviceIdentity,
@@ -128,6 +128,10 @@ pub enum RuntimeValue {
     Robot,
     Agent {
         name: String,
+    },
+    TraitObject {
+        trait_name: String,
+        agent: String,
     },
     Twin {
         name: String,
@@ -299,6 +303,52 @@ pub trait RobotBackend {
     }
 }
 
+pub fn format_runtime_value(value: &RuntimeValue) -> String {
+    match value {
+        RuntimeValue::Number { value, unit } => {
+            if *unit == UnitKind::None {
+                value.to_string()
+            } else {
+                format!("{value} {}", unit.as_str())
+            }
+        }
+        RuntimeValue::Bool { value } => value.to_string(),
+        RuntimeValue::String { value } => value.clone(),
+        RuntimeValue::Void => "void".into(),
+        RuntimeValue::Enum {
+            variant,
+            payloads,
+            ..
+        } => {
+            if payloads.is_empty() {
+                variant.clone()
+            } else {
+                format!(
+                    "{variant}({})",
+                    payloads
+                        .iter()
+                        .map(format_runtime_value)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        }
+        RuntimeValue::TraitObject { trait_name, agent } => {
+            format!("dyn {trait_name}@{agent}")
+        }
+        RuntimeValue::Agent { name } => format!("agent {name}"),
+        RuntimeValue::Object { type_name, fields } => format!(
+            "{type_name} {{ {} }}",
+            fields
+                .iter()
+                .map(|(k, v)| format!("{k}: {}", format_runtime_value(v)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        other => format!("{other:?}"),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Environment {
     bindings: HashMap<String, RuntimeValue>,
@@ -327,6 +377,13 @@ impl Environment {
         Self {
             bindings: self.bindings.clone(),
         }
+    }
+
+    pub fn snapshot_display(&self) -> std::collections::HashMap<String, String> {
+        self.bindings
+            .iter()
+            .map(|(name, value)| (name.clone(), format_runtime_value(value)))
+            .collect()
     }
 }
 
@@ -1518,7 +1575,8 @@ impl<B: RobotBackend> Interpreter<B> {
         if let Some(debug) = &self.options.debug {
             let line = crate::debug::stmt_line(stmt);
             if debug.should_pause(line) {
-                debug.record_pause(line, "breakpoint");
+                let variables = self.env.snapshot_display();
+                debug.record_pause(line, "breakpoint", variables);
                 return Err(SpandaError::DebugPause {
                     line,
                     reason: "breakpoint".into(),
@@ -1526,9 +1584,32 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         match stmt {
-            Stmt::VarDecl { name, init, .. } => {
+            Stmt::VarDecl {
+                name,
+                type_annotation,
+                init,
+                ..
+            } => {
                 if let Some(expr) = init {
-                    let value = self.eval_expr(expr)?;
+                    let value = if matches!(
+                        type_annotation,
+                        Some(SpandaType::TraitObject { .. })
+                    ) {
+                        if let Expr::IdentExpr { name: agent, .. } = expr {
+                            if let Some(SpandaType::TraitObject { trait_name }) = type_annotation {
+                                RuntimeValue::TraitObject {
+                                    trait_name: trait_name.clone(),
+                                    agent: agent.clone(),
+                                }
+                            } else {
+                                self.eval_expr(expr)?
+                            }
+                        } else {
+                            self.eval_expr(expr)?
+                        }
+                    } else {
+                        self.eval_expr(expr)?
+                    };
                     self.env.define(name.clone(), value);
                 } else {
                     self.env.define(name.clone(), RuntimeValue::Void);
@@ -2360,6 +2441,11 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
             }
         }
+
+        let target = match target {
+            RuntimeValue::TraitObject { agent, .. } => RuntimeValue::Agent { name: agent },
+            other => other,
+        };
 
         if let RuntimeValue::Agent { name } = &target {
             if let Some((params, body)) = self

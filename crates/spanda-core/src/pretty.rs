@@ -114,6 +114,10 @@ impl PrettyPrinter {
                 self.write(".");
                 self.write(variant);
             }
+            SpandaType::TraitObject { trait_name } => {
+                self.write("dyn ");
+                self.write(trait_name);
+            }
         }
     }
 

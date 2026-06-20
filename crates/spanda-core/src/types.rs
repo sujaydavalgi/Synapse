@@ -221,6 +221,7 @@ pub struct TypeChecker {
     struct_type_params: HashMap<String, Vec<String>>,
     trait_defs: HashMap<String, HashMap<String, TraitMethodSig>>,
     agent_trait_methods: HashMap<String, HashMap<String, SpandaType>>,
+    agent_traits: HashMap<String, std::collections::HashSet<String>>,
     state_machine_states: std::collections::HashSet<String>,
     message_registry: MessageRegistry,
     subscribed_topics: std::collections::HashSet<String>,
@@ -251,6 +252,7 @@ impl TypeChecker {
             struct_type_params: HashMap::new(),
             trait_defs: HashMap::new(),
             agent_trait_methods: HashMap::new(),
+            agent_traits: HashMap::new(),
             state_machine_states: std::collections::HashSet::new(),
             message_registry: MessageRegistry::new(),
             subscribed_topics: std::collections::HashSet::new(),
@@ -355,6 +357,15 @@ impl TypeChecker {
                 }
                 if resolve_type_name(name).is_err() && generic_arity(name).is_none() {
                     self.error(format!("Unknown type '{name}'"), line, column);
+                }
+            }
+            SpandaType::TraitObject { trait_name } => {
+                if !self.trait_defs.contains_key(trait_name) {
+                    self.error(
+                        format!("Unknown trait '{trait_name}'"),
+                        line,
+                        column,
+                    );
                 }
             }
             _ => {}
@@ -1726,6 +1737,10 @@ impl TypeChecker {
         for (name, ret) in registered {
             agent_methods.insert(name, ret);
         }
+        self.agent_traits
+            .entry(agent_name.clone())
+            .or_default()
+            .insert(trait_name.clone());
     }
 
     fn check_ai_model(&mut self, model: &AiModelDecl) {
@@ -1903,8 +1918,36 @@ impl TypeChecker {
                 if let Some(expected) = type_annotation {
                     self.validate_type_annotation(expected, span.start.line, span.start.column);
                 }
+                if let (
+                    Some(SpandaType::TraitObject { trait_name }),
+                    Some(Expr::IdentExpr { name: agent, .. }),
+                ) = (type_annotation.as_ref(), init.as_ref())
+                {
+                    if !self
+                        .agent_traits
+                        .get(agent)
+                        .is_some_and(|traits| traits.contains(trait_name))
+                    {
+                        self.error(
+                            format!("Agent '{agent}' does not implement trait '{trait_name}'"),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                let trait_agent_ok = matches!(
+                    (type_annotation.as_ref(), init.as_ref()),
+                    (
+                        Some(SpandaType::TraitObject { trait_name }),
+                        Some(Expr::IdentExpr { name: agent, .. })
+                    ) if self
+                        .agent_traits
+                        .get(agent)
+                        .is_some_and(|traits| traits.contains(trait_name))
+                );
                 let inferred = init.as_ref().map(|e| self.check_expr(e));
                 let t = match (type_annotation, inferred) {
+                    (Some(expected), Some(_actual)) if trait_agent_ok => expected.clone(),
                     (Some(expected), Some(actual)) => {
                         self.assert_compatible(
                             expected,
@@ -2854,6 +2897,20 @@ impl TypeChecker {
             }
         }
 
+        if let SpandaType::TraitObject { trait_name } = &sym.robo_type {
+            if let Some(methods) = self.trait_defs.get(trait_name) {
+                if let Some((_, return_type)) = methods.get(property.as_str()) {
+                    return self.type_name_to_spanda(return_type);
+                }
+            }
+            self.error(
+                format!("Unknown trait method '{property}' on '{trait_name}'"),
+                span.start.line,
+                span.start.column,
+            );
+            return SpandaType::Void;
+        }
+
         let type_name = match sym.kind {
             SymbolKind::Sensor => sym.sensor_type.clone().unwrap_or_default(),
             SymbolKind::Actuator => sym.actuator_type.clone().unwrap_or_default(),
@@ -3182,6 +3239,7 @@ fn display_type(ty: &SpandaType) -> String {
             format!("{name}<{}>", args.join(", "))
         }
         SpandaType::TypeParam { name } => name.clone(),
+        SpandaType::TraitObject { trait_name } => format!("dyn {trait_name}"),
         SpandaType::Pose => "Pose".into(),
         SpandaType::Velocity => "Velocity".into(),
         SpandaType::Trajectory => "Path".into(),
@@ -3227,6 +3285,10 @@ impl SpandaTypeExt for SpandaType {
             SpandaType::TypeParam { name } => {
                 let _ = name;
                 "type_param"
+            }
+            SpandaType::TraitObject { trait_name } => {
+                let _ = trait_name;
+                "trait_object"
             }
         }
     }
