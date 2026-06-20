@@ -49,7 +49,10 @@ pub use hardware::{
 };
 pub use lint::{lint, LintIssue, LintReport, LintSeverity};
 pub use modules::{load_project_modules, ModuleRegistry};
-pub use sir::{lower_program, SirExtern, SirFunction, SirParam, SirProgram, SirVisibility};
+pub use sir::{
+    lower_program, SirBehavior, SirExtern, SirFunction, SirParam, SirProgram, SirStmt,
+    SirVisibility,
+};
 
 use runtime::{Interpreter, InterpreterOptions, RobotBackend};
 use serde::{Deserialize, Serialize};

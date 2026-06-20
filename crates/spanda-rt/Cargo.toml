@@ -1,0 +1,8 @@
+[package]
+name = "spanda-rt"
+version = "0.1.0"
+edition = "2021"
+description = "Spanda native runtime (libspanda_rt) — C ABI for LLVM-linked programs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]

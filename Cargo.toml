@@ -9,6 +9,7 @@ members = [
     "crates/spanda-node",
     "crates/spanda-wasm",
     "crates/spanda-llvm",
+    "crates/spanda-rt",
 ]
 resolver = "2"
 
