@@ -1,6 +1,40 @@
 use spanda_core::{run, RunOptions};
 
 #[test]
+fn twin_sync_parses_and_mirrors_telemetry() {
+    let source = r#"
+robot R {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  twin sync {
+    telemetry;
+    replay;
+  }
+
+  safety { max_speed = 1.0 m/s; }
+
+  task sync every 50ms {
+    wheels.drive(linear: 0.1 m/s, angular: 0.0 rad/s);
+  }
+}
+"#;
+    let result = run(
+        source,
+        RunOptions {
+            max_loop_iterations: 2,
+            ..Default::default()
+        },
+    )
+    .expect("twin sync should run");
+    assert!(
+        result.logs.iter().any(|l| l.contains("twin sync for R")),
+        "expected twin sync init log, got: {:?}",
+        result.logs
+    );
+}
+
+#[test]
 fn twin_frame_count_grows_during_task() {
     let source = r#"
 robot R {

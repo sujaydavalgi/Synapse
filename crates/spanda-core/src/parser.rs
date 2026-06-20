@@ -1237,7 +1237,7 @@ impl Parser {
         let mut peer_robots = Vec::new();
         let mut devices = Vec::new();
         let mut agent_channels = Vec::new();
-        let twin_sync = None;
+        let mut twin_sync = None;
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
             if self.check(TokenType::Soc) {
                 soc = Some(self.parse_soc()?);
@@ -1277,6 +1277,8 @@ impl Parser {
                 events.push(self.parse_event()?);
             } else if self.check(TokenType::On) {
                 event_handlers.push(self.parse_event_handler()?);
+            } else if self.check(TokenType::Twin) && self.is_twin_sync() {
+                twin_sync = Some(self.parse_twin_sync()?);
             } else if self.check(TokenType::Twin) {
                 twin = Some(self.parse_twin()?);
             } else if self.check(TokenType::Verify) {
@@ -1461,10 +1463,18 @@ impl Parser {
         })
     }
 
+    fn is_twin_sync(&self) -> bool {
+        let idx = self.pos + 1;
+        idx < self.tokens.len()
+            && self.tokens[idx].token_type == TokenType::Ident
+            && self.tokens[idx].lexeme == "sync"
+    }
+
     #[allow(dead_code)]
     fn parse_twin_sync(&mut self) -> Result<crate::comm::TwinSyncDecl, SpandaError> {
         use crate::comm::TwinSyncDecl;
-        let start = self.advance();
+        let start = self.advance(); // twin
+        self.expect(TokenType::Ident, "Expected 'sync' after twin")?;
         self.expect(TokenType::Lbrace, "Expected '{' after twin sync")?;
         let mut telemetry = false;
         let mut replay = false;
@@ -1480,7 +1490,12 @@ impl Parser {
             } else if self.match_types(&[TokenType::Faults]) {
                 faults = true;
                 self.expect(TokenType::Semicolon, "Expected ';' after faults")?;
-            } else if self.match_types(&[TokenType::Event]) {
+            } else if self.match_types(&[TokenType::Event])
+                || (self.check(TokenType::Ident) && self.peek().lexeme == "events")
+            {
+                if self.check(TokenType::Ident) {
+                    self.advance();
+                }
                 events = true;
                 self.expect(TokenType::Semicolon, "Expected ';' after events")?;
             } else {

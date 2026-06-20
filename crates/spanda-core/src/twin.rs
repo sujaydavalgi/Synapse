@@ -6,6 +6,9 @@ pub struct TwinRuntime {
     pub name: String,
     pub mirrors: Vec<String>,
     pub replay: bool,
+    pub telemetry_sync: bool,
+    pub faults_sync: bool,
+    pub events_sync: bool,
     pub shadow: HashMap<String, RuntimeValue>,
     replay_buffer: Vec<HashMap<String, RuntimeValue>>,
 }
@@ -16,9 +19,29 @@ impl TwinRuntime {
             name,
             mirrors,
             replay,
+            telemetry_sync: false,
+            faults_sync: false,
+            events_sync: false,
             shadow: HashMap::new(),
             replay_buffer: Vec::new(),
         }
+    }
+
+    pub fn with_sync(mut self, telemetry: bool, replay: bool, faults: bool, events: bool) -> Self {
+        self.telemetry_sync = telemetry;
+        if replay {
+            self.replay = true;
+        }
+        self.faults_sync = faults;
+        self.events_sync = events;
+        if telemetry {
+            for field in ["pose", "velocity"] {
+                if !self.mirrors.iter().any(|m| m == field) {
+                    self.mirrors.push(field.to_string());
+                }
+            }
+        }
+        self
     }
 
     pub fn snapshot(&mut self, field: &str, value: RuntimeValue) {

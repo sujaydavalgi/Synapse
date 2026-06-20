@@ -597,6 +597,7 @@ impl<B: RobotBackend> Interpreter<B> {
             buses,
             peer_robots,
             devices,
+            twin_sync,
             ..
         } = robot;
 
@@ -734,12 +735,40 @@ impl<B: RobotBackend> Interpreter<B> {
                 replay,
                 ..
             } = twin_decl;
-            self.twin = Some(TwinRuntime::new(name.clone(), mirrors.clone(), *replay));
+            let mut runtime = TwinRuntime::new(name.clone(), mirrors.clone(), *replay);
+            if let Some(sync) = twin_sync {
+                let crate::comm::TwinSyncDecl::TwinSyncDecl {
+                    telemetry,
+                    replay: sync_replay,
+                    faults,
+                    events,
+                    ..
+                } = sync;
+                runtime = runtime.with_sync(*telemetry, *sync_replay, *faults, *events);
+            }
+            self.twin = Some(runtime);
             self.env
                 .define(name.clone(), RuntimeValue::Twin { name: name.clone() });
             self.log(format!(
                 "twin {name}: mirrors [{}], replay={replay}",
                 mirrors.join(", ")
+            ));
+        } else if let Some(sync) = twin_sync {
+            let crate::comm::TwinSyncDecl::TwinSyncDecl {
+                telemetry,
+                replay,
+                faults,
+                events,
+                ..
+            } = sync;
+            let name = format!("{robot_name}Twin");
+            let runtime = TwinRuntime::new(name.clone(), Vec::new(), *replay)
+                .with_sync(*telemetry, *replay, *faults, *events);
+            self.twin = Some(runtime);
+            self.env
+                .define(name.clone(), RuntimeValue::Twin { name: name.clone() });
+            self.log(format!(
+                "twin sync for {robot_name}: telemetry={telemetry}, replay={replay}, faults={faults}, events={events}"
             ));
         }
 
@@ -1348,7 +1377,7 @@ impl<B: RobotBackend> Interpreter<B> {
         let twin_name = twin.name.clone();
         let field_count = twin.shadow.len();
         let replay_frames = twin.replay_frame_count();
-        if field_count > 0 {
+        if field_count > 0 || twin.telemetry_sync {
             self.log(format!(
                 "twin {twin_name} mirrored {field_count} field(s), replay frames={replay_frames}"
             ));

@@ -8,6 +8,13 @@ robot WarehouseRobot {
     replay true;
   }
 
+  twin sync {
+    telemetry;
+    replay;
+    faults;
+    events;
+  }
+
   topic telemetry: Pose publish on "/twin/telemetry";
   topic fault_events: String publish on "/twin/faults";
 

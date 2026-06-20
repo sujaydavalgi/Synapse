@@ -762,7 +762,23 @@ impl TypeChecker {
                 },
             );
         }
-        let _ = twin_sync;
+        if let Some(sync) = twin_sync {
+            let crate::comm::TwinSyncDecl::TwinSyncDecl {
+                telemetry,
+                replay,
+                faults,
+                events,
+                span,
+            } = sync;
+            if !(*telemetry || *replay || *faults || *events) {
+                self.error(
+                    "twin sync block must declare at least one of telemetry, replay, faults, or events"
+                        .into(),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        }
 
         if let Some(safety_block) = safety {
             let saved = self.symbols.clone();
