@@ -191,6 +191,13 @@ export type RobotDecl = {
   twin: TwinDecl | null;
   verify: VerifyDecl | null;
   observe: ObserveDecl | null;
+  identity: import("../foundations.js").IdentityDecl | null;
+  audit: import("../foundations.js").AuditDecl | null;
+  provenance: import("../foundations.js").ProvenanceDecl | null;
+  signedRecords: import("../foundations.js").SignedRecordDecl[];
+  secrets: import("../foundations.js").SecretDecl[];
+  trust: import("../foundations.js").TrustDecl | null;
+  permissions: import("../foundations.js").PermissionsDecl | null;
   traitImpls: TraitImplDecl[];
   buses: BusDecl[];
   peerRobots: PeerRobotDecl[];
@@ -281,6 +288,7 @@ export type TopicDecl = {
   role: TopicRole;
   qos: QosDecl | null;
   transport: TransportKind | null;
+  secure: import("../foundations.js").SecureBlockDecl | null;
   span: Span;
 };
 
@@ -290,6 +298,7 @@ export type ServiceDecl = {
   serviceType: string | null;
   requestType: string | null;
   responseType: string | null;
+  secure: import("../foundations.js").SecureBlockDecl | null;
   span: Span;
 };
 
@@ -300,6 +309,7 @@ export type ActionDecl = {
   requestType: string | null;
   feedbackType: string | null;
   resultType: string | null;
+  secure: import("../foundations.js").SecureBlockDecl | null;
   span: Span;
 };
 

@@ -78,6 +78,12 @@ export type TokenType =
   | "REMEMBER"
   | "VERIFY"
   | "OBSERVE"
+  | "SECRET"
+  | "TRUST"
+  | "PERMISSIONS"
+  | "SECURE"
+  | "ENV"
+  | "SIGNED_BY"
   | "HARDWARE"
   | "DEPLOY"
   | "CPU"
@@ -334,6 +340,12 @@ const KEYWORDS: Record<string, TokenType> = {
   remember: "REMEMBER",
   verify: "VERIFY",
   observe: "OBSERVE",
+  secret: "SECRET",
+  trust: "TRUST",
+  permissions: "PERMISSIONS",
+  secure: "SECURE",
+  env: "ENV",
+  signed_by: "SIGNED_BY",
   hardware: "HARDWARE",
   deploy: "DEPLOY",
   cpu: "CPU",

@@ -280,6 +280,22 @@ export const BUILTIN_FUNCTIONS: Record<
     },
     returns: { kind: "named", name: "Memory" },
   },
+  sha256: {
+    namedParams: { data: { kind: "string" } },
+    returns: { kind: "named", name: "Hash" },
+  },
+  sign: {
+    namedParams: { data: { kind: "string" }, key: { kind: "string" } },
+    returns: { kind: "named", name: "Signature" },
+  },
+  verify_signature: {
+    namedParams: {
+      data: { kind: "string" },
+      signature: { kind: "string" },
+      key: { kind: "string" },
+    },
+    returns: { kind: "bool" },
+  },
 };
 
 export const ROBOT_METHODS: Record<string, { params: SpandaType[]; returns: SpandaType }> = {
@@ -429,6 +445,32 @@ export const BUILTIN_METHODS: Record<
   },
   SensorFusion: {
     read: { params: [], returns: { kind: "named", name: "FusedObservation" } },
+  },
+  AuditLog: {
+    record: {
+      params: [{ kind: "string" }, { kind: "string" }],
+      returns: { kind: "named", name: "RecordId" },
+    },
+    export: { params: [], returns: { kind: "string" } },
+    count: { params: [], returns: { kind: "number", unit: "none" } },
+    root_hash: { params: [], returns: { kind: "named", name: "Hash" } },
+    create_provenance: {
+      params: [{ kind: "string" }, { kind: "named", name: "RecordId" }],
+      returns: { kind: "named", name: "ProvenanceRecord" },
+    },
+  },
+  MockLedger: {
+    anchor: {
+      params: [{ kind: "named", name: "Hash" }],
+      returns: { kind: "named", name: "TransactionId" },
+    },
+    verify: {
+      params: [{ kind: "named", name: "Hash" }],
+      returns: { kind: "bool" },
+    },
+  },
+  RobotIdentity: {
+    id: { params: [], returns: { kind: "string" } },
   },
 };
 

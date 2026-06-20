@@ -61,6 +61,14 @@ import type {
   TwinDecl,
   VerifyDecl,
   ObserveDecl,
+  IdentityDecl,
+  AuditDecl,
+  ProvenanceDecl,
+  SignedRecordDecl,
+  SecretDecl,
+  TrustDecl,
+  PermissionsDecl,
+  SecureBlockDecl,
 } from "../foundations.js";
 
 export class ParseError extends Error {
@@ -161,6 +169,8 @@ class Parser {
       "DEADLINE",
       "TELEMETRY",
       "FAULTS",
+      "VERIFY",
+      "REQUIRES",
     ];
     if (labelTypes.includes(this.peek().type)) {
       return this.advance().lexeme;
@@ -443,6 +453,13 @@ class Parser {
     let twin: TwinDecl | null = null;
     let verify: VerifyDecl | null = null;
     let observe: ObserveDecl | null = null;
+    let identity: IdentityDecl | null = null;
+    let audit: AuditDecl | null = null;
+    let provenance: ProvenanceDecl | null = null;
+    const signedRecords: SignedRecordDecl[] = [];
+    const secrets: SecretDecl[] = [];
+    let trust: TrustDecl | null = null;
+    let permissions: PermissionsDecl | null = null;
     const traitImpls: TraitImplDecl[] = [];
     const buses: BusDecl[] = [];
     const peerRobots: PeerRobotDecl[] = [];
@@ -495,6 +512,20 @@ class Parser {
         verify = this.parseVerify();
       } else if (this.check("OBSERVE")) {
         observe = this.parseObserve();
+      } else if (this.isRobotMemberKeyword("identity")) {
+        identity = this.parseIdentity();
+      } else if (this.isRobotMemberKeyword("audit")) {
+        audit = this.parseAudit();
+      } else if (this.isRobotMemberKeyword("provenance")) {
+        provenance = this.parseProvenance();
+      } else if (this.isRobotMemberKeyword("record")) {
+        signedRecords.push(this.parseSignedRecord());
+      } else if (this.check("SECRET")) {
+        secrets.push(this.parseSecret());
+      } else if (this.check("TRUST")) {
+        trust = this.parseTrust();
+      } else if (this.check("PERMISSIONS")) {
+        permissions = this.parsePermissions();
       } else if (this.check("IMPL")) {
         traitImpls.push(this.parseTraitImpl());
       } else if (this.check("BUS")) {
@@ -532,6 +563,13 @@ class Parser {
       twin,
       verify,
       observe,
+      identity,
+      audit,
+      provenance,
+      signedRecords,
+      secrets,
+      trust,
+      permissions,
       traitImpls,
       buses,
       peerRobots,
@@ -540,6 +578,10 @@ class Parser {
       twinSync,
       span: this.spanFrom(start, end),
     };
+  }
+
+  private isRobotMemberKeyword(kw: string): boolean {
+    return this.check("IDENT") && this.peek().lexeme === kw;
   }
 
   private isAgentShorthand(): boolean {
@@ -682,6 +724,174 @@ class Parser {
     }
     const end = this.expect("RBRACE", "Expected '}' to close observe block");
     return { kind: "ObserveDecl", sensors, span: this.spanFrom(start, end) };
+  }
+
+  private parseIdentity(): IdentityDecl {
+    const start = this.advance();
+    const typeName = this.expect("IDENT", "Expected identity type name").lexeme;
+    this.expect("LBRACE", "Expected '{' after identity type");
+    const fields: [string, string][] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      const key = this.expect("IDENT", "Expected identity field").lexeme;
+      this.expect("COLON", "Expected ':' in identity field");
+      const value = this.parseConfigValueString();
+      this.expect("SEMICOLON", "Expected ';' after identity field");
+      fields.push([key, value]);
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close identity");
+    return {
+      kind: "IdentityDecl",
+      typeName,
+      fields,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseAudit(): AuditDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected audit name").lexeme;
+    this.expect("LBRACE", "Expected '{' after audit name");
+    const records: Expr[] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (!(this.check("IDENT") && this.peek().lexeme === "record")) {
+        const t = this.peek();
+        throw new ParseError("Expected 'record' in audit block", t.line, t.column);
+      }
+      this.advance();
+      records.push(this.parseExpr());
+      this.expect("SEMICOLON", "Expected ';' after audit record field");
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close audit");
+    return { kind: "AuditDecl", name, records, span: this.spanFrom(start, end) };
+  }
+
+  private parseProvenance(): ProvenanceDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected provenance name").lexeme;
+    this.expect("LBRACE", "Expected '{' after provenance name");
+    let hashAlgo = "sha256";
+    let signedBy = "";
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      const field = this.expect("IDENT", "Expected provenance field").lexeme;
+      this.expect("COLON", "Expected ':' in provenance field");
+      if (field === "hash") {
+        hashAlgo = this.expect("IDENT", "Expected hash algorithm").lexeme;
+      } else if (field === "signed_by") {
+        signedBy = Parser.exprPathString(this.parseExpr());
+      } else {
+        const t = this.peek();
+        throw new ParseError(`Unknown provenance field '${field}'`, t.line, t.column);
+      }
+      this.expect("SEMICOLON", "Expected ';' after provenance field");
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close provenance");
+    return { kind: "ProvenanceDecl", name, hashAlgo, signedBy, span: this.spanFrom(start, end) };
+  }
+
+  private parseSignedRecord(): SignedRecordDecl {
+    const start = this.advance();
+    const eventName = this.expect("IDENT", "Expected signed record event name").lexeme;
+    this.expect("SIGNED_BY", "Expected 'signed_by' after record event");
+    const signedBy = Parser.exprPathString(this.parseExpr());
+    this.expect("SEMICOLON", "Expected ';' after signed record declaration");
+    return { kind: "SignedRecordDecl", eventName, signedBy, span: this.spanFrom(start, this.previous()) };
+  }
+
+  private parseSecret(): SecretDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected secret name").lexeme;
+    this.expect("FROM", "Expected 'from' after secret name");
+    let source: SecretDecl["source"];
+    if (this.match("ENV")) {
+      this.expect("LPAREN", "Expected '(' after env");
+      const varName = this.expect("STRING", "Expected env var name").value as string;
+      this.expect("RPAREN", "Expected ')' after env var");
+      source = { source: "env", var: varName };
+    } else if (this.check("STRING")) {
+      source = { source: "literal", value: this.advance().value as string };
+    } else {
+      const t = this.peek();
+      throw new ParseError("Expected env(...) or string literal for secret source", t.line, t.column);
+    }
+    this.expect("SEMICOLON", "Expected ';' after secret declaration");
+    return { kind: "SecretDecl", name, source, span: this.spanFrom(start, this.previous()) };
+  }
+
+  private parseTrust(): TrustDecl {
+    const start = this.advance();
+    const level = this.parseLabel("Expected trust level");
+    this.expect("SEMICOLON", "Expected ';' after trust declaration");
+    return { kind: "TrustDecl", level, span: this.spanFrom(start, this.previous()) };
+  }
+
+  private parseDottedCapability(): string {
+    const first = this.parseLabel("Expected capability name");
+    if (this.match("DOT")) {
+      const second = this.parseLabel("Expected capability suffix");
+      return `${first}.${second}`;
+    }
+    return first;
+  }
+
+  private parsePermissions(): PermissionsDecl {
+    const start = this.advance();
+    this.expect("LBRACKET", "Expected '[' after permissions");
+    const capabilities: string[] = [];
+    if (!this.check("RBRACKET")) {
+      do {
+        capabilities.push(this.parseDottedCapability());
+      } while (this.match("COMMA"));
+    }
+    this.expect("RBRACKET", "Expected ']' to close permissions");
+    this.expect("SEMICOLON", "Expected ';' after permissions declaration");
+    return { kind: "PermissionsDecl", capabilities, span: this.spanFrom(start, this.previous()) };
+  }
+
+  private parseSecureBlock(): SecureBlockDecl {
+    const start = this.advance();
+    this.expect("LBRACE", "Expected '{' after secure");
+    let signed = false;
+    let minTrust: string | null = null;
+    const requires: string[] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      const field = this.parseLabel("Expected secure field name");
+      this.expect("ASSIGN", "Expected '=' in secure field");
+      if (field === "signed") {
+        signed = this.match("TRUE");
+        if (!signed) this.expect("FALSE", "Expected true or false for signed");
+      } else if (field === "min_trust") {
+        minTrust = this.parseLabel("Expected trust level");
+      } else if (field === "requires") {
+        this.expect("LBRACKET", "Expected '[' after requires");
+        if (!this.check("RBRACKET")) {
+          do {
+            requires.push(this.parseDottedCapability());
+          } while (this.match("COMMA"));
+        }
+        this.expect("RBRACKET", "Expected ']' after requires");
+      } else {
+        const t = this.peek();
+        throw new ParseError(`Unknown secure field '${field}'`, t.line, t.column);
+      }
+      this.expect("SEMICOLON", "Expected ';' after secure field");
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close secure block");
+    return { signed, minTrust, requires, span: this.spanFrom(start, end) };
+  }
+
+  private parseConfigValueString(): string {
+    const tok = this.advance();
+    if (tok.type === "STRING") return tok.value as string;
+    if (tok.type === "IDENT") return tok.lexeme;
+    throw new ParseError("Expected string or identifier in config value", tok.line, tok.column);
+  }
+
+  private static exprPathString(expr: Expr): string {
+    if (expr.kind === "IdentExpr") return expr.name;
+    if (expr.kind === "MemberExpr") {
+      return `${Parser.exprPathString(expr.object)}.${expr.property}`;
+    }
+    return "";
   }
 
   private parseVerify(): VerifyDecl {
@@ -946,6 +1156,8 @@ class Parser {
       }
     }
 
+    const secure = this.check("SECURE") ? this.parseSecureBlock() : null;
+
     this.expect("SEMICOLON", "Expected ';' after topic declaration");
     return {
       kind: "TopicDecl",
@@ -955,6 +1167,7 @@ class Parser {
       role,
       qos,
       transport,
+      secure,
       span: this.spanFrom(start, this.previous()),
     };
   }
@@ -1019,6 +1232,7 @@ class Parser {
         }
       }
       this.expect("RBRACE", "Expected '}' to close service");
+      const secure = this.check("SECURE") ? this.parseSecureBlock() : null;
       this.expect("SEMICOLON", "Expected ';' after service declaration");
       return {
         kind: "ServiceDecl",
@@ -1026,12 +1240,14 @@ class Parser {
         serviceType: null,
         requestType,
         responseType,
+        secure,
         span: this.spanFrom(start, this.previous()),
       };
     }
 
     this.expect("COLON", "Expected ':' after service name");
     const serviceType = this.expect("IDENT", "Expected service type");
+    const secure = this.check("SECURE") ? this.parseSecureBlock() : null;
     this.expect("SEMICOLON", "Expected ';' after service declaration");
     return {
       kind: "ServiceDecl",
@@ -1039,6 +1255,7 @@ class Parser {
       serviceType: serviceType.lexeme,
       requestType: null,
       responseType: null,
+      secure,
       span: this.spanFrom(start, this.previous()),
     };
   }
@@ -1068,6 +1285,7 @@ class Parser {
         }
       }
       this.expect("RBRACE", "Expected '}' to close action");
+      const secure = this.check("SECURE") ? this.parseSecureBlock() : null;
       this.expect("SEMICOLON", "Expected ';' after action declaration");
       return {
         kind: "ActionDecl",
@@ -1076,12 +1294,14 @@ class Parser {
         requestType,
         feedbackType,
         resultType,
+        secure,
         span: this.spanFrom(start, this.previous()),
       };
     }
 
     this.expect("COLON", "Expected ':' after action name");
     const actionType = this.expect("IDENT", "Expected action type");
+    const secure = this.check("SECURE") ? this.parseSecureBlock() : null;
     this.expect("SEMICOLON", "Expected ';' after action declaration");
     return {
       kind: "ActionDecl",
@@ -1090,6 +1310,7 @@ class Parser {
       requestType: null,
       feedbackType: null,
       resultType: null,
+      secure,
       span: this.spanFrom(start, this.previous()),
     };
   }

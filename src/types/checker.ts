@@ -25,7 +25,6 @@ import {
   isActionProposalType,
   resolveTypeName,
   isSafeActionType,
-  resolveTypeName,
   typeKindName,
 } from "../type-system.js";
 import { resolveImport } from "../lib/registry.js";
@@ -52,6 +51,7 @@ import {
   unitMatchesNamedType,
   type TypeError,
 } from "./units.js";
+import { isKnownCapability, parseTrustLevel } from "../security/index.js";
 import { unitCategory } from "../units/index.js";
 
 type SymbolEntry = {
@@ -505,6 +505,58 @@ class TypeChecker {
       });
     }
 
+    if (robot.identity) {
+      if (!robot.identity.fields.some(([k]) => k === "id")) {
+        this.error("identity block must declare an 'id' field", robot.identity.span.start.line, robot.identity.span.start.column);
+      }
+      this.symbols.set("identity", {
+        name: "identity",
+        roboType: { kind: "named", name: "RobotIdentity" },
+        kind: "variable",
+      });
+    }
+
+    if (robot.audit) {
+      if (robot.audit.records.length === 0) {
+        this.error("audit block must record at least one field", robot.audit.span.start.line, robot.audit.span.start.column);
+      }
+      this.symbols.set("audit", {
+        name: "audit",
+        roboType: { kind: "named", name: "AuditLog" },
+        kind: "variable",
+      });
+      this.symbols.set("mock_ledger", {
+        name: "mock_ledger",
+        roboType: { kind: "named", name: "MockLedger" },
+        kind: "variable",
+      });
+    }
+
+    for (const secret of robot.secrets ?? []) {
+      this.symbols.set(secret.name, {
+        name: secret.name,
+        roboType: { kind: "named", name: "Secret" },
+        kind: "variable",
+      });
+    }
+
+    if (robot.trust) {
+      if (!parseTrustLevel(robot.trust.level)) {
+        this.error(`unknown trust level '${robot.trust.level}'`, robot.trust.span.start.line, robot.trust.span.start.column);
+      }
+    }
+
+    if (robot.permissions) {
+      if (robot.permissions.capabilities.length === 0) {
+        this.error("permissions block must grant at least one capability", robot.permissions.span.start.line, robot.permissions.span.start.column);
+      }
+      for (const cap of robot.permissions.capabilities) {
+        if (!isKnownCapability(cap)) {
+          this.error(`unknown package capability '${cap}'`, robot.permissions.span.start.line, robot.permissions.span.start.column);
+        }
+      }
+    }
+
     for (const behavior of robot.behaviors) {
       if (behavior.requires) {
         const t = this.checkExpr(behavior.requires);
@@ -676,6 +728,7 @@ class TypeChecker {
         this.error("Topic deadline must be positive", topic.qos.span.start.line, topic.qos.span.start.column);
       }
     }
+    if (topic.secure) this.checkSecureBlock(topic.secure);
     this.symbols.set(topic.name, {
       name: topic.name,
       roboType: this.resolveMessageType(topic.messageType) ?? { kind: "void" },
@@ -715,6 +768,7 @@ class TypeChecker {
         service.span.start.column,
       );
     }
+    if (service.secure) this.checkSecureBlock(service.secure);
     this.symbols.set(service.name, {
       name: service.name,
       roboType: { kind: "named", name: service.name },
@@ -745,12 +799,32 @@ class TypeChecker {
         action.span.start.column,
       );
     }
+    if (action.secure) this.checkSecureBlock(action.secure);
     this.symbols.set(action.name, {
       name: action.name,
       roboType: { kind: "named", name: action.name },
       kind: "action",
       actionType: action.actionType ?? undefined,
     });
+  }
+
+  private checkSecureBlock(block: import("../foundations.js").SecureBlockDecl): void {
+    if (block.minTrust && !parseTrustLevel(block.minTrust)) {
+      this.error(
+        `unknown trust level '${block.minTrust}' in secure block`,
+        block.span.start.line,
+        block.span.start.column,
+      );
+    }
+    for (const cap of block.requires) {
+      if (!isKnownCapability(cap)) {
+        this.error(
+          `unknown capability '${cap}' in secure block`,
+          block.span.start.line,
+          block.span.start.column,
+        );
+      }
+    }
   }
 
   private checkSafetyRule(rule: SafetyRule): void {

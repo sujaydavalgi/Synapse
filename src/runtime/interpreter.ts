@@ -26,6 +26,11 @@ import { RoutingCommBus, type TransportKind } from "../transport/index.js";
 import { SafetyMonitor, createSafetyConfigFromRobot, interpolatePoses } from "../safety/index.js";
 import type { SafetyZoneRuntime } from "../safety/index.js";
 import {
+  SecurityContext,
+  createRobotIdentity,
+  parseTrustLevel,
+} from "../security/index.js";
+import {
   getNumber,
   getPoseFields,
   getString,
@@ -67,7 +72,9 @@ export type RuntimeValue =
   | { kind: "goal"; text: string }
   | { kind: "sensor_fusion"; sensors: string[] }
   | { kind: "completion"; text: string; model?: string }
-  | { kind: "embedding"; dimensions: number; vector: number[] };
+  | { kind: "embedding"; dimensions: number; vector: number[] }
+  | { kind: "identity"; id: string; publicKey: string }
+  | { kind: "secret"; name: string };
 
 export type MotionCommand =
   | { kind: "drive"; linear: number; angular: number; actuator: string }
@@ -160,6 +167,7 @@ export class Interpreter {
   >();
   private verifyRules: Expr[] = [];
   private fusionSensors: string[] = [];
+  private security = new SecurityContext();
   private commBus = new RoutingCommBus();
   private defaultTransport: TransportKind = "local";
 
@@ -487,6 +495,7 @@ export class Interpreter {
     this.agentTraitImpls.clear();
     this.verifyRules = [];
     this.fusionSensors = [];
+    this.security = new SecurityContext();
     this.currentAgent = null;
     this.commBus = new RoutingCommBus();
     this.defaultTransport = "local";
@@ -518,6 +527,38 @@ export class Interpreter {
         typeName: "Device",
         fields: {},
       });
+    }
+
+    if (robot.permissions) {
+      this.security.enableStrictPermissions();
+      this.security.capabilities.grantAll(robot.permissions.capabilities);
+      this.options.onLog?.(
+        `permissions: strict mode, granted ${robot.permissions.capabilities.length} capability(ies)`,
+      );
+    }
+
+    if (robot.trust) {
+      const level = parseTrustLevel(robot.trust.level);
+      if (level) {
+        this.security.trust = level;
+        this.options.onLog?.(`trust: level set to ${level}`);
+      }
+    }
+
+    for (const secret of robot.secrets ?? []) {
+      this.security.secrets.register(secret.name, secret.source);
+      this.env.define(secret.name, { kind: "secret", name: secret.name });
+      this.options.onLog?.(`secret '${secret.name}': registered`);
+    }
+
+    if (robot.identity) {
+      const id = robot.identity.fields.find(([k]) => k === "id")?.[1] ?? "unknown";
+      const publicKey = robot.identity.fields.find(([k]) => k === "public_key")?.[1] ?? "";
+      this.security.identity = createRobotIdentity(id, publicKey, this.security.trust);
+      this.env.define("identity", { kind: "identity", id, publicKey });
+      this.security.grantIfNotStrict("identity.sign");
+      this.security.grantIfNotStrict("identity.verify");
+      this.options.onLog?.(`identity: device '${id}' registered`);
     }
 
     for (const topic of robot.topics) {
@@ -690,6 +731,13 @@ export class Interpreter {
 
   private defineTopic(topic: import("../ast/nodes.js").TopicDecl): void {
     const path = topic.topic ?? `/${topic.name}`;
+    if (topic.secure) {
+      this.security.secureEndpoints.register(path, {
+        signed: topic.secure.signed,
+        minTrust: topic.secure.minTrust ? parseTrustLevel(topic.secure.minTrust) : null,
+        requires: topic.secure.requires,
+      });
+    }
     this.commBus.subscribe(path, topic.name);
     this.env.define(topic.name, {
       kind: "topic",

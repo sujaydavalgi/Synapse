@@ -30,6 +30,10 @@
     "web:dev": "npm run dev --workspace=@spanda/web",
     "web:build": "npm run build --workspace=@spanda/web"
   },
+  "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "@noble/hashes": "^1.6.1"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.0",

@@ -193,6 +193,65 @@ export type CapabilityDecl = {
   span: Span;
 };
 
+export type IdentityDecl = {
+  kind: "IdentityDecl";
+  typeName: string;
+  fields: [string, string][];
+  span: Span;
+};
+
+export type AuditDecl = {
+  kind: "AuditDecl";
+  name: string;
+  records: Expr[];
+  span: Span;
+};
+
+export type ProvenanceDecl = {
+  kind: "ProvenanceDecl";
+  name: string;
+  hashAlgo: string;
+  signedBy: string;
+  span: Span;
+};
+
+export type SignedRecordDecl = {
+  kind: "SignedRecordDecl";
+  eventName: string;
+  signedBy: string;
+  span: Span;
+};
+
+export type SecretSourceDecl =
+  | { source: "env"; var: string }
+  | { source: "literal"; value: string };
+
+export type SecretDecl = {
+  kind: "SecretDecl";
+  name: string;
+  source: SecretSourceDecl;
+  span: Span;
+};
+
+export type TrustDecl = {
+  kind: "TrustDecl";
+  level: string;
+  span: Span;
+};
+
+export type PermissionsDecl = {
+  kind: "PermissionsDecl";
+  capabilities: string[];
+  span: Span;
+};
+
+export type SecureBlockDecl = {
+  signed: boolean;
+  minTrust: string | null;
+  requires: string[];
+  span: Span;
+};
+
 /** Known code-module import paths (Phase 1 module system). */
 export function resolveModuleImport(path: string): boolean {
   return [
