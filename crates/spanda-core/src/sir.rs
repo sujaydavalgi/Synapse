@@ -6,8 +6,9 @@
 use crate::ast::{
     BehaviorDecl, Expr, LiteralValue, NamedArg, Program, RobotDecl, SpandaType, Stmt, UnitKind,
 };
-use crate::foundations::{BridgeKind, ExternFnDecl, ModuleFnDecl, Visibility};
+use crate::foundations::{BridgeKind, EnumDecl, ExternFnDecl, ModuleFnDecl, Visibility};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SirProgram {
@@ -71,6 +72,16 @@ pub enum SirStmt {
         name: String,
         value: i64,
     },
+    LetBool {
+        name: String,
+        value: bool,
+    },
+    LetEnumUnit {
+        name: String,
+        enum_name: String,
+        variant: String,
+        tag: u32,
+    },
     LoopEvery {
         interval_ms: f64,
         body: Vec<SirStmt>,
@@ -84,6 +95,16 @@ pub enum SirStmt {
         then_body: Vec<SirStmt>,
         else_body: Option<Vec<SirStmt>>,
     },
+    IfVar {
+        condition: String,
+        then_body: Vec<SirStmt>,
+        else_body: Option<Vec<SirStmt>>,
+    },
+    MatchEnumUnit {
+        scrutinee: String,
+        enum_name: String,
+        arms: Vec<SirMatchArm>,
+    },
     Subscribe {
         target: String,
     },
@@ -91,6 +112,13 @@ pub enum SirStmt {
         #[serde(rename = "stmt_kind")]
         label: String,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SirMatchArm {
+    pub variant: String,
+    pub tag: u32,
+    pub body: Vec<SirStmt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -117,6 +145,7 @@ pub struct SirExtern {
 }
 
 pub fn lower_program(program: &Program) -> SirProgram {
+    let ctx = LowerCtx::new(program);
     let Program::Program {
         module_name,
         imports,
@@ -149,7 +178,7 @@ pub fn lower_program(program: &Program) -> SirProgram {
             sir_behaviors.push(SirBehavior {
                 name: behavior_name.clone(),
                 stmt_count: body.len(),
-                body: lower_stmts(body),
+                body: ctx.lower_stmts(body),
                 has_requires: requires.is_some(),
                 has_ensures: ensures.is_some(),
                 has_invariant: invariant.is_some(),
@@ -176,7 +205,7 @@ pub fn lower_program(program: &Program) -> SirProgram {
                 crate::ast::ImportDecl::ImportDecl { path, .. } => path.clone(),
             })
             .collect(),
-        functions: functions.iter().map(lower_function).collect(),
+        functions: functions.iter().map(|func| ctx.lower_function(func)).collect(),
         externs: extern_functions.iter().map(lower_extern).collect(),
         robot_names: robots
             .iter()
@@ -189,7 +218,7 @@ pub fn lower_program(program: &Program) -> SirProgram {
     }
 }
 
-fn lower_function(func: &ModuleFnDecl) -> SirFunction {
+fn lower_function(func: &ModuleFnDecl, ctx: &LowerCtx) -> SirFunction {
     let ModuleFnDecl {
         name,
         visibility,
@@ -218,64 +247,185 @@ fn lower_function(func: &ModuleFnDecl) -> SirFunction {
             .collect(),
         return_type: type_to_string(return_type),
         is_async: *is_async,
-        body: lower_stmts(body),
+        body: ctx.lower_stmts(body),
     }
 }
 
-fn lower_stmts(stmts: &[Stmt]) -> Vec<SirStmt> {
-    stmts.iter().map(lower_stmt).collect()
+struct LowerCtx<'a> {
+    variant_index: HashMap<String, (String, u32)>,
+    _program: std::marker::PhantomData<&'a Program>,
 }
 
-fn lower_stmt(stmt: &Stmt) -> SirStmt {
-    match stmt {
-        Stmt::VarDecl { name, init, .. } => {
-            if let Some(init) = init {
-                if let Some(value) = int_literal(init) {
-                    return SirStmt::LetInt {
-                        name: name.clone(),
-                        value,
-                    };
-                }
-            }
-            SirStmt::Unsupported {
-                label: "var_decl".into(),
+impl LowerCtx<'_> {
+    fn new(program: &Program) -> Self {
+        let mut variant_index = HashMap::new();
+        let Program::Program { enums, .. } = program;
+        for enum_decl in enums {
+            let EnumDecl::EnumDecl { name, variants, .. } = enum_decl;
+            for (tag, variant) in variants.iter().enumerate() {
+                variant_index.insert(variant.name.clone(), (name.clone(), tag as u32));
             }
         }
-        Stmt::ReturnStmt { value, .. } => lower_return(value.as_ref()),
-        Stmt::ExprStmt { expr, .. } => lower_expr_stmt(expr),
-        Stmt::EmergencyStopStmt { .. } => SirStmt::EmergencyStop,
-        Stmt::LoopStmt { interval_ms, body, .. } => SirStmt::LoopEvery {
-            interval_ms: *interval_ms,
-            body: lower_stmts(body),
-        },
-        Stmt::PublishStmt { topic_name, value, .. } => SirStmt::Publish {
-            topic: topic_name.clone(),
-            payload: string_literal(value),
-        },
-        Stmt::IfStmt {
-            condition,
-            then_branch,
-            else_branch,
-            ..
-        } => {
-            if let Some(condition) = bool_literal(condition) {
-                SirStmt::IfBool {
-                    condition,
-                    then_body: lower_stmts(then_branch),
-                    else_body: else_branch.as_ref().map(|branch| lower_stmts(branch)),
+        Self {
+            variant_index,
+            _program: std::marker::PhantomData,
+        }
+    }
+
+    fn lower_function(&self, func: &ModuleFnDecl) -> SirFunction {
+        lower_function(func, self)
+    }
+
+    fn lower_stmts(&self, stmts: &[Stmt]) -> Vec<SirStmt> {
+        stmts.iter().map(|stmt| self.lower_stmt(stmt)).collect()
+    }
+
+    fn lower_stmt(&self, stmt: &Stmt) -> SirStmt {
+        match stmt {
+            Stmt::VarDecl { name, init, .. } => {
+                if let Some(init) = init {
+                    if let Some(value) = int_literal(init) {
+                        return SirStmt::LetInt {
+                            name: name.clone(),
+                            value,
+                        };
+                    }
+                    if let Some(value) = bool_literal(init) {
+                        return SirStmt::LetBool {
+                            name: name.clone(),
+                            value,
+                        };
+                    }
+                    if let Some((enum_name, variant, tag)) = self.resolve_enum_unit(init) {
+                        return SirStmt::LetEnumUnit {
+                            name: name.clone(),
+                            enum_name,
+                            variant,
+                            tag,
+                        };
+                    }
                 }
-            } else {
                 SirStmt::Unsupported {
-                    label: "if".into(),
+                    label: "var_decl".into(),
                 }
             }
+            Stmt::ReturnStmt { value, .. } => lower_return(value.as_ref()),
+            Stmt::ExprStmt { expr, .. } => self.lower_expr_stmt(expr),
+            Stmt::EmergencyStopStmt { .. } => SirStmt::EmergencyStop,
+            Stmt::LoopStmt { interval_ms, body, .. } => SirStmt::LoopEvery {
+                interval_ms: *interval_ms,
+                body: self.lower_stmts(body),
+            },
+            Stmt::PublishStmt { topic_name, value, .. } => SirStmt::Publish {
+                topic: topic_name.clone(),
+                payload: string_literal(value),
+            },
+            Stmt::IfStmt {
+                condition,
+                then_branch,
+                else_branch,
+                ..
+            } => {
+                if let Some(condition) = bool_literal(condition) {
+                    SirStmt::IfBool {
+                        condition,
+                        then_body: self.lower_stmts(then_branch),
+                        else_body: else_branch.as_ref().map(|branch| self.lower_stmts(branch)),
+                    }
+                } else if let Expr::IdentExpr { name, .. } = condition {
+                    SirStmt::IfVar {
+                        condition: name.clone(),
+                        then_body: self.lower_stmts(then_branch),
+                        else_body: else_branch.as_ref().map(|branch| self.lower_stmts(branch)),
+                    }
+                } else {
+                    SirStmt::Unsupported {
+                        label: "if".into(),
+                    }
+                }
+            }
+            Stmt::SubscribeStmt { target, .. } => SirStmt::Subscribe {
+                target: target.clone(),
+            },
+            other => SirStmt::Unsupported {
+                label: stmt_kind(other),
+            },
         }
-        Stmt::SubscribeStmt { target, .. } => SirStmt::Subscribe {
-            target: target.clone(),
-        },
-        other => SirStmt::Unsupported {
-            label: stmt_kind(other),
-        },
+    }
+
+    fn lower_expr_stmt(&self, expr: &Expr) -> SirStmt {
+        match expr {
+            Expr::CallExpr {
+                callee,
+                named_args,
+                ..
+            } => lower_actuator_call(callee, named_args),
+            Expr::MatchExpr {
+                scrutinee,
+                arms,
+                ..
+            } => {
+                if let Expr::IdentExpr { name, .. } = scrutinee.as_ref() {
+                    let enum_name = arms.first().and_then(|arm| {
+                        self.variant_index
+                            .get(&arm.variant)
+                            .map(|(enum_name, _)| enum_name.clone())
+                    });
+                    if let Some(enum_name) = enum_name {
+                        let sir_arms: Vec<SirMatchArm> = arms
+                            .iter()
+                            .filter_map(|arm| {
+                                let (owner, tag) = self.variant_index.get(&arm.variant)?;
+                                if owner != &enum_name {
+                                    return None;
+                                }
+                                Some(SirMatchArm {
+                                    variant: arm.variant.clone(),
+                                    tag: *tag,
+                                    body: self.lower_stmts(&arm.body),
+                                })
+                            })
+                            .collect();
+                        if sir_arms.len() == arms.len() {
+                            return SirStmt::MatchEnumUnit {
+                                scrutinee: name.clone(),
+                                enum_name,
+                                arms: sir_arms,
+                            };
+                        }
+                    }
+                }
+                SirStmt::Unsupported {
+                    label: "match".into(),
+                }
+            }
+            _ => SirStmt::Unsupported {
+                label: "expr_stmt".into(),
+            },
+        }
+    }
+
+    fn resolve_enum_unit(&self, expr: &Expr) -> Option<(String, String, u32)> {
+        match expr {
+            Expr::IdentExpr { name, .. } => self
+                .variant_index
+                .get(name)
+                .map(|(enum_name, tag)| (enum_name.clone(), name.clone(), *tag)),
+            Expr::MemberExpr { object, property, .. } => {
+                if let Expr::IdentExpr { name: enum_name, .. } = object.as_ref() {
+                    self.variant_index.get(property).and_then(|(owner, tag)| {
+                        if owner == enum_name {
+                            Some((enum_name.clone(), property.clone(), *tag))
+                        } else {
+                            None
+                        }
+                    })
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
     }
 }
 
@@ -293,19 +443,6 @@ fn lower_return(value: Option<&Expr>) -> SirStmt {
                 }
             }
         }
-    }
-}
-
-fn lower_expr_stmt(expr: &Expr) -> SirStmt {
-    match expr {
-        Expr::CallExpr {
-            callee,
-            named_args,
-            ..
-        } => lower_actuator_call(callee, named_args),
-        _ => SirStmt::Unsupported {
-            label: "expr_stmt".into(),
-        },
     }
 }
 
@@ -582,5 +719,33 @@ robot R {
                 ..
             } if then_body.len() == 1 && else_body.as_ref().is_some_and(|b| b.len() == 1)
         ));
+    }
+
+    #[test]
+    fn lowers_if_var_and_match_enum_unit() {
+        let source = r#"
+enum RobotState { Idle, Navigating }
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let enabled = true;
+    let state = Idle;
+    if enabled { wheels.stop(); }
+    match state {
+      Idle => wheels.stop();
+      Navigating => wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+    };
+  }
+}
+"#;
+        let program = parser::parse(lexer::tokenize(source).expect("tokenize")).expect("parse");
+        types::check(&program).expect("check");
+        let sir = lower_program(&program);
+        let body = &sir.robots[0].behaviors[0].body;
+        assert!(matches!(body[0], SirStmt::LetBool { .. }));
+        assert!(matches!(body[1], SirStmt::LetEnumUnit { .. }));
+        assert!(matches!(body[2], SirStmt::IfVar { .. }));
+        assert!(matches!(body[3], SirStmt::MatchEnumUnit { .. }));
     }
 }

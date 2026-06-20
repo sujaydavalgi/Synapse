@@ -9,7 +9,7 @@ use spanda_core::foundations::BridgeKind;
 use spanda_core::sir::{
     SirBehavior, SirExtern, SirFunction, SirProgram, SirStmt, SirVisibility,
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 pub use compile::{compile_native, CompileNativeOptions, CompileNativeResult};
 
@@ -145,6 +145,21 @@ fn collect_stmt_strings(stmts: &[SirStmt], set: &mut BTreeSet<String>) {
                     collect_stmt_strings(else_body, set);
                 }
             }
+            SirStmt::IfVar {
+                then_body,
+                else_body,
+                ..
+            } => {
+                collect_stmt_strings(then_body, set);
+                if let Some(else_body) = else_body {
+                    collect_stmt_strings(else_body, set);
+                }
+            }
+            SirStmt::MatchEnumUnit { arms, .. } => {
+                for arm in arms {
+                    collect_stmt_strings(&arm.body, set);
+                }
+            }
             SirStmt::LoopEvery { body, .. } => collect_stmt_strings(body, set),
             _ => {}
         }
@@ -229,6 +244,21 @@ fn collect_actuator_names(stmts: &[SirStmt], names: &mut Vec<String>) {
                     collect_actuator_names(else_body, names);
                 }
             }
+            SirStmt::IfVar {
+                then_body,
+                else_body,
+                ..
+            } => {
+                collect_actuator_names(then_body, names);
+                if let Some(else_body) = else_body {
+                    collect_actuator_names(else_body, names);
+                }
+            }
+            SirStmt::MatchEnumUnit { arms, .. } => {
+                for arm in arms {
+                    collect_actuator_names(&arm.body, names);
+                }
+            }
             SirStmt::LoopEvery { body, .. } => collect_actuator_names(body, names),
             _ => {}
         }
@@ -270,7 +300,16 @@ fn escape_llvm_string(s: &str) -> String {
 
 fn emit_behavior_fn(robot: &str, behavior: &SirBehavior, strings: &[String]) -> String {
     let mut loop_id = 0usize;
-    let mut body = emit_stmts(&behavior.body, "void", strings, &mut loop_id);
+    let mut branch_id = 0usize;
+    let mut locals = EmitLocals::default();
+    let mut body = emit_stmts(
+        &behavior.body,
+        "void",
+        strings,
+        &mut loop_id,
+        &mut branch_id,
+        &mut locals,
+    );
     if !body.contains("ret void") {
         body.push_str("  ret void\n");
     }
@@ -280,15 +319,38 @@ fn emit_behavior_fn(robot: &str, behavior: &SirBehavior, strings: &[String]) -> 
     )
 }
 
+#[derive(Default)]
+struct EmitLocals {
+    bool_slots: HashSet<String>,
+    enum_slots: HashSet<String>,
+}
+
+fn bool_slot(name: &str) -> String {
+    format!("spanda_bool_{name}")
+}
+
+fn enum_slot(name: &str) -> String {
+    format!("spanda_enum_{name}")
+}
+
 fn emit_stmts(
     stmts: &[SirStmt],
     return_kind: &str,
     strings: &[String],
     loop_id: &mut usize,
+    branch_id: &mut usize,
+    locals: &mut EmitLocals,
 ) -> String {
     let mut out = String::new();
     for stmt in stmts {
-        out.push_str(&emit_stmt(stmt, return_kind, strings, loop_id));
+        out.push_str(&emit_stmt(
+            stmt,
+            return_kind,
+            strings,
+            loop_id,
+            branch_id,
+            locals,
+        ));
     }
     out
 }
@@ -298,6 +360,8 @@ fn emit_stmt(
     return_kind: &str,
     strings: &[String],
     loop_id: &mut usize,
+    branch_id: &mut usize,
+    locals: &mut EmitLocals,
 ) -> String {
     match stmt {
         SirStmt::ActuatorDrive {
@@ -321,6 +385,27 @@ fn emit_stmt(
         }
         SirStmt::ReturnVoid if return_kind == "void" => "  ret void\n".into(),
         SirStmt::LetInt { name, value } => format!("  ; let {name} = {value}\n"),
+        SirStmt::LetBool { name, value } => {
+            let slot = bool_slot(name);
+            let mut out = String::new();
+            if locals.bool_slots.insert(name.clone()) {
+                out.push_str(&format!("  %{slot} = alloca i1\n"));
+            }
+            out.push_str(&format!(
+                "  store i1 {}, i1* %{slot}\n",
+                if *value { 1 } else { 0 }
+            ));
+            out
+        }
+        SirStmt::LetEnumUnit { name, tag, .. } => {
+            let slot = enum_slot(name);
+            let mut out = String::new();
+            if locals.enum_slots.insert(name.clone()) {
+                out.push_str(&format!("  %{slot} = alloca i32\n"));
+            }
+            out.push_str(&format!("  store i32 {tag}, i32* %{slot}\n"));
+            out
+        }
         SirStmt::Publish { topic, payload } => {
             let topic_ptr = string_global_ptr_for(topic, strings);
             let payload_ptr = payload
@@ -339,18 +424,79 @@ fn emit_stmt(
             else_body,
         } => {
             if *condition {
-                emit_stmts(then_body, return_kind, strings, loop_id)
+                emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals)
             } else if let Some(else_body) = else_body {
-                emit_stmts(else_body, return_kind, strings, loop_id)
+                emit_stmts(else_body, return_kind, strings, loop_id, branch_id, locals)
             } else {
                 String::new()
             }
+        }
+        SirStmt::IfVar {
+            condition,
+            then_body,
+            else_body,
+        } => {
+            let id = *branch_id;
+            *branch_id += 1;
+            let slot = bool_slot(condition);
+            let then_label = format!("if_then{id}");
+            let else_label = format!("if_else{id}");
+            let merge_label = format!("if_merge{id}");
+            let then_ir = emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals);
+            let else_ir = else_body
+                .as_ref()
+                .map(|body| emit_stmts(body, return_kind, strings, loop_id, branch_id, locals))
+                .unwrap_or_default();
+            format!(
+                "  %if_cond{id} = load i1, i1* %{slot}\n\
+                   br i1 %if_cond{id}, label %{then_label}, label %{else_label}\n\
+                 {then_label}:\n\
+                 {then_ir}\
+                   br label %{merge_label}\n\
+                 {else_label}:\n\
+                 {else_ir}\
+                   br label %{merge_label}\n\
+                 {merge_label}:\n"
+            )
+        }
+        SirStmt::MatchEnumUnit { scrutinee, arms, .. } => {
+            let id = *branch_id;
+            *branch_id += 1;
+            let slot = enum_slot(scrutinee);
+            let end_label = format!("match_end{id}");
+            let default_label = format!("match_default{id}");
+            let mut switch_cases = String::new();
+            let mut arm_blocks = String::new();
+            for (idx, arm) in arms.iter().enumerate() {
+                let arm_label = format!("match_arm{id}_{idx}");
+                switch_cases.push_str(&format!("    i32 {}, label %{arm_label}\n", arm.tag));
+                arm_blocks.push_str(&format!("{arm_label}:\n"));
+                arm_blocks.push_str(&emit_stmts(
+                    &arm.body,
+                    return_kind,
+                    strings,
+                    loop_id,
+                    branch_id,
+                    locals,
+                ));
+                arm_blocks.push_str(&format!("  br label %{end_label}\n"));
+            }
+            format!(
+                "  %match_tag{id} = load i32, i32* %{slot}\n\
+                   switch i32 %match_tag{id}, label %{default_label} [\n\
+                 {switch_cases}\
+                   ]\n\
+                 {arm_blocks}\
+                 {default_label}:\n\
+                   br label %{end_label}\n\
+                 {end_label}:\n"
+            )
         }
         SirStmt::LoopEvery { interval_ms, body } => {
             let id = *loop_id;
             *loop_id += 1;
             let header = format!("loop{id}");
-            let block = emit_stmts(body, return_kind, strings, loop_id);
+            let block = emit_stmts(body, return_kind, strings, loop_id, branch_id, locals);
             format!(
                 "  br label %{header}\n\
                  {header}:\n\
@@ -406,7 +552,16 @@ fn emit_function(func: &SirFunction, strings: &[String]) -> String {
         .map(|p| format!("{} %{}", llvm_type(&p.type_name), p.name))
         .collect();
     let mut loop_id = 0usize;
-    let body = emit_stmts(&func.body, ret, strings, &mut loop_id);
+    let mut branch_id = 0usize;
+    let mut locals = EmitLocals::default();
+    let body = emit_stmts(
+        &func.body,
+        ret,
+        strings,
+        &mut loop_id,
+        &mut branch_id,
+        &mut locals,
+    );
     let fallback = if ret == "void" {
         "  ret void\n".to_string()
     } else if ret == "double" {
@@ -512,5 +667,31 @@ robot R {
         assert!(ir.contains("call void @spanda_rt_subscribe("));
         assert!(ir.contains("call void @spanda_rt_stop("));
         assert!(!ir.contains("call void @spanda_rt_drive("));
+    }
+
+    #[test]
+    fn emits_if_var_and_match_switch() {
+        let source = r#"
+enum RobotState { Idle, Navigating }
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let enabled = false;
+    let state = Navigating;
+    if enabled { wheels.drive(linear: 1.0 m/s, angular: 0.0 rad/s); } else { wheels.stop(); }
+    match state {
+      Idle => wheels.stop();
+      Navigating => wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+    };
+  }
+}
+"#;
+        let sir = lower_to_sir(source).unwrap();
+        let ir = emit_module_ir(&sir);
+        assert!(ir.contains("alloca i1"));
+        assert!(ir.contains("alloca i32"));
+        assert!(ir.contains("switch i32"));
+        assert!(ir.contains("br i1"));
+        assert!(ir.contains("call void @spanda_rt_drive("));
     }
 }
