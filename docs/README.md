@@ -25,7 +25,11 @@ Spanda is an AI-native autonomous systems programming language. Source files use
 | [hardware-compatibility.md](./hardware-compatibility.md) | **Hardware profiles, deploy targets, and compile-time verification** |
 | [spanda-architecture.md](./spanda-architecture.md) | Architecture diagram, compiler pipeline, safety model |
 | [spanda-language.md](./spanda-language.md) | Language reference for modules, traits, tasks, twins, hardware |
+| [spanda-reference.md](./spanda-reference.md) | **Full language API reference** (keywords, `std.*`, builtins, man-style CLI) |
+| [api-reference.md](./api-reference.md) | Rust/TypeScript compiler API index (modules, types, functions) |
+| [standard-library.md](./standard-library.md) | Standard library overview and design |
 | [spanda-type-system.md](./spanda-type-system.md) | Type system: units, generics, AI/safety types |
+| [man/](./man/) | Man-page style CLI reference |
 | [roadmap.md](./roadmap.md) | Roadmap and self-hosting plan |
 | [compiler-backend-roadmap.md](./compiler-backend-roadmap.md) | **LLVM / native codegen evolution** |
 | [ffi-and-ecosystem.md](./ffi-and-ecosystem.md) | **Python/C++/ROS2 interoperability strategy** |
@@ -71,6 +75,7 @@ spanda replay mission.trace --deterministic
 spanda replay mission.trace --playback --from T+00:30
 spanda fleet run examples/communication/multi_robot_fleet.sd
 spanda fmt examples/rover.sd
+spanda reference --out docs/spanda-reference.md --man-dir docs/man
 ```
 
 Trace and telemetry flags for `run`, `sim`, and `fleet run`:
@@ -91,6 +96,8 @@ Rust (`crates/`) and TypeScript (`src/`, `packages/`) use inline API docs inside
 - `add_inline_docs.py` — generate API doc blocks
 - `add_logic_block_docs.py` — generate contextual block comments
 - `normalize_inline_docs.py` — fix spacing and indentation (run after bulk edits)
+- `generate_api_reference.py` — regenerate [api-reference.md](./api-reference.md) from source
+- `generate_spanda_reference.py` — regenerate [spanda-reference.md](./spanda-reference.md) and [man/](./man/)
 
 See [../CONTRIBUTING.md](../CONTRIBUTING.md#inline-documentation) for the full standard.
 

@@ -326,6 +326,9 @@ Rust and TypeScript sources use **inline API documentation** (inside function bo
 | [docs/feature-status.md](docs/feature-status.md) | Stable vs experimental vs planned |
 | [docs/product-strategy.md](docs/product-strategy.md) | v0.5 beta priorities and positioning |
 | [docs/spanda-language.md](docs/spanda-language.md) | Language reference |
+| [docs/spanda-reference.md](docs/spanda-reference.md) | Full language API (JavaDoc + man-style CLI) |
+| [docs/api-reference.md](docs/api-reference.md) | Rust/TypeScript compiler API index |
+| [docs/man/](docs/man/) | CLI manual pages |
 | [docs/README.md](docs/README.md) | Full documentation index |
 
 ---

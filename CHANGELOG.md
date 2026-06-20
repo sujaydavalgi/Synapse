@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mission trace replay: `spanda replay`, `--record`, `--trace-realtime`, `--metrics-json`
 - Runtime telemetry: `PipelineMetrics`, `WatchdogMetrics`
 - Docs: `docs/realtime.md`, `docs/reliability.md`, `docs/watchdogs.md`, `docs/degraded-modes.md`, `docs/replay.md`, `docs/regex.md`
+- **Language reference:** `spanda reference`, `docs/spanda-reference.md` (JavaDoc-style `std.*`, builtins, types), `docs/man/` (man-page CLI docs)
+- **Compiler API index:** `docs/api-reference.md` (Rust/TypeScript modules and public functions)
 - Examples under `examples/realtime/` and `examples/regex/`
 
 ### Changed

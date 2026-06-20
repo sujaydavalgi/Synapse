@@ -2,6 +2,8 @@
 
 The Spanda standard library is organized as modular **`std.*` namespaces**. Each namespace registers types and import paths; runtime behavior is provided by the interpreter and domain modules (`safety`, `simulator`, `comm`, etc.).
 
+**Full API reference:** [spanda-reference.md](./spanda-reference.md) (generated from the type checker — all `std.*` types, global functions, and built-in methods with signatures).
+
 ## Design principles
 
 - **Modular** — import only what a program needs: `import std.robotics;`

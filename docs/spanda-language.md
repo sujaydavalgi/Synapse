@@ -2,6 +2,8 @@
 
 Spanda programs use the `.sd` extension. Programs are organized around **autonomous systems**, not OOP class hierarchies.
 
+> **API reference:** [spanda-reference.md](./spanda-reference.md) lists every keyword, `std.*` type, built-in function/method (with signatures), and CLI command in JavaDoc / man-page form. Generate per-module docs with `spanda doc file.sd`.
+
 ## Modules
 
 ```spanda
