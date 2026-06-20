@@ -182,3 +182,15 @@ robot R {
     let trace = result.mission_trace.expect("mission trace");
     assert!(trace.frames.iter().any(|f| f.event == "scheduler_tick"));
 }
+
+#[test]
+fn verify_traces_detects_event_mismatch() {
+    use spanda_core::replay::{verify_traces, MissionTrace};
+    let mut expected = MissionTrace::new("test.sd");
+    expected.record(10.0, "scheduler_tick", serde_json::json!({}));
+    let mut actual = MissionTrace::new("test.sd");
+    actual.record(10.0, "pipeline_run", serde_json::json!({}));
+    let report = verify_traces(&expected, &actual, 0.0);
+    assert!(!report.ok);
+    assert!(!report.mismatches.is_empty());
+}

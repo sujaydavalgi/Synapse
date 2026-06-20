@@ -200,3 +200,64 @@ pub fn parse_replay_offset(raw: &str) -> Result<f64, SpandaError> {
     };
     Ok(total_secs * 1000.0)
 }
+
+/// Result of comparing an expected mission trace to a fresh recorded run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TraceVerification {
+    pub ok: bool,
+    pub matched: usize,
+    pub mismatches: Vec<String>,
+}
+
+pub fn verify_traces(
+    expected: &MissionTrace,
+    actual: &MissionTrace,
+    from_ms: f64,
+) -> TraceVerification {
+    // Compare two mission traces from the same offset for deterministic replay checks.
+    //
+    // Parameters:
+    // - `expected` — reference trace loaded from disk
+    // - `actual` — trace recorded during a replay run
+    // - `from_ms` — comparison start offset in milliseconds
+    //
+    // Returns:
+    // Verification summary with mismatched frame details.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let report = verify_traces(&expected, &actual, 0.0);
+
+    // Align both traces from the requested offset.
+    let exp = expected.frames_from(from_ms);
+    let act = actual.frames_from(from_ms);
+    let mut mismatches = Vec::new();
+    let shared = exp.len().min(act.len());
+    for index in 0..shared {
+        if exp[index].event != act[index].event {
+            mismatches.push(format!(
+                "frame {index}: expected event '{}', got '{}'",
+                exp[index].event, act[index].event
+            ));
+        } else if (exp[index].sim_time_ms - act[index].sim_time_ms).abs() > 0.001 {
+            mismatches.push(format!(
+                "frame {index} event '{}': expected t={:.3}ms, got t={:.3}ms",
+                exp[index].event, exp[index].sim_time_ms, act[index].sim_time_ms
+            ));
+        }
+    }
+    if exp.len() != act.len() {
+        mismatches.push(format!(
+            "frame count mismatch: expected {}, got {}",
+            exp.len(),
+            act.len()
+        ));
+    }
+    TraceVerification {
+        ok: mismatches.is_empty(),
+        matched: shared,
+        mismatches,
+    }
+}

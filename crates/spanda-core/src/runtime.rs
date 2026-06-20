@@ -15,7 +15,7 @@ use crate::audit::{
     sha256 as audit_sha256, sign as audit_sign, verify_signature, AuditRuntime, DeviceIdentity,
     MockLedgerBackend,
 };
-use crate::comm::{CommBus, DiscoverFilter, TransportKind};
+use crate::comm::{CommBus, DiscoverFilter, QosDecl, TransportKind};
 use crate::error::{PoseState, RobotState, SpandaError, VelocityState};
 use crate::events::EventBus;
 use crate::foundations::{
@@ -26,7 +26,8 @@ use crate::hal::{create_sim_hal, hal_member_from_decl, HalBackend, SimHalBackend
 use crate::hardware_monitor::HardwareMonitor;
 use crate::lib_registry::{get_sensor_driver, read_with_driver, DriverContext, SimState};
 use crate::reliability_runtime::{
-    recover_handlers_from_decls, PipelineRuntime, RecoverHandlers, RetryRuntime, WatchdogRuntime,
+    recover_handlers_from_decls, ModeRuntime, PipelineRuntime, RecoverHandlers, RetryRuntime,
+    WatchdogRuntime,
 };
 use crate::replay::MissionTrace;
 use crate::safety::{
@@ -899,6 +900,10 @@ pub struct Interpreter<B: RobotBackend> {
     pipelines: HashMap<String, PipelineRuntime>,
     retries: Vec<RetryRuntime>,
     recovers: RecoverHandlers,
+    modes: HashMap<String, ModeRuntime>,
+    topic_qos: HashMap<String, QosDecl>,
+    topic_last_publish_ms: HashMap<String, f64>,
+    topic_deadline_misses: HashMap<String, u64>,
     mission_trace: Option<MissionTrace>,
 }
 
@@ -969,6 +974,10 @@ impl<B: RobotBackend> Interpreter<B> {
             pipelines: HashMap::new(),
             retries: Vec::new(),
             recovers: HashMap::new(),
+            modes: HashMap::new(),
+            topic_qos: HashMap::new(),
+            topic_last_publish_ms: HashMap::new(),
+            topic_deadline_misses: HashMap::new(),
             mission_trace: None,
         }
     }
@@ -1666,6 +1675,9 @@ impl<B: RobotBackend> Interpreter<B> {
         self.declared_topic_names.clear();
         self.triggers_dispatched_this_tick = 0;
         self.twin = None;
+        self.topic_qos.clear();
+        self.topic_last_publish_ms.clear();
+        self.topic_deadline_misses.clear();
         self.state_machines.clear();
         self.agent_capabilities.clear();
         self.agent_trait_impls.clear();
@@ -2175,6 +2187,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.pipelines.clear();
         self.retries.clear();
         self.recovers.clear();
+        self.modes.clear();
         self.task_heartbeats.clear();
         self.active_mode = "normal".into();
 
@@ -2196,6 +2209,7 @@ impl<B: RobotBackend> Interpreter<B> {
             watchdogs,
             retries,
             recovers,
+            modes,
             ..
         } = robot;
         for pipeline in pipelines {
@@ -2209,7 +2223,98 @@ impl<B: RobotBackend> Interpreter<B> {
             self.retries.push(RetryRuntime::from_decl(retry));
         }
         self.recovers = recover_handlers_from_decls(recovers);
+        for mode in modes {
+            let runtime = ModeRuntime::from_decl(mode);
+            self.modes.insert(runtime.name.clone(), runtime);
+        }
+
+        // Enter the default normal mode when declared.
+        if self.modes.contains_key("normal") {
+            self.enter_mode("normal")?;
+        }
         Ok(())
+    }
+
+    fn enter_mode(&mut self, mode: &str) -> Result<(), SpandaError> {
+        // Switch the active operating mode and run its configuration body.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `mode` — mode name without `_mode` suffix
+        //
+        // Returns:
+        // Ok when the mode body completes.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.enter_mode("degraded")?;
+
+        // Update active mode and execute the declared body when present.
+        self.active_mode = mode.to_string();
+        if let Some(body) = self.modes.get(mode).map(|m| m.body.clone()) {
+            self.execute_block(&body)?;
+        } else {
+            self.log(format!("mode: entered '{mode}' (no body declared)"));
+            return Ok(());
+        }
+        self.record_mission_event("mode_enter", serde_json::json!({ "mode": mode }));
+        self.log(format!("mode: entered '{mode}'"));
+        Ok(())
+    }
+
+    fn check_topic_qos_deadlines(&mut self) {
+        // Detect topic publish deadline misses against declared QoS.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Nothing.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.check_topic_qos_deadlines();
+
+        // Compare elapsed sim time since the last publish for each topic.
+        let snapshots: Vec<(String, f64, f64)> = self
+            .topic_qos
+            .iter()
+            .filter_map(|(path, qos)| {
+                let deadline_ms = qos.deadline_ms?;
+                let last = self.topic_last_publish_ms.get(path).copied().unwrap_or(0.0);
+                if last <= 0.0 {
+                    return None;
+                }
+                let elapsed = self.sim_time_ms - last;
+                if elapsed <= deadline_ms {
+                    return None;
+                }
+                Some((path.clone(), elapsed, deadline_ms))
+            })
+            .collect();
+        for (path, elapsed, deadline_ms) in snapshots {
+            let misses = self.topic_deadline_misses.entry(path.clone()).or_insert(0);
+            if *misses == 0 || elapsed > deadline_ms * (*misses as f64 + 1.0) {
+                *misses += 1;
+                self.telemetry
+                    .record_topic_deadline_miss(&path, elapsed, deadline_ms);
+                self.record_mission_event(
+                    "topic_deadline_miss",
+                    serde_json::json!({
+                        "topic": path,
+                        "elapsed_ms": elapsed,
+                        "deadline_ms": deadline_ms,
+                    }),
+                );
+                self.log(format!(
+                    "topic '{path}': deadline miss ({elapsed:.1}ms > {deadline_ms:.1}ms)"
+                ));
+            }
+        }
     }
 
     fn record_mission_event(&mut self, event: impl Into<String>, payload: serde_json::Value) {
@@ -2664,6 +2769,7 @@ impl<B: RobotBackend> Interpreter<B> {
             topic: topic_path,
             transport,
             secure,
+            qos,
             ..
         } = topic;
         let path = topic_path.clone().unwrap_or_else(|| format!("/{name}"));
@@ -2676,6 +2782,9 @@ impl<B: RobotBackend> Interpreter<B> {
         }
         self.comm_bus.subscribe(&path, name);
         self.topic_path_to_name.insert(path.clone(), name.clone());
+        if let Some(qos_decl) = qos {
+            self.topic_qos.insert(path.clone(), qos_decl.clone());
+        }
         self.env.define(
             name.clone(),
             RuntimeValue::Topic {
@@ -3239,6 +3348,7 @@ impl<B: RobotBackend> Interpreter<B> {
             // Take the branch when run scheduled task is false.
             let continue_running = self.run_scheduled_task(&schedule)?;
             self.check_watchdogs()?;
+            self.check_topic_qos_deadlines();
             self.record_mission_event(
                 "scheduler_tick",
                 serde_json::json!({ "sim_time_ms": sim_time, "task": task_name }),
@@ -3436,6 +3546,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
             }
             self.check_watchdogs()?;
+            self.check_topic_qos_deadlines();
             self.record_mission_event(
                 "scheduler_tick",
                 serde_json::json!({ "sim_time_ms": sim_time, "iteration": iteration + 1 }),
@@ -4484,6 +4595,12 @@ impl<B: RobotBackend> Interpreter<B> {
                         self.default_transport,
                     );
                     self.backend.publish_topic(&topic_path, &message_type, val);
+                    self.topic_last_publish_ms
+                        .insert(topic_path.clone(), self.sim_time_ms);
+                    self.record_mission_event(
+                        "topic_publish",
+                        serde_json::json!({ "topic": topic_path }),
+                    );
 
                     // Emit output when as mut provides a rt.
                     if let Some(rt) = self.audit_runtime.as_mut() {
@@ -4783,8 +4900,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             Stmt::ReturnStmt { .. } => {}
             Stmt::EnterModeStmt { mode, .. } => {
-                self.active_mode = mode.clone();
-                self.log(format!("mode: entered '{mode}'"));
+                self.enter_mode(mode)?;
             }
             Stmt::UseFallbackStmt { resource, .. } => {
                 self.log(format!("fault: using fallback resource '{resource}'"));

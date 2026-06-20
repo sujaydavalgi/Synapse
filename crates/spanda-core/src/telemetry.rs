@@ -65,11 +65,19 @@ pub struct WatchdogMetrics {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct TopicMetrics {
+    pub path: String,
+    pub deadline_misses: u64,
+    pub last_elapsed_ms: f64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct RuntimeTelemetry {
     pub tasks: HashMap<String, TaskMetrics>,
     pub triggers: HashMap<String, TriggerMetrics>,
     pub pipelines: HashMap<String, PipelineMetrics>,
     pub watchdogs: HashMap<String, WatchdogMetrics>,
+    pub topics: HashMap<String, TopicMetrics>,
     pub scheduler: SchedulerMetrics,
     pub execution: ExecutionMetrics,
     pub replay_frames: u64,
@@ -576,6 +584,37 @@ impl RuntimeTelemetry {
         let metrics = self.watchdog_mut(name);
         metrics.timeouts += 1;
         metrics.last_timeout_ms = sim_time_ms;
+    }
+
+    pub fn record_topic_deadline_miss(&mut self, path: &str, elapsed_ms: f64, deadline_ms: f64) {
+        // Record a topic QoS deadline violation.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `path` — topic path
+        // - `elapsed_ms` — time since last publish
+        // - `deadline_ms` — declared deadline
+        //
+        // Returns:
+        // Nothing.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // telemetry.record_topic_deadline_miss("/scan", 75.0, 50.0);
+
+        // Update per-topic miss counters and last observed lateness.
+        let entry = self
+            .topics
+            .entry(path.to_string())
+            .or_insert_with(|| TopicMetrics {
+                path: path.to_string(),
+                ..Default::default()
+            });
+        entry.deadline_misses += 1;
+        entry.last_elapsed_ms = elapsed_ms;
+        let _ = deadline_ms;
     }
 }
 

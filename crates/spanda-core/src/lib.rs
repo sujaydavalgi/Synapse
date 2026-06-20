@@ -68,14 +68,14 @@ pub use hardware::{
 };
 pub use lint::{lint, LintIssue, LintReport, LintSeverity};
 pub use modules::{load_project_modules, ModuleRegistry};
-pub use replay::{parse_replay_offset, MissionTrace};
+pub use replay::{parse_replay_offset, verify_traces, MissionTrace, TraceVerification};
 pub use sir::{
     lower_program, SirBehavior, SirExtern, SirFunction, SirParam, SirProgram, SirStmt,
     SirVisibility,
 };
 pub use telemetry::{
     ExecutionMetrics, PipelineMetrics, RuntimeTelemetry, SchedulerMetrics, TaskMetrics,
-    TriggerMetrics, WatchdogMetrics,
+    TopicMetrics, TriggerMetrics, WatchdogMetrics,
 };
 
 use runtime::{Interpreter, InterpreterOptions, RobotBackend};
@@ -457,6 +457,47 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
         metrics,
         mission_trace,
     })
+}
+
+pub fn replay_mission(
+    source: &str,
+    trace_path: &str,
+    mut options: RunOptions,
+) -> Result<(RunResult, TraceVerification), SpandaError> {
+    // Re-run a program and verify the recorded mission trace matches a reference trace.
+    //
+    // Parameters:
+    // - `source` — `.sd` program source text
+    // - `trace_path` — reference `.trace` file path
+    // - `options` — run options; `replay_from_ms` selects comparison offset
+    //
+    // Returns:
+    // Run result plus deterministic trace verification report.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let (result, report) = replay_mission(source, "mission.trace", RunOptions::default())?;
+
+    // Load the reference trace and record a fresh trace during replay.
+    let expected = MissionTrace::load(trace_path)?;
+    let from_ms = options.replay_from_ms.unwrap_or(0.0);
+    options.record_trace = true;
+    options.replay_deterministic = true;
+    if options.trace_source.is_none() {
+        options.trace_source = Some(expected.source.clone());
+    }
+    let result = run(source, options)?;
+    let actual = result
+        .mission_trace
+        .as_ref()
+        .ok_or_else(|| SpandaError::Runtime {
+            message: "Replay run did not produce a mission trace".into(),
+            line: 0,
+        })?;
+    let verification = verify_traces(&expected, actual, from_ms);
+    Ok((result, verification))
 }
 
 pub fn run_debug(source: &str, options: DebugOptions) -> Result<DebugSession, SpandaError> {

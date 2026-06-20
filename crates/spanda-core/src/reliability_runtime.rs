@@ -136,6 +136,38 @@ impl RetryRuntime {
 /// Recovery handlers keyed by error or hardware event name.
 pub type RecoverHandlers = HashMap<String, Vec<Stmt>>;
 
+/// Loaded operating mode with configuration statements.
+#[derive(Debug, Clone)]
+pub struct ModeRuntime {
+    pub name: String,
+    pub body: Vec<Stmt>,
+}
+
+impl ModeRuntime {
+    pub fn from_decl(decl: &crate::foundations::ModeDecl) -> Self {
+        // Build runtime mode state from a parsed declaration.
+        //
+        // Parameters:
+        // - `decl` — parsed mode block
+        //
+        // Returns:
+        // Mode runtime entry.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let mode = ModeRuntime::from_decl(&mode_decl);
+
+        // Copy declaration fields into the runtime container.
+        let crate::foundations::ModeDecl::ModeDecl { name, body, .. } = decl;
+        Self {
+            name: name.clone(),
+            body: body.clone(),
+        }
+    }
+}
+
 pub fn recover_handlers_from_decls(recovers: &[RecoverDecl]) -> RecoverHandlers {
     // Index recovery handlers by declared error name.
     //
