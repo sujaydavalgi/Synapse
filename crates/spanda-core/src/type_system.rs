@@ -487,6 +487,69 @@ pub fn std_namespaces() -> HashMap<&'static str, &'static [&'static str]> {
         ][..],
     );
     m.insert(
+        "std.actuators",
+        &[
+            "Actuator",
+            "Motor",
+            "Servo",
+            "Gripper",
+            "DriveUnit",
+            "JointCommand",
+            "TorqueCommand",
+            "VelocityCommand",
+        ][..],
+    );
+    m.insert(
+        "std.communication",
+        &[
+            "Transport",
+            "QosProfile",
+            "QoS",
+            "Bandwidth",
+            "Latency",
+            "TopicPath",
+            "ServiceEndpoint",
+            "MessageEnvelope",
+            "DiscoveryFilter",
+            "NetworkRequirements",
+            "Reliability",
+            "HistoryPolicy",
+            "CommBus",
+            "Endpoint",
+            "Topic",
+            "Message",
+            "Service",
+            "Action",
+        ][..],
+    );
+    m.insert(
+        "std.hardware",
+        &[
+            "HardwareProfile",
+            "SensorSpec",
+            "ActuatorSpec",
+            "BusConfig",
+            "PinConfig",
+            "DeviceTree",
+            "Peripheral",
+            "Interface",
+        ][..],
+    );
+    m.insert(
+        "std.sim",
+        &[
+            "Simulator",
+            "WorldState",
+            "PhysicsConfig",
+            "Scene",
+            "Entity",
+            "SensorModel",
+            "ActuatorModel",
+            "Tick",
+            "ReplayBuffer",
+        ][..],
+    );
+    m.insert(
         "std.network",
         &[
             "Transport",
