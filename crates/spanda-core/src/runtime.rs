@@ -1,7 +1,8 @@
 use crate::ai::{
     create_agent_runtime, create_ai_model, execute_agent_plan, is_action_proposal, is_safe_action,
-    mock_analyze_frame, mock_camera_frame, proposal_from_value, safe_action_from_proposal,
-    AgentRuntime, AiModel, MemoryStore, PlanExecutor,
+    mock_analyze_frame, mock_camera_frame, proposal_confidence, proposal_from_value,
+    safe_action_from_proposal, AgentRuntime, AiModel, MemoryStore, PlanExecutor,
+    AI_CONFIDENCE_LOW_THRESHOLD,
 };
 use crate::ast::{
     ActionDecl, ActuatorDecl, AgentDecl, BehaviorDecl, BinaryOp, Expr, LiteralValue, Program,
@@ -15,8 +16,12 @@ use crate::audit::{
 use crate::comm::{CommBus, DiscoverFilter, TransportKind};
 use crate::error::{PoseState, RobotState, SpandaError, VelocityState};
 use crate::events::EventBus;
-use crate::foundations::{CapabilityDecl, StateMachineDecl, TaskDecl, TaskPriority, TwinDecl};
+use crate::foundations::{
+    CapabilityDecl, StateMachineDecl, TaskDecl, TaskPriority, TriggerHandlerDecl, TriggerKind,
+    TwinDecl,
+};
 use crate::hal::{create_sim_hal, hal_member_from_decl, HalBackend, SimHalBackend};
+use crate::hardware_monitor::HardwareMonitor;
 use crate::lib_registry::{get_sensor_driver, read_with_driver, DriverContext, SimState};
 use crate::safety::{
     create_safety_config_from_robot, interpolate_poses, Pose2d, SafetyMonitor, SafetyZoneRuntime,
@@ -28,6 +33,10 @@ use crate::security::{
 use crate::soc::get_soc_profile;
 use crate::state_machine::StateMachineRuntime;
 use crate::transport::{RoutingCommBus, TransportConfig};
+use crate::triggers::{
+    priority_rank, trigger_display_name, ConditionTriggerState, SystemTriggerCategory,
+    TriggerRegistry, TriggerTimerSchedule, MAX_TRIGGERS_PER_TICK,
+};
 use crate::twin::TwinRuntime;
 use crate::units::align_for_binary;
 #[cfg(test)]
@@ -427,7 +436,11 @@ pub struct InterpreterOptions {
     pub ffi_registry: crate::ffi::FfiRegistry,
     pub trace_scheduler: bool,
     pub trace_tasks: bool,
+    pub trace_triggers: bool,
+    pub trace_events: bool,
     pub replay_trace: bool,
+    /// Max trigger dispatches per scheduler tick (hardware-aware storm protection).
+    pub max_triggers_per_tick: usize,
 }
 
 impl Default for InterpreterOptions {
@@ -441,7 +454,10 @@ impl Default for InterpreterOptions {
             ffi_registry: crate::ffi::FfiRegistry::new(),
             trace_scheduler: false,
             trace_tasks: false,
+            trace_triggers: false,
+            trace_events: false,
             replay_trace: false,
+            max_triggers_per_tick: MAX_TRIGGERS_PER_TICK,
         }
     }
 }
@@ -459,6 +475,12 @@ pub struct Interpreter<B: RobotBackend> {
     current_agent: Option<String>,
     stop_if_conditions: Vec<Expr>,
     event_bus: EventBus,
+    trigger_registry: TriggerRegistry,
+    trigger_timers: Vec<TriggerTimerSchedule>,
+    condition_trigger_state: ConditionTriggerState,
+    declared_event_names: std::collections::HashSet<String>,
+    declared_topic_names: std::collections::HashSet<String>,
+    triggers_dispatched_this_tick: usize,
     twin: Option<TwinRuntime>,
     state_machines: HashMap<String, StateMachineRuntime>,
     enum_variants: HashMap<String, Vec<String>>,
@@ -466,7 +488,12 @@ pub struct Interpreter<B: RobotBackend> {
     struct_defs: HashMap<String, Vec<(String, String)>>,
     agent_trait_impls: HashMap<String, HashMap<String, AgentTraitImplBody>>,
     verify_rules: Vec<Expr>,
+    verify_warning_rules: Vec<Expr>,
     fusion_sensors: Vec<String>,
+    hardware_monitor: HardwareMonitor,
+    topic_path_to_name: HashMap<String, String>,
+    ai_confidence_low_active: bool,
+    twin_faults_dispatched: std::collections::HashSet<String>,
     audit_runtime: Option<AuditRuntime>,
     mock_ledger: MockLedgerBackend,
     security: SecurityContext,
@@ -494,6 +521,12 @@ impl<B: RobotBackend> Interpreter<B> {
             current_agent: None,
             stop_if_conditions: Vec::new(),
             event_bus: EventBus::new(),
+            trigger_registry: TriggerRegistry::new(),
+            trigger_timers: Vec::new(),
+            condition_trigger_state: ConditionTriggerState::default(),
+            declared_event_names: std::collections::HashSet::new(),
+            declared_topic_names: std::collections::HashSet::new(),
+            triggers_dispatched_this_tick: 0,
             twin: None,
             state_machines: HashMap::new(),
             enum_variants: HashMap::new(),
@@ -501,7 +534,12 @@ impl<B: RobotBackend> Interpreter<B> {
             struct_defs: HashMap::new(),
             agent_trait_impls: HashMap::new(),
             verify_rules: Vec::new(),
+            verify_warning_rules: Vec::new(),
             fusion_sensors: Vec::new(),
+            hardware_monitor: HardwareMonitor::default(),
+            topic_path_to_name: HashMap::new(),
+            ai_confidence_low_active: false,
+            twin_faults_dispatched: std::collections::HashSet::new(),
             audit_runtime: None,
             mock_ledger: MockLedgerBackend::new(),
             security: SecurityContext::new(),
@@ -532,6 +570,18 @@ impl<B: RobotBackend> Interpreter<B> {
     fn trace_task_log(&self, message: impl Into<String>) {
         if self.options.trace_tasks {
             self.log(format!("trace-task: {}", message.into()));
+        }
+    }
+
+    fn trace_trigger_log(&self, message: impl Into<String>) {
+        if self.options.trace_triggers {
+            self.log(format!("trace-trigger: {}", message.into()));
+        }
+    }
+
+    fn trace_event_log(&self, message: impl Into<String>) {
+        if self.options.trace_events || self.options.trace_triggers {
+            self.log(format!("trace-event: {}", message.into()));
         }
     }
 
@@ -621,15 +671,43 @@ impl<B: RobotBackend> Interpreter<B> {
         program: &Program,
         entry_behavior: Option<&str>,
     ) -> Result<RobotState, SpandaError> {
-        let Program::Program { robots, .. } = program;
+        let Program::Program {
+            robots,
+            simulate_compatibility,
+            ..
+        } = program;
+        let mut sim_faults: Vec<String> = Vec::new();
+        if let Some(sim) = simulate_compatibility {
+            use crate::foundations::SimulateCompatibilityDecl;
+            let SimulateCompatibilityDecl::SimulateCompatibilityDecl { faults, .. } = sim;
+            sim_faults = faults.iter().map(|f| f.fault_type.clone()).collect();
+        }
         self.load_program_metadata(program);
         for robot in robots {
             self.setup_robot(robot)?;
+            for fault in &sim_faults {
+                self.hardware_monitor.inject_fault(fault.clone());
+                self.comm_bus.inject_fault(fault);
+            }
+            if !sim_faults.is_empty() {
+                self.log(format!(
+                    "simulate_compatibility: {} fault(s) active",
+                    sim_faults.len()
+                ));
+            }
             let RobotDecl::RobotDecl {
                 behaviors, tasks, ..
             } = robot;
             if behaviors.is_empty() && tasks.len() > 1 && entry_behavior.is_none() {
                 self.execute_multiplexed_tasks(robot.all_task_schedules())?;
+                continue;
+            }
+            if behaviors.is_empty()
+                && tasks.is_empty()
+                && entry_behavior.is_none()
+                && self.has_standalone_triggers()
+            {
+                self.execute_trigger_only_loop()?;
                 continue;
             }
             let behavior_name = entry_behavior
@@ -770,6 +848,7 @@ impl<B: RobotBackend> Interpreter<B> {
             state_machines,
             events,
             event_handlers,
+            trigger_handlers,
             twin,
             verify,
             observe,
@@ -794,12 +873,23 @@ impl<B: RobotBackend> Interpreter<B> {
         self.zones.clear();
         self.stop_if_conditions.clear();
         self.event_bus = EventBus::new();
+        self.trigger_registry = TriggerRegistry::new();
+        self.trigger_timers.clear();
+        self.condition_trigger_state = ConditionTriggerState::default();
+        self.declared_event_names.clear();
+        self.declared_topic_names.clear();
+        self.triggers_dispatched_this_tick = 0;
         self.twin = None;
         self.state_machines.clear();
         self.agent_capabilities.clear();
         self.agent_trait_impls.clear();
         self.verify_rules.clear();
+        self.verify_warning_rules.clear();
         self.fusion_sensors.clear();
+        self.hardware_monitor = HardwareMonitor::default();
+        self.topic_path_to_name.clear();
+        self.ai_confidence_low_active = false;
+        self.twin_faults_dispatched.clear();
         self.audit_runtime = None;
         self.mock_ledger = MockLedgerBackend::new();
         self.security = SecurityContext::new();
@@ -854,6 +944,8 @@ impl<B: RobotBackend> Interpreter<B> {
         }
 
         for topic in topics {
+            let TopicDecl::TopicDecl { name, .. } = topic;
+            self.declared_topic_names.insert(name.clone());
             self.define_topic(topic);
         }
         for service in services {
@@ -924,6 +1016,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         for event in events {
             let crate::foundations::EventDecl::EventDecl { name, .. } = event;
+            self.declared_event_names.insert(name.clone());
             self.log(format!("event declared: {name}"));
         }
         for handler in event_handlers {
@@ -931,8 +1024,29 @@ impl<B: RobotBackend> Interpreter<B> {
                 event_name, body, ..
             } = handler;
             self.event_bus.register(event_name.clone(), body.clone());
+            self.trigger_registry
+                .register_legacy_event(event_name.clone(), body.clone());
             self.log(format!("handler registered for {event_name}"));
         }
+        for trigger in trigger_handlers {
+            self.register_trigger_decl(trigger, None);
+        }
+        for agent in agents {
+            let AgentDecl::AgentDecl {
+                name: agent_name,
+                trigger_handlers: agent_triggers,
+                ..
+            } = agent;
+            for trigger in agent_triggers {
+                self.register_trigger_decl(trigger, Some(agent_name.clone()));
+            }
+        }
+        self.trigger_timers = self
+            .trigger_registry
+            .timer_handlers()
+            .iter()
+            .filter_map(|h| TriggerTimerSchedule::from_handler(h))
+            .collect();
 
         if let Some(twin_decl) = twin {
             let TwinDecl::TwinDecl {
@@ -979,9 +1093,16 @@ impl<B: RobotBackend> Interpreter<B> {
         }
 
         if let Some(verify_decl) = verify {
-            let crate::foundations::VerifyDecl::VerifyDecl { rules, .. } = verify_decl;
+            let crate::foundations::VerifyDecl::VerifyDecl {
+                rules, warnings, ..
+            } = verify_decl;
             self.verify_rules = rules.clone();
-            self.log(format!("verify: {} rule(s) registered", rules.len()));
+            self.verify_warning_rules = warnings.clone();
+            self.log(format!(
+                "verify: {} rule(s), {} warning(s) registered",
+                rules.len(),
+                warnings.len()
+            ));
         }
 
         if let Some(observe_decl) = observe {
@@ -1285,6 +1406,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 .register_secure_endpoint(&path, Self::secure_policy_from_block(block));
         }
         self.comm_bus.subscribe(&path, name);
+        self.topic_path_to_name.insert(path.clone(), name.clone());
         self.env.define(
             name.clone(),
             RuntimeValue::Topic {
@@ -1373,6 +1495,8 @@ impl<B: RobotBackend> Interpreter<B> {
                 topic,
             },
         );
+        self.hardware_monitor
+            .register_sensor(name.clone(), sensor_type.clone());
     }
 
     fn define_actuator(&mut self, actuator: &ActuatorDecl) {
@@ -1381,6 +1505,8 @@ impl<B: RobotBackend> Interpreter<B> {
             actuator_type,
             ..
         } = actuator;
+        self.hardware_monitor
+            .register_actuator(name.clone(), actuator_type.clone());
         self.env.define(
             name.clone(),
             RuntimeValue::Actuator {
@@ -1507,6 +1633,32 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         self.run_verify_rules()?;
+        self.run_verify_warnings()?;
+        Ok(())
+    }
+
+    fn run_verify_warnings(&mut self) -> Result<(), SpandaError> {
+        let warnings = self.verify_warning_rules.clone();
+        if warnings.is_empty() {
+            return Ok(());
+        }
+        for (index, rule) in warnings.iter().enumerate() {
+            match self.eval_expr(rule)? {
+                RuntimeValue::Bool { value: false, .. } => {
+                    let _ = self
+                        .dispatch_system_trigger(SystemTriggerCategory::Verification, "Warning");
+                    self.log(format!("verify warning {} triggered", index + 1));
+                }
+                RuntimeValue::Bool { value: true, .. } => {}
+                _ => {
+                    return Err(RuntimeError::new(
+                        format!("verify warning {} must be boolean", index + 1),
+                        0,
+                    )
+                    .into_spanda());
+                }
+            }
+        }
         Ok(())
     }
 
@@ -1519,6 +1671,8 @@ impl<B: RobotBackend> Interpreter<B> {
             match self.eval_expr(rule)? {
                 RuntimeValue::Bool { value: true, .. } => {}
                 RuntimeValue::Bool { value: false, .. } => {
+                    let _ =
+                        self.dispatch_system_trigger(SystemTriggerCategory::Verification, "Failed");
                     return Err(
                         RuntimeError::new(format!("verify rule {} failed", index + 1), 0)
                             .into_spanda(),
@@ -1567,6 +1721,7 @@ impl<B: RobotBackend> Interpreter<B> {
         };
         for iteration in 0..self.options.max_loop_iterations {
             self.backend.tick(interval_ms);
+            self.triggers_dispatched_this_tick = 0;
             self.telemetry.record_scheduler_tick();
             self.telemetry
                 .record_task_tick(task_name, priority, interval_ms);
@@ -1575,6 +1730,10 @@ impl<B: RobotBackend> Interpreter<B> {
                 iteration + 1,
                 priority_label(priority)
             ));
+            let sim_time = (iteration as f64 + 1.0) * interval_ms;
+            self.run_timer_triggers(sim_time)?;
+            self.run_condition_triggers()?;
+            self.run_trigger_maintenance()?;
             if !self.run_scheduled_task(&schedule)? {
                 self.telemetry.record_emergency_stop();
                 break;
@@ -1653,8 +1812,12 @@ impl<B: RobotBackend> Interpreter<B> {
         for iteration in 0..self.options.max_loop_iterations {
             self.backend.tick(base_tick);
             sim_time += base_tick;
+            self.triggers_dispatched_this_tick = 0;
             self.telemetry.record_scheduler_tick();
             self.trace_scheduler_log(format!("tick={} sim_time={sim_time}ms", iteration + 1));
+            self.run_timer_triggers(sim_time)?;
+            self.run_condition_triggers()?;
+            self.run_trigger_maintenance()?;
             schedules.sort_by_key(|schedule| schedule.priority_rank());
             for schedule in &mut schedules {
                 if schedule.next_due_ms <= sim_time {
@@ -1703,7 +1866,61 @@ impl<B: RobotBackend> Interpreter<B> {
         Ok(())
     }
 
+    fn execute_trigger_only_loop(&mut self) -> Result<(), SpandaError> {
+        let base_tick = self
+            .trigger_timers
+            .iter()
+            .map(|t| t.interval_ms)
+            .fold(f64::INFINITY, f64::min)
+            .max(1.0);
+        let mut sim_time = 0.0;
+        self.log(format!(
+            "scheduler: trigger-only loop with base tick {base_tick}ms"
+        ));
+        self.trace_scheduler_log(format!("trigger-only base_tick={base_tick}ms"));
+        for iteration in 0..self.options.max_loop_iterations {
+            self.backend.tick(base_tick);
+            sim_time += base_tick;
+            self.triggers_dispatched_this_tick = 0;
+            self.telemetry.record_scheduler_tick();
+            self.run_timer_triggers(sim_time)?;
+            self.run_condition_triggers()?;
+            self.run_trigger_maintenance()?;
+            self.run_verify_rules()?;
+            self.run_verify_warnings()?;
+            self.update_twin_snapshot();
+            if self
+                .safety_monitor
+                .as_ref()
+                .map(|m| m.is_emergency_stop())
+                .unwrap_or(false)
+            {
+                break;
+            }
+            let _ = iteration;
+        }
+        Ok(())
+    }
+
     fn update_twin_snapshot(&mut self) {
+        let divergence_threshold = 0.15;
+        if let Some(twin) = &self.twin {
+            let state = self.backend.get_state();
+            let live = TwinRuntime::live_mirrored_fields(
+                (
+                    state.pose.x,
+                    state.pose.y,
+                    state.pose.theta,
+                    state.pose.z.unwrap_or(0.0),
+                ),
+                (state.velocity.linear, state.velocity.angular),
+                &twin.mirrors,
+            );
+            if twin.detect_divergence(&live, divergence_threshold) {
+                let _ =
+                    self.dispatch_system_trigger(SystemTriggerCategory::Twin, "DivergenceDetected");
+            }
+        }
         self.refresh_twin_shadow_from_backend();
         let Some(twin) = &mut self.twin else {
             return;
@@ -1746,8 +1963,263 @@ impl<B: RobotBackend> Interpreter<B> {
         }
     }
 
+    fn has_standalone_triggers(&self) -> bool {
+        if !self.trigger_timers.is_empty() {
+            return true;
+        }
+        self.trigger_registry.condition_handlers().iter().any(|h| {
+            matches!(h.kind, TriggerKind::Condition { level: true, .. })
+        })
+    }
+
+    fn register_trigger_decl(&mut self, trigger: &TriggerHandlerDecl, agent: Option<String>) {
+        let TriggerHandlerDecl::TriggerHandlerDecl {
+            trigger_kind,
+            priority,
+            body,
+            span,
+        } = trigger;
+        let final_kind = if let TriggerKind::Event { name } = trigger_kind {
+            if self.declared_topic_names.contains(name) && !self.declared_event_names.contains(name)
+            {
+                TriggerKind::Message {
+                    topic: name.clone(),
+                }
+            } else {
+                (*trigger_kind).clone()
+            }
+        } else {
+            (*trigger_kind).clone()
+        };
+        let decl = TriggerHandlerDecl::TriggerHandlerDecl {
+            trigger_kind: final_kind.clone(),
+            priority: *priority,
+            body: body.clone(),
+            span: *span,
+        };
+        let name = trigger_display_name(&final_kind, agent.as_deref());
+        self.trigger_registry.register(&decl, agent);
+        self.log(format!(
+            "trigger registered: {name} priority={}",
+            priority_label(*priority)
+        ));
+    }
+
+    fn can_dispatch_trigger(&mut self) -> bool {
+        self.triggers_dispatched_this_tick < self.options.max_triggers_per_tick
+    }
+
+    fn execute_trigger_handlers(&mut self, handler_ids: Vec<usize>) -> Result<(), SpandaError> {
+        let mut ids = handler_ids;
+        ids.sort_by_key(|id| {
+            self.trigger_registry
+                .get(*id)
+                .map(|h| priority_rank(h.priority))
+                .unwrap_or(u8::MAX)
+        });
+        for id in ids {
+            if !self.execute_trigger_body_by_id(id)? {
+                break;
+            }
+            if self
+                .safety_monitor
+                .as_ref()
+                .map(|m| m.is_emergency_stop())
+                .unwrap_or(false)
+            {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn execute_trigger_body_by_id(&mut self, handler_id: usize) -> Result<bool, SpandaError> {
+        let (name, kind, priority, body, agent) = {
+            let handler = self
+                .trigger_registry
+                .get(handler_id)
+                .ok_or_else(|| RuntimeError::new("unknown trigger handler", 0).into_spanda())?;
+            (
+                handler.name.clone(),
+                handler.kind.clone(),
+                handler.priority,
+                handler.body.clone(),
+                handler.agent.clone(),
+            )
+        };
+        if !self.can_dispatch_trigger() {
+            self.trace_trigger_log(format!("{name} suppressed (trigger storm limit)"));
+            return Ok(false);
+        }
+        self.triggers_dispatched_this_tick += 1;
+        let start = std::time::Instant::now();
+        let saved_agent = self.current_agent.clone();
+        if let Some(agent) = &agent {
+            self.current_agent = Some(agent.clone());
+        }
+        let category = trigger_category_label(&kind);
+        self.trace_trigger_log(format!(
+            "dispatch {name} priority={} category={category}",
+            priority_label(priority)
+        ));
+        if matches!(kind, TriggerKind::Event { .. }) {
+            self.trace_event_log(format!("dispatch {name}"));
+        }
+        let result = self.execute_block(&body);
+        let duration_ms = start.elapsed().as_secs_f64() * 1000.0;
+        let failed = result.is_err();
+        self.telemetry
+            .record_trigger_execution(&name, category, priority, duration_ms, failed);
+        self.current_agent = saved_agent;
+        result?;
+        Ok(true)
+    }
+
+    fn dispatch_system_trigger(
+        &mut self,
+        category: SystemTriggerCategory,
+        event: &str,
+    ) -> Result<(), SpandaError> {
+        let ids: Vec<usize> = self
+            .trigger_registry
+            .handlers_for_category(category, event)
+            .iter()
+            .map(|h| h.id)
+            .collect();
+        if ids.is_empty() {
+            return Ok(());
+        }
+        self.log(format!("system trigger: {:?}:{event}", category));
+        self.execute_trigger_handlers(ids)
+    }
+
+    fn dispatch_message_triggers(
+        &mut self,
+        topic_name: &str,
+        topic_path: &str,
+    ) -> Result<(), SpandaError> {
+        let ids: Vec<usize> = self
+            .trigger_registry
+            .handlers_for_message(topic_name, topic_path)
+            .iter()
+            .map(|h| h.id)
+            .collect();
+        if ids.is_empty() {
+            return Ok(());
+        }
+        self.execute_trigger_handlers(ids)
+    }
+
+    fn run_condition_triggers(&mut self) -> Result<(), SpandaError> {
+        let handlers: Vec<(usize, Expr, bool)> = self
+            .trigger_registry
+            .condition_handlers()
+            .iter()
+            .filter_map(|handler| {
+                if let TriggerKind::Condition { expr, level } = &handler.kind {
+                    Some((handler.id, expr.clone(), *level))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        let mut to_run = Vec::new();
+        for (id, expr, level) in handlers {
+            let active = matches!(
+                self.eval_expr(&expr)?,
+                RuntimeValue::Bool { value: true, .. }
+            );
+            if level {
+                if active {
+                    to_run.push(id);
+                }
+            } else if self.condition_trigger_state.should_fire(id, active) {
+                to_run.push(id);
+            }
+        }
+        self.execute_trigger_handlers(to_run)
+    }
+
+    fn run_trigger_maintenance(&mut self) -> Result<(), SpandaError> {
+        self.run_hardware_triggers()?;
+        self.poll_transport_inbound_triggers()?;
+        self.run_twin_fault_triggers()?;
+        Ok(())
+    }
+
+    fn run_hardware_triggers(&mut self) -> Result<(), SpandaError> {
+        for event in self.hardware_monitor.poll_new_events() {
+            self.dispatch_system_trigger(SystemTriggerCategory::Hardware, &event)?;
+        }
+        Ok(())
+    }
+
+    fn poll_transport_inbound_triggers(&mut self) -> Result<(), SpandaError> {
+        let inbound = self.comm_bus.poll_inbound(self.default_transport);
+        for (topic_path, _value) in inbound {
+            let topic_name = self
+                .topic_path_to_name
+                .get(&topic_path)
+                .cloned()
+                .unwrap_or_else(|| topic_path.trim_start_matches('/').replace('/', "."));
+            self.dispatch_message_triggers(&topic_name, &topic_path)?;
+        }
+        Ok(())
+    }
+
+    fn run_twin_fault_triggers(&mut self) -> Result<(), SpandaError> {
+        for fault in self.comm_bus.active_faults() {
+            let fault_lower = fault.to_ascii_lowercase();
+            if (fault_lower.contains("fault")
+                || fault_lower.contains("failure")
+                || fault_lower.contains("divergence"))
+                && self.twin_faults_dispatched.insert(fault.clone())
+            {
+                let event = if fault_lower.contains("divergence") {
+                    "DivergenceDetected"
+                } else {
+                    "FaultInjected"
+                };
+                self.dispatch_system_trigger(SystemTriggerCategory::Twin, event)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn run_timer_triggers(&mut self, sim_time: f64) -> Result<(), SpandaError> {
+        let mut to_run = Vec::new();
+        for schedule in &mut self.trigger_timers {
+            if schedule.next_due_ms <= sim_time {
+                if sim_time > schedule.next_due_ms + schedule.interval_ms {
+                    if let Some(handler) = self.trigger_registry.get(schedule.trigger_id) {
+                        self.telemetry.record_trigger_missed_deadline(
+                            &handler.name,
+                            trigger_category_label(&handler.kind),
+                            handler.priority,
+                        );
+                    }
+                }
+                to_run.push(schedule.trigger_id);
+                schedule.next_due_ms = sim_time + schedule.interval_ms;
+            }
+        }
+        self.execute_trigger_handlers(to_run)
+    }
+
     fn dispatch_event(&mut self, event_name: &str) -> Result<(), SpandaError> {
+        let ids: Vec<usize> = self
+            .trigger_registry
+            .handlers_for_event(event_name)
+            .iter()
+            .map(|h| h.id)
+            .collect();
+        if !ids.is_empty() {
+            self.trace_event_log(format!("emit {event_name}"));
+            self.log(format!("emit {event_name}"));
+            return self.execute_trigger_handlers(ids);
+        }
         if let Some(body) = self.event_bus.handler_body(event_name).map(|b| b.to_vec()) {
+            self.trace_event_log(format!("emit {event_name} (legacy)"));
             self.log(format!("emit {event_name}"));
             self.execute_block(&body)?;
         } else {
@@ -1759,11 +2231,13 @@ impl<B: RobotBackend> Interpreter<B> {
     fn execute_enter(&mut self, state_name: &str, line: u32) -> Result<(), SpandaError> {
         let mut logs = Vec::new();
         let mut transitioned = false;
+        let mut previous_states = Vec::new();
         for (sm_name, sm) in &mut self.state_machines {
             if let Some(previous) = sm.try_enter(state_name) {
                 logs.push(format!(
                     "state_machine {sm_name}: {previous} -> {state_name}"
                 ));
+                previous_states.push(previous);
                 transitioned = true;
             }
         }
@@ -1777,6 +2251,22 @@ impl<B: RobotBackend> Interpreter<B> {
             )
             .into_spanda());
         }
+        for previous in previous_states {
+            let ids: Vec<usize> = self
+                .trigger_registry
+                .handlers_for_state_exited(&previous)
+                .iter()
+                .map(|h| h.id)
+                .collect();
+            self.execute_trigger_handlers(ids)?;
+        }
+        let ids: Vec<usize> = self
+            .trigger_registry
+            .handlers_for_state_entered(state_name)
+            .iter()
+            .map(|h| h.id)
+            .collect();
+        self.execute_trigger_handlers(ids)?;
         Ok(())
     }
 
@@ -1950,6 +2440,7 @@ impl<B: RobotBackend> Interpreter<B> {
                         );
                     }
                     self.log(format!("publish {topic_path}"));
+                    let _ = self.dispatch_message_triggers(topic_name, &topic_path);
                 }
             }
             Stmt::ServiceCallStmt {
@@ -2085,6 +2576,8 @@ impl<B: RobotBackend> Interpreter<B> {
                     actuator: "all".into(),
                 });
                 self.log("EMERGENCY STOP triggered".into());
+                let _ =
+                    self.dispatch_system_trigger(SystemTriggerCategory::Safety, "EmergencyStop");
             }
             Stmt::ResetEmergencyStopStmt { .. } => {
                 if let Some(monitor) = &mut self.safety_monitor {
@@ -2881,6 +3374,7 @@ impl<B: RobotBackend> Interpreter<B> {
                     agent_name: name.clone(),
                 };
                 execute_agent_plan(&agent, &mut runner)?;
+                let _ = self.dispatch_system_trigger(SystemTriggerCategory::Ai, "GoalCompleted");
                 self.log(format!("agent {name}.plan()"));
                 return Ok(RuntimeValue::Void);
             }
@@ -2954,6 +3448,18 @@ impl<B: RobotBackend> Interpreter<B> {
                     .reason(&prompt, input, goal_text.as_deref())
                     .map_err(|message| SpandaError::Runtime { message, line })?;
                 self.log(format!("ai {target_name}.reason() -> ActionProposal"));
+                let confidence = proposal_confidence(&result);
+                if confidence < AI_CONFIDENCE_LOW_THRESHOLD {
+                    if !self.ai_confidence_low_active {
+                        self.ai_confidence_low_active = true;
+                        let _ = self.dispatch_system_trigger(
+                            SystemTriggerCategory::Ai,
+                            "ConfidenceLow",
+                        );
+                    }
+                } else {
+                    self.ai_confidence_low_active = false;
+                }
                 Ok(result)
             }
             "summarize" => {
@@ -3015,7 +3521,7 @@ impl<B: RobotBackend> Interpreter<B> {
         };
 
         let state = self.backend.get_state();
-        if let Some(lib) = library {
+        let reading = if let Some(lib) = library {
             if let Some(driver) = get_sensor_driver(lib, sensor_type) {
                 let ctx = DriverContext {
                     hal: Some(&self.hal),
@@ -3025,12 +3531,18 @@ impl<B: RobotBackend> Interpreter<B> {
                         pose: state.pose.clone(),
                     }),
                 };
-                return Ok(read_with_driver(&driver, &ctx));
+                read_with_driver(&driver, &ctx)
+            } else {
+                self.backend
+                    .read_sensor(name, sensor_type, topic.as_deref())
             }
-        }
-        Ok(self
-            .backend
-            .read_sensor(name, sensor_type, topic.as_deref()))
+        } else {
+            self.backend
+                .read_sensor(name, sensor_type, topic.as_deref())
+        };
+        self.hardware_monitor
+            .record_sensor_reading(name, sensor_type, &reading);
+        Ok(reading)
     }
 
     fn read_fused_observation(&mut self) -> Result<RuntimeValue, SpandaError> {
@@ -4281,6 +4793,22 @@ fn priority_label(priority: TaskPriority) -> &'static str {
         TaskPriority::High => "high",
         TaskPriority::Normal => "normal",
         TaskPriority::Low => "low",
+    }
+}
+
+fn trigger_category_label(kind: &TriggerKind) -> &'static str {
+    match kind {
+        TriggerKind::Event { .. } => "event",
+        TriggerKind::Message { .. } => "message",
+        TriggerKind::Timer { .. } => "timer",
+        TriggerKind::Condition { .. } => "condition",
+        TriggerKind::StateEntered { .. } => "state_entered",
+        TriggerKind::StateExited { .. } => "state_exited",
+        TriggerKind::Safety { .. } => "safety",
+        TriggerKind::Hardware { .. } => "hardware",
+        TriggerKind::Ai { .. } => "ai",
+        TriggerKind::Verification { .. } => "verification",
+        TriggerKind::Twin { .. } => "twin",
     }
 }
 

@@ -1265,6 +1265,7 @@ impl Parser {
         let mut state_machines = Vec::new();
         let mut events = Vec::new();
         let mut event_handlers = Vec::new();
+        let mut trigger_handlers = Vec::new();
         let mut twin = None;
         let mut verify = None;
         let mut observe = None;
@@ -1322,7 +1323,27 @@ impl Parser {
             } else if self.check(TokenType::Event) {
                 events.push(self.parse_event()?);
             } else if self.check(TokenType::On) {
-                event_handlers.push(self.parse_event_handler()?);
+                let trigger = self.parse_on_trigger()?;
+                if let TriggerHandlerDecl::TriggerHandlerDecl {
+                    trigger_kind: TriggerKind::Event { name },
+                    body,
+                    span,
+                    ..
+                } = &trigger
+                {
+                    event_handlers.push(EventHandlerDecl::EventHandlerDecl {
+                        event_name: name.clone(),
+                        body: body.clone(),
+                        span: *span,
+                    });
+                }
+                trigger_handlers.push(trigger);
+            } else if self.check(TokenType::Every) {
+                trigger_handlers.push(self.parse_every_trigger()?);
+            } else if self.check(TokenType::When) {
+                trigger_handlers.push(self.parse_when_trigger()?);
+            } else if self.check(TokenType::While) {
+                trigger_handlers.push(self.parse_while_trigger()?);
             } else if self.check(TokenType::Twin) && self.is_twin_sync() {
                 twin_sync = Some(self.parse_twin_sync()?);
             } else if self.check(TokenType::Twin) {
@@ -1387,6 +1408,7 @@ impl Parser {
             state_machines,
             events,
             event_handlers,
+            trigger_handlers,
             twin,
             verify,
             observe,
@@ -1443,6 +1465,7 @@ impl Parser {
             capabilities: Vec::new(),
             goal: String::new(),
             plan_body: Vec::new(),
+            trigger_handlers: Vec::new(),
             span: self.span_from(&start, self.previous()),
         });
         Ok(())
@@ -2192,13 +2215,19 @@ impl Parser {
         let start = self.advance();
         self.expect(TokenType::Lbrace, "Expected '{' after verify")?;
         let mut rules = Vec::new();
+        let mut warnings = Vec::new();
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-            rules.push(self.parse_expr()?);
+            if self.match_types(&[TokenType::Warning]) {
+                warnings.push(self.parse_expr()?);
+            } else {
+                rules.push(self.parse_expr()?);
+            }
             self.expect(TokenType::Semicolon, "Expected ';' after verify rule")?;
         }
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close verify block")?;
         Ok(VerifyDecl::VerifyDecl {
             rules,
+            warnings,
             span: self.span_from(&start, &end),
         })
     }
@@ -2582,6 +2611,7 @@ impl Parser {
         let mut capabilities = Vec::new();
         let mut goal = String::new();
         let mut plan_body = Vec::new();
+        let mut trigger_handlers = Vec::new();
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
             if self.match_types(&[TokenType::Uses]) {
                 uses_ai.push(
@@ -2637,6 +2667,8 @@ impl Parser {
                 self.expect(TokenType::Lbrace, "Expected '{' after plan")?;
                 plan_body = self.parse_block()?;
                 self.expect(TokenType::Rbrace, "Expected '}' to close plan")?;
+            } else if self.check(TokenType::On) {
+                trigger_handlers.push(self.parse_agent_on_trigger()?);
             } else {
                 let t = self.peek();
                 return Err(SpandaError::Parse {
@@ -2656,6 +2688,7 @@ impl Parser {
             capabilities,
             goal,
             plan_body,
+            trigger_handlers,
             span: self.span_from(&start, &end),
         })
     }
@@ -2911,14 +2944,153 @@ impl Parser {
         })
     }
 
-    fn parse_event_handler(&mut self) -> Result<EventHandlerDecl, SpandaError> {
+    fn parse_on_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
         let start = self.advance(); // on
-        let event_name = self.expect(TokenType::Ident, "Expected event name after on")?;
-        self.expect(TokenType::Lbrace, "Expected '{' after event handler")?;
+        let kind = if self.match_types(&[TokenType::State]) {
+            self.parse_state_trigger_kind()?
+        } else if self.match_types(&[TokenType::Safety]) {
+            let event = self
+                .expect(TokenType::Ident, "Expected safety event name")?
+                .lexeme;
+            TriggerKind::Safety { event }
+        } else if self.check(TokenType::Hardware) {
+            self.advance();
+            let event = self
+                .expect(TokenType::Ident, "Expected hardware event name")?
+                .lexeme;
+            TriggerKind::Hardware { event }
+        } else if self.match_types(&[TokenType::Ai]) {
+            let event = self
+                .expect(TokenType::Ident, "Expected AI event name")?
+                .lexeme;
+            TriggerKind::Ai { event }
+        } else if self.check(TokenType::Ident) && self.peek().lexeme == "verification" {
+            self.advance();
+            let event = self
+                .expect(TokenType::Ident, "Expected verification event name")?
+                .lexeme;
+            TriggerKind::Verification { event }
+        } else if self.match_types(&[TokenType::Twin]) {
+            let event = self
+                .expect(TokenType::Ident, "Expected twin event name")?
+                .lexeme;
+            TriggerKind::Twin { event }
+        } else {
+            let name = self.expect(TokenType::Ident, "Expected trigger target name")?;
+            // Event vs message disambiguation deferred to type checker.
+            TriggerKind::Event { name: name.lexeme }
+        };
+        let priority = self.parse_optional_trigger_priority()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after trigger signature")?;
         let body = self.parse_block()?;
-        let end = self.expect(TokenType::Rbrace, "Expected '}' to close event handler")?;
-        Ok(EventHandlerDecl::EventHandlerDecl {
-            event_name: event_name.lexeme,
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close trigger handler")?;
+        Ok(TriggerHandlerDecl::TriggerHandlerDecl {
+            trigger_kind: kind,
+            priority,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_state_trigger_kind(&mut self) -> Result<TriggerKind, SpandaError> {
+        let phase = self.expect(TokenType::Ident, "Expected Entered or Exited")?;
+        let phase_name = phase.lexeme.to_ascii_lowercase();
+        if phase_name == "entered" {
+            self.expect(TokenType::Lparen, "Expected '(' after Entered")?;
+            let state = self.expect(TokenType::Ident, "Expected state name")?.lexeme;
+            self.expect(TokenType::Rparen, "Expected ')' after state name")?;
+            Ok(TriggerKind::StateEntered { state })
+        } else if phase_name == "exited" {
+            self.expect(TokenType::Lparen, "Expected '(' after Exited")?;
+            let state = self.expect(TokenType::Ident, "Expected state name")?.lexeme;
+            self.expect(TokenType::Rparen, "Expected ')' after state name")?;
+            Ok(TriggerKind::StateExited { state })
+        } else {
+            Err(SpandaError::Parse {
+                message: "Expected Entered(State) or Exited(State) after 'on state'".into(),
+                line: phase.line,
+                column: phase.column,
+            })
+        }
+    }
+
+    fn parse_optional_trigger_priority(&mut self) -> Result<TaskPriority, SpandaError> {
+        if self.match_types(&[TokenType::Priority]) {
+            let ident = self.expect(TokenType::Ident, "Expected trigger priority level")?;
+            TaskPriority::from_ident(&ident.lexeme).ok_or_else(|| SpandaError::Parse {
+                message: "Trigger priority must be critical, high, normal, or low".into(),
+                line: ident.line,
+                column: ident.column,
+            })
+        } else if self.check(TokenType::Ident) {
+            if let Some(priority) = TaskPriority::from_ident(&self.peek().lexeme) {
+                self.advance();
+                Ok(priority)
+            } else {
+                Ok(TaskPriority::Normal)
+            }
+        } else {
+            Ok(TaskPriority::Normal)
+        }
+    }
+
+    fn parse_every_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
+        let start = self.advance(); // every
+        let interval_ms = self.parse_duration()?;
+        let priority = self.parse_optional_trigger_priority()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after timer interval")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close timer trigger")?;
+        Ok(TriggerHandlerDecl::TriggerHandlerDecl {
+            trigger_kind: TriggerKind::Timer { interval_ms },
+            priority,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_when_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
+        let start = self.advance(); // when
+        let expr = self.parse_expr()?;
+        let priority = self.parse_optional_trigger_priority()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after when condition")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close when trigger")?;
+        Ok(TriggerHandlerDecl::TriggerHandlerDecl {
+            trigger_kind: TriggerKind::Condition { expr, level: false },
+            priority,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_while_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
+        let start = self.advance(); // while
+        let expr = self.parse_expr()?;
+        let priority = self.parse_optional_trigger_priority()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after while condition")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close while trigger")?;
+        Ok(TriggerHandlerDecl::TriggerHandlerDecl {
+            trigger_kind: TriggerKind::Condition { expr, level: true },
+            priority,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_agent_on_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
+        let start = self.advance(); // on
+        let name = self
+            .expect(TokenType::Ident, "Expected trigger target in agent block")?
+            .lexeme;
+        let priority = self.parse_optional_trigger_priority()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after agent trigger")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close agent trigger")?;
+        Ok(TriggerHandlerDecl::TriggerHandlerDecl {
+            trigger_kind: TriggerKind::Message { topic: name },
+            priority,
             body,
             span: self.span_from(&start, &end),
         })

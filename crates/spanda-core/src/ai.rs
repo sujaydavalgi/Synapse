@@ -686,6 +686,34 @@ pub fn is_action_proposal(value: &RuntimeValue) -> bool {
     matches!(value, RuntimeValue::ActionProposal { .. })
 }
 
+/// Estimate model confidence from an ActionProposal (0.0–1.0).
+pub fn proposal_confidence(value: &RuntimeValue) -> f64 {
+    match value {
+        RuntimeValue::ActionProposal { trace, .. } => {
+            for line in trace {
+                if let Some(dist_str) = line.strip_prefix("nearest_distance=") {
+                    if let Ok(dist) = dist_str.parse::<f64>() {
+                        return (dist / 5.0).clamp(0.05, 1.0);
+                    }
+                }
+                if line.contains("decision=stop") {
+                    return 0.95;
+                }
+            }
+            0.75
+        }
+        RuntimeValue::Object { fields, .. } => {
+            if let Some(RuntimeValue::Number { value, .. }) = fields.get("confidence") {
+                return value.clamp(0.0, 1.0);
+            }
+            0.75
+        }
+        _ => 1.0,
+    }
+}
+
+pub const AI_CONFIDENCE_LOW_THRESHOLD: f64 = 0.5;
+
 pub fn is_safe_action(value: &RuntimeValue) -> bool {
     matches!(value, RuntimeValue::SafeAction { .. })
 }

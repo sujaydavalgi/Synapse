@@ -5,7 +5,7 @@ use crate::error::{Diagnostic, SpandaError};
 use crate::foundations::{
     resolve_module_import, resolve_type_alias, CapabilityDecl, EnumDecl, EventDecl,
     EventHandlerDecl, MatchArm, ModuleFnDecl, StateMachineDecl, StructDecl, TaskDecl, TraitDecl,
-    TraitImplDecl, TwinDecl, Visibility,
+    TraitImplDecl, TriggerHandlerDecl, TriggerKind, TwinDecl, Visibility,
 };
 use crate::hal::hal_member_from_decl;
 use crate::lib_registry::{all_library_sensor_types, resolve_import};
@@ -634,6 +634,7 @@ impl TypeChecker {
             state_machines,
             events,
             event_handlers,
+            trigger_handlers,
             twin,
             verify,
             observe,
@@ -960,7 +961,11 @@ impl TypeChecker {
         }
 
         if let Some(verify_decl) = verify {
-            let crate::foundations::VerifyDecl::VerifyDecl { rules, span } = verify_decl;
+            let crate::foundations::VerifyDecl::VerifyDecl {
+                rules,
+                warnings,
+                span,
+            } = verify_decl;
             let saved = self.symbols.clone();
             self.symbols.insert(
                 "robot".into(),
@@ -978,6 +983,16 @@ impl TypeChecker {
                 if !matches!(t, SpandaType::Bool) {
                     self.error(
                         "verify rule must be boolean".into(),
+                        span.start.line,
+                        span.start.column,
+                    );
+                }
+            }
+            for rule in warnings {
+                let t = self.check_expr(rule);
+                if !matches!(t, SpandaType::Bool) {
+                    self.error(
+                        "verify warning must be boolean".into(),
                         span.start.line,
                         span.start.column,
                     );
@@ -1327,18 +1342,149 @@ impl TypeChecker {
                 body,
                 span,
             } = handler;
-            let declared = events.iter().any(|e| {
+            let event_declared = events.iter().any(|e| {
                 let EventDecl::EventDecl { name, .. } = e;
                 name == event_name
             });
-            if !declared {
+            let topic_declared = topics.iter().any(|t| {
+                let TopicDecl::TopicDecl { name, .. } = t;
+                name == event_name
+            });
+            if !event_declared && !topic_declared {
                 self.error(
-                    format!("No event declared for handler '{event_name}'"),
+                    format!("No event or topic declared for handler '{event_name}'"),
                     span.start.line,
                     span.start.column,
                 );
             }
             self.check_behavior(body);
+        }
+
+        self.check_trigger_handlers(trigger_handlers, events, topics, state_machines, agents);
+    }
+
+    fn check_trigger_handlers(
+        &mut self,
+        trigger_handlers: &[TriggerHandlerDecl],
+        events: &[EventDecl],
+        topics: &[TopicDecl],
+        state_machines: &[StateMachineDecl],
+        agents: &[AgentDecl],
+    ) {
+        let event_names: std::collections::HashSet<_> = events
+            .iter()
+            .map(|e| {
+                let EventDecl::EventDecl { name, .. } = e;
+                name.clone()
+            })
+            .collect();
+        let topic_names: std::collections::HashSet<_> = topics
+            .iter()
+            .map(|t| {
+                let TopicDecl::TopicDecl { name, .. } = t;
+                name.clone()
+            })
+            .collect();
+        let mut sm_states: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for sm in state_machines {
+            let StateMachineDecl::StateMachineDecl { states, .. } = sm;
+            for state in states {
+                sm_states.insert(state.clone());
+            }
+        }
+
+        for handler in trigger_handlers {
+            let TriggerHandlerDecl::TriggerHandlerDecl {
+                trigger_kind,
+                body,
+                span,
+                ..
+            } = handler;
+            match trigger_kind {
+                TriggerKind::Event { name } => {
+                    if !event_names.contains(name) && !topic_names.contains(name) {
+                        self.error(
+                            format!("No event or topic declared for trigger handler '{name}'"),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                TriggerKind::Message { topic } => {
+                    if !topic_names.contains(topic) {
+                        self.error(
+                            format!("No topic declared for message trigger '{topic}'"),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                TriggerKind::Timer { interval_ms } => {
+                    if *interval_ms <= 0.0 {
+                        self.error(
+                            "Timer trigger interval must be positive".into(),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                TriggerKind::Condition { expr, level: _ } => {
+                    let ty = self.check_expr(expr);
+                    if ty != SpandaType::Bool {
+                        self.error(
+                            "Condition trigger expression must be boolean".into(),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                TriggerKind::StateEntered { state } | TriggerKind::StateExited { state } => {
+                    if !sm_states.contains(state) {
+                        self.error(
+                            format!("Unknown state '{state}' in state trigger"),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                TriggerKind::Safety { event: _ }
+                | TriggerKind::Hardware { event: _ }
+                | TriggerKind::Ai { event: _ }
+                | TriggerKind::Verification { event: _ }
+                | TriggerKind::Twin { event: _ } => {}
+            }
+            self.check_behavior(body);
+        }
+
+        for agent in agents {
+            let AgentDecl::AgentDecl {
+                name: agent_name,
+                trigger_handlers,
+                ..
+            } = agent;
+            for handler in trigger_handlers {
+                let TriggerHandlerDecl::TriggerHandlerDecl {
+                    trigger_kind,
+                    body,
+                    span,
+                    ..
+                } = handler;
+                match trigger_kind {
+                    TriggerKind::Message { topic }
+                        if !topic_names.contains(topic) && !event_names.contains(topic) =>
+                    {
+                        self.error(
+                            format!(
+                                "Agent '{agent_name}' trigger '{topic}' must reference a declared topic or event"
+                            ),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                    _ => {}
+                }
+                self.check_behavior(body);
+            }
         }
     }
 

@@ -325,7 +325,7 @@ robot R {
   }
 }
 "#;
-        let mut breakpoints = HashSet::new();
+        let breakpoints = HashSet::new();
         let s1 = with_machine(source, None, &breakpoints, |m| {
             m.run_until_pause(DebugStepKind::StepOver)
         })

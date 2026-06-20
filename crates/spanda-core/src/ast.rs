@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct SourceLocation {
     pub line: u32,
     pub column: u32,
     pub offset: usize,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Span {
     pub start: SourceLocation,
     pub end: SourceLocation,
@@ -467,6 +467,8 @@ pub enum RobotDecl {
         state_machines: Vec<crate::foundations::StateMachineDecl>,
         events: Vec<crate::foundations::EventDecl>,
         event_handlers: Vec<crate::foundations::EventHandlerDecl>,
+        #[serde(default)]
+        trigger_handlers: Vec<crate::foundations::TriggerHandlerDecl>,
         twin: Option<crate::foundations::TwinDecl>,
         observe: Option<crate::foundations::ObserveDecl>,
         verify: Option<crate::foundations::VerifyDecl>,
@@ -696,6 +698,8 @@ pub enum AgentDecl {
         capabilities: Vec<crate::foundations::CapabilityDecl>,
         goal: String,
         plan_body: Vec<Stmt>,
+        #[serde(default)]
+        trigger_handlers: Vec<crate::foundations::TriggerHandlerDecl>,
         span: Span,
     },
 }

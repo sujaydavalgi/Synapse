@@ -373,6 +373,32 @@ impl RoutingCommBus {
     ) {
         self.memory.publish_peer(peer, topic, value, transport);
     }
+
+    /// Poll external transport adapters for inbound messages on subscribed topics.
+    pub fn poll_inbound(&mut self, transport: TransportKind) -> Vec<(String, RuntimeValue)> {
+        let paths = self.memory.subscription_paths();
+        let mut inbound = Vec::new();
+        let kinds = [
+            transport,
+            TransportKind::Ros2,
+            TransportKind::Mqtt,
+            TransportKind::Dds,
+            TransportKind::Websocket,
+        ];
+        for path in paths {
+            for kind in kinds {
+                if let Some(adapter) = self.adapter_mut(kind) {
+                    if adapter.is_connected() {
+                        if let Some(value) = adapter.receive(&path) {
+                            self.memory.push_inbound(&path, value.clone());
+                            inbound.push((path.clone(), value));
+                        }
+                    }
+                }
+            }
+        }
+        inbound
+    }
 }
 
 impl CommBus for RoutingCommBus {
@@ -431,6 +457,18 @@ impl CommBus for RoutingCommBus {
 
     fn set_network_config(&mut self, config: SimNetworkConfig) {
         self.memory.set_network_config(config);
+    }
+
+    fn active_faults(&self) -> Vec<String> {
+        self.memory.active_faults()
+    }
+
+    fn subscription_paths(&self) -> Vec<String> {
+        self.memory.subscription_paths()
+    }
+
+    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
+        self.memory.push_inbound(topic_path, value);
     }
 }
 

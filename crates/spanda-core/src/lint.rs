@@ -85,6 +85,7 @@ fn lint_stmt_channel_flow(stmts: &[Stmt], issues: &mut Vec<LintIssue>) {
     }
 }
 
+#[allow(clippy::collapsible_match)]
 fn collect_channel_flow(
     stmts: &[Stmt],
     channels: &mut std::collections::HashMap<String, (bool, bool, u32, u32)>,
@@ -93,7 +94,9 @@ fn collect_channel_flow(
         match stmt {
             Stmt::VarDecl {
                 name, init, span, ..
-            } => {
+            } =>
+            {
+                #[allow(clippy::collapsible_if)]
                 if let Some(value) = init {
                     if matches!(value, Expr::CallExpr { callee, .. }
                         if matches!(callee.as_ref(), Expr::IdentExpr { name: n, .. } if n == "channel"))

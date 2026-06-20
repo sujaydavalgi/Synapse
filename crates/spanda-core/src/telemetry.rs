@@ -34,8 +34,21 @@ pub struct ExecutionMetrics {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct TriggerMetrics {
+    pub name: String,
+    pub category: String,
+    pub priority: String,
+    pub executions: u64,
+    pub failures: u64,
+    pub missed_deadlines: u64,
+    pub last_duration_ms: f64,
+    pub max_duration_ms: f64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct RuntimeTelemetry {
     pub tasks: HashMap<String, TaskMetrics>,
+    pub triggers: HashMap<String, TriggerMetrics>,
     pub scheduler: SchedulerMetrics,
     pub execution: ExecutionMetrics,
     pub replay_frames: u64,
@@ -124,6 +137,50 @@ impl RuntimeTelemetry {
 
     pub fn record_replay_frames(&mut self, count: u64) {
         self.replay_frames = count;
+    }
+
+    pub fn trigger_mut(
+        &mut self,
+        name: &str,
+        category: &str,
+        priority: TaskPriority,
+    ) -> &mut TriggerMetrics {
+        self.triggers
+            .entry(name.to_string())
+            .or_insert_with(|| TriggerMetrics {
+                name: name.to_string(),
+                category: category.to_string(),
+                priority: priority_label(priority),
+                ..Default::default()
+            })
+    }
+
+    pub fn record_trigger_execution(
+        &mut self,
+        name: &str,
+        category: &str,
+        priority: TaskPriority,
+        duration_ms: f64,
+        failed: bool,
+    ) {
+        let entry = self.trigger_mut(name, category, priority);
+        entry.executions += 1;
+        if failed {
+            entry.failures += 1;
+        }
+        entry.last_duration_ms = duration_ms;
+        if duration_ms > entry.max_duration_ms {
+            entry.max_duration_ms = duration_ms;
+        }
+    }
+
+    pub fn record_trigger_missed_deadline(
+        &mut self,
+        name: &str,
+        category: &str,
+        priority: TaskPriority,
+    ) {
+        self.trigger_mut(name, category, priority).missed_deadlines += 1;
     }
 }
 

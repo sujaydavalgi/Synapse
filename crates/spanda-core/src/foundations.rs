@@ -257,6 +257,59 @@ pub enum EventHandlerDecl {
     },
 }
 
+/// Unified trigger category for reactive execution.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "category", rename_all = "snake_case")]
+pub enum TriggerKind {
+    Event {
+        name: String,
+    },
+    Message {
+        topic: String,
+    },
+    Timer {
+        interval_ms: f64,
+    },
+    Condition {
+        expr: Expr,
+        #[serde(default)]
+        level: bool,
+    },
+    StateEntered {
+        state: String,
+    },
+    StateExited {
+        state: String,
+    },
+    Safety {
+        event: String,
+    },
+    Hardware {
+        event: String,
+    },
+    Ai {
+        event: String,
+    },
+    Verification {
+        event: String,
+    },
+    Twin {
+        event: String,
+    },
+}
+
+/// Unified trigger handler (`on`, `every`, `when` at robot or agent scope).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum TriggerHandlerDecl {
+    TriggerHandlerDecl {
+        trigger_kind: TriggerKind,
+        priority: TaskPriority,
+        body: Vec<Stmt>,
+        span: Span,
+    },
+}
+
 /// First-class hardware profile for deployment compatibility verification.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
@@ -365,7 +418,12 @@ pub enum ObserveDecl {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum VerifyDecl {
-    VerifyDecl { rules: Vec<Expr>, span: Span },
+    VerifyDecl {
+        rules: Vec<Expr>,
+        #[serde(default)]
+        warnings: Vec<Expr>,
+        span: Span,
+    },
 }
 
 /// Digital twin shadow configuration.

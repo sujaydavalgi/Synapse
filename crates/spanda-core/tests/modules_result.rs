@@ -49,8 +49,10 @@ robot R {
     let mut registry = ModuleRegistry::new();
     registry.register("navigation.path_planning", &planning_program);
     check_with_registry(main, &registry).expect("import should resolve exported fn");
-    let mut opts = RunOptions::default();
-    opts.module_registry = Some(registry);
+    let opts = RunOptions {
+        module_registry: Some(registry),
+        ..Default::default()
+    };
     run(main, opts).expect("imported fn should run");
 }
 

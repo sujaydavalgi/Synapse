@@ -312,6 +312,9 @@ pub trait CommBus {
     fn published_messages(&self) -> Vec<PublishedCommMessage>;
     fn inject_fault(&mut self, fault: &str);
     fn set_network_config(&mut self, config: SimNetworkConfig);
+    fn active_faults(&self) -> Vec<String>;
+    fn subscription_paths(&self) -> Vec<String>;
+    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue);
 }
 
 /// In-memory pub/sub bus for simulation and tests.
@@ -347,6 +350,21 @@ impl InMemoryCommBus {
 
     pub fn register_device(&mut self, name: impl Into<String>) {
         self.discovered_devices.push(name.into());
+    }
+
+    pub fn active_faults(&self) -> Vec<String> {
+        self.faults.clone()
+    }
+
+    pub fn subscription_paths(&self) -> Vec<String> {
+        self.subscriptions.keys().cloned().collect()
+    }
+
+    pub fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
+        self.buffers
+            .entry(topic_path.to_string())
+            .or_default()
+            .push_back(value);
     }
 
     /// Deliver a message to a peer robot topic namespace (`/{peer}/{topic}`).
@@ -451,6 +469,21 @@ impl CommBus for InMemoryCommBus {
 
     fn set_network_config(&mut self, config: SimNetworkConfig) {
         self.network = config;
+    }
+
+    fn active_faults(&self) -> Vec<String> {
+        self.faults.clone()
+    }
+
+    fn subscription_paths(&self) -> Vec<String> {
+        self.subscriptions.keys().cloned().collect()
+    }
+
+    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
+        self.buffers
+            .entry(topic_path.to_string())
+            .or_default()
+            .push_back(value);
     }
 }
 

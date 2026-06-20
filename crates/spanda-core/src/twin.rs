@@ -74,6 +74,93 @@ impl TwinRuntime {
         }
         self.replay_buffer.get(index)?.get(field)
     }
+
+    /// Compare previous shadow against live mirrored values; true when divergence exceeds threshold.
+    pub fn detect_divergence(&self, live: &HashMap<String, RuntimeValue>, threshold: f64) -> bool {
+        for field in &self.mirrors {
+            let Some(shadow_val) = self.shadow.get(field) else {
+                continue;
+            };
+            let Some(live_val) = live.get(field) else {
+                continue;
+            };
+            if value_distance(shadow_val, live_val) > threshold {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn live_mirrored_fields(
+        pose: (f64, f64, f64, f64),
+        velocity: (f64, f64),
+        mirrors: &[String],
+    ) -> HashMap<String, RuntimeValue> {
+        let mut live = HashMap::new();
+        if mirrors.iter().any(|m| m == "pose") {
+            live.insert(
+                "pose".into(),
+                RuntimeValue::Pose {
+                    x: pose.0,
+                    y: pose.1,
+                    theta: pose.2,
+                    z: pose.3,
+                },
+            );
+        }
+        if mirrors.iter().any(|m| m == "velocity") {
+            live.insert(
+                "velocity".into(),
+                RuntimeValue::Velocity {
+                    linear: velocity.0,
+                    angular: velocity.1,
+                },
+            );
+        }
+        live
+    }
+}
+
+fn value_distance(a: &RuntimeValue, b: &RuntimeValue) -> f64 {
+    match (a, b) {
+        (
+            RuntimeValue::Pose {
+                x: x1,
+                y: y1,
+                theta: _,
+                z: z1,
+            },
+            RuntimeValue::Pose {
+                x: x2,
+                y: y2,
+                theta: _,
+                z: z2,
+            },
+        ) => {
+            let dx = x1 - x2;
+            let dy = y1 - y2;
+            let dz = z1 - z2;
+            (dx * dx + dy * dy + dz * dz).sqrt()
+        }
+        (
+            RuntimeValue::Velocity {
+                linear: l1,
+                angular: a1,
+            },
+            RuntimeValue::Velocity {
+                linear: l2,
+                angular: a2,
+            },
+        ) => {
+            let dl = l1 - l2;
+            let da = a1 - a2;
+            (dl * dl + da * da).sqrt()
+        }
+        (RuntimeValue::Number { value: v1, .. }, RuntimeValue::Number { value: v2, .. }) => {
+            (v1 - v2).abs()
+        }
+        _ => 0.0,
+    }
 }
 
 #[cfg(test)]

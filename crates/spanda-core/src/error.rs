@@ -120,6 +120,12 @@ pub struct RunOptions {
     /// Log digital twin replay frame summaries (simulation).
     #[serde(default)]
     pub replay_trace: bool,
+    /// Emit trigger dispatch diagnostics to runtime logs.
+    #[serde(default)]
+    pub trace_triggers: bool,
+    /// Emit event trigger diagnostics to runtime logs.
+    #[serde(default)]
+    pub trace_events: bool,
 }
 
 fn default_max_loop_iterations() -> usize {

@@ -16,6 +16,7 @@ pub mod format;
 pub mod foundations;
 pub mod hal;
 pub mod hardware;
+pub mod hardware_monitor;
 pub mod lexer;
 pub mod lib_registry;
 pub mod lint;
@@ -37,6 +38,7 @@ pub mod transport_live;
 pub mod transport_rclrs;
 mod transport_rclrs_daemon;
 mod transport_rclrs_native;
+pub mod triggers;
 pub mod twin;
 pub mod type_system;
 pub mod types;
@@ -60,7 +62,9 @@ pub use sir::{
     lower_program, SirBehavior, SirExtern, SirFunction, SirParam, SirProgram, SirStmt,
     SirVisibility,
 };
-pub use telemetry::{ExecutionMetrics, RuntimeTelemetry, SchedulerMetrics, TaskMetrics};
+pub use telemetry::{
+    ExecutionMetrics, RuntimeTelemetry, SchedulerMetrics, TaskMetrics, TriggerMetrics,
+};
 
 use runtime::{Interpreter, InterpreterOptions, RobotBackend};
 use serde::{Deserialize, Serialize};
@@ -237,6 +241,8 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
             module_registry: options.module_registry.clone(),
             trace_scheduler: options.trace_scheduler,
             trace_tasks: options.trace_tasks,
+            trace_triggers: options.trace_triggers,
+            trace_events: options.trace_events,
             replay_trace: options.replay_trace,
             ..Default::default()
         },
