@@ -50,7 +50,7 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| python.* / cpp.* imports | Partially implemented | Type-check only; no native linking |
+| python.* / cpp.* imports | Partially implemented | Type-check; `extern python`/`extern cpp` subprocess bridges |
 | ROS2 adapter | Stubbed | Log-only stub |
 | Transport adapters | Stubbed | In-memory + log stubs |
 | Package manager | Partially implemented | spanda.toml, lockfile, local/git |

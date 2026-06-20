@@ -384,7 +384,7 @@ Honest snapshot of what works today vs what is planned. **Stubbed** means syntax
 | ROS2 integration | Stubbed | Adapter interface + examples; no live ROS2 node |
 | Package manager | Partially implemented | `spanda.toml`, lockfile, local/git deps; publish stub |
 | Security / audit | Implemented | Capabilities, secrets, signed messages, audit records |
-| `extern fn` / FFI | Partially implemented | Parsed + stub registry; no Python/C++ linking yet |
+| `extern fn` / FFI | Partially implemented | Subprocess Python/C++ bridges (Rust + TS); no in-process PyO3/cxx yet |
 | Codegen / LLVM native binary | Stubbed | Skeleton `spanda codegen`; see compiler backend roadmap |
 | LSP | Partially implemented | Check + verify diagnostics via Rust CLI |
 | Debugger (DAP) | Partially implemented | Breakpoints in interpreter; DAP server early stage |
@@ -399,7 +399,7 @@ Honest snapshot of what works today vs what is planned. **Stubbed** means syntax
 
 ### Planned
 
-- Python / C++ / ROS2 bridge implementations ([ffi-and-ecosystem.md](docs/ffi-and-ecosystem.md))
+- In-process PyO3 / cxx linking and live ROS2 bridge ([ffi-and-ecosystem.md](docs/ffi-and-ecosystem.md))
 - Spanda IR + LLVM backend ([compiler-backend-roadmap.md](docs/compiler-backend-roadmap.md))
 - Live digital twin telemetry sync
 - Real AI provider plugins (OpenAI, local models, ONNX inference)
@@ -408,7 +408,7 @@ Honest snapshot of what works today vs what is planned. **Stubbed** means syntax
 
 Python and C++ remain the best tools for model training, vendor SDKs, and low-level drivers. Spanda sits **above** them as the coordination layer: typed robot programs, mandatory safety validation, hardware compatibility checks before deploy, and deterministic scheduling — without forcing teams to rewrite existing libraries.
 
-Future `import python.torch` / `extern cpp fn` syntax ([docs/ffi-and-ecosystem.md](docs/ffi-and-ecosystem.md)) makes orchestration explicit while keeping inference and drivers in mature ecosystems.
+`extern python fn` / `extern cpp fn` subprocess bridges and planned `import python.torch` paths ([docs/ffi-and-ecosystem.md](docs/ffi-and-ecosystem.md)) make orchestration explicit while keeping inference and drivers in mature ecosystems.
 
 ### Build commands
 

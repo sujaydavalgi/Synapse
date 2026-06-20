@@ -42,6 +42,7 @@ import {
   runtimeVelocity,
   velocityFromState,
 } from "./values.js";
+import { callExternBridge } from "../ffi/subprocess-bridge.js";
 
 export type PoseValue = { x: number; y: number; theta: number; z: number };
 
@@ -1089,7 +1090,15 @@ export class Interpreter {
 
   private evalCall(expr: import("../ast/nodes.js").CallExpr): RuntimeValue {
     if (expr.callee.kind === "IdentExpr") {
-      return this.evalBuiltinFunction(expr.callee.name, expr);
+      const calleeName = expr.callee.name;
+      const externFn = this.currentProgram?.externFunctions.find(
+        (decl) => decl.name === calleeName,
+      );
+      if (externFn && (externFn.bridge === "python" || externFn.bridge === "cpp")) {
+        const args = expr.args.map((arg) => this.evalExpr(arg));
+        return callExternBridge(externFn, args);
+      }
+      return this.evalBuiltinFunction(calleeName, expr);
     }
 
     if (expr.callee.kind !== "MemberExpr" || expr.callee.object.kind !== "IdentExpr") {
