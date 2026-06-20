@@ -4,15 +4,16 @@ mod package;
 
 use serde::Serialize;
 use spanda_core::{
-    check, codegen, format_source, generate_markdown, lint, lower_to_sir, run, run_debug,
-    verify_compatibility, wasm_deploy_manifest, CodegenTarget, CompatSeverity, DebugOptions,
-    RunOptions, SpandaError, VerifyOptions,
+    check, codegen, format_source, generate_markdown, lint, lower_to_sir, replay_mission, run,
+    run_debug, verify_compatibility, wasm_deploy_manifest, CodegenTarget, CompatSeverity,
+    DebugOptions, RunOptions, SpandaError, VerifyOptions,
 };
 use spanda_llvm::{compile_native, emit_module_ir_with_options, CompileNativeOptions};
 use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::path::Path;
 use std::process;
 
 #[derive(Serialize)]
@@ -244,13 +245,65 @@ fn human_replay(trace_file: &str, from: Option<&str>, deterministic: bool, as_js
         0.0
     };
     let frames = trace.frames_from(offset_ms);
+
+    // Re-run the traced program and verify deterministic replay when requested.
+    if deterministic {
+        let source_path = resolve_trace_source(trace_file, &trace.source);
+        let source = fs::read_to_string(&source_path).unwrap_or_else(|e| {
+            eprintln!("Failed to read trace source '{source_path}': {e}");
+            process::exit(1);
+        });
+        let (_, verification) = replay_mission(
+            &source,
+            trace_file,
+            RunOptions {
+                max_loop_iterations: 20,
+                record_trace: true,
+                trace_source: Some(trace.source.clone()),
+                replay_from_ms: Some(offset_ms),
+                replay_deterministic: true,
+                ..Default::default()
+            },
+        )
+        .unwrap_or_else(|e| {
+            eprintln!("Replay failed: {e}");
+            process::exit(1);
+        });
+        if as_json {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "ok": verification.ok,
+                    "source": trace.source,
+                    "deterministic": true,
+                    "offset_ms": offset_ms,
+                    "matched": verification.matched,
+                    "mismatches": verification.mismatches,
+                }))
+                .unwrap()
+            );
+        } else if verification.ok {
+            println!(
+                "✓ Deterministic replay verified for {} ({} frames from {:.0}ms)",
+                trace_file, verification.matched, offset_ms
+            );
+        } else {
+            eprintln!("✗ Deterministic replay mismatch for {trace_file}:");
+            for mismatch in &verification.mismatches {
+                eprintln!("  {mismatch}");
+            }
+            process::exit(1);
+        }
+        return;
+    }
+
     if as_json {
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "ok": true,
                 "source": trace.source,
-                "deterministic": deterministic || trace.deterministic,
+                "deterministic": trace.deterministic,
                 "offset_ms": offset_ms,
                 "frames": frames,
             }))
@@ -275,15 +328,38 @@ fn human_replay(trace_file: &str, from: Option<&str>, deterministic: bool, as_js
     }
 }
 
-fn human_run(
-    source: &str,
-    file: &str,
-    verbose: bool,
-    trace_scheduler: bool,
-    trace_tasks: bool,
-    trace_triggers: bool,
-    trace_events: bool,
-) {
+fn resolve_trace_source(trace_file: &str, source: &str) -> String {
+    // Resolve a trace source label to a readable `.sd` path.
+    //
+    // Parameters:
+    // - `trace_file` — path to the `.trace` file
+    // - `source` — source label stored in the trace
+    //
+    // Returns:
+    // Best-effort source path for replay verification.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let path = resolve_trace_source("mission.trace", "rover.sd");
+
+    // Prefer an existing path verbatim when available.
+    if Path::new(source).is_file() {
+        return source.to_string();
+    }
+
+    // Fall back to a sibling of the trace file directory.
+    if let Some(parent) = Path::new(trace_file).parent() {
+        let candidate = parent.join(source);
+        if candidate.is_file() {
+            return candidate.to_string_lossy().into_owned();
+        }
+    }
+    source.to_string()
+}
+
+fn human_run(source: &str, file: &str, command: &str, opts: RunOptions) {
     // Human run.
     //
     // Parameters:
@@ -305,20 +381,14 @@ fn human_run(
     // let result = spanda_cli::main::human_run(source, file, verbose, trace_scheduler, trace_tasks, trace_triggers, trace_events);
 
     // Compute max loop iterations for the following logic.
-    let max_loop_iterations = if verbose { 20 } else { 10 };
+    let verbose = opts.max_loop_iterations > 10;
+    let trace_scheduler = opts.trace_scheduler;
+    let trace_tasks = opts.trace_tasks;
+    let trace_triggers = opts.trace_triggers;
+    let trace_events = opts.trace_events;
 
     // Match on run and handle each case.
-    match run(
-        source,
-        RunOptions {
-            max_loop_iterations,
-            trace_scheduler,
-            trace_tasks,
-            trace_triggers,
-            trace_events,
-            ..Default::default()
-        },
-    ) {
+    match run(source, opts.clone()) {
         Ok(result) => {
             let s = &result.state;
             println!("\n🤖 Running robot from {file}\n");
@@ -428,7 +498,26 @@ fn human_run(
                     println!("  Replay frames: {}", result.metrics.replay_frames);
                 }
             }
-            println!("\n✓ Simulation complete\n");
+
+            // Report mission trace output path when recording is enabled.
+            if opts.record_trace {
+                if result.mission_trace.is_some() {
+                    let path = opts.trace_output.clone().unwrap_or_else(|| {
+                        if file.ends_with(".sd") {
+                            format!("{}.trace", &file[..file.len() - 3])
+                        } else {
+                            format!("{file}.trace")
+                        }
+                    });
+                    println!("  Mission trace: {path}");
+                }
+            }
+            let label = if command == "sim" {
+                "Simulation"
+            } else {
+                "Run"
+            };
+            println!("\n✓ {label} complete\n");
         }
         Err(e) => {
             eprintln!("Error: {e}");
@@ -921,6 +1010,7 @@ fn main() {
     let mut metrics_json = false;
     let mut replay_deterministic = false;
     let mut replay_from: Option<String> = None;
+    let mut trace_output: Option<String> = None;
     let mut i = 2;
 
     // Repeat while i < args.len().
@@ -940,6 +1030,14 @@ fn main() {
                 json = true;
             }
             "--record" => record_trace = true,
+            "--trace-out" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("--trace-out requires a path");
+                    process::exit(1);
+                }
+                trace_output = Some(args[i].clone());
+            }
             "--deterministic" => replay_deterministic = true,
             "--from" => {
                 i += 1;
@@ -1103,15 +1201,17 @@ fn main() {
             let max_loop_iterations = if command == "sim" || verbose { 20 } else { 10 };
             let opts = RunOptions {
                 max_loop_iterations,
-                trace_scheduler,
-                trace_tasks,
-                trace_triggers,
-                trace_events,
+                trace_scheduler: trace_scheduler || trace_realtime,
+                trace_tasks: trace_tasks || trace_realtime,
+                trace_triggers: trace_triggers || trace_realtime,
+                trace_events: trace_events || trace_realtime,
                 trace_realtime,
                 record_trace: record_trace || (command == "sim" && replay_trace),
                 trace_source: Some(file.clone()),
+                trace_output,
                 metrics_json,
                 replay_trace: command == "sim" && replay_trace,
+                replay_deterministic,
                 ..Default::default()
             };
 
@@ -1119,15 +1219,7 @@ fn main() {
             if json || metrics_json {
                 print_run_json(run(&source, opts));
             } else {
-                human_run(
-                    &source,
-                    &file,
-                    command == "sim" || verbose,
-                    trace_scheduler,
-                    trace_tasks,
-                    trace_triggers,
-                    trace_events,
-                );
+                human_run(&source, &file, command, opts);
             }
         }
         "fmt" => {
