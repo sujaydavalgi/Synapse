@@ -16,10 +16,16 @@ pub fn resolve_ffi_import(path: &str) -> bool {
         return true;
     }
     if let Some(suffix) = path.strip_prefix("python.") {
-        return !suffix.is_empty() && suffix.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.');
+        return !suffix.is_empty()
+            && suffix
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.');
     }
     if let Some(suffix) = path.strip_prefix("cpp.") {
-        return !suffix.is_empty() && suffix.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.');
+        return !suffix.is_empty()
+            && suffix
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.');
     }
     false
 }

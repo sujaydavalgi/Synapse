@@ -1,6 +1,7 @@
 pub mod ai;
 pub mod ast;
 pub mod audit;
+pub mod bridge;
 pub mod codegen;
 pub mod comm;
 pub mod concurrency;

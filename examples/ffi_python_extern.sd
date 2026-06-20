@@ -1,9 +1,12 @@
-// Planned Python bridge extern — type-checks; runtime requires native link.
+// Python FFI bridge — calls py_version via subprocess bridge when python3 is available.
 extern python fn py_version() -> Int;
 
 robot PyBridge {
   actuator wheels: DifferentialDrive;
+
   behavior run() {
+    let v = py_version();
+    let _ = v;
     wheels.stop();
   }
 }

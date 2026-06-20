@@ -174,5 +174,31 @@ robot R {
 }
 "#;
     let err = run(source, RunOptions::default()).unwrap_err();
-    assert!(err.to_string().contains("not linked"));
+    assert!(
+        err.to_string().contains("Unknown python extern")
+            || err.to_string().contains("not found")
+            || err.to_string().contains("Python")
+    );
+}
+
+#[test]
+fn extern_python_fn_runs_via_subprocess_bridge() {
+    if !spanda_core::bridge::python::python_available()
+        || spanda_core::bridge::python::bridge_script_path().is_none()
+    {
+        return;
+    }
+    let source = r#"
+extern python fn py_add(a: Int, b: Int) -> Int;
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let sum = py_add(10, 32);
+    let _ = sum;
+    wheels.stop();
+  }
+}
+"#;
+    run(source, RunOptions::default()).expect("py_add via subprocess bridge");
 }

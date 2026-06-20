@@ -17,12 +17,41 @@ Spanda is designed to **orchestrate** existing robotics and AI ecosystems — no
 | `extern fn` syntax | Implemented | Parsed and type-checked in Rust core |
 | `FfiRegistry` | Partially implemented | Stub handlers; `extern python`/`extern cpp` fail at runtime until linked |
 | N-API / WASM bindings | Partially implemented | `check` and `run` only |
-| Python bridge | Planned | See syntax below |
+| Python bridge | **Partially implemented** | Subprocess bridge via `scripts/spanda_python_bridge.py` |
 | C/C++ bridge | Planned | See syntax below |
 | ROS2 bridge | Stubbed | `Ros2AdapterStub` logs calls; no live ROS2 node |
 | OpenCV / PyTorch / TensorFlow | Planned | Import paths reserved in std registry |
 
-Real native linking (dlopen, PyO3, cxx) is **not** implemented yet. Calling `extern fn` at runtime without a registered stub produces a clear runtime error.
+Real native linking (dlopen, PyO3 in-process, cxx) is **not** implemented yet. **`extern python fn`** calls are executed via a **subprocess JSON bridge** when `python3` and `scripts/spanda_python_bridge.py` are available.
+
+### Subprocess Python bridge (implemented)
+
+```bash
+# Optional: custom bridge script path
+export SPANDA_PYTHON_BRIDGE=/path/to/spanda_python_bridge.py
+
+spanda run examples/ffi_python_extern.sd
+```
+
+Register handlers in `scripts/spanda_python_bridge.py`:
+
+```python
+HANDLERS = {
+    "py_add": lambda a, b: int(a) + int(b),
+    "py_version": lambda: 1,
+}
+```
+
+Spanda program:
+
+```spanda
+extern python fn py_add(a: Int, b: Int) -> Int;
+let sum = py_add(2, 3);
+```
+
+Protocol: Rust sends `{"fn":"py_add","args":[2,3]}` on stdin; Python returns `{"ok":true,"result":5}`.
+
+Calling `extern python fn` without a registered handler fails with `Unknown python extern 'name'`.
 
 ## Planned import syntax
 

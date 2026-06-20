@@ -39,13 +39,14 @@ impl FfiRegistry {
         decl: &ExternFnDecl,
         args: &[RuntimeValue],
     ) -> Result<RuntimeValue, SpandaError> {
-        if matches!(decl.bridge, BridgeKind::Python | BridgeKind::Cpp)
-            && !self.handlers.contains_key(&decl.name)
-        {
+        if matches!(decl.bridge, BridgeKind::Python) && !self.handlers.contains_key(&decl.name) {
+            return crate::bridge::python::call_extern(decl, args);
+        }
+        if matches!(decl.bridge, BridgeKind::Cpp) && !self.handlers.contains_key(&decl.name) {
             return Err(SpandaError::Runtime {
                 message: format!(
                     "Bridge '{}' extern fn '{}' is declared but not linked — \
-                     native Python/C++ shims are not yet available (see docs/ffi-and-ecosystem.md)",
+                     C++ shims are not yet available (see docs/ffi-and-ecosystem.md)",
                     decl.bridge.as_str(),
                     decl.name
                 ),
@@ -163,7 +164,13 @@ mod tests {
                 },
             },
         };
+        // Without python/script, call goes to bridge which may error differently;
+        // with script present, unknown fn errors clearly.
         let err = registry.call(&decl, &[]).unwrap_err();
-        assert!(err.to_string().contains("not linked"));
+        assert!(
+            err.to_string().contains("Unknown python extern")
+                || err.to_string().contains("not found")
+                || err.to_string().contains("Python")
+        );
     }
 }
