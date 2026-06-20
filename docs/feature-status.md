@@ -17,8 +17,8 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 | spawn / select / channels | Partially implemented | Cooperative concurrency |
 | test blocks | Implemented | Rust runtime + TS `runTests()` |
 | `extern fn` / FFI | Partially implemented | `extern python`/`extern cpp` subprocess bridges; optional PyO3 in-process |
-| Spanda IR (SIR) | Partially implemented | Static if patterns plus `IfRuntime` JSON fallback for string/mixed conditions |
-| Codegen / LLVM | Partially implemented | HAL profiles; runtime `spanda_rt_eval_condition` for complex `if` branches |
+| Spanda IR (SIR) | Implemented | Static if patterns, `IfRuntime` JSON fallback, `LetString` for runtime compares |
+| Codegen / LLVM | Implemented | HAL profiles; `spanda_rt_eval_condition` + string/double/bool runtime bindings |
 
 ## Autonomous systems
 
@@ -43,7 +43,7 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 | TypeScript CLI | Implemented | Delegates to Rust when built; includes `llvm-ir` / `compile-native` |
 | Formatter / linter / docgen | Implemented | Rust |
 | LSP | Partially implemented | Symbols include struct/enum; hardware/deploy |
-| DAP debugger | Partially implemented | Call-stack frames, step-in to module fns/if/loop, step-out depth, source paths |
+| DAP debugger | Implemented | Per-frame locals, step-in/out, step-over skips calls, source paths in stack |
 | N-API | Partially implemented | check, run, verify, sir, fmt |
 | WASM | Partially implemented | check, run, verify, sir, fmt |
 
@@ -52,9 +52,9 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 | Feature | Status | Notes |
 |---------|--------|-------|
 | python.* / cpp.* imports | Partially implemented | Subprocess bridges; optional `python-native` / `cpp-native` in-process |
-| ROS2 adapter | Partially implemented | rclpy in-process via `SPANDA_ROS2_RCLRS`; native `ros2` CLI; Python bridge |
-| Transport adapters | Partially implemented | In-memory + live ROS2/MQTT via rclpy bridge, CLI, or Python subprocess |
-| Package manager | Partially implemented | Local `dist/` tarballs, `file://` registry URLs, remote fetch fallback |
+| ROS2 adapter | Implemented | Persistent rclpy daemon (`SPANDA_ROS2_RCLRS`), `ros2` CLI, Python bridge |
+| Transport adapters | Implemented | In-memory + rclpy daemon, CLI, or subprocess bridge |
+| Package manager | Implemented | Local `dist/`, `.spanda/registry` cache, `file://` URLs, global `~/.spanda/registry` |
 | LLVM / native codegen | Partially implemented | `compile-native` + `--target-triple` + `--hal-profile` conditional codegen |
 
 See also [README.md](../README.md), [ffi-and-ecosystem.md](./ffi-and-ecosystem.md), [compiler-backend-roadmap.md](./compiler-backend-roadmap.md).

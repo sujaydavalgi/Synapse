@@ -12,6 +12,26 @@ pub fn registry_tarball_url(name: &str, version: &str) -> Option<String> {
     registry_base_url().map(|base| format!("{base}/packages/{name}/{version}"))
 }
 
+pub fn registry_cache_dir(project_root: &Path) -> PathBuf {
+    project_root.join(".spanda/registry")
+}
+
+pub fn global_registry_cache_dir() -> Option<PathBuf> {
+    std::env::var("SPANDA_REGISTRY_CACHE")
+        .ok()
+        .map(PathBuf::from)
+        .or_else(|| {
+            dirs_home().map(|home| home.join(".spanda/registry"))
+        })
+}
+
+fn dirs_home() -> Option<PathBuf> {
+    std::env::var("HOME")
+        .ok()
+        .map(PathBuf::from)
+        .or_else(|| std::env::var("USERPROFILE").ok().map(PathBuf::from))
+}
+
 pub fn resolve_local_tarball(
     project_root: &Path,
     name: &str,
@@ -21,10 +41,11 @@ pub fn resolve_local_tarball(
         project_root
             .join("dist")
             .join(format!("{name}-{version}.tar.gz")),
-        project_root
-            .join(".spanda/registry")
-            .join(format!("{name}-{version}.tar.gz")),
+        registry_cache_dir(project_root).join(format!("{name}-{version}.tar.gz")),
     ];
+    if let Some(global) = global_registry_cache_dir() {
+        candidates.push(global.join(format!("{name}-{version}.tar.gz")));
+    }
     if let Ok(local) = std::env::var("SPANDA_REGISTRY_LOCAL") {
         let trimmed = local.trim();
         if !trimmed.is_empty() {
@@ -32,6 +53,26 @@ pub fn resolve_local_tarball(
         }
     }
     candidates.into_iter().find(|path| path.is_file())
+}
+
+pub fn cache_registry_tarball(
+    project_root: &Path,
+    name: &str,
+    version: &str,
+    tarball: &Path,
+) -> Result<PathBuf, String> {
+    let cache_dir = registry_cache_dir(project_root);
+    fs::create_dir_all(&cache_dir).map_err(|e| format!("create registry cache: {e}"))?;
+    let dest = cache_dir.join(format!("{name}-{version}.tar.gz"));
+    fs::copy(tarball, &dest).map_err(|e| format!("cache tarball: {e}"))?;
+    if let Some(global) = global_registry_cache_dir() {
+        if global != cache_dir {
+            let _ = fs::create_dir_all(&global);
+            let global_dest = global.join(format!("{name}-{version}.tar.gz"));
+            let _ = fs::copy(tarball, &global_dest);
+        }
+    }
+    Ok(dest)
 }
 
 pub fn fetch_registry_tarball(
@@ -54,6 +95,7 @@ pub fn fetch_registry_tarball(
     })?;
     let tarball = dest.join(format!("{name}-{version}.tar.gz"));
     fetch_url_to_file(&url, &tarball)?;
+    let _ = cache_registry_tarball(project_root, name, version, &tarball);
     extract_tarball(&tarball, dest)?;
     let _ = fs::remove_file(&tarball);
     Ok(dest.to_path_buf())
@@ -137,6 +179,22 @@ mod tests {
         assert_eq!(
             resolve_local_tarball(&root, "demo", "0.1.0"),
             Some(bundle)
+        );
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn cache_registry_tarball_writes_project_cache() {
+        let root = std::env::temp_dir().join(format!("spanda-cache-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let src = root.join("src.tar.gz");
+        fs::write(&src, b"payload").unwrap();
+        let cached = cache_registry_tarball(&root, "demo", "0.2.0", &src).unwrap();
+        assert!(cached.is_file());
+        assert_eq!(
+            resolve_local_tarball(&root, "demo", "0.2.0"),
+            Some(cached)
         );
         let _ = fs::remove_dir_all(&root);
     }
