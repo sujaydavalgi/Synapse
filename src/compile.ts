@@ -208,6 +208,7 @@ export async function compileAsync(source: string, backend?: CompileBackend): Pr
             requiresNetwork: null,
             simulateCompatibility: null,
             messages: [],
+            validateRules: [],
             robots: [],
             span: {
               start: { line: 1, column: 1, offset: 0 },

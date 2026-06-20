@@ -98,6 +98,9 @@ export function resolveTypeName(name: string): SpandaType {
     case "String":
     case "string":
       return { kind: "string" };
+    case "Regex":
+    case "regex":
+      return { kind: "regex" };
     case "Char":
     case "char":
       return { kind: "char" };
@@ -521,6 +524,8 @@ export function typeKindName(ty: SpandaType): string {
       return "enum_variant";
     case "trait_object":
       return "trait_object";
+    case "regex":
+      return "regex";
     default:
       return ty.kind;
   }

@@ -1680,6 +1680,18 @@ export class Interpreter {
       case "EnterStmt":
         this.executeEnter(stmt.stateName, stmt.span.start.line);
         break;
+      case "EnterModeStmt":
+        this.options.onLog?.(`enter mode ${stmt.mode}`);
+        break;
+      case "StopAllActuatorsStmt":
+        this.options.onLog?.("stop_all_actuators");
+        break;
+      case "RunPipelineStmt":
+        this.options.onLog?.(`run_pipeline ${stmt.name}`);
+        break;
+      case "UseFallbackStmt":
+        this.options.onLog?.(`use fallback ${stmt.resource}`);
+        break;
       case "RememberStmt": {
 
         // continue when currentAgent is falsy.

@@ -544,6 +544,14 @@ export const BUILTIN_METHODS: Record<
       },
       returns: { kind: "void" },
     },
+    move: {
+      params: [],
+      namedParams: {
+        linear: { kind: "number", unit: "m/s" },
+        angular: { kind: "number", unit: "rad/s" },
+      },
+      returns: { kind: "void" },
+    },
     execute: {
       params: [{ kind: "named", name: "SafeAction" }],
       returns: { kind: "void" },
@@ -680,6 +688,22 @@ export const BUILTIN_METHODS: Record<
   },
   RobotIdentity: {
     id: { params: [], returns: { kind: "string" } },
+  },
+  String: {
+    matches: { params: [{ kind: "regex" }], returns: { kind: "bool" } },
+    find: { params: [{ kind: "regex" }], returns: { kind: "string" } },
+    replace: {
+      params: [{ kind: "regex" }, { kind: "string" }],
+      returns: { kind: "string" },
+    },
+    split: {
+      params: [{ kind: "regex" }],
+      returns: { kind: "named", name: "StringList" },
+    },
+    capture: {
+      params: [{ kind: "regex" }],
+      returns: { kind: "named", name: "Capture" },
+    },
   },
 };
 

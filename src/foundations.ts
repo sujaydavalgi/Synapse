@@ -4,6 +4,7 @@
  */
 
 import type { Expr, Span, SpandaType, Stmt } from "./ast/nodes.js";
+import type { RegexPattern } from "./regex.js";
 
 export type Visibility = "private" | "public" | "export";
 
@@ -141,6 +142,9 @@ export type TaskDecl = {
   name: string;
   priority: TaskPriority;
   intervalMs: number;
+  deadlineMs?: number | null;
+  jitterMsMax?: number | null;
+  isolated?: boolean;
   requires: Expr | null;
   ensures: Expr | null;
   invariant: Expr | null;
@@ -154,8 +158,62 @@ export type ResourceBudgetDecl = {
   batteryPctMax: number | null;
   memoryMbMax: number | null;
   cpuPctMax: number | null;
+  gpuPctMax?: number | null;
   networkMbpsMax: number | null;
   storageMbMax: number | null;
+  span: Span;
+};
+
+export type PipelineDecl = {
+  kind: "PipelineDecl";
+  name: string;
+  budgetMs: number;
+  body: Stmt[];
+  span: Span;
+};
+
+export type WatchdogDecl = {
+  kind: "WatchdogDecl";
+  name: string;
+  target?: string | null;
+  timeoutMs: number;
+  body: Stmt[];
+  span: Span;
+};
+
+export type ModeDecl = {
+  kind: "ModeDecl";
+  name: string;
+  body: Stmt[];
+  span: Span;
+};
+
+export type RetryDecl = {
+  kind: "RetryDecl";
+  attempts: number;
+  backoffMs: number;
+  body: Stmt[];
+  fallback: Stmt[];
+  span: Span;
+};
+
+export type RecoverDecl = {
+  kind: "RecoverDecl";
+  errorName: string;
+  body: Stmt[];
+  span: Span;
+};
+
+export type ValidateRuleDecl = {
+  kind: "ValidateRuleDecl";
+  name: string;
+  pattern: RegexPattern;
+  span: Span;
+};
+
+export type SubscribeFilterDecl = {
+  field: string;
+  pattern: RegexPattern;
   span: Span;
 };
 

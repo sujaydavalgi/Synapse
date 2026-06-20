@@ -37,6 +37,15 @@ import { resolveImport } from "../lib/registry.js";
 import { resolveAiImport } from "../ai/registry.js";
 import type { ModuleRegistry } from "../modules/index.js";
 import { getSocProfile, validateHalAgainstSoc } from "../soc/index.js";
+import {
+  validateTaskTiming,
+  validateTaskPriority,
+  validatePipeline,
+  validateWatchdog,
+  validateResourceBudget,
+  validateRecover,
+} from "../reliability.js";
+import { compileRegex, RegexError } from "../regex.js";
 import { halMemberFromDecl } from "../hal/index.js";
 import {
   ACTION_TYPES,
@@ -230,6 +239,18 @@ class TypeChecker {
     this.messageRegistry = MessageRegistry.fromProgram(program.messages, program.structs);
     for (const msg of program.messages) {
       this.checkMessage(msg);
+    }
+
+    for (const rule of program.validateRules) {
+      try {
+        compileRegex(rule.pattern);
+      } catch (err) {
+        if (err instanceof RegexError) {
+          this.error(err.message, err.line, err.column);
+        } else {
+          throw err;
+        }
+      }
     }
 
     for (const robot of program.robots) {
@@ -1019,7 +1040,15 @@ class TypeChecker {
       if (robot.twin.mirrors.length === 0) {
         this.error("Digital twin must mirror at least one field", robot.twin.span.start.line, robot.twin.span.start.column);
       }
-      const allowedMirrorFields = ["pose", "velocity", "battery", "status", "scan"];
+      const allowedMirrorFields = [
+        "pose",
+        "velocity",
+        "battery",
+        "status",
+        "scan",
+        ...robot.sensors.map((s) => s.name),
+        ...robot.actuators.map((a) => a.name),
+      ];
 
       // Process each mirror.
       for (const mirror of robot.twin.mirrors) {
@@ -1204,6 +1233,18 @@ class TypeChecker {
 
     // Process each task.
     for (const task of robot.tasks) {
+      for (const diag of validateTaskTiming(task)) {
+        this.error(diag.message, diag.line, diag.column);
+      }
+      for (const diag of validateTaskPriority(task)) {
+        this.error(diag.message, diag.line, diag.column);
+      }
+
+      if (task.budget) {
+        for (const diag of validateResourceBudget(task.budget, task.span)) {
+          this.error(diag.message, diag.line, diag.column);
+        }
+      }
 
       // continue when task.intervalMs <= 0.
       if (task.intervalMs <= 0) {
@@ -1251,12 +1292,48 @@ class TypeChecker {
       this.checkBehaviorBody(task.body);
     }
 
+    const taskNames = robot.tasks.map((task) => task.name);
+
+    for (const pipeline of robot.pipelines) {
+      for (const diag of validatePipeline(pipeline)) {
+        this.error(diag.message, diag.line, diag.column);
+      }
+      this.checkBehaviorBody(pipeline.body);
+    }
+
+    for (const watchdog of robot.watchdogs) {
+      for (const diag of validateWatchdog(watchdog, taskNames)) {
+        this.error(diag.message, diag.line, diag.column);
+      }
+      this.checkBehaviorBody(watchdog.body);
+    }
+
+    for (const mode of robot.modes) {
+      this.checkBehaviorBody(mode.body);
+    }
+
+    for (const retry of robot.retries) {
+      this.checkBehaviorBody(retry.body);
+      this.checkBehaviorBody(retry.fallback);
+    }
+
+    for (const recover of robot.recovers) {
+      for (const diag of validateRecover(recover)) {
+        this.error(diag.message, diag.line, diag.column);
+      }
+      this.checkBehaviorBody(recover.body);
+    }
+
     // Invoke each registered handler.
     for (const handler of robot.eventHandlers) {
+      const isTriggerHandler =
+        handler.eventName === "log" ||
+        handler.eventName.startsWith("hardware.") ||
+        handler.eventName.startsWith("message.");
       const declared = robot.events.some((e) => e.name === handler.eventName);
 
       // continue when declared is falsy.
-      if (!declared) {
+      if (!isTriggerHandler && !declared) {
         this.error(
           `No event declared for handler '${handler.eventName}'`,
           handler.span.start.line,
@@ -2034,19 +2111,38 @@ class TypeChecker {
           );
         }
         break;
+      case "EnterModeStmt":
+      case "StopAllActuatorsStmt":
+      case "RunPipelineStmt":
+      case "UseFallbackStmt":
+        break;
       case "RememberStmt":
         this.checkExpr(stmt.value);
         break;
       case "SubscribeStmt": {
         const [topicName] = stmt.target.split(".");
 
-        // continue when has is falsy.
-        if (!this.symbols.has(topicName) && !this.peerRobotNames.has(topicName)) {
+        if (
+          stmt.target.includes(".") &&
+          !this.symbols.has(topicName) &&
+          !this.peerRobotNames.has(topicName)
+        ) {
           this.error(
             `Unknown subscribe target '${stmt.target}'`,
             stmt.span.start.line,
             stmt.span.start.column,
           );
+        }
+        if (stmt.filter) {
+          try {
+            compileRegex(stmt.filter.pattern);
+          } catch (err) {
+            if (err instanceof RegexError) {
+              this.error(err.message, err.line, err.column);
+            } else {
+              throw err;
+            }
+          }
         }
         this.subscribedTopics.add(stmt.target);
         break;
@@ -2157,7 +2253,19 @@ class TypeChecker {
 
     // const result = checkExpr(expr);
     switch (expr.kind) {
-      case "LiteralExpr":
+      case "LiteralExpr": {
+        if (typeof expr.value === "object" && expr.value !== null && "source" in expr.value) {
+          try {
+            compileRegex(expr.value);
+          } catch (err) {
+            if (err instanceof RegexError) {
+              this.error(err.message, err.line, err.column);
+            } else {
+              throw err;
+            }
+          }
+          return { kind: "regex" };
+        }
 
         // continue when value equals "boolean".
         if (typeof expr.value === "boolean") return { kind: "bool" };
@@ -2168,6 +2276,7 @@ class TypeChecker {
         // continue when value equals "string".
         if (typeof expr.value === "string") return { kind: "string" };
         return { kind: "void" };
+      }
       case "UnitLiteralExpr":
         return { kind: "number", unit: expr.unit };
       case "IdentExpr": {
@@ -3053,18 +3162,30 @@ class TypeChecker {
       return fn.returns;
     }
 
-    // continue when kind differs from kind !== "IdentExpr".
+    if (expr.callee.kind === "MemberExpr") {
+      const member = expr.callee;
+      const objType = this.checkExpr(member.object);
+      if (objType.kind === "string" || objType.kind === "regex") {
+        const typeName = objType.kind === "string" ? "String" : "Regex";
+        const method = BUILTIN_METHODS[typeName]?.[member.property];
+        if (method) {
+          for (let i = 0; i < expr.args.length; i++) {
+            const expected = method.params[i];
+            if (expected) {
+              const actual = this.checkExpr(expr.args[i]!);
+              this.assertCompatible(expected, actual, expr.span.start.line, expr.span.start.column);
+            }
+          }
+          return method.returns;
+        }
+      }
+    }
+
     if (expr.callee.kind !== "MemberExpr" || expr.callee.object.kind !== "IdentExpr") {
       this.error("Invalid call target", expr.span.start.line, expr.span.start.column);
       return { kind: "void" };
     }
     const member = expr.callee;
-
-    // continue when kind differs from "IdentExpr".
-    if (member.object.kind !== "IdentExpr") {
-      this.error("Invalid call target", expr.span.start.line, expr.span.start.column);
-      return { kind: "void" };
-    }
     const targetName = member.object.name;
     const sym = this.symbols.get(targetName);
 
@@ -3188,7 +3309,15 @@ class TypeChecker {
 
         // continue when typeName equals kind === "IdentExpr".
         if (typeName === "Twin" && arg.name === "field" && arg.value.kind === "IdentExpr") {
-          const allowedMirrorFields = ["pose", "velocity", "battery", "status", "scan"];
+          const allowedMirrorFields = [
+            "pose",
+            "velocity",
+            "battery",
+            "status",
+            "scan",
+            ...(this.currentRobot?.sensors.map((s) => s.name) ?? []),
+            ...(this.currentRobot?.actuators.map((a) => a.name) ?? []),
+          ];
 
           // continue when name) is falsy.
           if (!allowedMirrorFields.includes(arg.value.name)) {

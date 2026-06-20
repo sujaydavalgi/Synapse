@@ -149,6 +149,21 @@ export type TokenType =
   | "AND"
   | "OR"
   | "NOT"
+  | "WATCHDOG"
+  | "PIPELINE"
+  | "RECOVER"
+  | "RETRY"
+  | "FALLBACK"
+  | "ISOLATED"
+  | "JITTER"
+  | "BACKOFF"
+  | "TIMES"
+  | "MATCHES"
+  | "WHEN"
+  | "WHILE"
+  | "USE"
+  | "PRIORITY"
+  | "REGEX_LITERAL"
   | "PERCENT"
   | "IDENT"
   | "NUMBER"
@@ -423,6 +438,20 @@ const KEYWORDS: Record<string, TokenType> = {
   and: "AND",
   or: "OR",
   not: "NOT",
+  watchdog: "WATCHDOG",
+  pipeline: "PIPELINE",
+  recover: "RECOVER",
+  retry: "RETRY",
+  fallback: "FALLBACK",
+  isolated: "ISOLATED",
+  jitter: "JITTER",
+  backoff: "BACKOFF",
+  times: "TIMES",
+  matches: "MATCHES",
+  when: "WHEN",
+  while: "WHILE",
+  use: "USE",
+  priority: "PRIORITY",
 };
 
 const UNIT_SUFFIXES: UnitLexeme[] = [
@@ -602,6 +631,13 @@ export function tokenize(source: string): Token[] {
 
     // continue when ch equals "/".
     if (ch === "/") {
+      if (regexLiteralContext(tokens.at(-1))) {
+        const { lexeme, advanceBy } = lexRegexLiteral(source, i);
+        tokens.push({ type: "REGEX_LITERAL", lexeme, value: lexeme, ...start });
+        i += advanceBy;
+        column += advanceBy;
+        continue;
+      }
       tokens.push({ type: "SLASH", lexeme: "/", value: null, ...start });
       i++;
       column++;
@@ -884,6 +920,63 @@ function isIdentChar(ch: string): boolean {
 
   // const result = isIdentChar(ch);
   return isIdentStart(ch) || isDigit(ch);
+}
+
+function regexLiteralContext(previous: Token | undefined): boolean {
+  // Decide whether `/` starts a regex literal instead of division.
+  if (!previous) {
+    return true;
+  }
+  return [
+    "ASSIGN",
+    "LPAREN",
+    "COMMA",
+    "SEMICOLON",
+    "LBRACE",
+    "COLON",
+    "MATCHES",
+    "WHERE",
+    "FAT_ARROW",
+    "RETURN",
+    "PLUS",
+    "MINUS",
+    "STAR",
+    "LT",
+    "LTE",
+    "GT",
+    "GTE",
+    "EQ",
+    "NEQ",
+    "LET",
+  ].includes(previous.type);
+}
+
+function lexRegexLiteral(source: string, start: number): { lexeme: string; advanceBy: number } {
+  // Lex a `/pattern/flags` regex literal starting at the opening slash.
+  let i = start + 1;
+  let escaped = false;
+  while (i < source.length) {
+    const ch = source[i]!;
+    if (escaped) {
+      escaped = false;
+      i++;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      i++;
+      continue;
+    }
+    if (ch === "/") {
+      i++;
+      break;
+    }
+    i++;
+  }
+  while (i < source.length && "ims".includes(source[i]!)) {
+    i++;
+  }
+  return { lexeme: source.slice(start, i), advanceBy: i - start };
 }
 
 export function unitFromLexeme(lexeme: UnitLexeme): import("../ast/nodes.js").UnitKind {

@@ -156,7 +156,8 @@ export type SpandaType =
   | { kind: "trajectory" }
   | { kind: "transform" }
   | { kind: "enum_variant"; enumName: string; variant: string }
-  | { kind: "trait_object"; traitName: string };
+  | { kind: "trait_object"; traitName: string }
+  | { kind: "regex" };
 
 export type Program = {
   kind: "Program";
@@ -174,6 +175,7 @@ export type Program = {
   requiresNetwork: import("../foundations.js").RequiresNetworkDecl | null;
   simulateCompatibility: import("../foundations.js").SimulateCompatibilityDecl | null;
   messages: MessageDecl[];
+  validateRules: import("../foundations.js").ValidateRuleDecl[];
   robots: RobotDecl[];
   span: Span;
 };
@@ -200,6 +202,11 @@ export type RobotDecl = {
   agents: AgentDecl[];
   behaviors: BehaviorDecl[];
   tasks: TaskDecl[];
+  pipelines: import("../foundations.js").PipelineDecl[];
+  watchdogs: import("../foundations.js").WatchdogDecl[];
+  modes: import("../foundations.js").ModeDecl[];
+  retries: import("../foundations.js").RetryDecl[];
+  recovers: import("../foundations.js").RecoverDecl[];
   mission: MissionDecl | null;
   stateMachines: StateMachineDecl[];
   events: EventDecl[];
@@ -435,6 +442,10 @@ export type Stmt =
   | ResetEmergencyStopStmt
   | EmitStmt
   | EnterStmt
+  | EnterModeStmt
+  | StopAllActuatorsStmt
+  | RunPipelineStmt
+  | UseFallbackStmt
   | RememberStmt
   | SubscribeStmt
   | ExecuteStmt
@@ -470,6 +481,30 @@ export type RememberStmt = {
 export type SubscribeStmt = {
   kind: "SubscribeStmt";
   target: string;
+  filter: import("../foundations.js").SubscribeFilterDecl | null;
+  span: Span;
+};
+
+export type EnterModeStmt = {
+  kind: "EnterModeStmt";
+  mode: string;
+  span: Span;
+};
+
+export type StopAllActuatorsStmt = {
+  kind: "StopAllActuatorsStmt";
+  span: Span;
+};
+
+export type RunPipelineStmt = {
+  kind: "RunPipelineStmt";
+  name: string;
+  span: Span;
+};
+
+export type UseFallbackStmt = {
+  kind: "UseFallbackStmt";
+  resource: string;
   span: Span;
 };
 
@@ -602,7 +637,7 @@ export type AwaitExpr = {
 
 export type LiteralExpr = {
   kind: "LiteralExpr";
-  value: number | string | boolean | null;
+  value: number | string | boolean | null | import("../regex.js").RegexPattern;
   span: Span;
 };
 

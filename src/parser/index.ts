@@ -5,6 +5,7 @@
 
 import type { Token } from "../lexer/index.js";
 import { unitFromLexeme } from "../lexer/index.js";
+import { regexFromLexeme } from "../regex.js";
 import { resolveGenericType, resolveTypeName } from "../type-system.js";
 import type { SpandaType } from "../ast/nodes.js";
 import type {
@@ -81,6 +82,13 @@ import type {
   MissionDecl,
   ResourceBudgetDecl,
   TaskPriority,
+  PipelineDecl,
+  WatchdogDecl,
+  ModeDecl,
+  RetryDecl,
+  RecoverDecl,
+  ValidateRuleDecl,
+  SubscribeFilterDecl,
   BridgeKind,
   IdentityDecl,
   AuditDecl,
@@ -307,6 +315,7 @@ class Parser {
       "FROM",
       "TO",
       "SUBSCRIBE",
+      "MATCHES",
       "RECEIVE",
       "MESSAGE",
       "RESPONSE",
@@ -380,6 +389,7 @@ class Parser {
       "FROM",
       "TO",
       "SUBSCRIBE",
+      "MATCHES",
       "RECEIVE",
       "MESSAGE",
       "RESPONSE",
@@ -431,6 +441,7 @@ class Parser {
     const enums: EnumDecl[] = [];
     const traits: TraitDecl[] = [];
     const messages: MessageDecl[] = [];
+    const validateRules: ValidateRuleDecl[] = [];
     const robots: RobotDecl[] = [];
     const hardwareProfiles: HardwareDecl[] = [];
     const deployments: DeployDecl[] = [];
@@ -467,12 +478,14 @@ class Parser {
         simulateCompatibility = this.parseSimulateCompatibility();
       } else if (this.check("MESSAGE")) {
         messages.push(this.parseMessage());
+      } else if (this.check("IDENT") && this.peek().lexeme === "validate") {
+        validateRules.push(this.parseValidateRule());
       } else if (this.check("ROBOT")) {
         robots.push(this.parseRobot());
       } else {
         const t = this.peek();
         throw new ParseError(
-          "Expected struct, enum, trait, hardware, deploy, or robot declaration",
+          "Expected struct, enum, trait, hardware, deploy, validate, or robot declaration",
           t.line,
           t.column,
         );
@@ -496,6 +509,7 @@ class Parser {
       requiresNetwork,
       simulateCompatibility,
       messages,
+      validateRules,
       robots,
       span: this.spanFrom(start, end),
     };
@@ -1162,6 +1176,11 @@ class Parser {
     const agents: AgentDecl[] = [];
     const behaviors: BehaviorDecl[] = [];
     const tasks: TaskDecl[] = [];
+    const pipelines: PipelineDecl[] = [];
+    const watchdogs: WatchdogDecl[] = [];
+    const modes: ModeDecl[] = [];
+    const retries: RetryDecl[] = [];
+    const recovers: RecoverDecl[] = [];
     let mission: MissionDecl | null = null;
     const stateMachines: StateMachineDecl[] = [];
     const events: EventDecl[] = [];
@@ -1250,6 +1269,26 @@ class Parser {
       } else if (this.check("TASK")) {
         tasks.push(this.parseTask());
 
+      // Otherwise, continue when this.check("PIPELINE").
+      } else if (this.check("PIPELINE")) {
+        pipelines.push(this.parsePipeline());
+
+      // Otherwise, continue when this.check("WATCHDOG").
+      } else if (this.check("WATCHDOG")) {
+        watchdogs.push(this.parseWatchdog());
+
+      // Otherwise, continue when this.check("RETRY").
+      } else if (this.check("RETRY")) {
+        retries.push(this.parseRetry());
+
+      // Otherwise, continue when this.check("RECOVER").
+      } else if (this.check("RECOVER")) {
+        recovers.push(this.parseRecover());
+
+      // Otherwise, continue when this.isRobotMemberKeyword("mode").
+      } else if (this.isRobotMemberKeyword("mode")) {
+        modes.push(this.parseMode());
+
       // Otherwise, continue when this.check("STATE MACHINE").
       } else if (this.check("STATE_MACHINE")) {
         stateMachines.push(this.parseStateMachine());
@@ -1260,7 +1299,7 @@ class Parser {
 
       // Otherwise, continue when this.check("ON").
       } else if (this.check("ON")) {
-        eventHandlers.push(this.parseEventHandler());
+        eventHandlers.push(this.parseOnTrigger());
 
       // Otherwise, continue when this.check("TWIN").
       } else if (this.check("TWIN")) {
@@ -1345,6 +1384,11 @@ class Parser {
       agents,
       behaviors,
       tasks,
+      pipelines,
+      watchdogs,
+      modes,
+      retries,
+      recovers,
       mission,
       stateMachines,
       events,
@@ -3871,23 +3915,53 @@ class Parser {
     const start = this.advance();
     const name = this.expect("IDENT", "Expected task name");
     let priority: TaskPriority = "normal";
+    let deadlineMs: number | null = null;
+    let jitterMsMax: number | null = null;
+    let isolated = false;
 
-    // continue when this.check("IDENT").
     if (this.check("IDENT")) {
       const maybe = this.peek().lexeme;
-
-      // continue when maybe equals "critical" || maybe === "high" || maybe === "normal" || maybe === "low".
       if (maybe === "critical" || maybe === "high" || maybe === "normal" || maybe === "low") {
         this.advance();
         priority = maybe;
       }
     }
+
+    if (this.match("PRIORITY")) {
+      const level = this.expect("IDENT", "Expected priority level");
+      if (
+        level.lexeme === "critical" ||
+        level.lexeme === "high" ||
+        level.lexeme === "normal" ||
+        level.lexeme === "low"
+      ) {
+        priority = level.lexeme;
+      } else {
+        throw new ParseError(
+          `Invalid priority '${level.lexeme}'; use critical, high, normal, or low`,
+          level.line,
+          level.column,
+        );
+      }
+    }
+
     const intervalMs = this.check("EVERY") ? (this.advance(), this.parseDuration()) : 10;
+
+    if (this.match("DEADLINE")) {
+      deadlineMs = this.parseDuration();
+    }
+    if (this.match("JITTER")) {
+      this.expect("LTE", "Expected '<=' after jitter");
+      jitterMsMax = this.parseDuration();
+    }
+    if (this.match("ISOLATED")) {
+      isolated = true;
+    }
+
     const { requires, ensures, invariant } = this.parseContractClauses();
     this.expect("LBRACE", "Expected '{' after task signature");
     let budget: ResourceBudgetDecl | null = null;
 
-    // continue when this.check("BUDGET").
     if (this.check("BUDGET")) {
       budget = this.parseBudget();
     }
@@ -3898,6 +3972,9 @@ class Parser {
       name: name.lexeme,
       priority,
       intervalMs,
+      deadlineMs,
+      jitterMsMax,
+      isolated,
       requires,
       ensures,
       invariant,
@@ -3927,6 +4004,7 @@ class Parser {
     let batteryPctMax: number | null = null;
     let memoryMbMax: number | null = null;
     let cpuPctMax: number | null = null;
+    let gpuPctMax: number | null = null;
     let networkMbpsMax: number | null = null;
     let storageMbMax: number | null = null;
 
@@ -3950,6 +4028,12 @@ class Parser {
         this.expect("LTE", "Expected '<=' after cpu in budget");
         cpuPctMax = this.parsePercentValue();
         this.expect("SEMICOLON", "Expected ';' after cpu budget");
+
+      // Otherwise, continue when this.match("GPU").
+      } else if (this.match("GPU")) {
+        this.expect("LTE", "Expected '<=' after gpu in budget");
+        gpuPctMax = this.parsePercentValue();
+        this.expect("SEMICOLON", "Expected ';' after gpu budget");
 
       // Otherwise, continue when this.match("NETWORK").
       } else if (this.match("NETWORK")) {
@@ -3975,11 +4059,136 @@ class Parser {
       batteryPctMax,
       memoryMbMax,
       cpuPctMax,
+      gpuPctMax,
       networkMbpsMax,
       storageMbMax,
       span: this.spanFrom(start, end),
     };
 }
+
+  private parsePipeline(): PipelineDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected pipeline name");
+    this.expect("BUDGET", "Expected 'budget' after pipeline name");
+    const budgetMs = this.parseDuration();
+    this.expect("LBRACE", "Expected '{' after pipeline budget");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close pipeline");
+    return {
+      kind: "PipelineDecl",
+      name: name.lexeme,
+      budgetMs,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseWatchdog(): WatchdogDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected watchdog name");
+    let target: string | null = null;
+    if (this.check("IDENT") && this.peek().lexeme !== "timeout") {
+      target = this.advance().lexeme;
+    }
+    if (this.check("IDENT") && this.peek().lexeme === "timeout") {
+      this.advance();
+    } else {
+      const t = this.peek();
+      throw new ParseError("Expected 'timeout' in watchdog declaration", t.line, t.column);
+    }
+    const timeoutMs = this.parseDuration();
+    this.expect("LBRACE", "Expected '{' after watchdog timeout");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close watchdog");
+    return {
+      kind: "WatchdogDecl",
+      name: name.lexeme,
+      target,
+      timeoutMs,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseMode(): ModeDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected mode name");
+    this.expect("LBRACE", "Expected '{' after mode name");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close mode");
+    return {
+      kind: "ModeDecl",
+      name: name.lexeme,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseRetry(): RetryDecl {
+    const start = this.advance();
+    const attemptsTok = this.expect("NUMBER", "Expected retry attempt count");
+    const attempts = typeof attemptsTok.value === "number" ? attemptsTok.value : Number(attemptsTok.value);
+    if (!Number.isFinite(attempts) || attempts < 1) {
+      throw new ParseError("Retry attempts must be a positive number", attemptsTok.line, attemptsTok.column);
+    }
+    this.expect("TIMES", "Expected 'times' after retry count");
+    this.expect("BACKOFF", "Expected 'backoff' in retry declaration");
+    const backoffMs = this.parseDuration();
+    this.expect("LBRACE", "Expected '{' after retry backoff");
+    const body = this.parseBlock();
+    this.expect("RBRACE", "Expected '}' to close retry body");
+    let fallback: Stmt[] = [];
+    if (this.match("FALLBACK")) {
+      this.expect("LBRACE", "Expected '{' after fallback");
+      fallback = this.parseBlock();
+      this.expect("RBRACE", "Expected '}' to close fallback");
+    }
+    return {
+      kind: "RetryDecl",
+      attempts: Math.floor(attempts),
+      backoffMs,
+      body,
+      fallback,
+      span: this.spanFrom(start, this.previous()),
+    };
+  }
+
+  private parseRecover(): RecoverDecl {
+    const start = this.advance();
+    this.expect("FROM", "Expected 'from' after recover");
+    const errorName = this.expect("IDENT", "Expected error name");
+    this.expect("LBRACE", "Expected '{' after recover error");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close recover");
+    return {
+      kind: "RecoverDecl",
+      errorName: errorName.lexeme,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseValidateRule(): ValidateRuleDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected validate rule name");
+    this.expect("LBRACE", "Expected '{' after validate name");
+    this.expect("IDENT", "Expected 'value' in validate rule");
+    this.expect("MATCHES", "Expected 'matches' in validate rule");
+    const pattern = this.parseRegexLiteral();
+    this.expect("SEMICOLON", "Expected ';' after validate pattern");
+    const end = this.expect("RBRACE", "Expected '}' to close validate rule");
+    return {
+      kind: "ValidateRuleDecl",
+      name: name.lexeme,
+      pattern,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseRegexLiteral(): import("../regex.js").RegexPattern {
+    const tok = this.expect("REGEX_LITERAL", "Expected regex literal");
+    return regexFromLexeme(tok.lexeme, this.spanFrom(tok, tok));
+  }
 
   private parsePercentValue(): number {
     // ParsePercentValue.
@@ -4217,33 +4426,43 @@ class Parser {
     };
 }
 
-  private parseEventHandler(): EventHandlerDecl {
-    // ParseEventHandler.
-    //
-    // Parameters:
-    // None.
-    //
-    // Returns:
-    // EventHandlerDecl.
-    //
-    // Options:
-    // None.
-    //
-    // Example:
+  private parseOnTrigger(): EventHandlerDecl {
+    const start = this.advance();
+    let eventName: string;
 
-    // const result = parseEventHandler();
-    const start = this.advance(); // on
-    const eventName = this.expect("IDENT", "Expected event name after on");
-    this.expect("LBRACE", "Expected '{' after event handler");
+    if (this.check("IDENT") && this.peek().lexeme === "log") {
+      this.advance();
+      this.expect("MATCHES", "Expected 'matches' after log");
+      this.parseRegexLiteral();
+      eventName = "log";
+    } else if (this.check("MESSAGE")) {
+      this.advance();
+      this.expect("DOT", "Expected '.' after message in trigger");
+      const fieldPart = this.expect("IDENT", "Expected field name after message.").lexeme;
+      eventName = `message.${fieldPart}`;
+      this.expect("MATCHES", "Expected 'matches' after message field");
+      this.parseRegexLiteral();
+    } else if (this.check("IDENT") && this.peek().lexeme.includes(".")) {
+      eventName = this.advance().lexeme;
+      this.expect("MATCHES", "Expected 'matches' after message field");
+      this.parseRegexLiteral();
+    } else if (this.check("HARDWARE")) {
+      this.advance();
+      eventName = `hardware.${this.expect("IDENT", "Expected hardware event name").lexeme}`;
+    } else {
+      eventName = this.expect("IDENT", "Expected trigger target name").lexeme;
+    }
+
+    this.expect("LBRACE", "Expected '{' after trigger signature");
     const body = this.parseBlock();
-    const end = this.expect("RBRACE", "Expected '}' to close event handler");
+    const end = this.expect("RBRACE", "Expected '}' to close trigger handler");
     return {
       kind: "EventHandlerDecl",
-      eventName: eventName.lexeme,
+      eventName,
       body,
       span: this.spanFrom(start, end),
     };
-}
+  }
 
   private parseTwin(): TwinDecl {
     // ParseTwin.
@@ -4419,6 +4638,35 @@ class Parser {
     // const result = parseStmt();
     const start = this.peek();
 
+    if (this.check("IDENT") && this.peek().lexeme === "stop_all_actuators") {
+      this.advance();
+      this.expect("LPAREN", "Expected '(' after stop_all_actuators");
+      this.expect("RPAREN", "Expected ')' after stop_all_actuators");
+      this.expect("SEMICOLON", "Expected ';' after stop_all_actuators");
+      return { kind: "StopAllActuatorsStmt", span: this.spanFrom(start, this.previous()) };
+    }
+
+    if (this.check("IDENT") && this.peek().lexeme === "run_pipeline") {
+      this.advance();
+      const name = this.expect("IDENT", "Expected pipeline name after run_pipeline");
+      this.expect("SEMICOLON", "Expected ';' after run_pipeline");
+      return {
+        kind: "RunPipelineStmt",
+        name: name.lexeme,
+        span: this.spanFrom(start, this.previous()),
+      };
+    }
+
+    if (this.match("USE")) {
+      const resource = this.expect("IDENT", "Expected fallback resource name");
+      this.expect("SEMICOLON", "Expected ';' after use statement");
+      return {
+        kind: "UseFallbackStmt",
+        resource: resource.lexeme,
+        span: this.spanFrom(start, this.previous()),
+      };
+    }
+
     // continue when this.match("LET").
     if (this.match("LET")) {
       const name = this.parseLocalName("Expected variable name");
@@ -4512,9 +4760,20 @@ class Parser {
     // continue when this.match("SUBSCRIBE").
     if (this.match("SUBSCRIBE")) {
       const target = this.parseSubscribeTarget();
+      let filter: SubscribeFilterDecl | null = null;
+      if (this.match("WHERE")) {
+        const field = this.parseDottedName("Expected filter field after where");
+        this.expect("MATCHES", "Expected 'matches' in subscribe filter");
+        const pattern = this.parseRegexLiteral();
+        filter = {
+          field,
+          pattern,
+          span: this.spanFrom(start, this.previous()),
+        };
+      }
       this.expect("SEMICOLON", "Expected ';' after subscribe");
       const end = this.previous();
-      return { kind: "SubscribeStmt", target, span: this.spanFrom(start, end) };
+      return { kind: "SubscribeStmt", target, filter, span: this.spanFrom(start, end) };
     }
 
     // continue when this.match("EXECUTE").
@@ -4609,10 +4868,19 @@ class Parser {
 
     // continue when this.match("ENTER").
     if (this.match("ENTER")) {
-      const stateName = this.parseLabel("Expected state name after enter");
+      const target = this.parseLabel("Expected state or mode name after enter");
       this.expect("SEMICOLON", "Expected ';' after enter statement");
       const end = this.previous();
-      return { kind: "EnterStmt", stateName, span: this.spanFrom(start, end) };
+      if (
+        target.endsWith("_mode") ||
+        target === "normal" ||
+        target === "degraded" ||
+        target === "emergency"
+      ) {
+        const mode = target.endsWith("_mode") ? target.slice(0, -"_mode".length) : target;
+        return { kind: "EnterModeStmt", mode, span: this.spanFrom(start, end) };
+      }
+      return { kind: "EnterStmt", stateName: target, span: this.spanFrom(start, end) };
     }
 
     // continue when this.match("REMEMBER").
@@ -5453,6 +5721,15 @@ class Parser {
       };
     }
 
+    if (this.match("REGEX_LITERAL")) {
+      const tok = this.previous();
+      return {
+        kind: "LiteralExpr",
+        value: regexFromLexeme(tok.lexeme, this.spanFrom(tok, tok)),
+        span: this.spanFrom(start, tok),
+      };
+    }
+
     // continue when this.match("NUMBER").
     if (this.match("NUMBER")) {
       const tok = this.previous();
@@ -5520,6 +5797,7 @@ class Parser {
         "FROM",
         "TO",
         "SUBSCRIBE",
+        "MATCHES",
         "RECEIVE",
         "MESSAGE",
         "RESPONSE",
