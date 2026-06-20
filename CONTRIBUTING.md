@@ -54,6 +54,41 @@ cargo clippy --workspace -- -D warnings
 npm run lint
 ```
 
+After bulk inline documentation edits, run:
+
+```bash
+python3 scripts/normalize_inline_docs.py
+```
+
+---
+
+## Inline documentation
+
+Every module and function in Rust (`crates/`) and TypeScript (`src/`, `packages/`) must be documented.
+
+### Module headers
+
+- **Rust:** `//!` block at the top of the file describing module purpose.
+- **TypeScript:** `/** ... @module */` block at the top of the file.
+
+### Function API docs
+
+Place API documentation **inside** the function body (not `///` or JSDoc above the signature). Required sections: purpose, **Parameters**, **Returns**, **Options**, **Example**.
+
+### Block comments
+
+Before each meaningful logic block (`if`, `match`, loops, error paths), add a plain-English `//` comment explaining what that block does. Do not use generic placeholders like "Process each item" or prefix with `Logic:`.
+
+### Tooling
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/add_inline_docs.py` | Generate API doc blocks |
+| `scripts/add_logic_block_docs.py` | Generate contextual block comments |
+| `scripts/normalize_inline_docs.py` | Fix spacing and indentation after bulk edits |
+
+Always run `cargo fmt --all` before committing — inline doc insertion can affect brace indentation.
+
 ---
 
 ## Project structure
@@ -105,10 +140,53 @@ docs/                   Documentation
 1. **Propose first** — open a [language proposal](.github/ISSUE_TEMPLATE/language_proposal.yml) for non-trivial syntax or semantics changes
 2. **Implement in Rust** — lexer → parser → AST → type checker → runtime (in that order)
 3. **Add tests** — Rust integration tests + Vitest mirror tests
-4. **Update docs** — `docs/spanda-language.md`, `docs/feature-status.md` if status changes
+4. **Update docs** — see [Keeping documentation in sync](#keeping-documentation-in-sync) below
 5. **Add an example** — demonstrate the feature in `examples/`
 
 For v0.1.0-alpha, we are **not** adding large new language features. Focus on stability, tests, and documentation unless the proposal is critical.
+
+---
+
+## Keeping documentation in sync
+
+**Rule:** Any long, big, or major update must include documentation updates in the same change set. Do not merge feature work with stale README or docs.
+
+### What counts as major
+
+- New language syntax, runtime behavior, or CLI commands/flags
+- Architecture, crate layout, or CI workflow changes
+- New integrations (ROS2, FFI, fleet, triggers, concurrency, etc.)
+- Feature status or roadmap shifts
+- New showcase or reference examples
+
+Typos, internal refactors with no user-visible effect, and test-only changes usually do not need doc updates.
+
+### Minimum checklist
+
+After major work, review and update every file that applies:
+
+| File | When |
+|------|------|
+| `README.md` | Capabilities, CLI, examples, differentiators, roadmap |
+| `CHANGELOG.md` | User-visible additions, fixes, or breaking changes |
+| `docs/feature-status.md` | Stability or capability matrix changes |
+| `docs/getting-started.md` | New commands, workflows, or demo paths |
+| `docs/README.md` | New guides or doc index changes |
+
+Topic-specific docs (update when the area changed):
+
+- Language: `docs/spanda-language.md` (+ dedicated guide if one exists, e.g. `docs/triggers.md`)
+- Runtime / compiler: `docs/architecture.md`
+- Concurrency / fleet / triggers: `docs/concurrency.md`, `docs/triggers.md`
+- Hardware / verify: `docs/hardware-compatibility.md`
+- Packages: `docs/packages.md`, `docs/spanda-toml.md`
+- FFI / ROS2: `docs/ffi-and-ecosystem.md`
+- Roadmap / strategy: `docs/roadmap.md`, `docs/product-strategy.md`
+- Contributor workflow: this file (`CONTRIBUTING.md`)
+
+Also add a runnable example and link it from `README.md` or `docs/getting-started.md` when it is a key demo.
+
+The Cursor rule `.cursor/rules/documentation-sync.mdc` enforces this for agent-assisted sessions.
 
 ---
 
@@ -134,7 +212,7 @@ spanda verify examples/your_example.sd     # if it has deploy targets
 2. Make focused changes with tests
 3. Run the full test suite locally
 4. Open a PR against `main` with a clear description
-5. CI must pass (Rust tests, fmt, clippy, TypeScript tests, build)
+5. CI must pass (Rust tests, fmt, clippy, TypeScript tests, build, ROS2 rclrs native job on Ubuntu 22.04)
 
 ---
 
