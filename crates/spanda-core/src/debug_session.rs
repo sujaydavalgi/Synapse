@@ -26,6 +26,7 @@ pub struct DebugMachine {
     frames: Vec<DebugFrame>,
     controller: DebugController,
     step_kind: DebugStepKind,
+    step_out_target_depth: Option<usize>,
     finished: bool,
 }
 
@@ -64,6 +65,7 @@ impl DebugMachine {
             } else {
                 DebugStepKind::Continue
             },
+            step_out_target_depth: None,
             finished: false,
         })
     }
@@ -107,29 +109,50 @@ impl DebugMachine {
         self.step_kind = step;
         if step == DebugStepKind::Continue {
             self.controller.command(crate::debug::DebugCommand::Continue);
+            self.step_out_target_depth = None;
+        } else if step == DebugStepKind::StepOut {
+            self.step_out_target_depth = Some(self.frames.len().saturating_sub(1));
+            self.controller.command(crate::debug::DebugCommand::Step);
         } else {
+            self.step_out_target_depth = None;
             self.controller.command(crate::debug::DebugCommand::Step);
         }
 
         loop {
             if self.frames.is_empty() {
+                if self.step_out_target_depth.is_some() {
+                    let variables = self.interpreter.env().snapshot_display();
+                    self.controller
+                        .record_pause(1, "step-out", variables);
+                    self.step_out_target_depth = None;
+                }
                 self.finished = true;
                 break;
             }
             let frame_top = self.frames.len() - 1;
             if self.frames[frame_top].index >= self.frames[frame_top].stmts.len() {
-                if step == DebugStepKind::StepOut && self.frames.len() > 1 {
-                    self.frames.pop();
-                    break;
-                }
                 self.frames.pop();
+                if let Some(target) = self.step_out_target_depth {
+                    if self.frames.len() <= target {
+                        let line = self
+                            .frames
+                            .last()
+                            .and_then(|frame| frame.stmts.get(frame.index))
+                            .map(stmt_line)
+                            .unwrap_or(1);
+                        let variables = self.interpreter.env().snapshot_display();
+                        self.controller.record_pause(line, "step-out", variables);
+                        self.step_out_target_depth = None;
+                        break;
+                    }
+                }
                 continue;
             }
 
             let stmt = self.frames[frame_top].stmts[self.frames[frame_top].index].clone();
             let line = stmt_line(&stmt);
 
-            if self.controller.should_pause(line) {
+            if self.step_out_target_depth.is_none() && self.controller.should_pause(line) {
                 let variables = self.interpreter.env().snapshot_display();
                 self.controller.record_pause(line, pause_reason(step), variables);
                 break;
@@ -258,5 +281,35 @@ robot R {
             .run_until_pause(DebugStepKind::StepOver)
             .expect("step again");
         assert!(machine.is_finished() || !machine.pauses().is_empty());
+    }
+
+    #[test]
+    fn step_out_returns_to_caller_frame() {
+        let source = r#"
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    loop every 10ms {
+      wheels.stop();
+    }
+    wheels.drive(linear: 0.1 m/s, angular: 0.0 rad/s);
+  }
+}
+"#;
+        let mut machine = DebugMachine::start(
+            source,
+            DebugOptions {
+                breakpoints: HashSet::new(),
+                step: false,
+            },
+        )
+        .expect("start");
+        let _ = machine
+            .run_until_pause(DebugStepKind::StepIn)
+            .expect("step in");
+        let session = machine
+            .run_until_pause(DebugStepKind::StepOut)
+            .expect("step out");
+        assert!(session.pauses.iter().any(|pause| pause.reason == "step-out"));
     }
 }
