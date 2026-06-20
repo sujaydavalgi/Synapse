@@ -28,6 +28,24 @@ jobs:
       - run: cargo test --workspace
       - run: cargo build -p spanda-cli --release
 
+  ros2-rclrs-native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: ros-tooling/setup-ros@v2
+        with:
+          required-ros-distributions: humble
+      - name: Test native rclrs crate
+        run: |
+          . /opt/ros/humble/setup.sh
+          cargo build --manifest-path crates/spanda-ros2-rclrs-native/Cargo.toml --release
+          export SPANDA_ROS2_RCLRS_LIB="$PWD/target/release/libspanda_ros2_rclrs_native.so"
+          cargo test --manifest-path crates/spanda-ros2-rclrs-native/Cargo.toml
+          cargo test -p spanda-core --lib transport_rclrs
+
   lsp:
     runs-on: ubuntu-latest
     needs: rust

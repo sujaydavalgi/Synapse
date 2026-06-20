@@ -52,8 +52,8 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 | Feature | Status | Notes |
 |---------|--------|-------|
 | python.* / cpp.* imports | Partially implemented | Subprocess bridges; optional `python-native` / `cpp-native` in-process |
-| ROS2 adapter | Implemented | Persistent rclpy daemon (`SPANDA_ROS2_RCLRS`), `ros2` CLI, Python bridge |
-| Transport adapters | Implemented | In-memory + rclpy daemon, CLI, or subprocess bridge |
+| ROS2 adapter | Implemented | Native `rclrs` cdylib (`libspanda_ros2_rclrs_native`), rclpy daemon (`SPANDA_ROS2_RCLRS`), `ros2` CLI, Python bridge |
+| Transport adapters | Implemented | In-memory + native rclrs, rclpy daemon, CLI, or subprocess bridge |
 | Package manager | Implemented | Local `dist/`, `.spanda/registry` cache, `file://` URLs, global `~/.spanda/registry` |
 | LLVM / native codegen | Partially implemented | `compile-native` + `--target-triple` + `--hal-profile` conditional codegen |
 

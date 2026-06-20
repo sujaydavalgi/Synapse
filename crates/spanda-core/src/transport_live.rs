@@ -227,9 +227,13 @@ pub fn try_mqtt_publish(topic: &str, value: &RuntimeValue) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn live_flags_default_off() {
+        let _lock = ENV_LOCK.lock().unwrap();
         std::env::remove_var("SPANDA_ROS2_LIVE");
         std::env::remove_var("SPANDA_ROS2_NATIVE");
         assert!(!ros2_live_enabled());
@@ -238,6 +242,7 @@ mod tests {
 
     #[test]
     fn native_uses_ros2_cli_when_enabled() {
+        let _lock = ENV_LOCK.lock().unwrap();
         std::env::set_var("SPANDA_ROS2_NATIVE", "1");
         assert!(ros2_native_enabled());
         let _ = try_ros2_publish(
