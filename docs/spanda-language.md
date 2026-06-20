@@ -7,8 +7,30 @@ Spanda programs use the `.sd` extension. Programs are organized around **autonom
 ```spanda
 module navigation;
 
-import sensors.lidar;
-import motion.drive;
+import navigation.path_planning;
+import std.robotics;
+```
+
+Dotted module names (`navigation.path_planning`) identify compilation units in multi-file projects. Use **`export`**, **`public`**, or **`private`** on module-level functions:
+
+```spanda
+module navigation.path_planning;
+
+export fn plan_path(from: Pose, to: Pose) -> Path {
+  return trajectory(from: from, to: to, steps: 8);
+}
+
+private fn internal_helper() -> Path { ... }
+```
+
+Imported modules inject **exported** symbols into the importer's scope. Cross-file linking uses `ModuleRegistry` (see `compile_with_registry` / `RunOptions.module_registry`).
+
+Generic module functions:
+
+```spanda
+export fn identity<T>(value: T) -> T {
+  return value;
+}
 ```
 
 ## Structs and type aliases
@@ -81,15 +103,136 @@ robot R {
 
 Traits define interfaces; bind implementations to agents with `impl Trait for AgentName { ... }` inside a robot block.
 
+## Result and Option
+
+`Result<T, E>` and `Option<T>` are first-class generic types. Construct and match them without exceptions:
+
+```spanda
+export fn navigate() -> Result<Path, NavError> {
+  return Err(Blocked);
+}
+
+match navigate() {
+  Ok => wheels.stop();
+  Err => emergency_stop;
+};
+
+let scan: Option<Scan> = None();
+match scan {
+  Some => process(scan);
+  None => wheels.stop();
+};
+```
+
+## Async and await
+
+Module functions may be declared `async`. Calls return `Future<T>`; use `await` inside behaviors, tasks, or other async functions:
+
+```spanda
+module maps;
+
+export async fn get_map() -> Pose {
+  return pose(x: 0.0 m, y: 0.0 m, theta: 0.0 rad);
+}
+
+robot R {
+  behavior run() {
+    let map = await get_map();
+    let _ = map;
+  }
+}
+```
+
+## Concurrency
+
+Cooperative concurrency primitives for background work and message passing:
+
+```spanda
+module comm;
+
+export fn ping() -> Int {
+  return 1;
+}
+
+robot R {
+  behavior run() {
+    let ch = channel();
+    send(ch, 42);
+    select {
+      recv(ch) => wheels.stop();
+    };
+    spawn ping();
+  }
+}
+```
+
+- `channel()` — create a typed channel handle
+- `send(ch, value)` / `recv(ch)` — non-blocking send and receive builtins
+- `select { recv(ch) => ... }` — run the first arm whose channel has a message
+- `spawn callee(args);` — queue a module function call on the spawn queue (processed after behaviors and tests)
+
+## Serialization
+
+Serialize and deserialize runtime values for telemetry, logging, and IPC:
+
+```spanda
+let data = serialize(pose, "json");
+let restored = deserialize(data, "json");
+```
+
+Supported formats: `"json"`, `"yaml"`, `"binary"`.
+
+## In-language tests
+
+Top-level test blocks run with `spanda test` or `run_tests()`:
+
+```spanda
+module math;
+
+export fn double(x: Int) -> Int {
+  return x;
+}
+
+test "double returns input" {
+  assert(true);
+}
+```
+
+`assert(condition)` is a builtin; failed assertions fail the test run.
+
 ## Formatting
 
-The Rust CLI includes a basic formatter:
+The Rust CLI includes an AST-aware formatter:
 
 ```bash
 spanda fmt program.sd
+spanda fmt --json program.sd   # returns formatted source without writing
 ```
 
-It trims trailing whitespace and normalizes the final newline. The LSP package (`packages/lsp/`) surfaces `spanda check` and `spanda verify` diagnostics in editors.
+It normalizes indentation (2 spaces), spacing around types/operators, and block structure. Unparseable files fall back to whitespace normalization.
+
+## Linting
+
+Style and hygiene checks beyond type-checking:
+
+```bash
+spanda lint program.sd
+spanda lint --json program.sd
+```
+
+Rules include `missing-module`, `trailing-whitespace`, `line-length`, `empty-test`, `empty-behavior`, and `unused-import`.
+
+## Documentation generation
+
+Generate Markdown API docs from module exports:
+
+```bash
+spanda doc program.sd
+spanda doc program.sd --out docs/api.md
+spanda doc --json program.sd
+```
+
+## In-language tests
 
 ## Agents, skills, and capabilities
 
@@ -290,4 +433,5 @@ See `examples/` including:
 - `hello_world.sd`, `humanoid_assistant.sd`
 - `hardware/rover_deploy.sd`, `hardware/full_compat.sd`
 - `types/goals.sd`, `types/memory.sd`, `types/verify.sd`, `types/fusion.sd`, `types/multitask.sd`
-- `rover_navigation.sd`, `warehouse_robot.sd`, `digital_twin.sd`, `ros2_bridge.sd`
+- `examples/modules/` — cross-file exports and imports
+- `crates/spanda-core/tests/p1_features.rs` — async, serialize, tests, concurrency
