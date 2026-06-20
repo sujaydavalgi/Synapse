@@ -319,6 +319,7 @@ mod tests {
 
     #[test]
     fn tarball_url_requires_registry_env() {
+        let _guard = crate::testing::env_lock();
         // Tarball url requires registry env.
         //
         // Parameters:
@@ -339,6 +340,7 @@ mod tests {
 
     #[test]
     fn tarball_url_uses_base_path() {
+        let _guard = crate::testing::env_lock();
         // Tarball url uses base path.
         //
         // Parameters:

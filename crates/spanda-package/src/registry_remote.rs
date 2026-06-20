@@ -385,6 +385,7 @@ mod tests {
 
     #[test]
     fn remote_disabled_without_env() {
+        let _guard = crate::testing::env_lock();
         // Remote disabled without env.
         //
         // Parameters:

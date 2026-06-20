@@ -21,6 +21,9 @@ pub mod safety;
 pub mod validation;
 pub mod vendor;
 
+#[cfg(test)]
+mod testing;
+
 pub use adapter::{framework_packages, AdapterMetadata, FrameworkPackage};
 pub use category::PackageCategory;
 pub use dependency::{
