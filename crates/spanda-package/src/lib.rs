@@ -8,6 +8,7 @@ pub mod lockfile;
 pub mod manifest;
 pub mod project;
 pub mod registry;
+pub mod registry_remote;
 pub mod resolver;
 pub mod safety;
 pub mod validation;
@@ -29,8 +30,12 @@ pub use lockfile::{Lockfile, LOCKFILE_FILENAME};
 pub use manifest::{find_project_root, PackageManifest, PackageSection, MANIFEST_FILENAME};
 pub use project::{add_dependency, collect_source_files, init_package, remove_dependency};
 pub use registry::{
-    find_registry_entry, registry_info, registry_package_dir, search_registry, RegistryEntry,
-    RegistryInfo, LOCAL_REGISTRY,
+    find_registry_entry, registry_info, registry_package_dir, search_registry,
+    search_registry_merged, RegistryEntry, RegistryInfo, LOCAL_REGISTRY,
+};
+pub use registry_remote::{
+    find_remote_entry, load_remote_registry, lookup_registry_entry, registry_base_url,
+    search_remote_registry, RegistryEntryLookup, RemoteRegistryEntry,
 };
 pub use resolver::{resolve_dependencies, ResolveOptions, ResolveResult};
 pub use safety::{SafetyLevel, SafetyMetadata};

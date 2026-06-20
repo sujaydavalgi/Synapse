@@ -157,6 +157,20 @@ pub fn search_registry(query: &str) -> Vec<&'static RegistryEntry> {
         .collect()
 }
 
+pub fn search_registry_merged(query: &str) -> Vec<String> {
+    let mut names: Vec<String> = search_registry(query)
+        .into_iter()
+        .map(|entry| entry.name.to_string())
+        .collect();
+    for remote in super::registry_remote::search_remote_registry(query) {
+        if !names.iter().any(|name| name == &remote.name) {
+            names.push(remote.name);
+        }
+    }
+    names.sort_unstable();
+    names
+}
+
 pub fn find_registry_entry(name: &str) -> Option<&'static RegistryEntry> {
     LOCAL_REGISTRY.iter().find(|e| e.name == name)
 }
@@ -199,15 +213,32 @@ pub struct RegistryInfo {
 }
 
 pub fn registry_info(name: &str) -> Option<RegistryInfo> {
-    find_registry_entry(name).map(|e| RegistryInfo {
-        name: e.name.to_string(),
-        description: e.description.to_string(),
-        versions: e.versions.iter().map(|v| v.to_string()).collect(),
-        category: e.category.as_str().to_string(),
-        license: e.license.to_string(),
-        import_paths: e.import_paths.iter().map(|p| p.to_string()).collect(),
-        safety_level: e.safety_level().as_str().to_string(),
-    })
+    find_registry_entry(name)
+        .map(|e| RegistryInfo {
+            name: e.name.to_string(),
+            description: e.description.to_string(),
+            versions: e.versions.iter().map(|v| v.to_string()).collect(),
+            category: e.category.as_str().to_string(),
+            license: e.license.to_string(),
+            import_paths: e.import_paths.iter().map(|p| p.to_string()).collect(),
+            safety_level: e.safety_level().as_str().to_string(),
+        })
+        .or_else(|| {
+            super::registry_remote::find_remote_entry(name).map(|entry| {
+                let safety_level = super::registry_remote::remote_safety_level(&entry.name)
+                    .as_str()
+                    .to_string();
+                RegistryInfo {
+                    name: entry.name,
+                    description: entry.description,
+                    versions: entry.versions,
+                    category: entry.category,
+                    license: entry.license,
+                    import_paths: entry.import_paths,
+                    safety_level,
+                }
+            })
+        })
 }
 
 pub fn all_import_paths() -> Vec<&'static str> {

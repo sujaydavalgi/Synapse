@@ -3,7 +3,7 @@ use crate::dependency::{
 };
 use crate::error::{PackageError, PackageResult};
 use crate::manifest::{PackageManifest, MANIFEST_FILENAME};
-use crate::registry::{RegistryEntry, LOCAL_REGISTRY};
+use crate::registry_remote::{lookup_registry_entry, RegistryEntryLookup};
 use semver::Version;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -94,23 +94,20 @@ fn resolve_one(
             })
         }
         DependencySourceKind::Registry => {
-            let entry = LOCAL_REGISTRY
-                .iter()
-                .find(|e| e.name == name)
-                .ok_or_else(|| {
-                    PackageError::Dependency(format!(
-                        "registry package '{name}' not found — add to local registry or use path/git"
-                    ))
-                })?;
+            let lookup = lookup_registry_entry(name).ok_or_else(|| {
+                PackageError::Dependency(format!(
+                    "registry package '{name}' not found — add to local registry, set SPANDA_REGISTRY_URL, or use path/git"
+                ))
+            })?;
             let version_req = spec.parse_version_req()?.ok_or_else(|| {
                 PackageError::Dependency(format!("version constraint required for {name}"))
             })?;
-            let resolved = select_registry_version(entry, &version_req)?;
+            let resolved = select_registry_version(&lookup, &version_req)?;
             Ok(LockedDependency {
                 name: name.to_string(),
                 version: resolved.to_string(),
                 source: LockedSource::Registry {
-                    registry: "local".into(),
+                    registry: lookup.registry_label().into(),
                 },
                 checksum: None,
             })
@@ -130,11 +127,11 @@ fn load_dep_manifest(path: &Path) -> PackageResult<PackageManifest> {
 }
 
 fn select_registry_version(
-    entry: &RegistryEntry,
+    entry: &RegistryEntryLookup,
     req: &semver::VersionReq,
 ) -> PackageResult<Version> {
     let mut candidates: Vec<Version> = entry
-        .versions
+        .versions()
         .iter()
         .filter_map(|v| parse_version(v).ok())
         .filter(|v| req.matches(v))
@@ -143,7 +140,8 @@ fn select_registry_version(
     candidates.pop().ok_or_else(|| {
         PackageError::Dependency(format!(
             "no version of '{}' satisfies constraint {}",
-            entry.name, req
+            entry.name(),
+            req
         ))
     })
 }

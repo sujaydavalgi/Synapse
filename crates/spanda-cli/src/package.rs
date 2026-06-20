@@ -1,9 +1,9 @@
 use spanda_core::{check, load_project_modules, run_tests_with_registry};
 use spanda_package::{
     add_dependency, collect_source_files, find_project_root, init_package, registry_info,
-    remove_dependency, resolve_dependencies, search_registry, validate_package,
-    ApplicationPermissions, DependencySpec, Lockfile, PackageManifest, ResolveOptions,
-    LOCKFILE_FILENAME, MANIFEST_FILENAME,
+    remove_dependency, resolve_dependencies, search_registry, search_registry_merged,
+    validate_package, ApplicationPermissions, DependencySpec, Lockfile, PackageManifest,
+    ResolveOptions, LOCKFILE_FILENAME, MANIFEST_FILENAME,
 };
 use std::env;
 use std::fs;
@@ -341,20 +341,31 @@ pub fn cmd_registry_search(args: &[String]) {
         process::exit(1);
     }
     let query = args.join(" ");
-    let results = search_registry(&query);
-    if results.is_empty() {
+    let local = search_registry(&query);
+    let merged = search_registry_merged(&query);
+    if merged.is_empty() {
         println!("No packages matching '{query}'");
         return;
     }
-    for entry in results {
-        println!(
-            "{} v{} — {} [{}] safety={}",
-            entry.name,
-            entry.versions.last().unwrap_or(&"?"),
-            entry.description,
-            entry.category,
-            entry.safety_level().as_str()
-        );
+    for name in merged {
+        if let Some(info) = registry_info(&name) {
+            let version = info.versions.last().map(String::as_str).unwrap_or("?");
+            println!(
+                "{} v{} — {} [{}] safety={}",
+                info.name, version, info.description, info.category, info.safety_level
+            );
+            continue;
+        }
+        if let Some(entry) = local.iter().find(|entry| entry.name == name) {
+            println!(
+                "{} v{} — {} [{}] safety={}",
+                entry.name,
+                entry.versions.last().unwrap_or(&"?"),
+                entry.description,
+                entry.category,
+                entry.safety_level().as_str()
+            );
+        }
     }
 }
 
@@ -369,7 +380,7 @@ pub fn cmd_registry_info(args: &[String]) {
             println!("{}", serde_json::to_string_pretty(&info).unwrap());
         }
         None => {
-            eprintln!("Package '{name}' not found in local registry");
+            eprintln!("Package '{name}' not found in local or remote registry");
             process::exit(1);
         }
     }
