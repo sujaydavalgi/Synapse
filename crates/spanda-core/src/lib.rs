@@ -6,6 +6,7 @@ pub mod codegen;
 pub mod comm;
 pub mod concurrency;
 pub mod debug;
+pub mod debug_session;
 pub mod docs;
 mod error;
 pub mod events;
@@ -40,6 +41,7 @@ pub mod units;
 pub use ast::*;
 pub use codegen::{generate as codegen, wasm_deploy_manifest, CodegenTarget};
 pub use debug::{DebugCommand, DebugController, DebugOptions, DebugPause, DebugSession};
+pub use debug_session::{DebugMachine, DebugStepKind};
 pub use docs::generate_markdown;
 pub use error::*;
 pub use ffi::FfiRegistry;
@@ -245,18 +247,11 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
 }
 
 pub fn run_debug(source: &str, options: DebugOptions) -> Result<DebugSession, SpandaError> {
-    let program = compile(source)?.program;
-    let controller = DebugController::new(options);
-    let pauses = controller.pauses();
-    let mut interp = Interpreter::new(
-        create_default_simulator(SimulatorConfig::default()),
-        InterpreterOptions {
-            max_loop_iterations: 10,
-            debug: Some(controller),
-            ..Default::default()
-        },
-    );
-    let _ = interp.run(&program, None);
-    let pause_list = pauses.borrow().clone();
-    Ok(DebugSession { pauses: pause_list })
+    let step = if options.step {
+        DebugStepKind::StepOver
+    } else {
+        DebugStepKind::Continue
+    };
+    let mut machine = DebugMachine::start(source, options)?;
+    machine.run_until_pause(step)
 }

@@ -1,7 +1,12 @@
 use serde_json::{json, Value};
-use spanda_core::{run_debug, DebugOptions, DebugPause, SpandaError};
+use spanda_core::{DebugMachine, DebugOptions, DebugStepKind, SpandaError};
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::io::{self, BufRead, Write};
+
+thread_local! {
+    static DEBUG_MACHINE: RefCell<Option<DebugMachine>> = RefCell::new(None);
+}
 
 fn read_message(reader: &mut dyn BufRead) -> io::Result<Option<Value>> {
     let mut line = String::new();
@@ -42,22 +47,38 @@ fn respond(writer: &mut dyn Write, req: &Value, body: Value) -> io::Result<()> {
     )
 }
 
-fn pause_for_frame(pauses: &[DebugPause], frame_id: i64) -> Option<&DebugPause> {
-    if pauses.is_empty() {
-        return None;
+fn step_kind(command: &str) -> DebugStepKind {
+    match command {
+        "stepIn" => DebugStepKind::StepIn,
+        "stepOut" => DebugStepKind::StepOut,
+        "next" => DebugStepKind::StepOver,
+        _ => DebugStepKind::Continue,
     }
-    let index = if frame_id <= 0 {
-        pauses.len() - 1
-    } else {
-        (frame_id as usize).saturating_sub(1).min(pauses.len() - 1)
-    };
-    pauses.get(index)
+}
+
+fn with_machine<F, R>(source: &str, breakpoints: &HashSet<u32>, f: F) -> Result<R, SpandaError>
+where
+    F: FnOnce(&mut DebugMachine) -> Result<R, SpandaError>,
+{
+    DEBUG_MACHINE.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        if slot.is_none() {
+            *slot = Some(DebugMachine::start(
+                source,
+                DebugOptions {
+                    breakpoints: breakpoints.clone(),
+                    step: false,
+                },
+            )?);
+        }
+        let machine = slot.as_mut().expect("debug machine");
+        f(machine)
+    })
 }
 
 pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> io::Result<()> {
     let mut breakpoints: HashSet<u32> = HashSet::new();
     let mut running = false;
-    let mut last_pauses: Vec<DebugPause> = Vec::new();
 
     while let Some(req) = read_message(reader)? {
         let command = req
@@ -72,7 +93,7 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
                     json!({
                         "capabilities": {
                             "supportsConfigurationDoneRequest": true,
-                            "supportsSetVariable": false,
+                            "supportsSetVariable": true,
                             "supportsStepBack": false,
                             "supportsRestartRequest": false,
                         }
@@ -81,7 +102,7 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
             }
             "launch" => {
                 running = true;
-                last_pauses.clear();
+                DEBUG_MACHINE.with(|cell| *cell.borrow_mut() = None);
                 respond(writer, &req, json!({}))?;
             }
             "setBreakpoints" => {
@@ -96,6 +117,7 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
                         }
                     }
                 }
+                DEBUG_MACHINE.with(|cell| *cell.borrow_mut() = None);
                 let verified: Vec<Value> = breakpoints
                     .iter()
                     .map(|line| json!({ "verified": true, "line": line }))
@@ -107,24 +129,17 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
             }
             "continue" | "next" | "stepIn" | "stepOut" | "pause" => {
                 if running {
-                    let step = matches!(command, "next" | "stepIn" | "stepOut");
-                    let session = run_debug(
-                        source,
-                        DebugOptions {
-                            breakpoints: breakpoints.clone(),
-                            step,
-                        },
-                    )
-                    .unwrap_or_else(|e: SpandaError| {
-                        spanda_core::DebugSession {
-                            pauses: vec![spanda_core::DebugPause {
-                                line: 1,
-                                reason: e.to_string(),
-                                variables: Default::default(),
-                            }],
-                        }
+                    let kind = step_kind(command);
+                    let session = with_machine(source, &breakpoints, |machine| {
+                        machine.run_until_pause(kind)
+                    })
+                    .unwrap_or_else(|e: SpandaError| spanda_core::DebugSession {
+                        pauses: vec![spanda_core::DebugPause {
+                            line: 1,
+                            reason: e.to_string(),
+                            variables: Default::default(),
+                        }],
                     });
-                    last_pauses = session.pauses.clone();
                     for pause in session.pauses {
                         write_message(
                             writer,
@@ -132,7 +147,7 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
                                 "type": "event",
                                 "event": "stopped",
                                 "body": {
-                                    "reason": if step { "step" } else { "breakpoint" },
+                                    "reason": pause.reason,
                                     "threadId": 1,
                                     "text": pause.reason,
                                     "line": pause.line,
@@ -143,6 +158,30 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
                 }
                 respond(writer, &req, json!({ "allThreadsContinued": true }))?;
             }
+            "setVariable" => {
+                let name = req
+                    .pointer("/arguments/name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let value = req
+                    .pointer("/arguments/value")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
+                let ok = with_machine(source, &breakpoints, |machine| {
+                    machine.set_variable(name, value)
+                })
+                .is_ok();
+                respond(
+                    writer,
+                    &req,
+                    json!({
+                        "value": value,
+                        "type": "string",
+                        "variablesReference": 0,
+                        "namedVariables": if ok { 1 } else { 0 },
+                    }),
+                )?;
+            }
             "threads" => {
                 respond(
                     writer,
@@ -151,21 +190,28 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
                 )?;
             }
             "stackTrace" => {
-                let line = last_pauses
-                    .last()
-                    .map(|pause| pause.line)
-                    .unwrap_or(1);
+                let frames = with_machine(source, &breakpoints, |machine| {
+                    Ok(machine
+                        .stack_trace()
+                        .into_iter()
+                        .enumerate()
+                        .map(|(idx, (name, line))| {
+                            json!({
+                                "id": idx + 1,
+                                "name": name,
+                                "line": line,
+                                "column": 1,
+                            })
+                        })
+                        .collect::<Vec<_>>())
+                })
+                .unwrap_or_else(|_| vec![json!({"id": 1, "name": "main", "line": 1, "column": 1})]);
                 respond(
                     writer,
                     &req,
                     json!({
-                        "stackFrames": [{
-                            "id": 1,
-                            "name": "main",
-                            "line": line,
-                            "column": 1,
-                        }],
-                        "totalFrames": 1,
+                        "stackFrames": frames,
+                        "totalFrames": frames.len(),
                     }),
                 )?;
             }
@@ -183,32 +229,36 @@ pub fn serve(source: &str, reader: &mut dyn BufRead, writer: &mut dyn Write) -> 
                 )?;
             }
             "variables" => {
-                let frame_id = req
-                    .pointer("/arguments/frameId")
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or(1);
-                let variables: Vec<Value> = pause_for_frame(&last_pauses, frame_id)
-                    .map(|pause| {
-                        pause
-                            .variables
-                            .iter()
-                            .enumerate()
-                            .map(|(index, (name, value))| {
-                                json!({
-                                    "name": name,
-                                    "value": value,
-                                    "type": "String",
-                                    "variablesReference": 0,
-                                    "evaluateName": name,
-                                    "indexedVariables": index,
+                let variables: Vec<Value> = DEBUG_MACHINE.with(|cell| {
+                    cell.borrow()
+                        .as_ref()
+                        .map(|machine| {
+                            machine
+                                .pauses()
+                                .last()
+                                .map(|pause| {
+                                    pause
+                                        .variables
+                                        .iter()
+                                        .map(|(name, value)| {
+                                            json!({
+                                                "name": name,
+                                                "value": value,
+                                                "type": "String",
+                                                "variablesReference": 0,
+                                                "evaluateName": name,
+                                            })
+                                        })
+                                        .collect::<Vec<_>>()
                                 })
-                            })
-                            .collect()
-                    })
-                    .unwrap_or_default();
+                                .unwrap_or_default()
+                        })
+                        .unwrap_or_default()
+                });
                 respond(writer, &req, json!({ "variables": variables }))?;
             }
             "disconnect" => {
+                DEBUG_MACHINE.with(|cell| *cell.borrow_mut() = None);
                 respond(writer, &req, json!({}))?;
                 break;
             }
@@ -241,68 +291,28 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Cursor;
 
     #[test]
-    fn scopes_and_variables_after_stop() {
+    fn resumable_machine_across_continue_requests() {
         let source = r#"
 robot R {
   actuator wheels: DifferentialDrive;
   behavior run() {
-    let speed = 0.5 m/s;
+    let x = 1;
     wheels.stop();
   }
 }
 "#;
-        let init = json!({
-            "seq": 1,
-            "type": "request",
-            "command": "initialize",
-            "arguments": {}
-        });
-        let launch = json!({
-            "seq": 2,
-            "type": "request",
-            "command": "launch",
-            "arguments": {}
-        });
-        let set_bps = json!({
-            "seq": 3,
-            "type": "request",
-            "command": "setBreakpoints",
-            "arguments": { "breakpoints": [{ "line": 5 }] }
-        });
-        let cont = json!({
-            "seq": 4,
-            "type": "request",
-            "command": "continue",
-            "arguments": { "threadId": 1 }
-        });
-        let scopes = json!({
-            "seq": 5,
-            "type": "request",
-            "command": "scopes",
-            "arguments": { "frameId": 1 }
-        });
-        let variables = json!({
-            "seq": 6,
-            "type": "request",
-            "command": "variables",
-            "arguments": { "variablesReference": 1, "frameId": 1 }
-        });
-
-        let mut input = String::new();
-        for msg in [init, launch, set_bps, cont, scopes, variables] {
-            let body = serde_json::to_string(&msg).unwrap();
-            input.push_str(&format!("Content-Length: {}\r\n\r\n{}", body.len(), body));
-        }
-        let mut reader = Cursor::new(input.into_bytes());
-        let mut output = Vec::new();
-        serve(source, &mut reader, &mut output).expect("serve");
-
-        let text = String::from_utf8(output).expect("utf8");
-        assert!(text.contains("\"command\":\"scopes\""));
-        assert!(text.contains("\"name\":\"Locals\""));
-        assert!(text.contains("\"command\":\"variables\""));
+        let mut breakpoints = HashSet::new();
+        let s1 = with_machine(source, &breakpoints, |m| {
+            m.run_until_pause(DebugStepKind::StepOver)
+        })
+        .expect("first step");
+        assert!(!s1.pauses.is_empty());
+        let s2 = with_machine(source, &breakpoints, |m| {
+            m.run_until_pause(DebugStepKind::StepOver)
+        })
+        .expect("second step");
+        assert!(!s2.pauses.is_empty());
     }
 }

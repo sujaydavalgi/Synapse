@@ -510,6 +510,22 @@ impl<B: RobotBackend> Interpreter<B> {
         &self.backend
     }
 
+    pub fn env(&self) -> &Environment {
+        &self.env
+    }
+
+    pub fn env_mut(&mut self) -> &mut Environment {
+        &mut self.env
+    }
+
+    pub fn setup_robot_for_debug(&mut self, robot: &RobotDecl) -> Result<(), SpandaError> {
+        self.setup_robot(robot)
+    }
+
+    pub fn debug_execute_stmt(&mut self, stmt: &Stmt) -> Result<(), SpandaError> {
+        self.execute_stmt(stmt)
+    }
+
     pub fn run(
         &mut self,
         program: &Program,
@@ -562,7 +578,7 @@ impl<B: RobotBackend> Interpreter<B> {
         Ok(())
     }
 
-    fn load_program_metadata(&mut self, program: &Program) {
+    pub fn load_program_metadata(&mut self, program: &Program) {
         use crate::foundations::{EnumDecl, ModuleFnDecl, StructDecl, TraitDecl, Visibility};
         let Program::Program {
             structs,
