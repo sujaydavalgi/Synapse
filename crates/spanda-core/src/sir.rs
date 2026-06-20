@@ -356,55 +356,112 @@ impl LowerCtx<'_> {
                 then_branch,
                 else_branch,
                 ..
-            } => {
-                if let Some(condition) = bool_literal(condition) {
-                    SirStmt::IfBool {
-                        condition,
-                        then_body: self.lower_stmts(then_branch),
-                        else_body: else_branch.as_ref().map(|branch| self.lower_stmts(branch)),
-                    }
-                } else if let Expr::IdentExpr { name, .. } = condition {
-                    SirStmt::IfVar {
-                        condition: name.clone(),
-                        then_body: self.lower_stmts(then_branch),
-                        else_body: else_branch.as_ref().map(|branch| self.lower_stmts(branch)),
-                    }
-                } else if let Some((variable, equals)) = compare_bool_literal(condition) {
-                    SirStmt::IfCompareBool {
-                        variable,
-                        equals,
-                        then_body: self.lower_stmts(then_branch),
-                        else_body: else_branch.as_ref().map(|branch| self.lower_stmts(branch)),
-                    }
-                } else if let Expr::UnaryExpr {
-                    op: crate::ast::UnaryOp::Not,
-                    operand,
-                    ..
-                } = condition
-                {
-                    if let Expr::IdentExpr { name, .. } = operand.as_ref() {
-                        SirStmt::IfNotVar {
-                            variable: name.clone(),
-                            then_body: self.lower_stmts(then_branch),
-                            else_body: else_branch.as_ref().map(|branch| self.lower_stmts(branch)),
-                        }
-                    } else {
-                        SirStmt::Unsupported {
-                            label: "if".into(),
-                        }
-                    }
-                } else {
-                    SirStmt::Unsupported {
-                        label: "if".into(),
-                    }
-                }
-            }
+            } => self.lower_if_stmt(condition, then_branch, else_branch.as_ref()),
             Stmt::SubscribeStmt { target, .. } => SirStmt::Subscribe {
                 target: target.clone(),
             },
             other => SirStmt::Unsupported {
                 label: stmt_kind(other),
             },
+        }
+    }
+
+    fn lower_if_stmt(
+        &self,
+        condition: &Expr,
+        then_branch: &[Stmt],
+        else_branch: Option<&Vec<Stmt>>,
+    ) -> SirStmt {
+        let then_body = self.lower_stmts(then_branch);
+        let else_body = else_branch.map(|branch| self.lower_stmts(branch));
+        if let Some(condition) = bool_literal(condition) {
+            return SirStmt::IfBool {
+                condition,
+                then_body,
+                else_body,
+            };
+        }
+        if let Expr::IdentExpr { name, .. } = condition {
+            return SirStmt::IfVar {
+                condition: name.clone(),
+                then_body,
+                else_body,
+            };
+        }
+        if let Some((variable, equals)) = compare_bool_literal(condition) {
+            return SirStmt::IfCompareBool {
+                variable,
+                equals,
+                then_body,
+                else_body,
+            };
+        }
+        if let Some((variable, equals)) = compare_bool_ne_literal(condition) {
+            return SirStmt::IfCompareBool {
+                variable,
+                equals,
+                then_body,
+                else_body,
+            };
+        }
+        if let Expr::UnaryExpr {
+            op: crate::ast::UnaryOp::Not,
+            operand,
+            ..
+        } = condition
+        {
+            if let Expr::IdentExpr { name, .. } = operand.as_ref() {
+                return SirStmt::IfNotVar {
+                    variable: name.clone(),
+                    then_body,
+                    else_body,
+                };
+            }
+        }
+        if let Expr::BinaryExpr {
+            op: crate::ast::BinaryOp::And,
+            left,
+            right,
+            ..
+        } = condition
+        {
+            if let (Expr::IdentExpr { name: l, .. }, Expr::IdentExpr { name: r, .. }) =
+                (left.as_ref(), right.as_ref())
+            {
+                return SirStmt::IfVar {
+                    condition: l.clone(),
+                    then_body: vec![SirStmt::IfVar {
+                        condition: r.clone(),
+                        then_body: then_body.clone(),
+                        else_body: else_body.clone(),
+                    }],
+                    else_body: else_body.clone(),
+                };
+            }
+        }
+        if let Expr::BinaryExpr {
+            op: crate::ast::BinaryOp::Or,
+            left,
+            right,
+            ..
+        } = condition
+        {
+            if let (Expr::IdentExpr { name: l, .. }, Expr::IdentExpr { name: r, .. }) =
+                (left.as_ref(), right.as_ref())
+            {
+                return SirStmt::IfVar {
+                    condition: l.clone(),
+                    then_body: then_body.clone(),
+                    else_body: Some(vec![SirStmt::IfVar {
+                        condition: r.clone(),
+                        then_body,
+                        else_body,
+                    }]),
+                };
+            }
+        }
+        SirStmt::Unsupported {
+            label: "if".into(),
         }
     }
 
@@ -521,6 +578,29 @@ fn compare_bool_literal(expr: &Expr) -> Option<(String, bool)> {
     if let Expr::IdentExpr { name, .. } = right.as_ref() {
         if let Some(value) = bool_literal(left) {
             return Some((name.clone(), value));
+        }
+    }
+    None
+}
+
+fn compare_bool_ne_literal(expr: &Expr) -> Option<(String, bool)> {
+    let Expr::BinaryExpr {
+        op: crate::ast::BinaryOp::Neq,
+        left,
+        right,
+        ..
+    } = expr
+    else {
+        return None;
+    };
+    if let Expr::IdentExpr { name, .. } = left.as_ref() {
+        if let Some(value) = bool_literal(right) {
+            return Some((name.clone(), !value));
+        }
+    }
+    if let Expr::IdentExpr { name, .. } = right.as_ref() {
+        if let Some(value) = bool_literal(left) {
+            return Some((name.clone(), !value));
         }
     }
     None

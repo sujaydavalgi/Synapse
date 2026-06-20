@@ -54,11 +54,12 @@ pub fn compile_native(
         .arg("-o")
         .arg(output.as_os_str());
 
-    let triple = match opts.target_triple.as_deref() {
-        Some(triple) => triple,
-        None => default_target_triple_for_host(),
-    };
-    cmd.args(["-target", triple]);
+    let triple = opts
+        .target_triple
+        .clone()
+        .or_else(|| hal_profile_triple(opts.hal_profile.as_deref()).map(str::to_string))
+        .unwrap_or_else(|| default_target_triple_for_host().to_string());
+    cmd.args(["-target", triple.as_str()]);
 
     if cfg!(target_os = "macos") {
         cmd.arg("-Wl,-no_warn_duplicate_libraries");
@@ -77,6 +78,14 @@ pub fn compile_native(
         llvm_ir_path,
         executable: output,
     })
+}
+
+fn hal_profile_triple(profile: Option<&str>) -> Option<&'static str> {
+    match profile? {
+        "embedded-arm" => Some("aarch64-unknown-linux-gnu"),
+        "esp32" => Some("xtensa-esp32-elf"),
+        _ => None,
+    }
 }
 
 fn detect_clang() -> Option<String> {
