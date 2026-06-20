@@ -236,42 +236,44 @@ pub fn serve(
                 )?;
             }
             "scopes" => {
+                let frame_id = req
+                    .pointer("/arguments/frameId")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1) as usize;
                 respond(
                     writer,
                     &req,
                     json!({
                         "scopes": [{
                             "name": "Locals",
-                            "variablesReference": 1,
+                            "variablesReference": frame_id,
                             "expensive": false,
                         }]
                     }),
                 )?;
             }
             "variables" => {
+                let frame_id = req
+                    .pointer("/arguments/variablesReference")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(1) as usize;
                 let variables: Vec<Value> = DEBUG_MACHINE.with(|cell| {
                     cell.borrow()
                         .as_ref()
                         .map(|machine| {
                             machine
-                                .pauses()
-                                .last()
-                                .map(|pause| {
-                                    pause
-                                        .variables
-                                        .iter()
-                                        .map(|(name, value)| {
-                                            json!({
-                                                "name": name,
-                                                "value": value,
-                                                "type": "String",
-                                                "variablesReference": 0,
-                                                "evaluateName": name,
-                                            })
-                                        })
-                                        .collect::<Vec<_>>()
+                                .frame_variables(frame_id)
+                                .iter()
+                                .map(|(name, value)| {
+                                    json!({
+                                        "name": name,
+                                        "value": value,
+                                        "type": "String",
+                                        "variablesReference": 0,
+                                        "evaluateName": name,
+                                    })
                                 })
-                                .unwrap_or_default()
+                                .collect::<Vec<_>>()
                         })
                         .unwrap_or_default()
                 });
