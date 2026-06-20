@@ -44,6 +44,13 @@ pub fn call_extern(
     decl: &ExternFnDecl,
     args: &[RuntimeValue],
 ) -> Result<RuntimeValue, SpandaError> {
+    #[cfg(feature = "cpp-native")]
+    if std::env::var("SPANDA_CPP_SUBPROCESS").is_err() {
+        if super::cpp_native::native_available() {
+            return super::cpp_native::call_extern(decl, args);
+        }
+    }
+
     let line = decl.span.start.line;
     let binary = bridge_binary_path().ok_or_else(|| SpandaError::Runtime {
         message:

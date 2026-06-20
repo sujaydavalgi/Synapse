@@ -94,6 +94,15 @@ Uses the same JSON protocol as the Python bridge. Unknown handlers fail with `Un
 
 Real static/dynamic linking via cxx/bindgen is **not** implemented yet.
 
+### In-process C++ bridge (optional `cpp-native` feature)
+
+When `spanda-core` is built with `--features cpp-native`, `extern cpp fn` calls the same handler dispatch in-process via a C ABI (`spanda_cpp_bridge_call`). Subprocess mode remains the default when the feature is off, or when `SPANDA_CPP_SUBPROCESS=1` is set.
+
+```bash
+cargo build -p spanda-core --features cpp-native
+spanda run examples/ffi_cpp_extern.sd
+```
+
 ## Planned import syntax
 
 Future modules will map ecosystem namespaces to bridge backends:

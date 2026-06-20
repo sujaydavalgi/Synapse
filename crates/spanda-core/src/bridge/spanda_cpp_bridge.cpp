@@ -1,8 +1,11 @@
-// Spanda C++ FFI bridge (subprocess protocol v1).
+// Spanda C++ FFI bridge (subprocess protocol v1 + optional in-process C API).
 // Reads JSON from stdin: {"fn":"cpp_add","args":[1,2]}
 // Writes JSON to stdout: {"ok":true,"result":3}
 
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -26,16 +29,14 @@ static std::string json_escape(const std::string &s) {
   return out;
 }
 
-static void respond_ok_number(double value) {
-  std::cout << "{\"ok\":true,\"result\":" << value << "}\n";
+static std::string ok_number_json(double value) {
+  std::ostringstream oss;
+  oss << "{\"ok\":true,\"result\":" << value << "}";
+  return oss.str();
 }
 
-static void respond_ok_string(const std::string &value) {
-  std::cout << "{\"ok\":true,\"result\":\"" << json_escape(value) << "\"}\n";
-}
-
-static void respond_err(const std::string &msg) {
-  std::cout << "{\"ok\":false,\"error\":\"" << json_escape(msg) << "\"}\n";
+static std::string err_json(const std::string &msg) {
+  return std::string("{\"ok\":false,\"error\":\"") + json_escape(msg) + "\"}";
 }
 
 static std::string extract_fn_name(const std::string &json) {
@@ -80,46 +81,70 @@ static std::vector<double> extract_numeric_args(const std::string &json) {
   return args;
 }
 
-static bool dispatch(const std::string &fn, const std::vector<double> &args) {
+static bool dispatch(const std::string &fn, const std::vector<double> &args,
+                     std::string &out_json) {
   if (fn == "cpp_add") {
     if (args.size() < 2) {
-      respond_err("cpp_add expects two numeric arguments");
+      out_json = err_json("cpp_add expects two numeric arguments");
       return true;
     }
-    respond_ok_number(args[0] + args[1]);
+    out_json = ok_number_json(args[0] + args[1]);
     return true;
   }
   if (fn == "cpp_echo") {
     if (args.empty()) {
-      respond_ok_number(0);
+      out_json = ok_number_json(0);
     } else {
-      respond_ok_number(args[0]);
+      out_json = ok_number_json(args[0]);
     }
     return true;
   }
   if (fn == "cpp_version") {
-    respond_ok_number(1);
+    out_json = ok_number_json(1);
     return true;
   }
   return false;
 }
 
+extern "C" int spanda_cpp_bridge_call(const char *fn_name, const char *args_json,
+                                      char *out_buf, std::size_t out_len) {
+  if (fn_name == nullptr || out_buf == nullptr || out_len == 0) {
+    return 0;
+  }
+  std::string args_source =
+      args_json != nullptr ? std::string(args_json) : std::string("{\"args\":[]}");
+  const std::vector<double> args = extract_numeric_args(args_source);
+  std::string response;
+  if (!dispatch(fn_name, args, response)) {
+    response = err_json(std::string("Unknown cpp extern '") + fn_name + "'");
+  }
+  if (response.size() + 1 > out_len) {
+    return 0;
+  }
+  std::memcpy(out_buf, response.c_str(), response.size() + 1);
+  return 1;
+}
+
+#ifndef SPANDA_CPP_LIBRARY
 int main() {
   std::string line;
   if (!std::getline(std::cin, line)) {
-    respond_err("Missing JSON request on stdin");
+    std::cout << err_json("Missing JSON request on stdin") << "\n";
     return 0;
   }
 
   const std::string fn = extract_fn_name(line);
   if (fn.empty()) {
-    respond_err("Missing fn string in request");
+    std::cout << err_json("Missing fn string in request") << "\n";
     return 0;
   }
 
   const std::vector<double> args = extract_numeric_args(line);
-  if (!dispatch(fn, args)) {
-    respond_err("Unknown cpp extern '" + fn + "'");
+  std::string response;
+  if (!dispatch(fn, args, response)) {
+    response = err_json("Unknown cpp extern '" + fn + "'");
   }
+  std::cout << response << "\n";
   return 0;
 }
+#endif

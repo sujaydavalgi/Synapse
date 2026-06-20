@@ -16,8 +16,8 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 | spawn / select / channels | Partially implemented | Cooperative concurrency |
 | test blocks | Implemented | Rust runtime + TS `runTests()` |
 | `extern fn` / FFI | Partially implemented | `extern python`/`extern cpp` subprocess bridges; optional PyO3 in-process |
-| Spanda IR (SIR) | Partially implemented | `spanda ir`; imports, behaviors, extern bridge kinds, robot/task metadata |
-| Codegen / LLVM | Partially implemented | SIR-aware templates + `spanda llvm-ir` (signatures + behavior/task stubs) |
+| Spanda IR (SIR) | Partially implemented | `spanda ir`; stmt lowering for drive/stop/return |
+| Codegen / LLVM | Partially implemented | SIR → LLVM with `libspanda_rt` calls for supported stmts |
 
 ## Autonomous systems
 
@@ -50,10 +50,10 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| python.* / cpp.* imports | Partially implemented | Type-check; subprocess bridges; optional `python-native` PyO3 |
+| python.* / cpp.* imports | Partially implemented | Subprocess bridges; optional `python-native` / `cpp-native` in-process |
 | ROS2 adapter | Stubbed | Log-only stub; `ros2_publish` uses rclpy when installed |
 | Transport adapters | Partially implemented | In-memory + log stubs; ROS2/MQTT via Python bridge (live when deps present) |
 | Package manager | Partially implemented | spanda.toml, lockfile, git vendor, local registry packages |
-| LLVM / native codegen | Stubbed | See compiler-backend-roadmap.md |
+| LLVM / native codegen | Partially implemented | `spanda llvm-ir` + `crates/spanda-rt` C ABI; see compiler-backend-roadmap.md |
 
 See also [README.md](../README.md), [ffi-and-ecosystem.md](./ffi-and-ecosystem.md), [compiler-backend-roadmap.md](./compiler-backend-roadmap.md).
