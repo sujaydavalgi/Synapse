@@ -9,3 +9,4 @@ spanda-core = { path = "../spanda-core" }
 
 [dev-dependencies]
 spanda-core = { path = "../spanda-core" }
+spanda-rt = { path = "../spanda-rt" }

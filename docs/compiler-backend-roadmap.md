@@ -44,8 +44,9 @@ Spanda source (.sd)
 
 ### Milestone 2 — LLVM backend ✓ (extended)
 
-- **`spanda llvm-ir file.sd`** emits LLVM IR from SIR with `libspanda_rt` declarations and calls for supported statements (actuator drive/stop, emergency stop, integer returns).
-- `crates/spanda-rt` exposes the C ABI (`spanda_rt_drive`, `spanda_rt_stop`, `spanda_rt_emergency_stop`) linked with generated code.
+- **`spanda llvm-ir file.sd`** emits LLVM IR from SIR with `libspanda_rt` declarations and calls for supported statements (actuator drive/stop, publish with string payloads, loop every, emergency stop, integer returns).
+- **`spanda compile-native [--out <binary>] file.sd`** links LLVM IR with `libspanda_rt` via clang when available.
+- `crates/spanda-rt` exposes the C ABI (`spanda_rt_drive`, `spanda_rt_stop`, `spanda_rt_publish`, `spanda_rt_loop_delay_ms`, …).
 - `crates/spanda-llvm` lowers SIR statement bodies where supported; loops, match, and comm remain planned.
 - Robot scheduler, safety monitor, and comm routing remain in **`libspanda_rt`** (interpreter-backed for now).
 - `-O2` builds for deployment; `-O0` + debug info for DAP debugging.

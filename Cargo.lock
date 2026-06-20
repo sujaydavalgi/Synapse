@@ -847,6 +847,7 @@ name = "spanda-llvm"
 version = "0.1.0"
 dependencies = [
  "spanda-core",
+ "spanda-rt",
 ]
 
 [[package]]

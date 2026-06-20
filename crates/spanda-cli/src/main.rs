@@ -6,7 +6,7 @@ use spanda_core::{
     verify_compatibility, wasm_deploy_manifest, CodegenTarget, CompatSeverity, DebugOptions,
     RunOptions, SpandaError, VerifyOptions,
 };
-use spanda_llvm::emit_module_ir;
+use spanda_llvm::{compile_native, emit_module_ir, CompileNativeOptions};
 use std::collections::HashSet;
 use std::env;
 use std::fs;
@@ -80,7 +80,8 @@ fn usage() {
            spanda deploy --target wasm [--out <file.json>] <file.sd>\n\
            spanda debug [--break <line>] <file.sd>\n\
            spanda ir [--json] <file.sd>\n\
-           spanda llvm-ir [--out <file.ll>] <file.sd>\n\n\
+           spanda llvm-ir [--out <file.ll>] <file.sd>\n\
+           spanda compile-native [--out <binary>] <file.sd>\n\n\
          Package commands:\n\
            spanda init [name] [--description <text>]\n\
            spanda build [--project <dir>]\n\
@@ -672,6 +673,49 @@ fn main() {
                         println!("✓ wrote LLVM IR to {out}");
                     } else {
                         print!("{ir}");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error: {e}");
+                    process::exit(1);
+                }
+            }
+        }
+        "compile-native" => {
+            let file = file.unwrap_or_else(|| {
+                eprintln!("Missing file path");
+                usage();
+                process::exit(1);
+            });
+            let source = read_source(&file);
+            match lower_to_sir(&source) {
+                Ok(sir) => {
+                    let workspace = std::env::current_dir().unwrap_or_else(|_| ".".into());
+                    let output = out_path
+                        .map(std::path::PathBuf::from)
+                        .unwrap_or_else(|| workspace.join("target/spanda-native/spanda-program"));
+                    match compile_native(
+                        &sir,
+                        &CompileNativeOptions {
+                            output,
+                            clang: None,
+                            workspace_root: workspace,
+                        },
+                    ) {
+                        Ok(result) => {
+                            println!(
+                                "✓ wrote LLVM IR to {}",
+                                result.llvm_ir_path.display()
+                            );
+                            println!(
+                                "✓ linked native binary to {}",
+                                result.executable.display()
+                            );
+                        }
+                        Err(e) => {
+                            eprintln!("Error: {e}");
+                            process::exit(1);
+                        }
                     }
                 }
                 Err(e) => {
