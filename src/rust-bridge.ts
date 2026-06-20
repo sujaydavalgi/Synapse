@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { existsSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -148,4 +148,132 @@ export function runViaCli(source: string): RunResult {
     throw new Error(parsed.diagnostics?.[0]?.message ?? "Run failed");
   }
   return parsed.result;
+}
+
+export type FormatResult = { ok: boolean; changed: boolean; formatted: string };
+export type LintIssue = {
+  rule: string;
+  message: string;
+  line: number;
+  column: number;
+  severity: "warning" | "error";
+};
+export type LintResult = { ok: boolean; issues: LintIssue[] };
+export type DocResult = { ok: boolean; markdown: string };
+export type CodegenTarget = "native" | "wasm" | "esp32";
+export type DebugPause = { line: number; reason: string };
+export type DebugResult = { ok: boolean; pauses: DebugPause[] };
+
+function withTempSource(
+  source: string,
+  suffix: string,
+  run: (file: string) => SpawnSyncReturns<string>,
+): SpawnSyncReturns<string> {
+  const tmp = join(repoRoot, suffix);
+  writeFileSync(tmp, source);
+  const result = run(tmp);
+  try {
+    unlinkSync(tmp);
+  } catch {
+    /* ignore */
+  }
+  return result;
+}
+
+export function fmtViaCli(source: string): FormatResult {
+  const bin = cliPath();
+  if (!bin) {
+    return { ok: false, changed: false, formatted: source };
+  }
+  const result = withTempSource(source, ".spanda-fmt-tmp.sd", (file) =>
+    spawnSync(bin, ["fmt", "--json", file], { encoding: "utf-8" }),
+  );
+  if (!result.stdout?.trim()) {
+    return { ok: false, changed: false, formatted: source };
+  }
+  return JSON.parse(result.stdout) as FormatResult;
+}
+
+export function lintViaCli(source: string): LintResult {
+  const bin = cliPath();
+  if (!bin) {
+    return {
+      ok: false,
+      issues: [{ rule: "cli", message: "Rust CLI not built", line: 1, column: 1, severity: "error" }],
+    };
+  }
+  const result = withTempSource(source, ".spanda-lint-tmp.sd", (file) =>
+    spawnSync(bin, ["lint", "--json", file], { encoding: "utf-8" }),
+  );
+  if (!result.stdout?.trim()) {
+    return {
+      ok: false,
+      issues: [{ rule: "cli", message: result.stderr || "lint failed", line: 1, column: 1, severity: "error" }],
+    };
+  }
+  return JSON.parse(result.stdout) as LintResult;
+}
+
+export function docViaCli(source: string): DocResult {
+  const bin = cliPath();
+  if (!bin) {
+    return { ok: false, markdown: "" };
+  }
+  const result = withTempSource(source, ".spanda-doc-tmp.sd", (file) =>
+    spawnSync(bin, ["doc", "--json", file], { encoding: "utf-8" }),
+  );
+  if (!result.stdout?.trim()) {
+    return { ok: false, markdown: "" };
+  }
+  return JSON.parse(result.stdout) as DocResult;
+}
+
+export function codegenViaCli(source: string, target: CodegenTarget = "native"): string {
+  const bin = cliPath();
+  if (!bin) {
+    throw new Error("Rust CLI not built (run: npm run build:rust)");
+  }
+  const result = withTempSource(source, ".spanda-codegen-tmp.sd", (file) =>
+    spawnSync(bin, ["codegen", "--target", target, file], { encoding: "utf-8" }),
+  );
+  if (result.status !== 0) {
+    throw new Error(result.stderr || "codegen failed");
+  }
+  return result.stdout ?? "";
+}
+
+export function deployViaCli(source: string): string {
+  const bin = cliPath();
+  if (!bin) {
+    throw new Error("Rust CLI not built (run: npm run build:rust)");
+  }
+  const result = withTempSource(source, ".spanda-deploy-tmp.sd", (file) =>
+    spawnSync(bin, ["deploy", "--target", "wasm", file], { encoding: "utf-8" }),
+  );
+  if (result.status !== 0) {
+    throw new Error(result.stderr || "deploy failed");
+  }
+  return result.stdout ?? "";
+}
+
+export function debugViaCli(source: string, breakpoints: number[] = []): DebugResult {
+  const bin = cliPath();
+  if (!bin) {
+    return { ok: false, pauses: [] };
+  }
+  const args = ["debug", ...breakpoints.flatMap((line) => ["--break", String(line)])];
+  const result = withTempSource(source, ".spanda-debug-tmp.sd", (file) =>
+    spawnSync(bin, [...args, file], { encoding: "utf-8" }),
+  );
+  if (result.status !== 0) {
+    return { ok: false, pauses: [] };
+  }
+  const pauses: DebugPause[] = [];
+  for (const line of (result.stdout ?? "").split("\n")) {
+    const m = line.match(/^\s*line (\d+) — (.+)$/);
+    if (m) {
+      pauses.push({ line: Number(m[1]), reason: m[2]! });
+    }
+  }
+  return { ok: true, pauses };
 }

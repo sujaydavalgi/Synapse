@@ -1,0 +1,16 @@
+export {
+  codegenViaCli,
+  debugViaCli,
+  deployViaCli,
+  docViaCli,
+  fmtViaCli,
+  isCliAvailable,
+  lintViaCli,
+  type CodegenTarget,
+  type DebugPause,
+  type DebugResult,
+  type DocResult,
+  type FormatResult,
+  type LintIssue,
+  type LintResult,
+} from "../rust-bridge.js";

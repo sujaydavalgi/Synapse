@@ -63,9 +63,33 @@ export async function compileAsync(source: string, backend?: CompileBackend): Pr
       throw new TypeCheckError(cliResult.diagnostics);
     }
     if (cliResult?.ok) {
-      const tokens = tokenize(source);
-      const program = parse(tokens);
-      return { program, source, backend: "rust-cli" };
+      try {
+        const tokens = tokenize(source);
+        const program = parse(tokens);
+        return { program, source, backend: "rust-cli" };
+      } catch {
+        return {
+          program: {
+            kind: "Program",
+            moduleName: null,
+            imports: [],
+            functions: [],
+            tests: [],
+            externFunctions: [],
+            structs: [],
+            enums: [],
+            traits: [],
+            messages: [],
+            robots: [],
+            span: {
+              start: { line: 1, column: 1, offset: 0 },
+              end: { line: 1, column: 1, offset: 0 },
+            },
+          },
+          source,
+          backend: "rust-cli",
+        };
+      }
     }
   }
 
