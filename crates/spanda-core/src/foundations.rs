@@ -1,5 +1,51 @@
-use crate::ast::{Expr, Span, Stmt};
+use crate::ast::{Expr, Span, SpandaType, Stmt};
 use serde::{Deserialize, Serialize};
+
+/// Symbol visibility for module-level items.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Visibility {
+    Private,
+    Public,
+    Export,
+}
+
+/// Module-level function declaration (`export fn plan_path() { ... }`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ModuleFnDecl {
+    pub name: String,
+    pub visibility: Visibility,
+    pub type_params: Vec<String>,
+    pub params: Vec<ModuleParamDecl>,
+    pub return_type: SpandaType,
+    #[serde(default)]
+    pub is_async: bool,
+    pub body: Vec<Stmt>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ModuleParamDecl {
+    pub name: String,
+    pub type_ann: SpandaType,
+    pub span: Span,
+}
+
+/// In-language test block: `test "name" { ... }`
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TestDecl {
+    pub name: String,
+    pub body: Vec<Stmt>,
+    pub span: Span,
+}
+
+/// Select arm: `recv(ch) => { ... }`
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SelectArm {
+    pub channel: Expr,
+    pub body: Vec<Stmt>,
+    pub span: Span,
+}
 
 /// Top-level struct declaration.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

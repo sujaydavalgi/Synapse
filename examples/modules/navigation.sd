@@ -1,0 +1,19 @@
+// Navigation robot using cross-module imports.
+module navigation;
+
+import navigation.path_planning;
+import std.robotics;
+import std.sensors;
+
+robot Navigator {
+  sensor lidar: LidarScan;
+  actuator drive: DifferentialDrive;
+
+  behavior run() {
+    let start = pose(x: 0.0 m, y: 0.0 m, theta: 0.0 rad);
+    let goal = pose(x: 3.0 m, y: 1.0 m, theta: 0.0 rad);
+    let route = plan_path(from: start, to: goal);
+    let _ = route;
+    drive.stop();
+  }
+}

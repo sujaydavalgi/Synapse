@@ -2,8 +2,9 @@ pub mod ai;
 pub mod ast;
 pub mod audit;
 pub mod comm;
+pub mod concurrency;
+pub mod docs;
 mod error;
-pub mod security;
 pub mod events;
 pub mod format;
 pub mod foundations;
@@ -11,9 +12,14 @@ pub mod hal;
 pub mod hardware;
 pub mod lexer;
 pub mod lib_registry;
+pub mod lint;
+pub mod modules;
 pub mod parser;
+pub mod pretty;
 pub mod runtime;
 pub mod safety;
+pub mod security;
+pub mod serialize;
 pub mod simulator;
 pub mod soc;
 pub mod state_machine;
@@ -25,14 +31,18 @@ pub mod types;
 pub mod units;
 
 pub use ast::*;
+pub use docs::generate_markdown;
 pub use error::*;
-pub use format::format_source;
+pub use format::{format_ast, format_source};
 pub use hardware::{
     list_hardware_profiles, CompatItem, CompatSeverity, CompatibilityMatrix, CompatibilityReport,
     MatrixCell, VerifyOptions,
 };
+pub use lint::{lint, LintIssue, LintReport, LintSeverity};
+pub use modules::{load_project_modules, ModuleRegistry};
 
 use runtime::{Interpreter, InterpreterOptions, RobotBackend};
+use serde::{Deserialize, Serialize};
 use simulator::{create_default_simulator, Obstacle, SimulatorConfig};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -51,6 +61,25 @@ pub fn check(source: &str) -> Result<(), SpandaError> {
     let tokens = lexer::tokenize(source)?;
     let program = parser::parse(tokens)?;
     types::check(&program)
+}
+
+pub fn check_with_registry(source: &str, registry: &ModuleRegistry) -> Result<(), SpandaError> {
+    let tokens = lexer::tokenize(source)?;
+    let program = parser::parse(tokens)?;
+    types::check_with_registry(&program, registry)
+}
+
+pub fn compile_with_registry(
+    source: &str,
+    registry: &ModuleRegistry,
+) -> Result<CompileResult, SpandaError> {
+    let tokens = lexer::tokenize(source)?;
+    let program = parser::parse(tokens)?;
+    types::check_with_registry(&program, registry)?;
+    Ok(CompileResult {
+        program,
+        source: source.to_string(),
+    })
 }
 
 pub fn verify_compatibility(
@@ -78,8 +107,64 @@ pub fn verify_compatibility_target(
 }
 
 pub fn run(source: &str, options: RunOptions) -> Result<RunResult, SpandaError> {
-    let compiled = compile(source)?;
-    run_program(&compiled.program, options)
+    let program = if let Some(registry) = &options.module_registry {
+        compile_with_registry(source, registry)?.program
+    } else {
+        compile(source)?.program
+    };
+    run_program(&program, options)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestRunResult {
+    pub passed: usize,
+    pub failed: usize,
+    pub logs: Vec<String>,
+}
+
+pub fn run_tests(source: &str) -> Result<TestRunResult, SpandaError> {
+    run_tests_with_registry(source, &ModuleRegistry::new())
+}
+
+pub fn run_tests_with_registry(
+    source: &str,
+    registry: &ModuleRegistry,
+) -> Result<TestRunResult, SpandaError> {
+    let tokens = lexer::tokenize(source)?;
+    let program = parser::parse(tokens)?;
+    types::check_with_registry(&program, registry)?;
+
+    let sim = create_default_simulator(SimulatorConfig::default());
+    let logs: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+    let logs_cb = logs.clone();
+    let mut interp = Interpreter::new(
+        sim,
+        InterpreterOptions {
+            max_loop_iterations: 10,
+            on_log: Some(Rc::new(move |msg| logs_cb.borrow_mut().push(msg))),
+            on_motion_blocked: None,
+            module_registry: Some(registry.clone()),
+        },
+    );
+
+    let Program::Program { tests, .. } = &program;
+    let total = tests.len();
+    match interp.run_tests(&program) {
+        Ok(()) => Ok(TestRunResult {
+            passed: total,
+            failed: 0,
+            logs: logs.borrow().clone(),
+        }),
+        Err(e) => Ok(TestRunResult {
+            passed: 0,
+            failed: total.max(1),
+            logs: {
+                let mut l = logs.borrow().clone();
+                l.push(e.to_string());
+                l
+            },
+        }),
+    }
 }
 
 pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, SpandaError> {
@@ -120,6 +205,7 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
             max_loop_iterations: options.max_loop_iterations,
             on_log: Some(Rc::new(move |msg| logs_cb.borrow_mut().push(msg))),
             on_motion_blocked: None,
+            module_registry: options.module_registry.clone(),
         },
     );
 

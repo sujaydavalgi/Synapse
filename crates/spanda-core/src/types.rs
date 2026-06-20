@@ -4,15 +4,17 @@ use crate::comm::{self, is_comm_capability, MessageRegistry};
 use crate::error::{Diagnostic, SpandaError};
 use crate::foundations::{
     resolve_module_import, resolve_type_alias, CapabilityDecl, EnumDecl, EventDecl,
-    EventHandlerDecl, MatchArm, StateMachineDecl, StructDecl, TaskDecl, TraitDecl, TraitImplDecl,
-    TwinDecl,
+    EventHandlerDecl, MatchArm, ModuleFnDecl, StateMachineDecl, StructDecl, TaskDecl, TraitDecl,
+    TraitImplDecl, TwinDecl, Visibility,
 };
 use crate::hal::hal_member_from_decl;
 use crate::lib_registry::{all_library_sensor_types, resolve_import};
+use crate::modules::ModuleRegistry;
 use crate::soc::{get_soc_profile, validate_hal_against_soc};
 use crate::stdlib::resolve_std_import;
 use crate::type_system::{
-    binary_physical_op_allowed, is_action_proposal_type, physical_category, resolve_type_name,
+    binary_physical_op_allowed, generic_arity, is_action_proposal_type, physical_category,
+    resolve_type_name,
 };
 use crate::units::{self, unit_matches_named_type};
 use std::collections::HashMap;
@@ -22,7 +24,15 @@ pub fn type_check(program: &Program) -> Result<(), SpandaError> {
 }
 
 pub fn check(program: &Program) -> Result<(), SpandaError> {
+    check_with_registry(program, &ModuleRegistry::new())
+}
+
+pub fn check_with_registry(
+    program: &Program,
+    registry: &ModuleRegistry,
+) -> Result<(), SpandaError> {
     let mut checker = TypeChecker::new();
+    checker.module_registry = Some(registry.clone());
     checker.check_program(program);
     if checker.errors.is_empty() {
         Ok(())
@@ -215,6 +225,9 @@ pub struct TypeChecker {
     agent_names: std::collections::HashSet<String>,
     device_names: std::collections::HashSet<String>,
     peer_robot_names: std::collections::HashSet<String>,
+    module_registry: Option<ModuleRegistry>,
+    module_functions: HashMap<String, ModuleFnDecl>,
+    type_param_scope: HashMap<String, SpandaType>,
 }
 
 impl Default for TypeChecker {
@@ -239,12 +252,17 @@ impl TypeChecker {
             agent_names: std::collections::HashSet::new(),
             device_names: std::collections::HashSet::new(),
             peer_robot_names: std::collections::HashSet::new(),
+            module_registry: None,
+            module_functions: HashMap::new(),
+            type_param_scope: HashMap::new(),
         }
     }
 
     pub fn check_program(&mut self, program: &Program) {
         let Program::Program {
             imports,
+            functions,
+            tests,
             structs,
             enums,
             traits,
@@ -255,11 +273,15 @@ impl TypeChecker {
         let mut imported = std::collections::HashSet::new();
         for imp in imports {
             let ImportDecl::ImportDecl { path, span } = imp;
-            if resolve_import(path).is_none()
-                && resolve_ai_import(path).is_none()
-                && !resolve_module_import(path)
-                && !resolve_std_import(path)
-            {
+            let known = resolve_import(path).is_some()
+                || resolve_ai_import(path).is_some()
+                || resolve_module_import(path)
+                || resolve_std_import(path)
+                || self
+                    .module_registry
+                    .as_ref()
+                    .is_some_and(|r| r.exports_for(path).is_some());
+            if !known {
                 self.error(
                     format!("Unknown import '{path}'"),
                     span.start.line,
@@ -267,6 +289,13 @@ impl TypeChecker {
                 );
             } else {
                 imported.insert(path.clone());
+                if let Some(registry) = &self.module_registry {
+                    if let Some(exports) = registry.exports_for(path) {
+                        for (fname, fdecl) in &exports.functions {
+                            self.module_functions.insert(fname.clone(), fdecl.clone());
+                        }
+                    }
+                }
             }
         }
 
@@ -280,6 +309,14 @@ impl TypeChecker {
             self.check_trait(trait_decl);
         }
 
+        self.check_module_functions(functions);
+
+        for test in tests {
+            for stmt in &test.body {
+                self.check_stmt(stmt);
+            }
+        }
+
         self.message_registry = MessageRegistry::from_program(messages, structs);
         for msg in messages {
             self.check_message(msg);
@@ -287,6 +324,90 @@ impl TypeChecker {
 
         for robot in robots {
             self.check_robot(robot, &imported);
+        }
+    }
+
+    fn validate_type_annotation(&mut self, ty: &SpandaType, line: u32, column: u32) {
+        match ty {
+            SpandaType::Named { name } => {
+                if self.struct_defs.contains_key(name)
+                    || self.type_param_scope.contains_key(name)
+                    || self.enum_variants.contains_key(name)
+                {
+                    return;
+                }
+                if resolve_type_name(name).is_err() {
+                    self.error(format!("Unknown type '{name}'"), line, column);
+                }
+            }
+            SpandaType::Generic { name, type_args } => {
+                for arg in type_args {
+                    self.validate_type_annotation(arg, line, column);
+                }
+                if resolve_type_name(name).is_err() && generic_arity(name).is_none() {
+                    self.error(format!("Unknown type '{name}'"), line, column);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn check_module_functions(&mut self, functions: &[ModuleFnDecl]) {
+        for func in functions {
+            let saved_scope = std::mem::take(&mut self.type_param_scope);
+            for tp in &func.type_params {
+                self.type_param_scope
+                    .insert(tp.clone(), SpandaType::TypeParam { name: tp.clone() });
+            }
+            for param in &func.params {
+                self.validate_type_annotation(
+                    &param.type_ann,
+                    param.span.start.line,
+                    param.span.start.column,
+                );
+                let resolved = self.resolve_type_ann(&param.type_ann);
+                self.symbols.insert(
+                    param.name.clone(),
+                    SymbolEntry {
+                        robo_type: resolved,
+                        kind: SymbolKind::Variable,
+                        sensor_type: None,
+                        actuator_type: None,
+                    },
+                );
+            }
+            for stmt in &func.body {
+                self.check_stmt(stmt);
+            }
+            for param in &func.params {
+                self.symbols.remove(&param.name);
+            }
+            if matches!(func.visibility, Visibility::Export | Visibility::Public) {
+                self.module_functions
+                    .insert(func.name.clone(), func.clone());
+            }
+            let _ = self.resolve_type_ann(&func.return_type);
+            self.type_param_scope = saved_scope;
+        }
+    }
+
+    fn future_type(inner: SpandaType) -> SpandaType {
+        SpandaType::Generic {
+            name: "Future".into(),
+            type_args: vec![inner],
+        }
+    }
+
+    fn resolve_type_ann(&self, ty: &SpandaType) -> SpandaType {
+        match ty {
+            SpandaType::Named { name } if self.type_param_scope.contains_key(name) => {
+                self.type_param_scope[name].clone()
+            }
+            SpandaType::Generic { name, type_args } => SpandaType::Generic {
+                name: name.clone(),
+                type_args: type_args.iter().map(|a| self.resolve_type_ann(a)).collect(),
+            },
+            other => other.clone(),
         }
     }
 
@@ -1713,6 +1834,9 @@ impl TypeChecker {
                 init,
                 span,
             } => {
+                if let Some(expected) = type_annotation {
+                    self.validate_type_annotation(expected, span.start.line, span.start.column);
+                }
                 let inferred = init.as_ref().map(|e| self.check_expr(e));
                 let t = match (type_annotation, inferred) {
                     (Some(expected), Some(actual)) => {
@@ -1903,6 +2027,28 @@ impl TypeChecker {
                     },
                 );
             }
+            Stmt::SpawnStmt { callee, args, span } => {
+                if let Expr::IdentExpr { name, .. } = callee {
+                    if !self.module_functions.contains_key(name) {
+                        self.error(
+                            format!("Unknown spawn target '{name}'"),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                for arg in args {
+                    self.check_expr(arg);
+                }
+            }
+            Stmt::SelectStmt { arms, .. } => {
+                for arm in arms {
+                    self.check_expr(&arm.channel);
+                    for stmt in &arm.body {
+                        self.check_stmt(stmt);
+                    }
+                }
+            }
         }
     }
 
@@ -2053,6 +2199,22 @@ impl TypeChecker {
                     name: "ActionResult".into(),
                 }
             }
+            Expr::AwaitExpr { operand, span } => {
+                let inner = self.check_expr(operand);
+                if let SpandaType::Generic { name, type_args } = &inner {
+                    if name == "Future" {
+                        if let Some(t) = type_args.first() {
+                            return t.clone();
+                        }
+                    }
+                }
+                self.error(
+                    "await requires a Future value".into(),
+                    span.start.line,
+                    span.start.column,
+                );
+                SpandaType::Void
+            }
             Expr::DiscoverExpr { .. } => SpandaType::Named {
                 name: "DiscoveryResult".into(),
             },
@@ -2118,7 +2280,7 @@ impl TypeChecker {
     }
 
     fn check_match(&mut self, scrutinee: &Expr, arms: &[MatchArm], span: &Span) -> SpandaType {
-        let _scrutinee_type = self.check_expr(scrutinee);
+        let scrutinee_type = self.check_expr(scrutinee);
         if arms.is_empty() {
             self.error(
                 "match expression requires at least one arm".into(),
@@ -2131,16 +2293,49 @@ impl TypeChecker {
                 self.check_stmt(stmt);
             }
         }
-        self.check_match_exhaustiveness(arms, span);
+        self.check_match_exhaustiveness(arms, &scrutinee_type, span);
         SpandaType::Void
     }
 
-    fn check_match_exhaustiveness(&mut self, arms: &[MatchArm], span: &Span) {
+    fn check_match_exhaustiveness(
+        &mut self,
+        arms: &[MatchArm],
+        scrutinee_type: &SpandaType,
+        span: &Span,
+    ) {
         use std::collections::HashSet;
         let arm_names: HashSet<String> = arms.iter().map(|a| a.variant.clone()).collect();
         if arm_names.is_empty() {
             return;
         }
+
+        if let SpandaType::Generic { name, .. } = scrutinee_type {
+            if name == "Result" {
+                for required in ["Ok", "Err"] {
+                    if !arm_names.contains(required) {
+                        self.error(
+                            format!("Non-exhaustive match on Result: missing '{required}' arm"),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                return;
+            }
+            if name == "Option" {
+                for required in ["Some", "None"] {
+                    if !arm_names.contains(required) {
+                        self.error(
+                            format!("Non-exhaustive match on Option: missing '{required}' arm"),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                return;
+            }
+        }
+
         for variants in self.enum_variants.values() {
             let variant_set: HashSet<String> = variants.iter().cloned().collect();
             if arm_names.is_subset(&variant_set) {
@@ -2157,6 +2352,57 @@ impl TypeChecker {
                 }
                 return;
             }
+        }
+    }
+
+    fn check_result_option_ctor(&mut self, name: &str, args: &[Expr], span: &Span) -> SpandaType {
+        match name {
+            "Ok" | "Some" => {
+                if let Some(arg) = args.first() {
+                    let inner = self.check_expr(arg);
+                    let ctor = if name == "Ok" { "Result" } else { "Option" };
+                    if ctor == "Result" {
+                        SpandaType::Generic {
+                            name: "Result".into(),
+                            type_args: vec![
+                                inner,
+                                SpandaType::Named {
+                                    name: "Error".into(),
+                                },
+                            ],
+                        }
+                    } else {
+                        SpandaType::Generic {
+                            name: "Option".into(),
+                            type_args: vec![inner],
+                        }
+                    }
+                } else {
+                    self.error(
+                        format!("'{name}' requires a value argument"),
+                        span.start.line,
+                        span.start.column,
+                    );
+                    SpandaType::Void
+                }
+            }
+            "Err" => {
+                let inner = args
+                    .first()
+                    .map(|a| self.check_expr(a))
+                    .unwrap_or(SpandaType::Named {
+                        name: "Error".into(),
+                    });
+                SpandaType::Generic {
+                    name: "Result".into(),
+                    type_args: vec![SpandaType::Void, inner],
+                }
+            }
+            "None" => SpandaType::Generic {
+                name: "Option".into(),
+                type_args: vec![SpandaType::Void],
+            },
+            _ => SpandaType::Void,
         }
     }
 
@@ -2239,6 +2485,50 @@ impl TypeChecker {
         span: &Span,
     ) -> SpandaType {
         if let Expr::IdentExpr { name, .. } = callee {
+            if let Some(func) = self.module_functions.get(name.as_str()).cloned() {
+                let mut call_scope = HashMap::new();
+                for (i, tp) in func.type_params.iter().enumerate() {
+                    if let Some(arg) = args.get(i) {
+                        call_scope.insert(tp.clone(), self.check_expr(arg));
+                    }
+                }
+                let saved = std::mem::take(&mut self.type_param_scope);
+                self.type_param_scope.extend(call_scope);
+                for (i, arg) in args.iter().enumerate() {
+                    if let Some(param) = func.params.get(i) {
+                        let expected = self.resolve_type_ann(&param.type_ann);
+                        let actual = self.check_expr(arg);
+                        self.assert_compatible(
+                            &expected,
+                            &actual,
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                let ret = self.resolve_type_ann(&func.return_type);
+                self.type_param_scope = saved;
+                if func.is_async {
+                    return Self::future_type(ret);
+                }
+                return ret;
+            }
+            if name == "assert" {
+                if let Some(arg) = args.first() {
+                    let t = self.check_expr(arg);
+                    if !matches!(t, SpandaType::Bool) {
+                        self.error(
+                            "assert requires a boolean condition".into(),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                }
+                return SpandaType::Void;
+            }
+            if matches!(name.as_str(), "Ok" | "Err" | "Some" | "None") {
+                return self.check_result_option_ctor(name, args, span);
+            }
             if let Some(sig) = builtin_functions().get(name.as_str()) {
                 for arg in named_args {
                     if let Some(expected) = sig.named_params.get(&arg.name) {
@@ -2513,6 +2803,27 @@ impl TypeChecker {
             name == "Goal"
         } else if let (SpandaType::String, SpandaType::Named { name }) = (expected, actual) {
             name == "Goal"
+        } else if matches!(expected, SpandaType::TypeParam { .. })
+            || matches!(actual, SpandaType::TypeParam { .. })
+            || (matches!(actual, SpandaType::Number { .. })
+                && matches!(
+                    expected,
+                    SpandaType::Int | SpandaType::Float | SpandaType::TypeParam { .. }
+                ))
+        {
+            true
+        } else if let (
+            SpandaType::Generic {
+                name: en,
+                type_args: ea,
+            },
+            SpandaType::Generic {
+                name: an,
+                type_args: aa,
+            },
+        ) = (expected, actual)
+        {
+            en == an && ea.len() == aa.len()
         } else {
             false
         }
@@ -2525,7 +2836,7 @@ impl TypeChecker {
             }
         }
         self.error(
-            format!("Expected {type_name}, got {:?}", actual.kind_name()),
+            format!("Expected {type_name}, found {}", display_type(actual)),
             line,
             column,
         );
@@ -2557,9 +2868,9 @@ impl TypeChecker {
             } else {
                 self.error(
                     format!(
-                        "Type mismatch: expected {}, got {}",
-                        expected.kind_name(),
-                        actual.kind_name()
+                        "Type mismatch: expected {}, found {}",
+                        display_type(expected),
+                        display_type(actual)
                     ),
                     line,
                     column,
@@ -2580,6 +2891,32 @@ impl TypeChecker {
 trait SpandaTypeExt {
     fn unit(&self) -> UnitKind;
     fn kind_name(&self) -> &'static str;
+}
+
+fn display_type(ty: &SpandaType) -> String {
+    match ty {
+        SpandaType::Void => "Void".into(),
+        SpandaType::Int => "Int".into(),
+        SpandaType::Float => "Float".into(),
+        SpandaType::Bool => "Bool".into(),
+        SpandaType::String => "String".into(),
+        SpandaType::Number { unit, .. } => format!("Number({})", unit.as_str()),
+        SpandaType::Named { name } => name.clone(),
+        SpandaType::Generic { name, type_args } => {
+            let args: Vec<_> = type_args.iter().map(display_type).collect();
+            format!("{name}<{}>", args.join(", "))
+        }
+        SpandaType::TypeParam { name } => name.clone(),
+        SpandaType::Pose => "Pose".into(),
+        SpandaType::Velocity => "Velocity".into(),
+        SpandaType::Trajectory => "Path".into(),
+        SpandaType::Scan => "Scan".into(),
+        SpandaType::EnumVariant { enum_name, variant } => format!("{enum_name}.{variant}"),
+        SpandaType::Transform => "Transform".into(),
+        SpandaType::Char => "Char".into(),
+        SpandaType::Bytes => "Bytes".into(),
+        SpandaType::Null => "Null".into(),
+    }
 }
 
 impl SpandaTypeExt for SpandaType {
@@ -2612,6 +2949,10 @@ impl SpandaTypeExt for SpandaType {
             SpandaType::Trajectory => "trajectory",
             SpandaType::Transform => "transform",
             SpandaType::EnumVariant { .. } => "enum_variant",
+            SpandaType::TypeParam { name } => {
+                let _ = name;
+                "type_param"
+            }
         }
     }
 }
@@ -2868,6 +3209,50 @@ fn builtin_functions() -> HashMap<&'static str, FnSig> {
                 returns: SpandaType::Named {
                     name: "Memory".into(),
                 },
+            },
+        ),
+        (
+            "channel",
+            FnSig {
+                named_params: HashMap::new(),
+                returns: SpandaType::Named {
+                    name: "Channel".into(),
+                },
+            },
+        ),
+        (
+            "send",
+            FnSig {
+                named_params: HashMap::new(),
+                returns: SpandaType::Void,
+            },
+        ),
+        (
+            "recv",
+            FnSig {
+                named_params: HashMap::new(),
+                returns: SpandaType::Void,
+            },
+        ),
+        (
+            "serialize",
+            FnSig {
+                named_params: HashMap::from([("format".into(), SpandaType::String)]),
+                returns: SpandaType::String,
+            },
+        ),
+        (
+            "deserialize",
+            FnSig {
+                named_params: HashMap::from([("format".into(), SpandaType::String)]),
+                returns: SpandaType::Void,
+            },
+        ),
+        (
+            "assert",
+            FnSig {
+                named_params: HashMap::new(),
+                returns: SpandaType::Void,
             },
         ),
     ])
@@ -3202,9 +3587,12 @@ fn builtin_methods(type_name: &str) -> Option<HashMap<&'static str, MethodSig>> 
             (
                 "create_provenance",
                 m(
-                    vec![SpandaType::String, SpandaType::Named {
-                        name: "RecordId".into(),
-                    }],
+                    vec![
+                        SpandaType::String,
+                        SpandaType::Named {
+                            name: "RecordId".into(),
+                        },
+                    ],
                     HashMap::new(),
                     SpandaType::Named {
                         name: "ProvenanceRecord".into(),

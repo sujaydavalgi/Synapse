@@ -1,0 +1,22 @@
+// Path planning module — export surface for navigation stack.
+module navigation.path_planning;
+
+import std.spatial;
+
+/// Plan a straight-line trajectory between two poses.
+export fn plan_path(from: Pose, to: Pose) -> Path {
+  return trajectory(from: from, to: to, steps: 8);
+}
+
+/// Generic helper: return the first element type parameter (placeholder for collections).
+export fn first<T>(items: Array<T>) -> T {
+  return 0;
+}
+
+private fn internal_helper() -> Path {
+  return trajectory(
+    from: pose(x: 0.0 m, y: 0.0 m),
+    to: pose(x: 0.0 m, y: 0.0 m),
+    steps: 1
+  );
+}

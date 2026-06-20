@@ -12,9 +12,6 @@ use crate::audit::{
     sha256 as audit_sha256, sign as audit_sign, verify_signature, AuditRuntime, DeviceIdentity,
     MockLedgerBackend,
 };
-use crate::security::{
-    RobotIdentity, SecretHandle, SecretSource, SecurePolicy, SecurityContext, TrustLevel,
-};
 use crate::comm::{CommBus, DiscoverFilter, TransportKind};
 use crate::error::{PoseState, RobotState, SpandaError, VelocityState};
 use crate::events::EventBus;
@@ -24,6 +21,9 @@ use crate::lib_registry::{get_sensor_driver, read_with_driver, DriverContext, Si
 use crate::safety::{
     create_safety_config_from_robot, interpolate_poses, Pose2d, SafetyMonitor, SafetyZoneRuntime,
     SafetyZoneShape, ValidateActionResult,
+};
+use crate::security::{
+    RobotIdentity, SecretHandle, SecretSource, SecurePolicy, SecurityContext, TrustLevel,
 };
 use crate::soc::get_soc_profile;
 use crate::state_machine::StateMachineRuntime;
@@ -169,6 +169,26 @@ pub enum RuntimeValue {
     Embedding {
         dimensions: usize,
         vector: Vec<f64>,
+    },
+    Result {
+        ok: bool,
+        value: Box<RuntimeValue>,
+    },
+    Option {
+        present: bool,
+        value: Option<Box<RuntimeValue>>,
+    },
+    Bytes {
+        data: Vec<u8>,
+    },
+    Null,
+    Future {
+        func_name: String,
+        args: Vec<RuntimeValue>,
+        resolved: Option<Box<RuntimeValue>>,
+    },
+    Channel {
+        id: u64,
     },
 }
 
@@ -343,6 +363,7 @@ pub struct InterpreterOptions {
     pub max_loop_iterations: usize,
     pub on_motion_blocked: Option<MotionBlockedCallback>,
     pub on_log: Option<LogCallback>,
+    pub module_registry: Option<crate::modules::ModuleRegistry>,
 }
 
 impl Default for InterpreterOptions {
@@ -351,6 +372,7 @@ impl Default for InterpreterOptions {
             max_loop_iterations: 10,
             on_motion_blocked: None,
             on_log: None,
+            module_registry: None,
         }
     }
 }
@@ -381,6 +403,9 @@ pub struct Interpreter<B: RobotBackend> {
     security: SecurityContext,
     comm_bus: RoutingCommBus,
     default_transport: TransportKind,
+    module_functions: HashMap<String, crate::foundations::ModuleFnDecl>,
+    imported_functions: HashMap<String, crate::foundations::ModuleFnDecl>,
+    concurrency: crate::concurrency::ConcurrencyRuntime,
 }
 
 impl<B: RobotBackend> Interpreter<B> {
@@ -411,6 +436,9 @@ impl<B: RobotBackend> Interpreter<B> {
             security: SecurityContext::new(),
             comm_bus: RoutingCommBus::new(),
             default_transport: TransportKind::Sim,
+            module_functions: HashMap::new(),
+            imported_functions: HashMap::new(),
+            concurrency: crate::concurrency::ConcurrencyRuntime::new(),
         }
     }
 
@@ -455,17 +483,52 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
             }
         }
+        self.process_spawn_queue()?;
         Ok(self.backend.get_state())
     }
 
+    pub fn run_tests(&mut self, program: &Program) -> Result<(), SpandaError> {
+        let Program::Program { tests, .. } = program;
+        self.load_program_metadata(program);
+        for test in tests {
+            self.log(format!("test {}", test.name));
+            self.execute_block(&test.body)?;
+            self.process_spawn_queue()?;
+        }
+        Ok(())
+    }
+
     fn load_program_metadata(&mut self, program: &Program) {
-        use crate::foundations::{EnumDecl, StructDecl, TraitDecl};
+        use crate::foundations::{EnumDecl, ModuleFnDecl, StructDecl, TraitDecl, Visibility};
         let Program::Program {
             structs,
             enums,
             traits,
+            functions,
+            imports,
             ..
         } = program;
+        self.module_functions.clear();
+        self.imported_functions.clear();
+        for func in functions {
+            let ModuleFnDecl {
+                name, visibility, ..
+            } = func;
+            if matches!(visibility, Visibility::Export | Visibility::Public) {
+                self.module_functions.insert(name.clone(), func.clone());
+            }
+        }
+        use crate::ast::ImportDecl;
+        if let Some(registry) = &self.options.module_registry {
+            for imp in imports {
+                let ImportDecl::ImportDecl { path, .. } = imp;
+                if let Some(exports) = registry.exports_for(path) {
+                    for (name, func) in &exports.functions {
+                        self.imported_functions.insert(name.clone(), func.clone());
+                    }
+                }
+            }
+        }
         self.enum_variants.clear();
         self.variant_owner.clear();
         self.struct_defs.clear();
@@ -692,9 +755,8 @@ impl<B: RobotBackend> Interpreter<B> {
         }
 
         if let Some(perm_decl) = permissions {
-            let crate::foundations::PermissionsDecl::PermissionsDecl {
-                capabilities, ..
-            } = perm_decl;
+            let crate::foundations::PermissionsDecl::PermissionsDecl { capabilities, .. } =
+                perm_decl;
             self.security.enable_strict_permissions();
             self.security.capabilities.grant_all(capabilities);
             self.log(format!(
@@ -714,14 +776,12 @@ impl<B: RobotBackend> Interpreter<B> {
         for secret_decl in secrets {
             let crate::foundations::SecretDecl::SecretDecl { name, source, .. } = secret_decl;
             let src = match source {
-                crate::foundations::SecretSourceDecl::Env { var } => SecretSource::Env {
-                    var: var.clone(),
-                },
-                crate::foundations::SecretSourceDecl::Literal { value } => {
-                    SecretSource::Literal {
-                        value: value.clone(),
-                    }
+                crate::foundations::SecretSourceDecl::Env { var } => {
+                    SecretSource::Env { var: var.clone() }
                 }
+                crate::foundations::SecretSourceDecl::Literal { value } => SecretSource::Literal {
+                    value: value.clone(),
+                },
             };
             self.security.secrets.register(SecretHandle {
                 name: name.clone(),
@@ -744,8 +804,8 @@ impl<B: RobotBackend> Interpreter<B> {
                 .find(|(k, _)| k == "public_key")
                 .map(|(_, v)| v.clone())
                 .unwrap_or_default();
-            let robot_id = RobotIdentity::new(id.clone(), public_key.clone())
-                .with_trust(self.security.trust);
+            let robot_id =
+                RobotIdentity::new(id.clone(), public_key.clone()).with_trust(self.security.trust);
             self.env.define(
                 String::from("identity"),
                 RuntimeValue::Identity {
@@ -1487,9 +1547,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
             }
             Stmt::ServiceCallStmt {
-                service_name,
-                span,
-                ..
+                service_name, span, ..
             } => {
                 let line = span.start.line;
                 if let Some(agent) = self.current_agent.clone() {
@@ -1655,7 +1713,167 @@ impl<B: RobotBackend> Interpreter<B> {
             Stmt::ExprStmt { expr, .. } => {
                 self.eval_expr(expr)?;
             }
+            Stmt::SpawnStmt { callee, args, span } => {
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+                let name = match callee {
+                    Expr::IdentExpr { name, .. } => name.clone(),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            "spawn requires function name",
+                            span.start.line,
+                        )
+                        .into_spanda())
+                    }
+                };
+                self.concurrency.queue_spawn(name, arg_values);
+            }
+            Stmt::SelectStmt { arms, span } => {
+                'select: for arm in arms {
+                    let channel_val = self.eval_expr(&arm.channel)?;
+                    if let Some(msg) = self.concurrency.try_recv(&channel_val, span.start.line)? {
+                        self.env.define("_msg", msg);
+                        self.execute_block(&arm.body)?;
+                        break 'select;
+                    }
+                }
+            }
             Stmt::ReturnStmt { .. } => {}
+        }
+        Ok(())
+    }
+
+    fn execute_block_with_return(
+        &mut self,
+        stmts: &[Stmt],
+    ) -> Result<Option<RuntimeValue>, SpandaError> {
+        for stmt in stmts {
+            if let Some(val) = self.execute_stmt_with_return(stmt)? {
+                return Ok(Some(val));
+            }
+        }
+        Ok(None)
+    }
+
+    fn execute_stmt_with_return(
+        &mut self,
+        stmt: &Stmt,
+    ) -> Result<Option<RuntimeValue>, SpandaError> {
+        match stmt {
+            Stmt::ReturnStmt { value, .. } => {
+                let val = if let Some(expr) = value {
+                    self.eval_expr(expr)?
+                } else {
+                    RuntimeValue::Void
+                };
+                Ok(Some(val))
+            }
+            Stmt::IfStmt {
+                condition,
+                then_branch,
+                else_branch,
+                ..
+            } => {
+                let cond = self.eval_expr(condition)?;
+                if matches!(cond, RuntimeValue::Bool { value: true, .. }) {
+                    if let Some(v) = self.execute_block_with_return(then_branch)? {
+                        return Ok(Some(v));
+                    }
+                } else if let Some(else_branch) = else_branch {
+                    if let Some(v) = self.execute_block_with_return(else_branch)? {
+                        return Ok(Some(v));
+                    }
+                }
+                Ok(None)
+            }
+            _ => {
+                self.execute_stmt(stmt)?;
+                Ok(None)
+            }
+        }
+    }
+
+    fn call_module_function(
+        &mut self,
+        func: &crate::foundations::ModuleFnDecl,
+        args: &[Expr],
+        _line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        let saved = self.env.clone_bindings();
+        for (i, param) in func.params.iter().enumerate() {
+            if let Some(arg) = args.get(i) {
+                let val = self.eval_expr(arg)?;
+                self.env.define(param.name.clone(), val);
+            }
+        }
+        let result = self
+            .execute_block_with_return(&func.body)?
+            .unwrap_or(RuntimeValue::Void);
+        self.env = saved;
+        Ok(result)
+    }
+
+    fn resolve_future(
+        &mut self,
+        future: RuntimeValue,
+        line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        match future {
+            RuntimeValue::Future {
+                resolved: Some(value),
+                ..
+            } => Ok(*value),
+            RuntimeValue::Future {
+                func_name,
+                args,
+                resolved: None,
+                ..
+            } => {
+                let func = self
+                    .module_functions
+                    .get(&func_name)
+                    .or_else(|| self.imported_functions.get(&func_name))
+                    .cloned()
+                    .ok_or_else(|| {
+                        RuntimeError::new(format!("Unknown async function '{func_name}'"), line)
+                            .into_spanda()
+                    })?;
+                let saved = self.env.clone_bindings();
+                for (i, param) in func.params.iter().enumerate() {
+                    if let Some(val) = args.get(i) {
+                        self.env.define(param.name.clone(), val.clone());
+                    }
+                }
+                let result = self
+                    .execute_block_with_return(&func.body)?
+                    .unwrap_or(RuntimeValue::Void);
+                self.env = saved;
+                Ok(result)
+            }
+            other => Ok(other),
+        }
+    }
+
+    fn process_spawn_queue(&mut self) -> Result<(), SpandaError> {
+        let jobs = self.concurrency.drain_spawn_queue();
+        for job in jobs {
+            if let Some(func) = self
+                .module_functions
+                .get(&job.func_name)
+                .or_else(|| self.imported_functions.get(&job.func_name))
+                .cloned()
+            {
+                let saved = self.env.clone_bindings();
+                for (i, param) in func.params.iter().enumerate() {
+                    if let Some(val) = job.args.get(i) {
+                        self.env.define(param.name.clone(), val.clone());
+                    }
+                }
+                self.execute_block(&func.body)?;
+                self.env = saved;
+            }
         }
         Ok(())
     }
@@ -1743,12 +1961,20 @@ impl<B: RobotBackend> Interpreter<B> {
                 named_args,
                 span,
             } => self.eval_call(callee, args, named_args, span.start.line),
+            Expr::AwaitExpr { operand, span } => {
+                let value = self.eval_expr(operand)?;
+                self.resolve_future(value, span.start.line)
+            }
             Expr::MatchExpr {
                 scrutinee, arms, ..
             } => {
                 let value = self.eval_expr(scrutinee)?;
                 let variant = match &value {
                     RuntimeValue::Enum { variant, .. } => variant.clone(),
+                    RuntimeValue::Result { ok: true, .. } => "Ok".into(),
+                    RuntimeValue::Result { ok: false, .. } => "Err".into(),
+                    RuntimeValue::Option { present: true, .. } => "Some".into(),
+                    RuntimeValue::Option { present: false, .. } => "None".into(),
                     RuntimeValue::String { value } => value.clone(),
                     RuntimeValue::Object { type_name, .. } => type_name.clone(),
                     _ => String::new(),
@@ -1981,6 +2207,25 @@ impl<B: RobotBackend> Interpreter<B> {
         line: u32,
     ) -> Result<RuntimeValue, SpandaError> {
         if let Expr::IdentExpr { name, .. } = callee {
+            if let Some(func) = self
+                .module_functions
+                .get(name)
+                .or_else(|| self.imported_functions.get(name))
+                .cloned()
+            {
+                if func.is_async {
+                    let mut arg_values = Vec::new();
+                    for arg in args {
+                        arg_values.push(self.eval_expr(arg)?);
+                    }
+                    return Ok(RuntimeValue::Future {
+                        func_name: func.name.clone(),
+                        args: arg_values,
+                        resolved: None,
+                    });
+                }
+                return self.call_module_function(&func, args, line);
+            }
             return self.eval_builtin_function(name, args, named_args, line);
         }
 
@@ -2405,6 +2650,123 @@ impl<B: RobotBackend> Interpreter<B> {
                     value: verify_signature(&data, &signature, &key),
                 })
             }
+            "Ok" => {
+                let val = if let Some(arg) = args.first() {
+                    self.eval_expr(arg)?
+                } else {
+                    RuntimeValue::Void
+                };
+                Ok(RuntimeValue::Result {
+                    ok: true,
+                    value: Box::new(val),
+                })
+            }
+            "Err" => {
+                let val = if let Some(arg) = args.first() {
+                    self.eval_expr(arg)?
+                } else {
+                    RuntimeValue::Object {
+                        type_name: "Error".into(),
+                        fields: HashMap::new(),
+                    }
+                };
+                Ok(RuntimeValue::Result {
+                    ok: false,
+                    value: Box::new(val),
+                })
+            }
+            "Some" => {
+                let val = if let Some(arg) = args.first() {
+                    self.eval_expr(arg)?
+                } else {
+                    RuntimeValue::Void
+                };
+                Ok(RuntimeValue::Option {
+                    present: true,
+                    value: Some(Box::new(val)),
+                })
+            }
+            "None" => Ok(RuntimeValue::Option {
+                present: false,
+                value: None,
+            }),
+            "channel" => Ok(self.concurrency.create_channel()),
+            "send" => {
+                let channel = args
+                    .first()
+                    .map(|a| self.eval_expr(a))
+                    .transpose()?
+                    .ok_or_else(|| {
+                        RuntimeError::new("send requires channel", line).into_spanda()
+                    })?;
+                let value = if args.len() > 1 {
+                    self.eval_expr(&args[1])?
+                } else {
+                    self.get_named_arg_value(named_args, "value")?
+                };
+                self.concurrency.send(&channel, value, line)?;
+                Ok(RuntimeValue::Void)
+            }
+            "recv" => {
+                let channel = args
+                    .first()
+                    .map(|a| self.eval_expr(a))
+                    .transpose()?
+                    .ok_or_else(|| {
+                        RuntimeError::new("recv requires channel", line).into_spanda()
+                    })?;
+                match self.concurrency.try_recv(&channel, line)? {
+                    Some(value) => Ok(value),
+                    None => Ok(RuntimeValue::Void),
+                }
+            }
+            "serialize" => {
+                let value = args
+                    .first()
+                    .map(|a| self.eval_expr(a))
+                    .transpose()?
+                    .unwrap_or(RuntimeValue::Void);
+                let format = if args.len() > 1 {
+                    get_string(&self.eval_expr(&args[1])?, "json")
+                } else {
+                    get_string(&self.get_named_arg_value(named_args, "format")?, "json")
+                };
+                crate::serialize::serialize_value(&value, &format)
+            }
+            "deserialize" => {
+                let data = args
+                    .first()
+                    .map(|a| self.eval_expr(a))
+                    .transpose()?
+                    .ok_or_else(|| {
+                        RuntimeError::new("deserialize requires data", line).into_spanda()
+                    })?;
+                let format = if args.len() > 1 {
+                    get_string(&self.eval_expr(&args[1])?, "json")
+                } else {
+                    get_string(&self.get_named_arg_value(named_args, "format")?, "json")
+                };
+                crate::serialize::deserialize_value(&data, &format)
+            }
+            "assert" => {
+                let condition = args
+                    .first()
+                    .map(|a| self.eval_expr(a))
+                    .transpose()?
+                    .ok_or_else(|| {
+                        RuntimeError::new("assert requires a boolean condition", line).into_spanda()
+                    })?;
+                match condition {
+                    RuntimeValue::Bool { value: true, .. } => Ok(RuntimeValue::Void),
+                    RuntimeValue::Bool { value: false, .. } => {
+                        Err(RuntimeError::new("Assertion failed", line).into_spanda())
+                    }
+                    _ => Err(
+                        RuntimeError::new("assert requires a boolean condition", line)
+                            .into_spanda(),
+                    ),
+                }
+            }
             _ => Ok(RuntimeValue::Void),
         }
     }
@@ -2588,9 +2950,9 @@ impl<B: RobotBackend> Interpreter<B> {
                         RuntimeValue::Object { fields, .. } => fields
                             .get("id")
                             .and_then(|v| match v {
-                                RuntimeValue::String { value } => Some(crate::audit::RecordId(
-                                    value.clone(),
-                                )),
+                                RuntimeValue::String { value } => {
+                                    Some(crate::audit::RecordId(value.clone()))
+                                }
                                 _ => None,
                             })
                             .unwrap_or_else(|| crate::audit::RecordId("audit-1".into())),

@@ -398,6 +398,12 @@ fn runtime_value_kind(value: &RuntimeValue) -> &'static str {
         RuntimeValue::LedgerCtx => "ledger_ctx",
         RuntimeValue::Identity { .. } => "identity",
         RuntimeValue::Secret { .. } => "secret",
+        RuntimeValue::Result { .. } => "result",
+        RuntimeValue::Option { .. } => "option",
+        RuntimeValue::Bytes { .. } => "bytes",
+        RuntimeValue::Null => "null",
+        RuntimeValue::Future { .. } => "future",
+        RuntimeValue::Channel { .. } => "channel",
     }
 }
 

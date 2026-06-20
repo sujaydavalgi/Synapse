@@ -396,6 +396,8 @@ pub enum SpandaType {
         name: String,
         type_args: Vec<SpandaType>,
     },
+    #[serde(rename = "type_param")]
+    TypeParam { name: String },
     #[serde(rename = "scan")]
     Scan,
     #[serde(rename = "pose")]
@@ -416,6 +418,10 @@ pub enum Program {
     Program {
         module_name: Option<String>,
         imports: Vec<ImportDecl>,
+        #[serde(default)]
+        functions: Vec<crate::foundations::ModuleFnDecl>,
+        #[serde(default)]
+        tests: Vec<crate::foundations::TestDecl>,
         structs: Vec<crate::foundations::StructDecl>,
         enums: Vec<crate::foundations::EnumDecl>,
         traits: Vec<crate::foundations::TraitDecl>,
@@ -827,6 +833,15 @@ pub enum Stmt {
         var_name: String,
         span: Span,
     },
+    SpawnStmt {
+        callee: Expr,
+        args: Vec<Expr>,
+        span: Span,
+    },
+    SelectStmt {
+        arms: Vec<crate::foundations::SelectArm>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -889,6 +904,10 @@ pub enum Expr {
     DiscoverExpr {
         target: crate::comm::DiscoverTarget,
         filter: Option<crate::comm::DiscoverFilter>,
+        span: Span,
+    },
+    AwaitExpr {
+        operand: Box<Expr>,
         span: Span,
     },
 }

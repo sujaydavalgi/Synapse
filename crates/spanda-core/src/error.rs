@@ -102,6 +102,8 @@ pub struct RunOptions {
     pub initial_pose: Option<PoseState>,
     #[serde(default = "default_lidar_range")]
     pub lidar_range: f64,
+    #[serde(skip)]
+    pub module_registry: Option<crate::modules::ModuleRegistry>,
 }
 
 fn default_max_loop_iterations() -> usize {

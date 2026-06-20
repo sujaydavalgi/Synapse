@@ -233,11 +233,15 @@ impl Parser {
                 column: start.column,
             })
         } else {
-            resolve_type_name(&qualified).map_err(|msg| SpandaError::Parse {
-                message: msg,
-                line: start.line,
-                column: start.column,
-            })
+            match resolve_type_name(&qualified) {
+                Ok(ty) => Ok(ty),
+                Err(_msg) if !qualified.contains('.') => Ok(SpandaType::Named { name: qualified }),
+                Err(msg) => Err(SpandaError::Parse {
+                    message: msg,
+                    line: start.line,
+                    column: start.column,
+                }),
+            }
         }
     }
 
@@ -246,13 +250,15 @@ impl Parser {
         let mut module_name = None;
         if self.check(TokenType::Module) {
             self.advance();
-            module_name = Some(self.parse_label("Expected module name after 'module'")?);
+            module_name = Some(self.parse_dotted_name("Expected module name after 'module'")?);
             self.expect(
                 TokenType::Semicolon,
                 "Expected ';' after module declaration",
             )?;
         }
         let mut imports = Vec::new();
+        let mut functions = Vec::new();
+        let mut tests = Vec::new();
         let mut structs = Vec::new();
         let mut enums = Vec::new();
         let mut traits = Vec::new();
@@ -267,7 +273,11 @@ impl Parser {
             imports.push(self.parse_import()?);
         }
         while !self.check(TokenType::Eof) {
-            if self.check(TokenType::Struct) {
+            if self.is_module_fn_start() {
+                functions.push(self.parse_module_fn()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "test" {
+                tests.push(self.parse_test()?);
+            } else if self.check(TokenType::Struct) {
                 structs.push(self.parse_struct()?);
             } else if self.check(TokenType::Enum) {
                 enums.push(self.parse_enum()?);
@@ -300,6 +310,8 @@ impl Parser {
         Ok(Program::Program {
             module_name,
             imports,
+            functions,
+            tests,
             structs,
             enums,
             traits,
@@ -883,6 +895,14 @@ impl Parser {
         Ok(value)
     }
 
+    fn parse_dotted_name(&mut self, message: &str) -> Result<String, SpandaError> {
+        let mut parts = vec![self.parse_import_segment(message)?];
+        while self.match_types(&[TokenType::Dot]) {
+            parts.push(self.parse_import_segment("Expected name after '.'")?);
+        }
+        Ok(parts.join("."))
+    }
+
     fn parse_import(&mut self) -> Result<ImportDecl, SpandaError> {
         let start = self.advance();
         let vendor = self.parse_import_segment("Expected library vendor name")?;
@@ -911,6 +931,101 @@ impl Parser {
             });
         }
         Ok(self.advance().lexeme)
+    }
+
+    fn is_module_fn_start(&self) -> bool {
+        self.check(TokenType::Export)
+            || self.check(TokenType::Public)
+            || self.check(TokenType::Private)
+            || self.check(TokenType::Async)
+            || self.check(TokenType::Fn)
+    }
+
+    fn parse_type_params(&mut self) -> Result<Vec<String>, SpandaError> {
+        if !self.match_types(&[TokenType::Lt]) {
+            return Ok(Vec::new());
+        }
+        let mut params = Vec::new();
+        loop {
+            params.push(self.parse_label("Expected type parameter name")?);
+            if !self.match_types(&[TokenType::Comma]) {
+                break;
+            }
+        }
+        self.expect(TokenType::Gt, "Expected '>' after type parameters")?;
+        Ok(params)
+    }
+
+    fn parse_module_fn(&mut self) -> Result<crate::foundations::ModuleFnDecl, SpandaError> {
+        use crate::foundations::{ModuleFnDecl, ModuleParamDecl, Visibility};
+        let start = self.peek().clone();
+        let mut visibility = Visibility::Private;
+        if self.match_types(&[TokenType::Export]) {
+            visibility = Visibility::Export;
+        } else if self.match_types(&[TokenType::Public]) {
+            visibility = Visibility::Public;
+        } else if self.match_types(&[TokenType::Private]) {
+            visibility = Visibility::Private;
+        }
+        let is_async = self.match_types(&[TokenType::Async]);
+        self.expect(TokenType::Fn, "Expected 'fn' in module function")?;
+        let name = self.parse_label("Expected function name")?;
+        let type_params = self.parse_type_params()?;
+        self.expect(TokenType::Lparen, "Expected '(' after function name")?;
+        let mut params = Vec::new();
+        if !self.check(TokenType::Rparen) {
+            loop {
+                let pstart = self.peek().clone();
+                let pname = self.parse_label("Expected parameter name")?;
+                self.expect(TokenType::Colon, "Expected ':' after parameter name")?;
+                let type_ann = self.parse_type_annotation()?;
+                params.push(ModuleParamDecl {
+                    name: pname,
+                    type_ann,
+                    span: self.span_from(&pstart, self.previous()),
+                });
+                if !self.match_types(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.expect(TokenType::Rparen, "Expected ')' after parameters")?;
+        self.expect(TokenType::Arrow, "Expected '->' after function parameters")?;
+        let return_type = self.parse_type_annotation()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after function return type")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close function")?;
+        Ok(ModuleFnDecl {
+            name,
+            visibility,
+            type_params,
+            params,
+            return_type,
+            is_async,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_test(&mut self) -> Result<crate::foundations::TestDecl, SpandaError> {
+        use crate::foundations::TestDecl;
+        let start = self.advance(); // test ident
+        let name_tok = self.expect(TokenType::String, "Expected test name string")?;
+        let TokenValue::String(name) = name_tok.value else {
+            return Err(SpandaError::Parse {
+                message: "Expected test name string".into(),
+                line: name_tok.line,
+                column: name_tok.column,
+            });
+        };
+        self.expect(TokenType::Lbrace, "Expected '{' after test name")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close test")?;
+        Ok(TestDecl {
+            name,
+            body,
+            span: self.span_from(&start, &end),
+        })
     }
 
     fn parse_struct(&mut self) -> Result<StructDecl, SpandaError> {
@@ -2095,7 +2210,10 @@ impl Parser {
                 column: t.column,
             });
         };
-        self.expect(TokenType::Semicolon, "Expected ';' after secret declaration")?;
+        self.expect(
+            TokenType::Semicolon,
+            "Expected ';' after secret declaration",
+        )?;
         Ok(SecretDecl::SecretDecl {
             name: name.lexeme,
             source,
@@ -2129,10 +2247,7 @@ impl Parser {
     fn parse_permissions(&mut self) -> Result<crate::foundations::PermissionsDecl, SpandaError> {
         use crate::foundations::PermissionsDecl;
         let start = self.advance();
-        self.expect(
-            TokenType::Lbracket,
-            "Expected '[' after permissions",
-        )?;
+        self.expect(TokenType::Lbracket, "Expected '[' after permissions")?;
         let mut capabilities = Vec::new();
         if !self.check(TokenType::Rbracket) {
             loop {
@@ -2705,6 +2820,18 @@ impl Parser {
 
     fn parse_stmt(&mut self) -> Result<Stmt, SpandaError> {
         let start = self.peek().clone();
+        if self.match_types(&[TokenType::Return]) {
+            let value = if self.check(TokenType::Semicolon) {
+                None
+            } else {
+                Some(self.parse_expr()?)
+            };
+            self.expect(TokenType::Semicolon, "Expected ';' after return")?;
+            return Ok(Stmt::ReturnStmt {
+                value,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
         if self.match_types(&[TokenType::Let]) {
             let name = self.parse_local_name("Expected variable name")?;
             let type_annotation = if self.match_types(&[TokenType::Colon]) {
@@ -2898,6 +3025,68 @@ impl Parser {
                 key,
                 value,
                 span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Spawn]) {
+            let callee = self.parse_label("Expected function name after spawn")?;
+            let mut args = Vec::new();
+            if self.match_types(&[TokenType::Lparen]) {
+                if !self.check(TokenType::Rparen) {
+                    loop {
+                        args.push(self.parse_expr()?);
+                        if !self.match_types(&[TokenType::Comma]) {
+                            break;
+                        }
+                    }
+                }
+                self.expect(TokenType::Rparen, "Expected ')' after spawn arguments")?;
+            }
+            self.expect(TokenType::Semicolon, "Expected ';' after spawn")?;
+            return Ok(Stmt::SpawnStmt {
+                callee: Expr::IdentExpr {
+                    name: callee,
+                    span: self.span_from(&start, self.previous()),
+                },
+                args,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Select]) {
+            self.expect(TokenType::Lbrace, "Expected '{' after select")?;
+            let mut arms = Vec::new();
+            while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                let arm_start = self.peek().clone();
+                let recv = self.expect(TokenType::Ident, "Expected 'recv' in select arm")?;
+                if recv.lexeme != "recv" {
+                    return Err(SpandaError::Parse {
+                        message: "Expected 'recv' in select arm".into(),
+                        line: recv.line,
+                        column: recv.column,
+                    });
+                }
+                self.expect(TokenType::Lparen, "Expected '(' after recv")?;
+                let channel = self.parse_expr()?;
+                self.expect(TokenType::Rparen, "Expected ')' after channel")?;
+                self.expect(TokenType::FatArrow, "Expected '=>' in select arm")?;
+                let body = if self.check(TokenType::Lbrace) {
+                    self.advance();
+                    let stmts = self.parse_block()?;
+                    self.expect(TokenType::Rbrace, "Expected '}' to close select arm")?;
+                    stmts
+                } else {
+                    vec![self.parse_stmt()?]
+                };
+                arms.push(crate::foundations::SelectArm {
+                    channel,
+                    body,
+                    span: self.span_from(&arm_start, self.previous()),
+                });
+            }
+            let end = self.expect(TokenType::Rbrace, "Expected '}' to close select")?;
+            self.expect(TokenType::Semicolon, "Expected ';' after select")?;
+            return Ok(Stmt::SelectStmt {
+                arms,
+                span: self.span_from(&start, &end),
             });
         }
         let expr = self.parse_expr()?;
@@ -3107,6 +3296,14 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> Result<Expr, SpandaError> {
+        if self.match_types(&[TokenType::Await]) {
+            let start = self.previous().clone();
+            let operand = self.parse_unary()?;
+            return Ok(Expr::AwaitExpr {
+                operand: Box::new(operand),
+                span: self.span_from(&start, self.previous()),
+            });
+        }
         if self.match_types(&[TokenType::Minus, TokenType::Not]) {
             let op_tok = self.previous().clone();
             let op = if op_tok.token_type == TokenType::Not {
@@ -3224,7 +3421,7 @@ impl Parser {
             let mut arms = Vec::new();
             while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
                 let arm_start = self.peek().clone();
-                let variant = self.parse_label("Expected match arm variant")?;
+                let variant = self.parse_import_segment("Expected match arm variant")?;
                 self.expect(TokenType::FatArrow, "Expected '=>' in match arm")?;
                 let body = if self.check(TokenType::Lbrace) {
                     self.advance();
@@ -3481,6 +3678,7 @@ fn expr_span(expr: &Expr) -> Span {
         | Expr::ServiceCallExpr { span, .. }
         | Expr::ExecuteExpr { span, .. }
         | Expr::DiscoverExpr { span, .. } => *span,
+        Expr::AwaitExpr { span, .. } => *span,
     }
 }
 
@@ -3541,6 +3739,10 @@ fn re_span_expr(expr: Expr, span: Span) -> Expr {
         Expr::DiscoverExpr { target, filter, .. } => Expr::DiscoverExpr {
             target,
             filter: filter.clone(),
+            span,
+        },
+        Expr::AwaitExpr { operand, span } => Expr::AwaitExpr {
+            operand: Box::new((*operand).clone()),
             span,
         },
     }

@@ -157,7 +157,8 @@ robot R {
   behavior run() { audit.record("e", "p"); }
 }
 "#;
-    let err = run(source, RunOptions::default()).expect_err("strict permissions should block audit.write");
+    let err = run(source, RunOptions::default())
+        .expect_err("strict permissions should block audit.write");
     assert!(
         err.to_string().contains("capability denied"),
         "expected capability denial, got: {err}"

@@ -1,4 +1,4 @@
-use spanda_core::check;
+use spanda_core::{check, load_project_modules, run_tests_with_registry};
 use spanda_package::{
     add_dependency, collect_source_files, find_project_root, init_package, remove_dependency,
     resolve_dependencies, search_registry, validate_package, ApplicationPermissions,
@@ -173,7 +173,23 @@ pub fn cmd_test(args: &[String]) {
             failed = true;
             eprintln!("Test failed (type errors) {}: {e}", file.display());
         } else {
-            println!("✓ {}", file.display());
+            let registry = load_project_modules(&root).unwrap_or_default();
+            match run_tests_with_registry(&source, &registry) {
+                Ok(result) if result.failed == 0 => {
+                    println!("✓ {} ({} test(s))", file.display(), result.passed);
+                }
+                Ok(result) => {
+                    failed = true;
+                    eprintln!("Test failed {}:", file.display());
+                    for log in result.logs {
+                        eprintln!("  {log}");
+                    }
+                }
+                Err(e) => {
+                    failed = true;
+                    eprintln!("Test failed {}: {e}", file.display());
+                }
+            }
         }
     }
     if failed {

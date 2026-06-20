@@ -171,10 +171,11 @@ pub fn resolve_generic_type(name: &str, args: &[SpandaType]) -> Result<SpandaTyp
     })
 }
 
-fn generic_arity(name: &str) -> Option<usize> {
+pub fn generic_arity(name: &str) -> Option<usize> {
     match name {
-        "Array" | "Set" | "Queue" | "Stack" | "Topic" | "Message" => Some(1),
-        "Map" | "Service" | "Tuple" => Some(2),
+        "Array" | "Set" | "Queue" | "Stack" | "Topic" | "Message" | "Twin" | "Future" => Some(1),
+        "Map" | "Service" | "Tuple" | "Result" => Some(2),
+        "Option" => Some(1),
         "Action" => Some(3),
         "Endpoint" => Some(1),
         _ => None,
