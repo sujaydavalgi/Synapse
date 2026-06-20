@@ -3,16 +3,18 @@
 //! Milestone 1: lower module functions, extern declarations, and robot names.
 //! Execution still uses the tree-walking interpreter; SIR is for codegen planning.
 
-use crate::ast::{Program, RobotDecl, SpandaType};
+use crate::ast::{BehaviorDecl, Program, RobotDecl, SpandaType};
 use crate::foundations::{BridgeKind, ExternFnDecl, ModuleFnDecl, Visibility};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SirProgram {
     pub module_name: Option<String>,
+    pub imports: Vec<String>,
     pub functions: Vec<SirFunction>,
     pub externs: Vec<SirExtern>,
     pub robot_names: Vec<String>,
+    pub behavior_names: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -51,14 +53,32 @@ pub struct SirExtern {
 pub fn lower_program(program: &Program) -> SirProgram {
     let Program::Program {
         module_name,
+        imports,
         functions,
         extern_functions,
         robots,
         ..
     } = program;
 
+    let mut behavior_names = Vec::new();
+    for robot in robots {
+        if let RobotDecl::RobotDecl { behaviors, .. } = robot {
+            for behavior in behaviors {
+                if let BehaviorDecl::BehaviorDecl { name, .. } = behavior {
+                    behavior_names.push(name.clone());
+                }
+            }
+        }
+    }
+
     SirProgram {
         module_name: module_name.clone(),
+        imports: imports
+            .iter()
+            .map(|i| match i {
+                crate::ast::ImportDecl::ImportDecl { path, .. } => path.clone(),
+            })
+            .collect(),
         functions: functions.iter().map(lower_function).collect(),
         externs: extern_functions.iter().map(lower_extern).collect(),
         robot_names: robots
@@ -67,6 +87,7 @@ pub fn lower_program(program: &Program) -> SirProgram {
                 RobotDecl::RobotDecl { name, .. } => name.clone(),
             })
             .collect(),
+        behavior_names,
     }
 }
 
@@ -179,5 +200,6 @@ robot R {
         assert_eq!(sir.externs[0].bridge, BridgeKind::Native);
         assert_eq!(sir.externs[1].bridge, BridgeKind::Python);
         assert_eq!(sir.robot_names, vec!["R"]);
+        assert_eq!(sir.behavior_names, vec!["run"]);
     }
 }
