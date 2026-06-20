@@ -200,7 +200,7 @@ describe("runtime hardening", () => {
       maxLoopIterations: 3,
       onLog: (msg) => logs.push(msg),
     });
-    expect(logs.some((l) => l.includes("task requires contract failed"))).toBe(true);
+    expect(logs.some((l) => l.includes("requires contract failed"))).toBe(true);
     expect(state.velocity.linear).toBe(0);
   });
 

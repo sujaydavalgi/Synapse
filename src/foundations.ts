@@ -129,9 +129,12 @@ export type StateMachineDecl = {
   span: Span;
 };
 
+export type TaskPriority = "critical" | "high" | "normal" | "low";
+
 export type TaskDecl = {
   kind: "TaskDecl";
   name: string;
+  priority: TaskPriority;
   intervalMs: number;
   requires: Expr | null;
   ensures: Expr | null;

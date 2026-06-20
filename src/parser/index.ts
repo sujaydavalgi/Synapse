@@ -75,6 +75,7 @@ import type {
   SimulateCompatibilityDecl,
   MissionDecl,
   ResourceBudgetDecl,
+  TaskPriority,
   BridgeKind,
   IdentityDecl,
   AuditDecl,
@@ -2209,8 +2210,15 @@ class Parser {
   private parseTask(): TaskDecl {
     const start = this.advance();
     const name = this.expect("IDENT", "Expected task name");
-    this.expect("EVERY", "Expected 'every' after task name");
-    const intervalMs = this.parseDuration();
+    let priority: TaskPriority = "normal";
+    if (this.check("IDENT")) {
+      const maybe = this.peek().lexeme;
+      if (maybe === "critical" || maybe === "high" || maybe === "normal" || maybe === "low") {
+        this.advance();
+        priority = maybe;
+      }
+    }
+    const intervalMs = this.check("EVERY") ? (this.advance(), this.parseDuration()) : 10;
     const { requires, ensures, invariant } = this.parseContractClauses();
     this.expect("LBRACE", "Expected '{' after task signature");
     let budget: ResourceBudgetDecl | null = null;
@@ -2222,6 +2230,7 @@ class Parser {
     return {
       kind: "TaskDecl",
       name: name.lexeme,
+      priority,
       intervalMs,
       requires,
       ensures,
@@ -2631,7 +2640,7 @@ class Parser {
     }
 
     if (this.match("RECEIVE")) {
-      const topicName = this.expect("IDENT", "Expected topic name after receive").lexeme;
+      const topicName = this.parseSubscribeTarget();
       this.expect("TO", "Expected 'to' after topic in receive");
       const varName = this.expect("IDENT", "Expected variable name").lexeme;
       this.expect("SEMICOLON", "Expected ';' after receive");
@@ -2728,6 +2737,14 @@ class Parser {
       this.expect("SEMICOLON", "Expected ';' after spawn");
       const end = this.previous();
       return { kind: "SpawnStmt", callee, args, span: this.spanFrom(start, end) };
+    }
+
+    if (this.match("PARALLEL")) {
+      this.expect("LBRACE", "Expected '{' after parallel");
+      const body = this.parseBlock();
+      const end = this.expect("RBRACE", "Expected '}' to close parallel");
+      this.expect("SEMICOLON", "Expected ';' after parallel block");
+      return { kind: "ParallelStmt", body, span: this.spanFrom(start, end) };
     }
 
     if (this.match("SELECT")) {
@@ -2951,6 +2968,25 @@ class Parser {
   }
 
   private parseUnary(): Expr {
+    if (this.match("SPAWN")) {
+      const start = this.previous();
+      const calleeName = this.parseLabel("Expected function name after spawn");
+      const callee: Expr = {
+        kind: "IdentExpr",
+        name: calleeName,
+        span: this.spanFrom(start, this.previous()),
+      };
+      const args: Expr[] = [];
+      if (this.match("LPAREN")) {
+        if (!this.check("RPAREN")) {
+          do {
+            args.push(this.parseExpr());
+          } while (this.match("COMMA"));
+        }
+        this.expect("RPAREN", "Expected ')' after spawn arguments");
+      }
+      return { kind: "SpawnExpr", callee, args, span: this.spanFrom(start, this.previous()) };
+    }
     if (this.match("AWAIT")) {
       const start = this.previous();
       const operand = this.parseUnary();

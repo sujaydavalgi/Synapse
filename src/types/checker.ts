@@ -113,6 +113,8 @@ class TypeChecker {
   private moduleFunctions = new Map<string, ModuleFnDecl>();
   private externFunctions = new Map<string, ExternFnDecl>();
   private typeParamScope = new Map<string, SpandaType>();
+  private channelPayloadTypes = new Map<string, SpandaType>();
+  private activeAgent: string | null = null;
 
   constructor(private moduleRegistry?: ModuleRegistry) {}
 
@@ -380,6 +382,10 @@ class TypeChecker {
 
   private static futureType(inner: SpandaType): SpandaType {
     return { kind: "generic", name: "Future", typeArgs: [inner] };
+  }
+
+  private static taskHandleType(inner: SpandaType): SpandaType {
+    return { kind: "generic", name: "TaskHandle", typeArgs: [inner] };
   }
 
   private checkModuleFunctions(functions: ModuleFnDecl[]): void {
@@ -1119,9 +1125,12 @@ class TypeChecker {
     });
 
     const saved = new Map(this.symbols);
+    const prevAgent = this.activeAgent;
+    this.activeAgent = agent.name;
     for (const stmt of agent.planBody) {
       this.checkStmt(stmt);
     }
+    this.activeAgent = prevAgent;
     this.symbols = saved;
   }
 
@@ -1326,8 +1335,9 @@ class TypeChecker {
       case "DiscoverStmt":
         break;
       case "ReceiveStmt": {
+        const root = stmt.topicName.split(".")[0] ?? stmt.topicName;
         const topic = this.symbols.get(stmt.topicName);
-        if (!topic || topic.kind !== "topic") {
+        if ((!topic || topic.kind !== "topic") && !this.peerRobotNames.has(root)) {
           this.error(
             `Unknown topic '${stmt.topicName}' for receive`,
             stmt.span.start.line,
@@ -1367,6 +1377,16 @@ class TypeChecker {
             this.checkStmt(s);
           }
         }
+        break;
+      case "ParallelStmt":
+        for (const s of stmt.body) {
+          this.checkStmt(s);
+        }
+        this.symbols.set("_parallel", {
+          name: "_parallel",
+          roboType: { kind: "named", name: "ParallelResults" },
+          kind: "variable",
+        });
         break;
     }
   }
@@ -1445,6 +1465,27 @@ class TypeChecker {
         }
         this.error("await requires a Future value", expr.span.start.line, expr.span.start.column);
         return { kind: "void" };
+      }
+
+      case "SpawnExpr": {
+        if (expr.callee.kind === "IdentExpr" && !this.moduleFunctions.has(expr.callee.name)) {
+          this.error(
+            `Unknown spawn target '${expr.callee.name}'`,
+            expr.span.start.line,
+            expr.span.start.column,
+          );
+        }
+        for (const arg of expr.args) {
+          this.checkExpr(arg);
+        }
+        if (expr.callee.kind === "IdentExpr") {
+          const moduleFn = this.moduleFunctions.get(expr.callee.name);
+          if (moduleFn) {
+            const ret = this.resolveTypeAnn(moduleFn.returnType);
+            return TypeChecker.taskHandleType(ret);
+          }
+        }
+        return TypeChecker.taskHandleType({ kind: "void" });
       }
 
       case "MatchExpr":
@@ -1824,6 +1865,76 @@ class TypeChecker {
             this.error("assert requires a boolean condition", expr.span.start.line, expr.span.start.column);
           }
         }
+        return { kind: "void" };
+      }
+      if (name === "channel") {
+        return { kind: "named", name: "Channel" };
+      }
+      if (name === "send") {
+        if (expr.args.length < 2) {
+          this.error("send requires (channel, value)", expr.span.start.line, expr.span.start.column);
+          return { kind: "void" };
+        }
+        const channelTy = this.checkExpr(expr.args[0]!);
+        if (channelTy.kind !== "named" || channelTy.name !== "Channel") {
+          this.error("send first argument must be Channel", expr.span.start.line, expr.span.start.column);
+        }
+        const payloadTy = this.checkExpr(expr.args[1]!);
+        if (expr.args[0]?.kind === "IdentExpr") {
+          const channelName = expr.args[0].name;
+          const existing = this.channelPayloadTypes.get(channelName);
+          if (existing) {
+            this.assertCompatible(existing, payloadTy, expr.span.start.line, expr.span.start.column);
+          } else {
+            this.channelPayloadTypes.set(channelName, payloadTy);
+          }
+        }
+        return { kind: "void" };
+      }
+      if (name === "recv") {
+        if (expr.args.length < 1) {
+          this.error("recv requires (channel)", expr.span.start.line, expr.span.start.column);
+          return { kind: "void" };
+        }
+        if (expr.args[0]?.kind === "IdentExpr") {
+          const existing = this.channelPayloadTypes.get(expr.args[0].name);
+          if (existing) return existing;
+        }
+        return { kind: "void" };
+      }
+      if (name === "join") {
+        if (expr.args.length < 1) {
+          this.error("join requires (handle)", expr.span.start.line, expr.span.start.column);
+          return { kind: "void" };
+        }
+        const joined = this.checkExpr(expr.args[0]!);
+        if (joined.kind === "generic" && (joined.name === "Future" || joined.name === "TaskHandle")) {
+          return joined.typeArgs[0] ?? { kind: "void" };
+        }
+        this.error("join requires a Future or TaskHandle value", expr.span.start.line, expr.span.start.column);
+        return { kind: "void" };
+      }
+      if (name === "send_agent") {
+        if (expr.args.length < 2) {
+          this.error("send_agent requires (to, value)", expr.span.start.line, expr.span.start.column);
+        }
+        if (!this.activeAgent) {
+          this.error("send_agent requires active agent context", expr.span.start.line, expr.span.start.column);
+        }
+        if (expr.args[1]) this.checkExpr(expr.args[1]);
+        return { kind: "void" };
+      }
+      if (name === "recv_agent") {
+        if (!this.activeAgent) {
+          this.error("recv_agent requires active agent context", expr.span.start.line, expr.span.start.column);
+        }
+        return { kind: "void" };
+      }
+      if (name === "peer_send") {
+        if (expr.args.length < 3) {
+          this.error("peer_send requires (peer, topic, value)", expr.span.start.line, expr.span.start.column);
+        }
+        if (expr.args[2]) this.checkExpr(expr.args[2]!);
         return { kind: "void" };
       }
       if (name === "Ok" || name === "Err" || name === "Some" || name === "None") {

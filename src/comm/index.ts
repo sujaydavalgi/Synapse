@@ -257,6 +257,16 @@ export class InMemoryCommBus {
     this.discoveredDevices.push(name);
   }
 
+  publishPeer(
+    peer: string,
+    topic: string,
+    value: RuntimeValue,
+    transport: TransportKind,
+  ): void {
+    const path = `/${peer}/${topic}`;
+    this.publish(path, "PeerMessage", value, transport);
+  }
+
   publishedMessages(): PublishedCommMessage[] {
     return [...this.published];
   }

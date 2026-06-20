@@ -308,6 +308,26 @@ export const BUILTIN_FUNCTIONS: Record<
     namedParams: {},
     returns: { kind: "void" },
   },
+  join: {
+    namedParams: {},
+    returns: { kind: "void" },
+  },
+  send_agent: {
+    namedParams: { to: { kind: "string" }, value: { kind: "void" } },
+    returns: { kind: "void" },
+  },
+  recv_agent: {
+    namedParams: {},
+    returns: { kind: "void" },
+  },
+  peer_send: {
+    namedParams: {
+      peer: { kind: "string" },
+      topic: { kind: "string" },
+      value: { kind: "void" },
+    },
+    returns: { kind: "void" },
+  },
   serialize: {
     namedParams: { format: { kind: "string" } },
     returns: { kind: "string" },

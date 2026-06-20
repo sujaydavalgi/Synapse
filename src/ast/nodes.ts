@@ -422,6 +422,7 @@ export type Stmt =
   | ReturnStmt
   | SpawnStmt
   | SelectStmt
+  | ParallelStmt
   | PublishStmt
   | ServiceCallStmt
   | ActionSendStmt
@@ -439,6 +440,12 @@ export type SpawnStmt = {
   kind: "SpawnStmt";
   callee: Expr;
   args: Expr[];
+  span: Span;
+};
+
+export type ParallelStmt = {
+  kind: "ParallelStmt";
+  body: Stmt[];
   span: Span;
 };
 
@@ -566,6 +573,7 @@ export type Expr =
   | BinaryExpr
   | UnaryExpr
   | AwaitExpr
+  | SpawnExpr
   | CallExpr
   | MemberExpr
   | MatchExpr
@@ -573,6 +581,13 @@ export type Expr =
   | ServiceCallExpr
   | ExecuteExpr
   | DiscoverExpr;
+
+export type SpawnExpr = {
+  kind: "SpawnExpr";
+  callee: Expr;
+  args: Expr[];
+  span: Span;
+};
 
 export type AwaitExpr = {
   kind: "AwaitExpr";

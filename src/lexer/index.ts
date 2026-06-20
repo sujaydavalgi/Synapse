@@ -17,6 +17,7 @@ export type TokenType =
   | "AWAIT"
   | "SPAWN"
   | "SELECT"
+  | "PARALLEL"
   | "EXTERN"
   | "STATE_MACHINE"
   | "TASK"
@@ -292,6 +293,7 @@ const KEYWORDS: Record<string, TokenType> = {
   await: "AWAIT",
   spawn: "SPAWN",
   select: "SELECT",
+  parallel: "PARALLEL",
   extern: "EXTERN",
   state_machine: "STATE_MACHINE",
   task: "TASK",

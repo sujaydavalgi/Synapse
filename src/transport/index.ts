@@ -170,6 +170,15 @@ export class RoutingCommBus {
     return this.memory.sendAction(actionType);
   }
 
+  publishPeer(
+    peer: string,
+    topic: string,
+    value: RuntimeValue,
+    transport: TransportKind,
+  ): void {
+    this.memory.publishPeer(peer, topic, value, transport);
+  }
+
   discover(target: DiscoverTarget, filter: DiscoverFilter): string[] {
     return this.memory.discover(target, filter);
   }

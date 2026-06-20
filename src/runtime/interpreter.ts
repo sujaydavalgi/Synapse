@@ -43,8 +43,9 @@ import {
   velocityFromState,
 } from "./values.js";
 import { callExternBridge } from "../ffi/subprocess-bridge.js";
+import { ConcurrencyRuntime } from "../concurrency.js";
 import type { ModuleRegistry } from "../modules/index.js";
-import type { ExternFnDecl, ModuleFnDecl } from "../foundations.js";
+import type { ExternFnDecl, ModuleFnDecl, ResourceBudgetDecl, TaskDecl, TaskPriority } from "../foundations.js";
 
 export type PoseValue = { x: number; y: number; theta: number; z: number };
 
@@ -78,7 +79,10 @@ export type RuntimeValue =
   | { kind: "completion"; text: string; model?: string }
   | { kind: "embedding"; dimensions: number; vector: number[] }
   | { kind: "identity"; id: string; publicKey: string }
-  | { kind: "secret"; name: string };
+  | { kind: "secret"; name: string }
+  | { kind: "channel"; id: number }
+  | { kind: "task_handle"; id: number }
+  | { kind: "future"; funcName: string; args: RuntimeValue[]; resolved: RuntimeValue | null };
 
 export type MotionCommand =
   | { kind: "drive"; linear: number; angular: number; actuator: string }
@@ -182,6 +186,8 @@ export class Interpreter {
   private moduleFunctions = new Map<string, ModuleFnDecl>();
   private importedFunctions = new Map<string, ModuleFnDecl>();
   private externFunctions = new Map<string, ExternFnDecl>();
+  private concurrency = new ConcurrencyRuntime();
+  private taskMaxDurationMs = new Map<string, number>();
   private returning = false;
   private returnValue: RuntimeValue = { kind: "void" };
 
@@ -203,14 +209,16 @@ export class Interpreter {
       const behavior = robot.behaviors.find((b) => b.name === behaviorName);
       if (behavior) {
         this.executeWithContracts(behavior.body, behavior.requires, behavior.ensures, behavior.invariant);
+        this.processSpawnQueue();
         continue;
       }
 
       const task = robot.tasks.find((t) => t.name === behaviorName);
       if (task) {
-        this.executeTaskLoop(task.body, task.intervalMs, task.requires, task.ensures, task.invariant);
+        this.executeTaskLoop(task);
       }
     }
+    this.processSpawnQueue();
     return this.options.backend.getState();
   }
 
@@ -221,6 +229,7 @@ export class Interpreter {
       this.options.onLog?.(`test ${test.name}`);
       this.returning = false;
       this.executeBlock(test.body);
+      this.processSpawnQueue();
     }
   }
 
@@ -305,20 +314,77 @@ export class Interpreter {
     this.options.onLog?.(`verify: all ${this.verifyRules.length} rule(s) passed`);
   }
 
-  private executeTaskLoop(
-    body: Stmt[],
-    intervalMs: number,
-    requires: Expr | null,
-    ensures: Expr | null,
-    invariant: Expr | null,
-  ): void {
+  private executeTaskLoop(task: TaskDecl): void {
+    const { body, intervalMs, requires, ensures, invariant, name, priority, budget } = task;
     const maxIter = this.options.maxLoopIterations ?? 10;
+    this.options.onLog?.(
+      `single-task ${name} interval=${intervalMs}ms priority=${priority}`,
+    );
     for (let i = 0; i < maxIter; i++) {
       this.options.backend.tick(intervalMs);
-      if (!this.executeTaskIteration(body, requires, ensures, invariant)) break;
+      if (!this.runScheduledTask(name, priority, intervalMs, body, requires, ensures, invariant, budget)) {
+        break;
+      }
       this.runVerifyRules();
       this.updateTwinSnapshot();
     }
+  }
+
+  private priorityRank(priority: TaskPriority): number {
+    switch (priority) {
+      case "critical":
+        return 0;
+      case "high":
+        return 1;
+      case "normal":
+        return 2;
+      case "low":
+        return 3;
+    }
+  }
+
+  private taskBudgetViolation(
+    budget: ResourceBudgetDecl,
+    durationMs: number,
+    intervalMs: number,
+  ): string | null {
+    const duty = (durationMs / Math.max(intervalMs, 1)) * 100;
+    if (budget.cpuPctMax != null && duty > budget.cpuPctMax) return "cpu";
+    if (budget.batteryPctMax != null && duty > budget.batteryPctMax) return "battery";
+    return null;
+  }
+
+  private runScheduledTask(
+    name: string,
+    priority: TaskPriority,
+    intervalMs: number,
+    body: Stmt[],
+    requires: Expr | null,
+    ensures: Expr | null,
+    invariant: Expr | null,
+    budget: ResourceBudgetDecl | null,
+  ): boolean {
+    const RUNTIME_TASK_COST_MS = 5;
+    if (budget) {
+      const prev = this.taskMaxDurationMs.get(name) ?? 0;
+      if (prev > 0) {
+        const kind = this.taskBudgetViolation(budget, prev, intervalMs);
+        if (kind) {
+          this.options.onLog?.(`task '${name}': ${kind} budget exceeded — skipping tick`);
+          return true;
+        }
+      }
+    }
+    const continueRunning = this.executeTaskIteration(body, requires, ensures, invariant, name);
+    const durationMs = RUNTIME_TASK_COST_MS;
+    this.taskMaxDurationMs.set(name, Math.max(this.taskMaxDurationMs.get(name) ?? 0, durationMs));
+    if (budget) {
+      const kind = this.taskBudgetViolation(budget, durationMs, intervalMs);
+      if (kind) {
+        this.options.onLog?.(`task '${name}': ${kind} budget exceeded (${durationMs.toFixed(2)}ms)`);
+      }
+    }
+    return continueRunning;
   }
 
   private executeTaskIteration(
@@ -343,16 +409,18 @@ export class Interpreter {
     return !this.safetyMonitor?.isEmergencyStop();
   }
 
-  private executeMultiplexedTasks(tasks: import("../foundations.js").TaskDecl[]): void {
+  private executeMultiplexedTasks(tasks: TaskDecl[]): void {
     if (tasks.length === 0) return;
     const schedules = tasks.map((task) => ({
       name: task.name,
+      priority: task.priority,
       intervalMs: task.intervalMs,
       nextDueMs: 0,
       body: task.body,
       requires: task.requires,
       ensures: task.ensures,
       invariant: task.invariant,
+      budget: task.budget,
     }));
     const baseTick = Math.max(1, Math.min(...schedules.map((task) => task.intervalMs)));
     this.options.onLog?.(
@@ -363,21 +431,28 @@ export class Interpreter {
     for (let i = 0; i < maxIter; i++) {
       this.options.backend.tick(baseTick);
       simTime += baseTick;
-      for (const schedule of schedules) {
-        if (schedule.nextDueMs <= simTime) {
-          this.options.onLog?.(`task '${schedule.name}': tick`);
-          if (!this.executeTaskIteration(
+      const due = schedules
+        .filter((schedule) => schedule.nextDueMs <= simTime)
+        .sort((a, b) => this.priorityRank(a.priority) - this.priorityRank(b.priority));
+      for (const schedule of due) {
+        this.options.onLog?.(`task '${schedule.name}': tick`);
+        if (
+          !this.runScheduledTask(
+            schedule.name,
+            schedule.priority,
+            schedule.intervalMs,
             schedule.body,
             schedule.requires,
             schedule.ensures,
             schedule.invariant,
-            schedule.name,
-          )) {
-            return;
-          }
-          schedule.nextDueMs = simTime + schedule.intervalMs;
+            schedule.budget,
+          )
+        ) {
+          return;
         }
+        schedule.nextDueMs = simTime + schedule.intervalMs;
       }
+      this.processSpawnQueue();
       this.runVerifyRules();
       this.updateTwinSnapshot();
       if (this.safetyMonitor?.isEmergencyStop()) break;
@@ -668,8 +743,17 @@ export class Interpreter {
       const agent = createAgentRuntime(agentDecl, memory);
       this.agents.set(agentDecl.name, agent);
       this.agentCapabilities.set(agentDecl.name, agentDecl.capabilities);
+      this.commBus.registerAgent(agentDecl.name);
       this.env.define(agentDecl.name, { kind: "agent", name: agentDecl.name });
       this.options.onLog?.(`Agent '${agentDecl.name}': ${agentDecl.goal}`);
+    }
+
+    for (const channel of robot.agentChannels ?? []) {
+      this.concurrency.registerAgentRoute(channel.fromAgent, channel.toAgent, channel.messageType);
+      const typeSuffix = channel.messageType ? ` (${channel.messageType})` : "";
+      this.options.onLog?.(
+        `agent channel: ${channel.fromAgent} -> ${channel.toAgent}${typeSuffix}`,
+      );
     }
 
     for (const traitImpl of robot.traitImpls ?? []) {
@@ -813,6 +897,10 @@ export class Interpreter {
   }
 
   private callModuleFunction(func: ModuleFnDecl, args: Expr[]): RuntimeValue {
+    if (func.isAsync) {
+      const argValues = args.map((arg) => this.evalExpr(arg));
+      return { kind: "future", funcName: func.name, args: argValues, resolved: null };
+    }
     const saved = this.env.clone();
     for (let i = 0; i < func.params.length; i++) {
       const param = func.params[i];
@@ -924,13 +1012,15 @@ export class Interpreter {
         break;
       }
       case "ReceiveStmt": {
-        const topic = this.env.get(stmt.topicName);
-        if (topic?.kind === "topic") {
-          const val = this.commBus.receive(topic.topicPath);
-          if (val) {
-            this.env.define(stmt.varName, val);
-            this.options.onLog?.(`receive ${stmt.topicName} to ${stmt.varName}`);
-          }
+        const path = stmt.topicName.includes(".")
+          ? `/${stmt.topicName.replace(".", "/")}`
+          : this.env.get(stmt.topicName)?.kind === "topic"
+            ? (this.env.get(stmt.topicName) as Extract<RuntimeValue, { kind: "topic" }>).topicPath
+            : `/${stmt.topicName}`;
+        const val = this.commBus.receive(path);
+        if (val) {
+          this.env.define(stmt.varName, val);
+          this.options.onLog?.(`receive ${stmt.topicName} to ${stmt.varName}`);
         }
         break;
       }
@@ -976,9 +1066,72 @@ export class Interpreter {
         this.returnValue = stmt.value ? this.evalExpr(stmt.value) : { kind: "void" };
         this.returning = true;
         break;
-      case "SpawnStmt":
-      case "SelectStmt":
+      case "SpawnStmt": {
+        const { funcName, args } = this.evalSpawnTarget(stmt.callee, stmt.args, stmt.span.start.line);
+        this.concurrency.queueFireAndForget(funcName, args);
+        this.options.onLog?.(`spawn ${funcName}()`);
         break;
+      }
+      case "SelectStmt": {
+        for (const arm of stmt.arms) {
+          const channelVal = this.evalExpr(arm.channel);
+          const msg = this.concurrency.tryRecv(channelVal, stmt.span.start.line);
+          if (msg) {
+            this.env.define("_msg", msg);
+            this.executeBlock(arm.body);
+            break;
+          }
+        }
+        break;
+      }
+      case "ParallelStmt": {
+        const saved = this.env.clone();
+        const pendingHandles: Array<[string | null, number]> = [];
+        const results: Record<string, RuntimeValue> = {};
+        this.options.onLog?.(`parallel: executing ${stmt.body.length} branch(es) cooperatively`);
+        for (const branch of stmt.body) {
+          this.env = saved.clone();
+          if (branch.kind === "VarDecl" && branch.init) {
+            const val = this.evalExpr(branch.init);
+            if (val.kind === "task_handle") {
+              pendingHandles.push([branch.name, val.id]);
+            } else {
+              results[branch.name] = val;
+            }
+          } else if (branch.kind === "ExprStmt") {
+            const val = this.evalExpr(branch.expr);
+            if (val.kind === "task_handle") {
+              pendingHandles.push([null, val.id]);
+            }
+          } else if (branch.kind === "SpawnStmt") {
+            const { funcName, args } = this.evalSpawnTarget(
+              branch.callee,
+              branch.args,
+              branch.span.start.line,
+            );
+            const handle = this.concurrency.createTaskHandle(funcName, args);
+            if (handle.kind === "task_handle") {
+              pendingHandles.push([null, handle.id]);
+            }
+          } else {
+            this.executeStmt(branch);
+          }
+        }
+        this.env = saved;
+        for (const [name, id] of pendingHandles) {
+          const result = this.resolveTaskHandle(id, stmt.span.start.line);
+          if (name) results[name] = result;
+        }
+        if (Object.keys(results).length > 0) {
+          this.env.define("_parallel", {
+            kind: "object",
+            typeName: "ParallelResults",
+            fields: results,
+          });
+          this.options.onLog?.(`parallel: aggregated ${Object.keys(results).length} result(s)`);
+        }
+        break;
+      }
     }
   }
 
@@ -1011,6 +1164,12 @@ export class Interpreter {
           return { kind: "number", value: -operand.value, unit: operand.unit };
         }
         return { kind: "void" };
+      }
+      case "AwaitExpr":
+        return this.resolveFuture(this.evalExpr(expr.operand), expr.span.start.line);
+      case "SpawnExpr": {
+        const { funcName, args } = this.evalSpawnTarget(expr.callee, expr.args, expr.span.start.line);
+        return this.concurrency.createTaskHandle(funcName, args);
       }
       case "MemberExpr":
         return this.evalMember(expr);
@@ -1465,8 +1624,116 @@ export class Interpreter {
         }
         return { kind: "void" };
       }
+      case "channel":
+        return this.concurrency.createChannel();
+      case "send": {
+        const channel = expr.args[0] ? this.evalExpr(expr.args[0]) : this.getNamedArgValue(expr, "channel");
+        const value = expr.args[1] ? this.evalExpr(expr.args[1]) : this.getNamedArgValue(expr, "value");
+        this.concurrency.bindChannelType(channel, value, expr.span.start.line);
+        this.concurrency.send(channel, value, expr.span.start.line);
+        return { kind: "void" };
+      }
+      case "recv": {
+        const channel = expr.args[0] ? this.evalExpr(expr.args[0]) : this.getNamedArgValue(expr, "channel");
+        return this.concurrency.tryRecv(channel, expr.span.start.line) ?? { kind: "void" };
+      }
+      case "join": {
+        const handle = expr.args[0] ? this.evalExpr(expr.args[0]) : { kind: "void" as const };
+        if (handle.kind === "future") {
+          return this.resolveFuture(handle, expr.span.start.line);
+        }
+        if (handle.kind === "task_handle") {
+          return this.resolveTaskHandle(handle.id, expr.span.start.line);
+        }
+        throw new RuntimeError("join requires a Future or TaskHandle value", expr.span.start.line);
+      }
+      case "send_agent": {
+        if (!this.currentAgent) {
+          throw new RuntimeError("send_agent requires active agent context", expr.span.start.line);
+        }
+        const to = expr.args[0]
+          ? getString(this.evalExpr(expr.args[0]), "")
+          : getString(this.getNamedArgValue(expr, "to"), "");
+        const value = expr.args[1] ? this.evalExpr(expr.args[1]) : this.getNamedArgValue(expr, "value");
+        this.concurrency.sendAgent(this.currentAgent, to, value, expr.span.start.line);
+        this.options.onLog?.(`send_agent ${this.currentAgent} -> ${to}`);
+        return { kind: "void" };
+      }
+      case "recv_agent": {
+        if (!this.currentAgent) {
+          throw new RuntimeError("recv_agent requires active agent context", expr.span.start.line);
+        }
+        return this.concurrency.tryRecvAgent(this.currentAgent) ?? { kind: "void" };
+      }
+      case "peer_send": {
+        const peer = expr.args[0]
+          ? getString(this.evalExpr(expr.args[0]), "")
+          : getString(this.getNamedArgValue(expr, "peer"), "");
+        const topic = expr.args[1]
+          ? getString(this.evalExpr(expr.args[1]), "")
+          : getString(this.getNamedArgValue(expr, "topic"), "");
+        const value = expr.args[2] ? this.evalExpr(expr.args[2]) : this.getNamedArgValue(expr, "value");
+        this.commBus.publishPeer(peer, topic, value, this.defaultTransport);
+        this.options.onLog?.(`peer_send ${peer}.${topic}`);
+        return { kind: "void" };
+      }
       default:
         return { kind: "void" };
+    }
+  }
+
+  private evalSpawnTarget(
+    callee: Expr,
+    args: Expr[],
+    line: number,
+  ): { funcName: string; args: RuntimeValue[] } {
+    const argValues = args.map((arg) => this.evalExpr(arg));
+    if (callee.kind !== "IdentExpr") {
+      throw new RuntimeError("spawn requires function name", line);
+    }
+    return { funcName: callee.name, args: argValues };
+  }
+
+  private executeSpawnJob(funcName: string, args: RuntimeValue[], line: number): RuntimeValue {
+    const func =
+      this.moduleFunctions.get(funcName) ?? this.importedFunctions.get(funcName);
+    if (!func) {
+      throw new RuntimeError(`Unknown spawn target '${funcName}'`, line);
+    }
+    const saved = this.env.clone();
+    for (let i = 0; i < func.params.length; i++) {
+      const param = func.params[i];
+      const val = args[i];
+      if (param && val) this.env.define(param.name, val);
+    }
+    const result = this.executeBlockWithReturn(func.body);
+    this.env = saved;
+    return result;
+  }
+
+  private resolveTaskHandle(id: number, line: number): RuntimeValue {
+    const handle = this.concurrency.getHandle(id);
+    if (!handle) {
+      throw new RuntimeError(`Unknown task handle ${id}`, line);
+    }
+    if (handle.result) return handle.result;
+    const result = this.executeSpawnJob(handle.funcName, handle.args, line);
+    this.concurrency.setHandleResult(id, result);
+    return result;
+  }
+
+  private resolveFuture(future: RuntimeValue, line: number): RuntimeValue {
+    if (future.kind === "future") {
+      if (future.resolved) return future.resolved;
+      const result = this.executeSpawnJob(future.funcName, future.args, line);
+      return result;
+    }
+    return future;
+  }
+
+  private processSpawnQueue(): void {
+    for (const id of this.concurrency.drainFireAndForgetQueue()) {
+      this.resolveTaskHandle(id, 0);
     }
   }
 
