@@ -31,11 +31,33 @@ pub struct ModuleParamDecl {
     pub span: Span,
 }
 
+/// Foreign function bridge target (orchestration layer).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum BridgeKind {
+    #[default]
+    Native,
+    Python,
+    Cpp,
+}
+
+impl BridgeKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Native => "native",
+            Self::Python => "python",
+            Self::Cpp => "cpp",
+        }
+    }
+}
+
 /// Foreign function interface declaration (`extern fn read_sensor() -> Int;`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExternFnDecl {
     pub name: String,
     pub library: Option<String>,
+    #[serde(default)]
+    pub bridge: BridgeKind,
     pub params: Vec<ModuleParamDecl>,
     pub return_type: SpandaType,
     pub span: Span,

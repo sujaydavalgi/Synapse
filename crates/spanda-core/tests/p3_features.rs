@@ -97,6 +97,7 @@ fn ffi_registry_stub_echo() {
     let decl = spanda_core::foundations::ExternFnDecl {
         name: "stub_echo".into(),
         library: None,
+        bridge: spanda_core::foundations::BridgeKind::Native,
         params: vec![],
         return_type: spanda_core::SpandaType::Int,
         span: spanda_core::Span {
@@ -139,4 +140,39 @@ robot R {
 }
 "#;
     check(source).expect("planned FFI bridge imports should type-check");
+}
+
+#[test]
+fn extern_python_fn_parses_with_bridge_kind() {
+    let source = r#"
+extern python fn py_version() -> Int;
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() { wheels.stop(); }
+}
+"#;
+    check(source).expect("extern python fn should parse and type-check");
+    let sir = spanda_core::lower_to_sir(source).expect("sir");
+    assert_eq!(
+        sir.externs[0].bridge,
+        spanda_core::foundations::BridgeKind::Python
+    );
+}
+
+#[test]
+fn extern_python_fn_fails_at_runtime_without_link() {
+    let source = r#"
+extern python fn py_missing() -> Int;
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let _ = py_missing();
+    wheels.stop();
+  }
+}
+"#;
+    let err = run(source, RunOptions::default()).unwrap_err();
+    assert!(err.to_string().contains("not linked"));
 }

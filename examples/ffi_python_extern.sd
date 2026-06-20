@@ -1,0 +1,9 @@
+// Planned Python bridge extern — type-checks; runtime requires native link.
+extern python fn py_version() -> Int;
+
+robot PyBridge {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    wheels.stop();
+  }
+}

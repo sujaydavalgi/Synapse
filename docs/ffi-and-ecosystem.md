@@ -15,7 +15,7 @@ Spanda is designed to **orchestrate** existing robotics and AI ecosystems — no
 | Layer | Status | Notes |
 |-------|--------|-------|
 | `extern fn` syntax | Implemented | Parsed and type-checked in Rust core |
-| `FfiRegistry` | Partially implemented | Stub handlers (`stub_echo`, `stub_add`) only |
+| `FfiRegistry` | Partially implemented | Stub handlers; `extern python`/`extern cpp` fail at runtime until linked |
 | N-API / WASM bindings | Partially implemented | `check` and `run` only |
 | Python bridge | Planned | See syntax below |
 | C/C++ bridge | Planned | See syntax below |

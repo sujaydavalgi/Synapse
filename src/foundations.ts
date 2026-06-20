@@ -20,10 +20,13 @@ export type ModuleFnDecl = {
   span: Span;
 };
 
+export type BridgeKind = "native" | "python" | "cpp";
+
 export type ExternFnDecl = {
   kind: "ExternFnDecl";
   name: string;
   library: string | null;
+  bridge: BridgeKind;
   params: ModuleParamDecl[];
   returnType: SpandaType;
   span: Span;

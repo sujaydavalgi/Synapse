@@ -1012,9 +1012,9 @@ impl Parser {
     }
 
     fn parse_extern_fn(&mut self) -> Result<crate::foundations::ExternFnDecl, SpandaError> {
-        use crate::foundations::{ExternFnDecl, ModuleParamDecl};
+        use crate::foundations::{BridgeKind, ExternFnDecl, ModuleParamDecl};
         let start = self.previous().clone();
-        let library = if self.match_types(&[TokenType::String]) {
+        let (library, bridge) = if self.match_types(&[TokenType::String]) {
             let TokenValue::String(lib) = self.previous().value.clone() else {
                 return Err(SpandaError::Parse {
                     message: "Expected library name string after extern".into(),
@@ -1022,9 +1022,21 @@ impl Parser {
                     column: self.previous().column,
                 });
             };
-            Some(lib)
+            (Some(lib), BridgeKind::Native)
+        } else if self.check(TokenType::Ident) {
+            match self.peek().lexeme.as_str() {
+                "python" => {
+                    self.advance();
+                    (Some("python".into()), BridgeKind::Python)
+                }
+                "cpp" => {
+                    self.advance();
+                    (Some("cpp".into()), BridgeKind::Cpp)
+                }
+                _ => (None, BridgeKind::Native),
+            }
         } else {
-            None
+            (None, BridgeKind::Native)
         };
         self.expect(TokenType::Fn, "Expected 'fn' in extern declaration")?;
         let name = self.parse_label("Expected extern function name")?;
@@ -1056,6 +1068,7 @@ impl Parser {
         Ok(ExternFnDecl {
             name,
             library,
+            bridge,
             params,
             return_type,
             span: self.span_from(&start, &end),

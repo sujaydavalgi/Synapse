@@ -74,6 +74,7 @@ import type {
   SimulateCompatibilityDecl,
   MissionDecl,
   ResourceBudgetDecl,
+  BridgeKind,
   IdentityDecl,
   AuditDecl,
   ProvenanceDecl,
@@ -410,8 +411,20 @@ class Parser {
   private parseExternFn(): ExternFnDecl {
     const start = this.previous();
     let library: string | null = null;
+    let bridge: BridgeKind = "native";
     if (this.match("STRING")) {
       library = this.previous().value as string;
+    } else if (this.check("IDENT")) {
+      const lex = this.peek().lexeme;
+      if (lex === "python") {
+        this.advance();
+        library = "python";
+        bridge = "python";
+      } else if (lex === "cpp") {
+        this.advance();
+        library = "cpp";
+        bridge = "cpp";
+      }
     }
     this.expect("FN", "Expected 'fn' in extern declaration");
     const name = this.parseLabel("Expected extern function name");
@@ -438,6 +451,7 @@ class Parser {
       kind: "ExternFnDecl",
       name,
       library,
+      bridge,
       params,
       returnType,
       span: this.spanFrom(start, end),

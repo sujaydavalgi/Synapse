@@ -85,6 +85,7 @@ describe("P0–P3 TypeScript mirror", () => {
     const program = parse(tokenize(p3Extern));
     expect(program.externFunctions.length).toBe(1);
     expect(program.externFunctions[0]?.library).toBe("libc");
+    expect(program.externFunctions[0]?.bridge).toBe("native");
     expect(program.functions.some((f) => f.name === "sum_pair")).toBe(true);
     expect(() => typeCheck(program)).not.toThrow();
   });
