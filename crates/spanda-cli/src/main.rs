@@ -71,9 +71,9 @@ fn usage() {
            spanda check [--json] [<file.sd> | --project]\n\
            spanda verify [--json] [--target <HardwareProfile>] [--all-targets] [--simulate] <file.sd>\n\
            spanda compatibility [--json] [--target <HardwareProfile>] [--all-targets] [--simulate] <file.sd>\n\
-           spanda run [--json] [--verbose] [--trace-scheduler] [--trace-tasks] <file.sd>\n\
-           spanda sim [--json] [--replay] [--trace-scheduler] [--trace-tasks] <file.sd>\n\
-           spanda fleet run [--json] [--trace-scheduler] [--trace-tasks] <file.sd>\n\
+           spanda run [--json] [--verbose] [--trace-scheduler] [--trace-tasks] [--trace-triggers] [--trace-events] <file.sd>\n\
+           spanda sim [--json] [--replay] [--trace-scheduler] [--trace-tasks] [--trace-triggers] [--trace-events] <file.sd>\n\
+           spanda fleet run [--json] [--trace-scheduler] [--trace-tasks] [--trace-triggers] [--trace-events] <file.sd>\n\
            spanda fmt [--json] <file.sd>\n\
            spanda lint [--json] <file.sd>\n\
            spanda doc [--json] [--out <file.md>] <file.sd>\n\
@@ -148,7 +148,15 @@ fn human_check(source: &str, file: &str) {
     }
 }
 
-fn human_run(source: &str, file: &str, verbose: bool, trace_scheduler: bool, trace_tasks: bool) {
+fn human_run(
+    source: &str,
+    file: &str,
+    verbose: bool,
+    trace_scheduler: bool,
+    trace_tasks: bool,
+    trace_triggers: bool,
+    trace_events: bool,
+) {
     let max_loop_iterations = if verbose { 20 } else { 10 };
     match run(
         source,
@@ -156,6 +164,8 @@ fn human_run(source: &str, file: &str, verbose: bool, trace_scheduler: bool, tra
             max_loop_iterations,
             trace_scheduler,
             trace_tasks,
+            trace_triggers,
+            trace_events,
             ..Default::default()
         },
     ) {
@@ -178,7 +188,7 @@ fn human_run(source: &str, file: &str, verbose: bool, trace_scheduler: bool, tra
                 "  E-stop:   {}",
                 if s.emergency_stop { "ACTIVE" } else { "off" }
             );
-            if verbose || trace_scheduler || trace_tasks {
+            if verbose || trace_scheduler || trace_tasks || trace_triggers || trace_events {
                 println!("\n── Simulation Log ──");
                 for event in &result.events {
                     println!("  {event}");
@@ -190,7 +200,7 @@ fn human_run(source: &str, file: &str, verbose: bool, trace_scheduler: bool, tra
                     }
                 }
             }
-            if trace_scheduler || trace_tasks {
+            if trace_scheduler || trace_tasks || trace_triggers || trace_events {
                 println!("\n── Runtime Metrics ──");
                 if trace_scheduler {
                     println!(
@@ -210,6 +220,19 @@ fn human_run(source: &str, file: &str, verbose: bool, trace_scheduler: bool, tra
                             task.ticks,
                             task.skipped,
                             task.missed_deadlines
+                        );
+                    }
+                }
+                if trace_triggers && !result.metrics.triggers.is_empty() {
+                    println!("  Triggers:");
+                    for trigger in result.metrics.triggers.values() {
+                        println!(
+                            "    {} [{}]: executions={}, failures={}, missed_deadlines={}",
+                            trigger.name,
+                            trigger.priority,
+                            trigger.executions,
+                            trigger.failures,
+                            trigger.missed_deadlines
                         );
                     }
                 }
@@ -319,18 +342,22 @@ fn is_package_command(cmd: &str) -> bool {
 
 fn fleet_dispatch(args: &[String]) {
     if args.first().map(String::as_str) != Some("run") {
-        eprintln!("Usage: spanda fleet run [--json] [--trace-scheduler] [--trace-tasks] <file.sd>");
+        eprintln!("Usage: spanda fleet run [--json] [--trace-scheduler] [--trace-tasks] [--trace-triggers] [--trace-events] <file.sd>");
         process::exit(1);
     }
     let mut json = false;
     let mut trace_scheduler = false;
     let mut trace_tasks = false;
+    let mut trace_triggers = false;
+    let mut trace_events = false;
     let mut file: Option<String> = None;
     for arg in args.iter().skip(1) {
         match arg.as_str() {
             "--json" => json = true,
             "--trace-scheduler" => trace_scheduler = true,
             "--trace-tasks" => trace_tasks = true,
+            "--trace-triggers" => trace_triggers = true,
+            "--trace-events" => trace_events = true,
             other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
             other => {
                 eprintln!("Unknown argument: {other}");
@@ -344,13 +371,34 @@ fn fleet_dispatch(args: &[String]) {
     });
     let source = read_source(&file);
     if json {
-        print_fleet_json(&source, &file, trace_scheduler, trace_tasks);
+        print_fleet_json(
+            &source,
+            &file,
+            trace_scheduler,
+            trace_tasks,
+            trace_triggers,
+            trace_events,
+        );
     } else {
-        human_fleet_run(&source, &file, trace_scheduler, trace_tasks);
+        human_fleet_run(
+            &source,
+            &file,
+            trace_scheduler,
+            trace_tasks,
+            trace_triggers,
+            trace_events,
+        );
     }
 }
 
-fn human_fleet_run(source: &str, file: &str, trace_scheduler: bool, trace_tasks: bool) {
+fn human_fleet_run(
+    source: &str,
+    file: &str,
+    trace_scheduler: bool,
+    trace_tasks: bool,
+    trace_triggers: bool,
+    trace_events: bool,
+) {
     use spanda_core::ast::{Program, RobotDecl};
     use spanda_core::foundations::DeployDecl;
 
@@ -377,14 +425,11 @@ fn human_fleet_run(source: &str, file: &str, trace_scheduler: bool, trace_tasks:
             }
             for robot in &robots {
                 let RobotDecl::RobotDecl {
-                    name,
-                    peer_robots,
-                    ..
+                    name, peer_robots, ..
                 } = robot;
                 for peer in peer_robots {
                     let spanda_core::comm::PeerRobotDecl::PeerRobotDecl {
-                        name: peer_name,
-                        ..
+                        name: peer_name, ..
                     } = peer;
                     println!("  peer robot {name} knows {peer_name}");
                 }
@@ -398,6 +443,8 @@ fn human_fleet_run(source: &str, file: &str, trace_scheduler: bool, trace_tasks:
         max_loop_iterations: 20,
         trace_scheduler,
         trace_tasks,
+        trace_triggers,
+        trace_events,
         replay_trace: true,
         ..Default::default()
     };
@@ -420,12 +467,10 @@ fn human_fleet_run(source: &str, file: &str, trace_scheduler: bool, trace_tasks:
                 "  E-stop:   {}",
                 if s.emergency_stop { "ACTIVE" } else { "off" }
             );
-            if trace_scheduler || trace_tasks {
-                if !result.logs.is_empty() {
-                    println!("\n── Runtime Log ──");
-                    for log in &result.logs {
-                        println!("  {log}");
-                    }
+            if (trace_scheduler || trace_tasks) && !result.logs.is_empty() {
+                println!("\n── Runtime Log ──");
+                for log in &result.logs {
+                    println!("  {log}");
                 }
             }
             println!("\n✓ Fleet simulation complete\n");
@@ -439,11 +484,20 @@ fn human_fleet_run(source: &str, file: &str, trace_scheduler: bool, trace_tasks:
     }
 }
 
-fn print_fleet_json(source: &str, _file: &str, trace_scheduler: bool, trace_tasks: bool) {
+fn print_fleet_json(
+    source: &str,
+    _file: &str,
+    trace_scheduler: bool,
+    trace_tasks: bool,
+    trace_triggers: bool,
+    trace_events: bool,
+) {
     let opts = RunOptions {
         max_loop_iterations: 20,
         trace_scheduler,
         trace_tasks,
+        trace_triggers,
+        trace_events,
         replay_trace: true,
         ..Default::default()
     };
@@ -508,6 +562,8 @@ fn main() {
     let mut file: Option<String> = None;
     let mut trace_scheduler = false;
     let mut trace_tasks = false;
+    let mut trace_triggers = false;
+    let mut trace_events = false;
     let mut replay_trace = false;
 
     let mut i = 2;
@@ -517,6 +573,8 @@ fn main() {
             "--verbose" | "-v" => verbose = true,
             "--trace-scheduler" => trace_scheduler = true,
             "--trace-tasks" => trace_tasks = true,
+            "--trace-triggers" => trace_triggers = true,
+            "--trace-events" => trace_events = true,
             "--replay" => replay_trace = true,
             "--project" => project_mode = true,
             "--target" => {
@@ -638,6 +696,8 @@ fn main() {
                 max_loop_iterations,
                 trace_scheduler,
                 trace_tasks,
+                trace_triggers,
+                trace_events,
                 replay_trace: command == "sim" && replay_trace,
                 ..Default::default()
             };
@@ -650,6 +710,8 @@ fn main() {
                     command == "sim" || verbose,
                     trace_scheduler,
                     trace_tasks,
+                    trace_triggers,
+                    trace_events,
                 );
             }
         }
