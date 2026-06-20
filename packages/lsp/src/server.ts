@@ -15,6 +15,12 @@ import {
   Hover,
   MarkupKind,
   Location,
+  DocumentFormattingParams,
+  DocumentSymbol,
+  SymbolKind,
+  TextEdit,
+  RenameParams,
+  WorkspaceEdit,
 } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { spawnSync } from "node:child_process";
@@ -204,6 +210,44 @@ function checkSource(source: string): CliDiagnostic[] {
   return checkSourceTs(source);
 }
 
+function formatSource(source: string): string | null {
+  const parsed = runCliJson(["fmt"], source) as {
+    ok: boolean;
+    formatted?: string;
+  } | null;
+  return parsed?.formatted ?? null;
+}
+
+function symbolKindFor(kind: string): SymbolKind {
+  switch (kind) {
+    case "robot":
+      return SymbolKind.Class;
+    case "behavior":
+    case "function":
+      return SymbolKind.Function;
+    case "sensor":
+    case "actuator":
+      return SymbolKind.Field;
+    case "agent":
+      return SymbolKind.Interface;
+    default:
+      return SymbolKind.Variable;
+  }
+}
+
+function documentSymbols(uri: string, _source: string): DocumentSymbol[] {
+  const cached = symbolCache.get(uri) ?? [];
+  return cached.map(
+    (sym): DocumentSymbol => ({
+      name: sym.name,
+      kind: symbolKindFor(sym.kind),
+      range: spanToRange(sym.span),
+      selectionRange: spanToRange(sym.span),
+      detail: sym.detail,
+    }),
+  );
+}
+
 function verifySource(source: string): CompatItem[] {
   const parsed = runCliJson(["verify"], source) as {
     ok: boolean;
@@ -239,6 +283,9 @@ connection.onInitialize((_params: InitializeParams) => ({
     },
     definitionProvider: true,
     hoverProvider: true,
+    documentFormattingProvider: true,
+    documentSymbolProvider: true,
+    renameProvider: true,
   },
 }));
 
@@ -344,6 +391,53 @@ connection.onHover((params: HoverParams): Hover | null => {
       value: markdown,
     },
   };
+});
+
+connection.onDocumentFormatting((params: DocumentFormattingParams): TextEdit[] | null => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return null;
+  const formatted = formatSource(doc.getText());
+  if (!formatted) return null;
+  const lastLine = doc.lineCount - 1;
+  const lastCharacter = doc.getText().length - (doc.getText().lastIndexOf("\n") + 1);
+  return [
+    {
+      range: {
+        start: { line: 0, character: 0 },
+        end: { line: lastLine, character: Math.max(0, lastCharacter) },
+      },
+      newText: formatted,
+    },
+  ];
+});
+
+connection.onDocumentSymbol((params) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return [];
+  refreshSymbolCache(params.textDocument.uri, doc.getText());
+  return documentSymbols(params.textDocument.uri, doc.getText());
+});
+
+connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return null;
+  const sym = lookupDefinition(
+    params.textDocument.uri,
+    doc.getText(),
+    params.position.line + 1,
+    params.position.character + 1,
+  );
+  if (!sym) return null;
+  const source = doc.getText();
+  const edits: TextEdit[] = [];
+  const regex = new RegExp(`\\b${sym.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g");
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(source)) !== null) {
+    const start = doc.positionAt(match.index);
+    const end = doc.positionAt(match.index + sym.name.length);
+    edits.push({ range: { start, end }, newText: params.newName });
+  }
+  return { changes: { [params.textDocument.uri]: edits } };
 });
 
 documents.onDidChangeContent((change: { document: TextDocument }) => {

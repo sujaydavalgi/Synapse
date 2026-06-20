@@ -2,8 +2,8 @@ mod package;
 
 use serde::Serialize;
 use spanda_core::{
-    check, format_source, run, verify_compatibility, CompatSeverity, RunOptions, SpandaError,
-    VerifyOptions,
+    check, format_source, generate_markdown, lint, run, verify_compatibility, CompatSeverity,
+    RunOptions, SpandaError, VerifyOptions,
 };
 use std::env;
 use std::fs;
@@ -36,6 +36,25 @@ struct VerifyResponse {
     matrix: Option<spanda_core::CompatibilityMatrix>,
 }
 
+#[derive(Serialize)]
+struct LintResponse {
+    ok: bool,
+    issues: Vec<spanda_core::LintIssue>,
+}
+
+#[derive(Serialize)]
+struct FormatResponse {
+    ok: bool,
+    changed: bool,
+    formatted: String,
+}
+
+#[derive(Serialize)]
+struct DocResponse {
+    ok: bool,
+    markdown: String,
+}
+
 fn usage() {
     eprintln!(
         "Spanda Programming Language\n\n\
@@ -45,7 +64,9 @@ fn usage() {
            spanda compatibility [--json] [--target <HardwareProfile>] [--all-targets] [--simulate] <file.sd>\n\
            spanda run [--json] [--verbose] <file.sd>\n\
            spanda sim [--json] <file.sd>\n\
-           spanda fmt <file.sd>\n\n\
+           spanda fmt [--json] <file.sd>\n\
+           spanda lint [--json] <file.sd>\n\
+           spanda doc [--json] [--out <file.md>] <file.sd>\n\n\
          Package commands:\n\
            spanda init [name] [--description <text>]\n\
            spanda build [--project <dir>]\n\
@@ -283,6 +304,7 @@ fn main() {
     let mut all_targets = false;
     let mut simulate = false;
     let mut project_mode = false;
+    let mut out_path: Option<String> = None;
     let mut file: Option<String> = None;
 
     let mut i = 2;
@@ -301,6 +323,14 @@ fn main() {
             }
             "--all-targets" => all_targets = true,
             "--simulate" => simulate = true,
+            "--out" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("--out requires a file path");
+                    process::exit(1);
+                }
+                out_path = Some(args[i].clone());
+            }
             other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
             other => {
                 eprintln!("Unknown argument: {other}");
@@ -376,14 +406,111 @@ fn main() {
             });
             let source = read_source(&file);
             let formatted = format_source(&source);
-            if formatted != source {
-                fs::write(&file, formatted).unwrap_or_else(|e| {
+            let changed = formatted != source;
+            if json {
+                let resp = FormatResponse {
+                    ok: true,
+                    changed,
+                    formatted: formatted.clone(),
+                };
+                println!("{}", serde_json::to_string(&resp).unwrap());
+            } else if changed {
+                fs::write(&file, &formatted).unwrap_or_else(|e| {
                     eprintln!("Error writing {file}: {e}");
                     process::exit(1);
                 });
                 println!("✓ formatted {file}");
             } else {
                 println!("✓ {file} — already formatted");
+            }
+        }
+        "lint" => {
+            let file = file.unwrap_or_else(|| {
+                eprintln!("Missing file path");
+                usage();
+                process::exit(1);
+            });
+            let source = read_source(&file);
+            match lint(&source) {
+                Ok(report) => {
+                    if json {
+                        let resp = LintResponse {
+                            ok: !report.has_errors(),
+                            issues: report.issues.clone(),
+                        };
+                        println!("{}", serde_json::to_string(&resp).unwrap());
+                    } else if report.issues.is_empty() {
+                        println!("✓ {file} — no lint issues");
+                    } else {
+                        println!("Lint issues in {file}:");
+                        for issue in &report.issues {
+                            let level = match issue.severity {
+                                spanda_core::LintSeverity::Warning => "warning",
+                                spanda_core::LintSeverity::Error => "error",
+                            };
+                            eprintln!(
+                                "  [{level}] {} [{}:{}] {}",
+                                issue.rule, issue.line, issue.column, issue.message
+                            );
+                        }
+                    }
+                    if report.has_errors() {
+                        process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    if json {
+                        let resp = LintResponse {
+                            ok: false,
+                            issues: e
+                                .diagnostics()
+                                .into_iter()
+                                .map(|d| spanda_core::LintIssue {
+                                    rule: "parse".into(),
+                                    message: d.message,
+                                    line: d.line,
+                                    column: d.column,
+                                    severity: spanda_core::LintSeverity::Error,
+                                })
+                                .collect(),
+                        };
+                        println!("{}", serde_json::to_string(&resp).unwrap());
+                    } else {
+                        eprintln!("Error: {e}");
+                    }
+                    process::exit(1);
+                }
+            }
+        }
+        "doc" => {
+            let file = file.unwrap_or_else(|| {
+                eprintln!("Missing file path");
+                usage();
+                process::exit(1);
+            });
+            let source = read_source(&file);
+            match generate_markdown(&source) {
+                Ok(markdown) => {
+                    if let Some(ref out) = out_path {
+                        fs::write(out, &markdown).unwrap_or_else(|e| {
+                            eprintln!("Error writing {out}: {e}");
+                            process::exit(1);
+                        });
+                        if !json {
+                            println!("✓ wrote docs to {out}");
+                        }
+                    } else if !json {
+                        print!("{markdown}");
+                    }
+                    if json {
+                        let resp = DocResponse { ok: true, markdown };
+                        println!("{}", serde_json::to_string(&resp).unwrap());
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error: {e}");
+                    process::exit(1);
+                }
             }
         }
         _ => {
