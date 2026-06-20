@@ -163,7 +163,6 @@ fn result_number_for_physical(left: &SpandaType, right: &SpandaType) -> Option<S
 
     // Take this path when let SpandaType::Named { name } = left.
     if let SpandaType::Named { name } = left {
-
         // Emit output when named type default unit provides a unit.
         if let Some(unit) = named_type_default_unit(name) {
             return Some(SpandaType::Number { unit });
@@ -172,7 +171,6 @@ fn result_number_for_physical(left: &SpandaType, right: &SpandaType) -> Option<S
 
     // Take this path when let SpandaType::Named { name } = right.
     if let SpandaType::Named { name } = right {
-
         // Emit output when named type default unit provides a unit.
         if let Some(unit) = named_type_default_unit(name) {
             return Some(SpandaType::Number { unit });
@@ -256,7 +254,6 @@ pub fn result_unit_for_binary(
     // Match on op and handle each case.
     match op {
         BinaryOp::And | BinaryOp::Or => {
-
             // Keep entries that match the expected pattern.
             if matches!(left, SpandaType::Bool) && matches!(right, SpandaType::Bool) {
                 Some(SpandaType::Bool)
@@ -270,7 +267,6 @@ pub fn result_unit_for_binary(
         | BinaryOp::Gte
         | BinaryOp::Eq
         | BinaryOp::Neq => {
-
             // Keep entries that match the expected pattern.
             if matches!(left, SpandaType::Number { .. })
                 && matches!(right, SpandaType::Number { .. })
@@ -305,12 +301,10 @@ pub fn result_unit_for_binary(
             None
         }
         BinaryOp::Add | BinaryOp::Sub => {
-
             // Take this path when let (SpandaType::Number { unit: lu, .. }, SpandaType::Number { unit: r.
             if let (SpandaType::Number { unit: lu, .. }, SpandaType::Number { unit: ru, .. }) =
                 (left, right)
             {
-
                 // Take this path when units compatible(*lu, *ru).
                 if units_compatible(*lu, *ru) {
                     let unit = if *lu != UnitKind::None { *lu } else { *ru };
@@ -325,7 +319,6 @@ pub fn result_unit_for_binary(
             None
         }
         BinaryOp::Mul | BinaryOp::Div => {
-
             // Keep entries that match the expected pattern.
             if matches!(left, SpandaType::Number { .. })
                 && matches!(right, SpandaType::Number { .. })
@@ -413,7 +406,7 @@ impl Default for TypeChecker {
 
         // Build the result via new.
         Self::new()
-}
+    }
 }
 
 impl TypeChecker {
@@ -457,7 +450,7 @@ impl TypeChecker {
             channel_payload_types: HashMap::new(),
             active_agent: None,
         }
-}
+    }
 
     pub fn check_program(&mut self, program: &Program) {
         // Check program.
@@ -515,10 +508,8 @@ impl TypeChecker {
 
                 // Emit output when module registry provides a registry.
                 if let Some(registry) = &self.module_registry {
-
                     // Emit output when exports for provides a exports.
                     if let Some(exports) = registry.exports_for(path) {
-
                         // Iterate over functions with destructured elements.
                         for (fname, fdecl) in &exports.functions {
                             self.module_functions.insert(fname.clone(), fdecl.clone());
@@ -547,7 +538,6 @@ impl TypeChecker {
 
         // Run each test block in program order.
         for test in tests {
-
             // Execute each statement in sequence.
             for stmt in &test.body {
                 self.check_stmt(stmt);
@@ -564,7 +554,7 @@ impl TypeChecker {
         for robot in robots {
             self.check_robot(robot, &imported);
         }
-}
+    }
 
     fn validate_type_annotation(&mut self, ty: &SpandaType, line: u32, column: u32) {
         // Validate type annotation.
@@ -587,7 +577,6 @@ impl TypeChecker {
         // Match on ty and handle each case.
         match ty {
             SpandaType::Named { name } => {
-
                 // Take this path when self.struct defs.contains key(name).
                 if self.struct_defs.contains_key(name)
                     || self.type_param_scope.contains_key(name)
@@ -602,7 +591,6 @@ impl TypeChecker {
                 }
             }
             SpandaType::Generic { name, type_args } => {
-
                 // Apply each command-line argument.
                 for arg in type_args {
                     self.validate_type_annotation(arg, line, column);
@@ -618,7 +606,7 @@ impl TypeChecker {
             }
             _ => {}
         }
-}
+    }
 
     fn check_module_functions(&mut self, functions: &[ModuleFnDecl]) {
         // Check module functions.
@@ -683,7 +671,7 @@ impl TypeChecker {
             let _ = self.resolve_type_ann(&func.return_type);
             self.type_param_scope = saved_scope;
         }
-}
+    }
 
     fn check_extern_functions(&mut self, functions: &[crate::foundations::ExternFnDecl]) {
         // Check extern functions.
@@ -703,7 +691,6 @@ impl TypeChecker {
 
         // Generate code for each module function.
         for func in functions {
-
             // Bind each parameter before executing the body.
             for param in &func.params {
                 self.validate_type_annotation(
@@ -716,7 +703,7 @@ impl TypeChecker {
             self.extern_functions
                 .insert(func.name.clone(), func.clone());
         }
-}
+    }
 
     fn future_type(inner: SpandaType) -> SpandaType {
         // Future type.
@@ -738,7 +725,7 @@ impl TypeChecker {
             name: "Future".into(),
             type_args: vec![inner],
         }
-}
+    }
 
     fn task_handle_type(inner: SpandaType) -> SpandaType {
         // Task handle type.
@@ -760,7 +747,7 @@ impl TypeChecker {
             name: "TaskHandle".into(),
             type_args: vec![inner],
         }
-}
+    }
 
     fn resolve_type_ann(&self, ty: &SpandaType) -> SpandaType {
         // Resolve type ann.
@@ -789,7 +776,7 @@ impl TypeChecker {
             },
             other => other.clone(),
         }
-}
+    }
 
     fn check_message(&mut self, decl: &comm::MessageDecl) {
         // Check message.
@@ -843,7 +830,7 @@ impl TypeChecker {
             },
         );
         let _ = span;
-}
+    }
 
     fn check_struct(&mut self, decl: &StructDecl) {
         // Check struct.
@@ -912,7 +899,7 @@ impl TypeChecker {
                 .collect(),
         );
         let _ = span;
-}
+    }
 
     fn check_enum(&mut self, decl: &EnumDecl) {
         // Check enum.
@@ -960,7 +947,6 @@ impl TypeChecker {
 
         // Handle each enum variant arm.
         for variant in variants {
-
             // Skip further work when field types is empty.
             if !variant.field_types.is_empty() {
                 self.enum_payload_fields.insert(
@@ -984,7 +970,7 @@ impl TypeChecker {
                 );
             }
         }
-}
+    }
 
     fn check_trait(&mut self, decl: &TraitDecl) {
         // Check trait.
@@ -1034,7 +1020,7 @@ impl TypeChecker {
             );
         }
         self.trait_defs.insert(name.clone(), method_map);
-}
+    }
 
     fn type_name_to_spanda(&self, type_name: &str) -> SpandaType {
         // Type name to spanda.
@@ -1056,7 +1042,7 @@ impl TypeChecker {
         resolve_type_name(type_name).unwrap_or(SpandaType::Named {
             name: type_name.to_string(),
         })
-}
+    }
 
     fn check_robot(&mut self, robot: &RobotDecl, imported: &std::collections::HashSet<String>) {
         // Check robot.
@@ -1169,7 +1155,6 @@ impl TypeChecker {
             let HalBlock::HalBlock { members, span, .. } = hal_block;
             let SocDecl::SocDecl { profile, .. } = soc_decl;
             {
-
                 // Emit output when get soc profile provides a profile.
                 if let Some(profile) = get_soc_profile(profile) {
                     let hal_members: Vec<_> = members.iter().map(hal_member_from_decl).collect();
@@ -1423,7 +1408,6 @@ impl TypeChecker {
 
             // Process each transition.
             for transition in transitions {
-
                 // Check membership before continuing.
                 if !state_set.contains(&transition.from) || !state_set.contains(&transition.to) {
                     self.error(
@@ -1461,7 +1445,6 @@ impl TypeChecker {
 
             // Process each mirror.
             for mirror in mirrors {
-
                 // Check membership before continuing.
                 if !ALLOWED_MIRROR_FIELDS.contains(&mirror.as_str()) {
                     self.error(
@@ -1549,7 +1532,6 @@ impl TypeChecker {
 
             // Process each sensor.
             for sensor_name in sensors {
-
                 // Take the branch when kind) differs from Sensor).
                 if self.symbols.get(sensor_name).map(|s| s.kind) != Some(SymbolKind::Sensor) {
                     self.error(
@@ -1734,7 +1716,6 @@ impl TypeChecker {
 
             // Validate each requested capability.
             for cap in capabilities {
-
                 // Take this path when spanda security::is known capability(cap).
                 if spanda_security::is_known_capability(cap) {
                     continue;
@@ -1840,7 +1821,6 @@ impl TypeChecker {
             {
                 let validate_non_negative =
                     |checker: &mut TypeChecker, label: &str, value: f64, line: u32, column: u32| {
-
                         // Take this path when value < 0.0.
                         if value < 0.0 {
                             checker.error(
@@ -1853,7 +1833,6 @@ impl TypeChecker {
 
                 // Emit output when battery pct max provides a v.
                 if let Some(v) = battery_pct_max {
-
                     // Take this path when *v > 100.0.
                     if *v > 100.0 {
                         self.error(
@@ -1872,7 +1851,6 @@ impl TypeChecker {
 
                 // Emit output when cpu pct max provides a v.
                 if let Some(v) = cpu_pct_max {
-
                     // Take this path when *v > 100.0.
                     if *v > 100.0 {
                         self.error(
@@ -1975,7 +1953,7 @@ impl TypeChecker {
             self.check_behavior(body);
         }
         self.check_trigger_handlers(trigger_handlers, events, topics, state_machines, agents);
-}
+    }
 
     fn check_trigger_handlers(
         &mut self,
@@ -2043,7 +2021,6 @@ impl TypeChecker {
             // Match on trigger kind and handle each case.
             match trigger_kind {
                 TriggerKind::Event { name } => {
-
                     // Check membership before continuing.
                     if !event_names.contains(name) && !topic_names.contains(name) {
                         self.error(
@@ -2054,7 +2031,6 @@ impl TypeChecker {
                     }
                 }
                 TriggerKind::Message { topic } => {
-
                     // Check membership before continuing.
                     if !topic_names.contains(topic) {
                         self.error(
@@ -2065,7 +2041,6 @@ impl TypeChecker {
                     }
                 }
                 TriggerKind::Timer { interval_ms } => {
-
                     // Take this path when *interval ms <= 0.0.
                     if *interval_ms <= 0.0 {
                         self.error(
@@ -2088,7 +2063,6 @@ impl TypeChecker {
                     }
                 }
                 TriggerKind::StateEntered { state } | TriggerKind::StateExited { state } => {
-
                     // Check membership before continuing.
                     if !sm_states.contains(state) {
                         self.error(
@@ -2144,7 +2118,7 @@ impl TypeChecker {
                 self.check_behavior(body);
             }
         }
-}
+    }
 
     fn check_topic(&mut self, topic: &TopicDecl) {
         // Check topic.
@@ -2194,7 +2168,6 @@ impl TypeChecker {
 
         // Keep entries that match the expected pattern.
         if matches!(role, comm::TopicRole::Subscribe | comm::TopicRole::Both) {
-
             // Emit output when topic path provides a path.
             if let Some(path) = topic_path {
                 self.subscribed_topics.insert(path.clone());
@@ -2204,10 +2177,8 @@ impl TypeChecker {
 
         // Emit output when qos provides a q.
         if let Some(q) = qos {
-
             // Emit output when rate hz provides a rate.
             if let Some(rate) = q.rate_hz {
-
                 // Take this path when rate <= 0.0.
                 if rate <= 0.0 {
                     self.error(
@@ -2220,7 +2191,6 @@ impl TypeChecker {
 
             // Emit output when deadline ms provides a deadline.
             if let Some(deadline) = q.deadline_ms {
-
                 // Take this path when deadline <= 0.0.
                 if deadline <= 0.0 {
                     self.error(
@@ -2231,11 +2201,6 @@ impl TypeChecker {
                 }
             }
         }
-
-        // Proceed only when is none is available.
-        if transport.is_some() && topic_path.is_none() {
-        }
-        let _ = transport;
 
         // Emit output when secure provides a sec.
         if let Some(sec) = secure {
@@ -2251,7 +2216,7 @@ impl TypeChecker {
                 actuator_type: None,
             },
         );
-}
+    }
 
     fn check_service(&mut self, service: &ServiceDecl) {
         // Check service.
@@ -2281,7 +2246,6 @@ impl TypeChecker {
 
         // Take this path when let (Some(req), Some(res)) = (request type, response type).
         if let (Some(req), Some(res)) = (request_type, response_type) {
-
             // Take this path when resolve message type(&self.message registry, req).is none().
             if resolve_message_type(&self.message_registry, req).is_none() {
                 self.error(
@@ -2300,7 +2264,6 @@ impl TypeChecker {
                 );
             }
         } else if let Some(st) = service_type {
-
             // Take this path when service type for(st).is none().
             if service_type_for(st).is_none() {
                 self.error(
@@ -2330,7 +2293,7 @@ impl TypeChecker {
                 actuator_type: None,
             },
         );
-}
+    }
 
     fn check_action(&mut self, action: &ActionDecl) {
         // Check action.
@@ -2361,10 +2324,8 @@ impl TypeChecker {
 
         // Take this path when let (Some(req), Some(fb), Some(res)) = (request type, feedback type, r.
         if let (Some(req), Some(fb), Some(res)) = (request_type, feedback_type, result_type) {
-
             // Iterate over [req, fb, res].
             for t in [req, fb, res] {
-
                 // Take this path when resolve message type(&self.message registry, t).is none().
                 if resolve_message_type(&self.message_registry, t).is_none() {
                     self.error(
@@ -2375,7 +2336,6 @@ impl TypeChecker {
                 }
             }
         } else if let Some(at) = action_type {
-
             // Take this path when action type for(at).is none().
             if action_type_for(at).is_none() {
                 self.error(
@@ -2405,7 +2365,7 @@ impl TypeChecker {
                 actuator_type: None,
             },
         );
-}
+    }
 
     fn check_secure_block(&mut self, block: &crate::foundations::SecureBlockDecl) {
         // Check secure block.
@@ -2427,7 +2387,6 @@ impl TypeChecker {
 
         // Emit output when min trust provides a level.
         if let Some(level) = &block.min_trust {
-
             // Check membership before continuing.
             if !["untrusted", "restricted", "trusted", "certified"].contains(&level.as_str()) {
                 self.error(
@@ -2440,7 +2399,6 @@ impl TypeChecker {
 
         // Validate each requested capability.
         for cap in &block.requires {
-
             // Take the branch when is known capability is false.
             if !spanda_security::is_known_capability(cap) {
                 self.error(
@@ -2450,7 +2408,7 @@ impl TypeChecker {
                 );
             }
         }
-}
+    }
 
     fn check_sensor(
         &mut self,
@@ -2496,7 +2454,6 @@ impl TypeChecker {
 
         // Emit output when library provides a lib.
         if let Some(lib) = library {
-
             // Check membership before continuing.
             if !imported.contains(lib) {
                 self.error(
@@ -2508,7 +2465,6 @@ impl TypeChecker {
 
             // Emit output when resolve import provides a module.
             if let Some(module) = resolve_import(lib) {
-
                 // Take the branch when contains key is false.
                 if !module.sensors.contains_key(sensor_type) {
                     self.error(
@@ -2522,7 +2478,6 @@ impl TypeChecker {
 
         // Take this path when let Some(SensorBinding::Hal { bus name }) = binding.
         if let Some(SensorBinding::Hal { bus_name }) = binding {
-
             // Check membership before continuing.
             if !hal_bus_names.contains(bus_name) {
                 self.error(
@@ -2543,7 +2498,7 @@ impl TypeChecker {
                 actuator_type: None,
             },
         );
-}
+    }
 
     fn check_actuator(&mut self, actuator: &ActuatorDecl) {
         // Check actuator.
@@ -2588,7 +2543,7 @@ impl TypeChecker {
                 actuator_type: Some(actuator_type.clone()),
             },
         );
-}
+    }
 
     fn check_safety_rule(&mut self, rule: &SafetyRule) {
         // Check safety rule.
@@ -2623,7 +2578,6 @@ impl TypeChecker {
                 }
             }
             SafetyRule::StopIfRule { condition, span } => {
-
                 // Keep entries that match the expected pattern.
                 if !matches!(self.check_expr(condition), SpandaType::Bool) {
                     self.error(
@@ -2634,7 +2588,7 @@ impl TypeChecker {
                 }
             }
         }
-}
+    }
 
     fn check_safety_zone(&mut self, zone: &SafetyZoneDecl) {
         // Check safety zone.
@@ -2677,10 +2631,8 @@ impl TypeChecker {
 
         // Take the branch when *shape equals Circle.
         if *shape == ZoneShape::Circle {
-
             // Emit output when radius provides a r.
             if let Some(r) = radius {
-
                 // Keep entries that match the expected pattern.
                 if !matches!(self.check_expr(r), SpandaType::Number { .. }) {
                     self.error(
@@ -2694,10 +2646,8 @@ impl TypeChecker {
 
         // Take the branch when *shape equals Rect.
         if *shape == ZoneShape::Rect {
-
             // Emit output when width provides a w.
             if let Some(w) = width {
-
                 // Keep entries that match the expected pattern.
                 if !matches!(self.check_expr(w), SpandaType::Number { .. }) {
                     self.error(
@@ -2710,7 +2660,6 @@ impl TypeChecker {
 
             // Emit output when height provides a h.
             if let Some(h) = height {
-
                 // Keep entries that match the expected pattern.
                 if !matches!(self.check_expr(h), SpandaType::Number { .. }) {
                     self.error(
@@ -2721,7 +2670,7 @@ impl TypeChecker {
                 }
             }
         }
-}
+    }
 
     fn check_trait_impl(&mut self, decl: &TraitImplDecl) {
         // Check trait impl.
@@ -2800,7 +2749,6 @@ impl TypeChecker {
 
             // Iterate over iter with destructured elements.
             for (actual, (pname, ptype)) in method.params.iter().zip(expected_params.iter()) {
-
                 // Take the branch when name differs from type name != *ptype.
                 if actual.name != *pname || actual.type_name != *ptype {
                     self.error(
@@ -2851,7 +2799,7 @@ impl TypeChecker {
             .entry(agent_name.clone())
             .or_default()
             .insert(trait_name.clone());
-}
+    }
 
     fn check_ai_model(&mut self, model: &AiModelDecl) {
         // Check ai model.
@@ -2903,7 +2851,7 @@ impl TypeChecker {
                 actuator_type: None,
             },
         );
-}
+    }
 
     fn check_capability(&mut self, agent_name: &str, cap: &CapabilityDecl) {
         // Check capability.
@@ -2953,7 +2901,6 @@ impl TypeChecker {
             || cap.action == "call"
             || cap.action == "execute"
         {
-
             // Emit output when target provides a target.
             if let Some(target) = &cap.target {
                 let valid = self.symbols.contains_key(target)
@@ -2982,7 +2929,7 @@ impl TypeChecker {
                 );
             }
         }
-}
+    }
 
     fn check_agent(&mut self, agent: &AgentDecl) {
         // Check agent.
@@ -3036,7 +2983,6 @@ impl TypeChecker {
 
         // Process each tool.
         for tool in tools {
-
             // Take the branch when contains key is false.
             if !self.symbols.contains_key(tool) {
                 self.error(
@@ -3073,7 +3019,7 @@ impl TypeChecker {
         }
         self.active_agent = prev_agent;
         self.symbols = saved;
-}
+    }
 
     fn check_behavior(&mut self, body: &[Stmt]) {
         // Check behavior.
@@ -3111,7 +3057,7 @@ impl TypeChecker {
             self.check_stmt(stmt);
         }
         self.symbols = parent;
-}
+    }
 
     fn check_stmt(&mut self, stmt: &Stmt) {
         // Check stmt.
@@ -3137,7 +3083,6 @@ impl TypeChecker {
                 init,
                 span,
             } => {
-
                 // Emit output when type annotation provides a expected.
                 if let Some(expected) = type_annotation {
                     self.validate_type_annotation(expected, span.start.line, span.start.column);
@@ -3149,7 +3094,6 @@ impl TypeChecker {
                     Some(Expr::IdentExpr { name: agent, .. }),
                 ) = (type_annotation.as_ref(), init.as_ref())
                 {
-
                     // Take the branch when self is false.
                     if !self
                         .agent_traits
@@ -3205,7 +3149,6 @@ impl TypeChecker {
                 else_branch,
                 span,
             } => {
-
                 // Keep entries that match the expected pattern.
                 if !matches!(self.check_expr(condition), SpandaType::Bool) {
                     self.error(
@@ -3222,7 +3165,6 @@ impl TypeChecker {
 
                 // Emit output when else branch provides a else branch.
                 if let Some(else_branch) = else_branch {
-
                     // Iterate over else branch.
                     for s in else_branch {
                         self.check_stmt(s);
@@ -3230,7 +3172,6 @@ impl TypeChecker {
                 }
             }
             Stmt::LoopStmt { body, .. } => {
-
                 // Iterate over body.
                 for s in body {
                     self.check_stmt(s);
@@ -3241,10 +3182,8 @@ impl TypeChecker {
                 value,
                 span,
             } => {
-
                 // Emit output when cloned provides a topic.
                 if let Some(topic) = self.symbols.get(topic_name).cloned() {
-
                     // Take the branch when kind differs from Topic.
                     if topic.kind != SymbolKind::Topic {
                         self.error(
@@ -3270,7 +3209,6 @@ impl TypeChecker {
                 }
             }
             Stmt::ServiceCallStmt { service_name, span } => {
-
                 // Take the branch when kind) differs from Service).
                 if self.symbols.get(service_name).map(|s| s.kind) != Some(SymbolKind::Service) {
                     self.error(
@@ -3285,7 +3223,6 @@ impl TypeChecker {
                 goal,
                 span,
             } => {
-
                 // Take the branch when kind) differs from Action).
                 if self.symbols.get(action_name).map(|s| s.kind) != Some(SymbolKind::Action) {
                     self.error(
@@ -3312,7 +3249,6 @@ impl TypeChecker {
             }
             Stmt::EmitStmt { .. } => {}
             Stmt::EnterStmt { state_name, span } => {
-
                 // Check membership before continuing.
                 if !self.state_machine_states.contains(state_name) {
                     self.error(
@@ -3326,7 +3262,6 @@ impl TypeChecker {
                 self.check_expr(expr);
             }
             Stmt::ReturnStmt { value, .. } => {
-
                 // Emit output when value provides a v.
                 if let Some(v) = value {
                     self.check_expr(v);
@@ -3352,7 +3287,6 @@ impl TypeChecker {
                 goal,
                 span,
             } => {
-
                 // Take the branch when kind) differs from Action).
                 if self.symbols.get(action_name).map(|s| s.kind) != Some(SymbolKind::Action) {
                     self.error(
@@ -3400,10 +3334,8 @@ impl TypeChecker {
                 );
             }
             Stmt::SpawnStmt { callee, args, span } => {
-
                 // Take this path when let Expr::IdentExpr { name, .. } = callee.
                 if let Expr::IdentExpr { name, .. } = callee {
-
                     // Take the branch when contains key is false.
                     if !self.module_functions.contains_key(name) {
                         self.error(
@@ -3420,7 +3352,6 @@ impl TypeChecker {
                 }
             }
             Stmt::SelectStmt { arms, .. } => {
-
                 // Process each arm.
                 for arm in arms {
                     self.check_expr(&arm.channel);
@@ -3432,7 +3363,6 @@ impl TypeChecker {
                 }
             }
             Stmt::ParallelStmt { body, .. } => {
-
                 // Execute each statement in sequence.
                 for stmt in body {
                     self.check_stmt(stmt);
@@ -3450,7 +3380,7 @@ impl TypeChecker {
                 );
             }
         }
-}
+    }
 
     fn check_expr(&mut self, expr: &Expr) -> SpandaType {
         // Check expr.
@@ -3480,7 +3410,6 @@ impl TypeChecker {
             },
             Expr::UnitLiteralExpr { value: _, unit, .. } => SpandaType::Number { unit: *unit },
             Expr::IdentExpr { name, span } => {
-
                 // Emit output when get provides a enum name.
                 if let Some(enum_name) = self.variant_owner.get(name) {
                     return SpandaType::EnumVariant {
@@ -3598,7 +3527,6 @@ impl TypeChecker {
                 span,
             } => self.check_struct_literal(type_name, fields, span),
             Expr::ServiceCallExpr { service_name, span } => {
-
                 // Take the branch when kind) differs from Service).
                 if self.symbols.get(service_name).map(|s| s.kind) != Some(SymbolKind::Service) {
                     self.error(
@@ -3616,7 +3544,6 @@ impl TypeChecker {
                 goal,
                 span,
             } => {
-
                 // Take the branch when kind) differs from Action).
                 if self.symbols.get(action_name).map(|s| s.kind) != Some(SymbolKind::Action) {
                     self.error(
@@ -3636,10 +3563,8 @@ impl TypeChecker {
 
                 // Take this path when let SpandaType::Generic { name, type args } = &inner.
                 if let SpandaType::Generic { name, type_args } = &inner {
-
                     // Take the branch when name equals "Future".
                     if name == "Future" {
-
                         // Emit output when first provides a t.
                         if let Some(t) = type_args.first() {
                             return t.clone();
@@ -3654,16 +3579,12 @@ impl TypeChecker {
                 SpandaType::Void
             }
             Expr::SpawnExpr { callee, args, span } => {
-
                 // Take this path when let Expr::IdentExpr { name, .. } = callee.as ref().
                 if let Expr::IdentExpr { name, .. } = callee.as_ref() {
-
                     // Emit output when cloned provides a func.
                     if let Some(func) = self.module_functions.get(name).cloned() {
-
                         // Iterate over enumerate with destructured elements.
                         for (i, arg) in args.iter().enumerate() {
-
                             // Emit output when get provides a param.
                             if let Some(param) = func.params.get(i) {
                                 let expected = self.resolve_type_ann(&param.type_ann);
@@ -3696,7 +3617,7 @@ impl TypeChecker {
                 name: "DiscoveryResult".into(),
             },
         }
-}
+    }
 
     fn check_struct_literal(
         &mut self,
@@ -3758,7 +3679,6 @@ impl TypeChecker {
 
         // Check each struct field.
         for field in fields {
-
             // Check membership before continuing.
             if provided.contains(&field.name) {
                 self.error(
@@ -3792,7 +3712,6 @@ impl TypeChecker {
 
         // Iterate over def with destructured elements.
         for (name, _) in &def {
-
             // Check membership before continuing.
             if !provided.contains(name) {
                 self.error(
@@ -3815,7 +3734,7 @@ impl TypeChecker {
                     .collect(),
             }
         }
-}
+    }
 
     fn check_match(&mut self, scrutinee: &Expr, arms: &[MatchArm], span: &Span) -> SpandaType {
         // Check match.
@@ -3853,20 +3772,16 @@ impl TypeChecker {
 
         // Process each arm.
         for arm in arms {
-
             // Skip further work when bindings is empty.
             if !arm.bindings.is_empty() {
-
                 // Emit output when scrutinee enum provides a enum name.
                 if let Some(enum_name) = &scrutinee_enum {
-
                     // Emit output when self provides a field types.
                     if let Some(field_types) = self
                         .enum_payload_fields
                         .get(&(enum_name.clone(), arm.variant.clone()))
                         .cloned()
                     {
-
                         // Take the branch when len differs from len.
                         if arm.bindings.len() != field_types.len() {
                             self.error(
@@ -3883,7 +3798,6 @@ impl TypeChecker {
 
                         // Iterate over enumerate with destructured elements.
                         for (i, binding) in arm.bindings.iter().enumerate() {
-
                             // Emit output when get provides a type name.
                             if let Some(type_name) = field_types.get(i) {
                                 self.symbols.insert(
@@ -3919,7 +3833,7 @@ impl TypeChecker {
         }
         self.check_match_exhaustiveness(arms, &scrutinee_type, span);
         SpandaType::Void
-}
+    }
 
     fn check_match_exhaustiveness(
         &mut self,
@@ -3955,13 +3869,10 @@ impl TypeChecker {
 
         // Take this path when let SpandaType::Generic { name, .. } = scrutinee type.
         if let SpandaType::Generic { name, .. } = scrutinee_type {
-
             // Take the branch when name equals "Result".
             if name == "Result" {
-
                 // Iterate over ["Ok", "Err"].
                 for required in ["Ok", "Err"] {
-
                     // Check membership before continuing.
                     if !arm_names.contains(required) {
                         self.error(
@@ -3976,10 +3887,8 @@ impl TypeChecker {
 
             // Take the branch when name equals "Option".
             if name == "Option" {
-
                 // Iterate over ["Some", "None"].
                 for required in ["Some", "None"] {
-
                     // Check membership before continuing.
                     if !arm_names.contains(required) {
                         self.error(
@@ -3999,7 +3908,6 @@ impl TypeChecker {
 
             // Take this path when arm names.is subset(&variant set).
             if arm_names.is_subset(&variant_set) {
-
                 // Take this path when arm names.len() < variant set.len().
                 if arm_names.len() < variant_set.len() {
                     let missing: Vec<_> = variant_set.difference(&arm_names).cloned().collect();
@@ -4015,7 +3923,7 @@ impl TypeChecker {
                 return;
             }
         }
-}
+    }
 
     fn check_result_option_ctor(&mut self, name: &str, args: &[Expr], span: &Span) -> SpandaType {
         // Check result option ctor.
@@ -4038,7 +3946,6 @@ impl TypeChecker {
         // Match on name and handle each case.
         match name {
             "Ok" | "Some" => {
-
                 // Emit output when first provides a arg.
                 if let Some(arg) = args.first() {
                     let inner = self.check_expr(arg);
@@ -4088,7 +3995,7 @@ impl TypeChecker {
             },
             _ => SpandaType::Void,
         }
-}
+    }
 
     fn check_member(&mut self, object: &Expr, property: &str, span: &Span) -> SpandaType {
         // Check member.
@@ -4110,10 +4017,8 @@ impl TypeChecker {
 
         // take this path when let Expr::IdentExpr { name, .. } = object.
         if let Expr::IdentExpr { name, .. } = object {
-
             // Emit output when get provides a sym.
             if let Some(sym) = self.symbols.get(name) {
-
                 // Take the branch when as deref equals Some.
                 if sym.sensor_type.as_deref() == Some("Lidar") && property == "nearest_distance" {
                     return SpandaType::Number { unit: UnitKind::M };
@@ -4144,10 +4049,8 @@ impl TypeChecker {
                 SpandaType::Void
             }),
             SpandaType::Named { name } => {
-
                 // Emit output when get provides a variants.
                 if let Some(variants) = self.enum_variants.get(name) {
-
                     // Take the branch when any equals property).
                     if variants.iter().any(|v| v == property) {
                         return SpandaType::EnumVariant {
@@ -4159,7 +4062,6 @@ impl TypeChecker {
 
                 // Emit output when get provides a fields.
                 if let Some(fields) = self.struct_defs.get(name) {
-
                     // Take the branch when find equals property).
                     if let Some((_, type_name)) = fields.iter().find(|(field, _)| field == property)
                     {
@@ -4174,7 +4076,6 @@ impl TypeChecker {
 
                 // Emit output when builtin methods provides a methods.
                 if let Some(methods) = builtin_methods(name) {
-
                     // Emit output when get provides a method.
                     if let Some(method) = methods.get(property) {
                         return method.returns.clone();
@@ -4188,10 +4089,8 @@ impl TypeChecker {
                 SpandaType::Void
             }
             SpandaType::Generic { name, type_args } => {
-
                 // Emit output when get provides a fields.
                 if let Some(fields) = self.struct_defs.get(name) {
-
                     // Take the branch when find equals property).
                     if let Some((_, type_name)) = fields.iter().find(|(field, _)| field == property)
                     {
@@ -4226,7 +4125,7 @@ impl TypeChecker {
                 SpandaType::Void
             }
         }
-}
+    }
 
     fn check_call(
         &mut self,
@@ -4255,10 +4154,8 @@ impl TypeChecker {
 
         // take this path when let Expr::IdentExpr { name, .. } = callee.
         if let Expr::IdentExpr { name, .. } = callee {
-
             // Take the branch when name equals "channel".
             if name == "channel" {
-
                 // Skip further work when !args is empty.
                 if !args.is_empty() || !named_args.is_empty() {
                     self.error(
@@ -4274,7 +4171,6 @@ impl TypeChecker {
 
             // Take the branch when name equals "send".
             if name == "send" {
-
                 // Take this path when args.len() < 2.
                 if args.len() < 2 {
                     self.error(
@@ -4301,7 +4197,6 @@ impl TypeChecker {
                     name: channel_name, ..
                 } = &args[0]
                 {
-
                     // Emit output when cloned provides a existing.
                     if let Some(existing) = self.channel_payload_types.get(channel_name).cloned() {
                         self.assert_compatible(
@@ -4320,7 +4215,6 @@ impl TypeChecker {
 
             // Take the branch when name equals "recv".
             if name == "recv" {
-
                 // Skip further work when args is empty.
                 if args.is_empty() {
                     self.error(
@@ -4346,7 +4240,6 @@ impl TypeChecker {
                     name: channel_name, ..
                 } = &args[0]
                 {
-
                     // Emit output when get provides a existing.
                     if let Some(existing) = self.channel_payload_types.get(channel_name) {
                         return existing.clone();
@@ -4357,7 +4250,6 @@ impl TypeChecker {
 
             // Take the branch when name equals "join".
             if name == "join" {
-
                 // Skip further work when args is empty.
                 if args.is_empty() {
                     self.error(
@@ -4371,10 +4263,8 @@ impl TypeChecker {
 
                 // Take this path when let SpandaType::Generic { name, type args } = &joined.
                 if let SpandaType::Generic { name, type_args } = &joined {
-
                     // Take the branch when name equals "Future" || name == "TaskHandle".
                     if name == "Future" || name == "TaskHandle" {
-
                         // Emit output when first provides a inner.
                         if let Some(inner) = type_args.first() {
                             return inner.clone();
@@ -4391,7 +4281,6 @@ impl TypeChecker {
 
             // Take the branch when name equals "send agent".
             if name == "send_agent" {
-
                 // Take this path when args.len() < 2.
                 if args.len() < 2 {
                     self.error(
@@ -4416,7 +4305,6 @@ impl TypeChecker {
 
             // Take the branch when name equals "recv agent".
             if name == "recv_agent" {
-
                 // Take this path when self.active agent.is none().
                 if self.active_agent.is_none() {
                     self.error(
@@ -4430,7 +4318,6 @@ impl TypeChecker {
 
             // Take the branch when name equals "peer send".
             if name == "peer_send" {
-
                 // Take this path when args.len() < 3.
                 if args.len() < 3 {
                     self.error(
@@ -4450,7 +4337,6 @@ impl TypeChecker {
 
                 // Iterate over enumerate with destructured elements.
                 for (i, tp) in func.type_params.iter().enumerate() {
-
                     // Emit output when get provides a arg.
                     if let Some(arg) = args.get(i) {
                         call_scope.insert(tp.clone(), self.check_expr(arg));
@@ -4461,7 +4347,6 @@ impl TypeChecker {
 
                 // Iterate over enumerate with destructured elements.
                 for (i, arg) in args.iter().enumerate() {
-
                     // Emit output when get provides a param.
                     if let Some(param) = func.params.get(i) {
                         let expected = self.resolve_type_ann(&param.type_ann);
@@ -4486,10 +4371,8 @@ impl TypeChecker {
 
             // Emit output when cloned provides a func.
             if let Some(func) = self.extern_functions.get(name.as_str()).cloned() {
-
                 // Iterate over enumerate with destructured elements.
                 for (i, arg) in args.iter().enumerate() {
-
                     // Emit output when get provides a param.
                     if let Some(param) = func.params.get(i) {
                         let expected = self.resolve_type_ann(&param.type_ann);
@@ -4507,7 +4390,6 @@ impl TypeChecker {
 
             // Take the branch when name equals "assert".
             if name == "assert" {
-
                 // Emit output when first provides a arg.
                 if let Some(arg) = args.first() {
                     let t = self.check_expr(arg);
@@ -4535,7 +4417,6 @@ impl TypeChecker {
 
                 // Emit output when cloned provides a field types.
                 if let Some(field_types) = self.enum_payload_fields.get(&key).cloned() {
-
                     // Take the branch when len differs from len.
                     if args.len() != field_types.len() {
                         self.error(
@@ -4551,7 +4432,6 @@ impl TypeChecker {
 
                     // Iterate over enumerate with destructured elements.
                     for (i, arg) in args.iter().enumerate() {
-
                         // Emit output when get provides a type name.
                         if let Some(type_name) = field_types.get(i) {
                             let expected = self.type_name_to_spanda(type_name);
@@ -4575,7 +4455,6 @@ impl TypeChecker {
                     .get(&enum_name)
                     .is_some_and(|variants| variants.iter().any(|v| v == name))
                 {
-
                     // Skip further work when !args is empty.
                     if !args.is_empty() {
                         self.error(
@@ -4592,10 +4471,8 @@ impl TypeChecker {
 
             // Emit output when as str provides a sig.
             if let Some(sig) = builtin_functions().get(name.as_str()) {
-
                 // Apply each command-line argument.
                 for arg in named_args {
-
                     // Emit output when name) provides a expected.
                     if let Some(expected) = sig.named_params.get(&arg.name) {
                         let actual = self.check_expr(&arg.value);
@@ -4625,7 +4502,6 @@ impl TypeChecker {
         let Expr::MemberExpr {
             object, property, ..
         } = callee
-
         // Handle any remaining cases.
         else {
             self.error(
@@ -4638,7 +4514,6 @@ impl TypeChecker {
         let Expr::IdentExpr {
             name: target_name, ..
         } = object.as_ref()
-
         // Handle any remaining cases.
         else {
             self.error(
@@ -4659,13 +4534,10 @@ impl TypeChecker {
 
         // Take the branch when kind equals Robot.
         if sym.kind == SymbolKind::Robot {
-
             // Emit output when as str provides a method.
             if let Some(method) = robot_methods().get(property.as_str()) {
-
                 // Iterate over enumerate with destructured elements.
                 for (i, arg) in args.iter().enumerate() {
-
                     // Emit output when get provides a expected.
                     if let Some(expected) = method.params.get(i) {
                         let actual = self.check_expr(arg);
@@ -4689,10 +4561,8 @@ impl TypeChecker {
 
         // Take the branch when kind equals Agent.
         if sym.kind == SymbolKind::Agent {
-
             // Emit output when get provides a methods.
             if let Some(methods) = self.agent_trait_methods.get(target_name) {
-
                 // Emit output when as str provides a return type.
                 if let Some(return_type) = methods.get(property.as_str()) {
                     return return_type.clone();
@@ -4702,10 +4572,8 @@ impl TypeChecker {
 
         // Take this path when let SpandaType::TraitObject { trait name } = &sym.robo type.
         if let SpandaType::TraitObject { trait_name } = &sym.robo_type {
-
             // Emit output when get provides a methods.
             if let Some(methods) = self.trait_defs.get(trait_name) {
-
                 // Take this path when let Some(( , return type)) = methods.get(property.as str()).
                 if let Some((_, return_type)) = methods.get(property.as_str()) {
                     return self.type_name_to_spanda(return_type);
@@ -4723,7 +4591,6 @@ impl TypeChecker {
             SymbolKind::Actuator => sym.actuator_type.clone().unwrap_or_default(),
             SymbolKind::Safety => "Safety".into(),
             SymbolKind::AiModel => {
-
                 // Take this path when let SpandaType::Named { name } = sym.robo type.
                 if let SpandaType::Named { name } = sym.robo_type {
                     name
@@ -4733,7 +4600,6 @@ impl TypeChecker {
             }
             SymbolKind::Agent => "Agent".into(),
             _ => {
-
                 // Take this path when let SpandaType::Named { name } = sym.robo type.
                 if let SpandaType::Named { name } = sym.robo_type {
                     name
@@ -4770,13 +4636,10 @@ impl TypeChecker {
 
         // Apply each command-line argument.
         for arg in named_args {
-
             // Emit output when name) provides a expected.
             if let Some(expected) = method.named_params.get(&arg.name) {
-
                 // Take the branch when type name equals name == "field".
                 if type_name == "Twin" && arg.name == "field" {
-
                     // Take this path when let Expr::IdentExpr { name, span } = &arg.value.
                     if let Expr::IdentExpr { name, span } = &arg.value {
                         const ALLOWED: &[&str] = &["pose", "velocity", "battery", "status", "scan"];
@@ -4818,7 +4681,6 @@ impl TypeChecker {
 
             // Take the branch when type name equals "DifferentialDrive" && property == "execute".
             if type_name == "DifferentialDrive" && property == "execute" {
-
                 // Take this path when is action proposal type(&actual).
                 if is_action_proposal_type(&actual) {
                     self.error(
@@ -4841,7 +4703,7 @@ impl TypeChecker {
             }
         }
         method.returns.clone()
-}
+    }
 
     fn types_compatible(&self, expected: &SpandaType, actual: &SpandaType) -> bool {
         // Types compatible.
@@ -4862,7 +4724,6 @@ impl TypeChecker {
 
         // take the branch when discriminant equals discriminant.
         if std::mem::discriminant(expected) == std::mem::discriminant(actual) {
-
             // Match on value and handle each case.
             match (expected, actual) {
                 (SpandaType::Number { unit: eu, .. }, SpandaType::Number { unit: au, .. }) => {
@@ -4969,7 +4830,7 @@ impl TypeChecker {
         } else {
             false
         }
-}
+    }
 
     fn assert_named_type(&mut self, actual: &SpandaType, type_name: &str, line: u32, column: u32) {
         // Assert named type.
@@ -4992,7 +4853,6 @@ impl TypeChecker {
 
         // take this path when let SpandaType::Named { name } = actual.
         if let SpandaType::Named { name } = actual {
-
             // Take the branch when name equals type name.
             if name == type_name {
                 return;
@@ -5003,7 +4863,7 @@ impl TypeChecker {
             line,
             column,
         );
-}
+    }
 
     fn assert_compatible(
         &mut self,
@@ -5037,7 +4897,6 @@ impl TypeChecker {
 
         // Take the branch when types compatible is false.
         if !self.types_compatible(expected, actual) {
-
             // Take this path when let (SpandaType::Number { unit: eu, .. }, SpandaType::Number { unit: a.
             if let (SpandaType::Number { unit: eu, .. }, SpandaType::Number { unit: au, .. }) =
                 (expected, actual)
@@ -5063,7 +4922,7 @@ impl TypeChecker {
                 );
             }
         }
-}
+    }
 
     fn error(&mut self, message: String, line: u32, column: u32) {
         // Error.
@@ -5089,7 +4948,7 @@ impl TypeChecker {
             line,
             column,
         });
-}
+    }
 }
 
 trait SpandaTypeExt {
@@ -5116,7 +4975,6 @@ fn split_instantiated_type_name(type_name: &str) -> (String, Vec<String>) {
 
     // Emit output when find provides a lt.
     if let Some(lt) = type_name.find('<') {
-
         // Take this path when type name.ends with('>').
         if type_name.ends_with('>') {
             let base = type_name[..lt].trim().to_string();
@@ -5251,7 +5109,7 @@ impl SpandaTypeExt for SpandaType {
             SpandaType::Number { unit, .. } => *unit,
             _ => UnitKind::None,
         }
-}
+    }
 
     fn kind_name(&self) -> &'static str {
         // Kind name.
@@ -5299,7 +5157,7 @@ impl SpandaTypeExt for SpandaType {
                 "trait_object"
             }
         }
-}
+    }
 }
 
 trait HalMemberDeclExt {
@@ -5331,7 +5189,7 @@ impl HalMemberDeclExt for HalMemberDecl {
             | HalMemberDecl::HalUartDecl { name, .. }
             | HalMemberDecl::HalAdcDecl { name, .. } => name,
         }
-}
+    }
 }
 
 trait SafetyBlockRules {
@@ -5359,7 +5217,7 @@ impl SafetyBlockRules for SafetyBlock {
         match self {
             SafetyBlock::SafetyBlock { rules, .. } => rules,
         }
-}
+    }
 
     fn zones(&self) -> &[SafetyZoneDecl] {
         // Zones.
@@ -5380,7 +5238,7 @@ impl SafetyBlockRules for SafetyBlock {
         match self {
             SafetyBlock::SafetyBlock { zones, .. } => zones,
         }
-}
+    }
 }
 
 pub struct FnSig {
@@ -6862,7 +6720,6 @@ pub fn BUILTIN_METHODS() -> HashMap<String, HashMap<String, MethodSig>> {
         "Safety",
         "Twin",
     ] {
-
         // Emit output when builtin methods provides a methods.
         if let Some(methods) = builtin_methods(ty) {
             map.insert(
@@ -7061,7 +6918,7 @@ mod tests {
         let tokens = tokenize(source)?;
         let program = parse(tokens)?;
         type_check(&program)
-}
+    }
 
     #[test]
     fn accepts_valid_robot_program() {

@@ -54,7 +54,7 @@ impl Ros2Daemon {
             stdin,
             reader: BufReader::new(stdout),
         })
-}
+    }
 
     fn request(&mut self, op: &str, args: &[String]) -> bool {
         // Request.
@@ -99,7 +99,7 @@ impl Ros2Daemon {
             .ok()
             .and_then(|value| value.get("ok").and_then(|ok| ok.as_bool()))
             .unwrap_or(false)
-}
+    }
 }
 
 fn python_cmd() -> Option<String> {
@@ -119,7 +119,6 @@ fn python_cmd() -> Option<String> {
 
     // Iterate over ["python3", "python"].
     for cmd in ["python3", "python"] {
-
         // Take this path when Command::new(cmd).
         if Command::new(cmd)
             .arg("-c")
@@ -170,7 +169,6 @@ pub fn daemon_script_path() -> Result<PathBuf, String> {
 
         // Emit output when path provides a path.
         if let Some(path) = path {
-
             // Continue only when the path is a regular file.
             if path.is_file() {
                 return Ok(path);
@@ -189,7 +187,8 @@ pub fn daemon_script_path() -> Result<PathBuf, String> {
 fn with_daemon<F>(f: F) -> bool
 where
     F: FnOnce(&mut Ros2Daemon) -> bool,
-{    // take the branch when python available is false.
+{
+    // take the branch when python available is false.
     if !python_available() {
         return false;
     }
@@ -200,7 +199,6 @@ where
 
     // Take this path when guard.is none().
     if guard.is_none() {
-
         // Match on start and handle each case.
         match Ros2Daemon::start() {
             Ok(daemon) => *guard = Some(daemon),
@@ -211,7 +209,6 @@ where
 
     // Proceed only when is some is available.
     if daemon.child.try_wait().ok().flatten().is_some() {
-
         // Match on start and handle each case.
         match Ros2Daemon::start() {
             Ok(restarted) => *daemon = restarted,

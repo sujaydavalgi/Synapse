@@ -44,7 +44,7 @@ impl DeviceIdentity {
             id: id.into(),
             public_key: public_key.into(),
         }
-}
+    }
 
     pub fn signing_material(&self) -> String {
         // Signing material.
@@ -67,7 +67,7 @@ impl DeviceIdentity {
         } else {
             self.public_key.clone()
         }
-}
+    }
 
     pub fn verifying_key_hex(&self) -> String {
         // Verifying key hex.
@@ -90,7 +90,7 @@ impl DeviceIdentity {
         } else {
             crate::crypto::public_key_from_material(&self.signing_material())
         }
-}
+    }
 
     pub fn default_key(&self) -> String {
         // Default key.
@@ -109,7 +109,7 @@ impl DeviceIdentity {
 
         // Backward-compatible alias for signing material.
         self.signing_material()
-}
+    }
 }
 
 /// Append-only audit event.
@@ -153,7 +153,7 @@ impl AuditRecord {
                 .map(|h| h.0.as_str())
                 .unwrap_or("")
         )
-}
+    }
 }
 
 /// Provenance metadata linking audit records to signed mission logs.

@@ -49,7 +49,7 @@ impl DebugSession {
 
         // Produce is empty as the result.
         !self.pauses.is_empty()
-}
+    }
 }
 
 #[derive(Clone)]
@@ -81,7 +81,7 @@ impl DebugController {
             step: RefCell::new(options.step),
             pauses: Rc::new(RefCell::new(Vec::new())),
         }
-}
+    }
 
     pub fn pauses(&self) -> Rc<RefCell<Vec<DebugPause>>> {
         // Pauses.
@@ -100,7 +100,7 @@ impl DebugController {
 
         // Call clone on the current instance.
         self.pauses.clone()
-}
+    }
 
     pub fn should_pause(&self, line: u32) -> bool {
         // Should pause.
@@ -124,7 +124,7 @@ impl DebugController {
             return true;
         }
         self.breakpoints.contains(&line)
-}
+    }
 
     pub fn record_pause(
         &self,
@@ -155,7 +155,7 @@ impl DebugController {
             reason: reason.to_string(),
             variables,
         });
-}
+    }
 
     pub fn command(&self, cmd: DebugCommand) {
         // Command.
@@ -177,7 +177,7 @@ impl DebugController {
         if matches!(cmd, DebugCommand::Step) {
             *self.step.borrow_mut() = true;
         }
-}
+    }
 }
 
 pub fn stmt_line(stmt: &crate::ast::Stmt) -> u32 {

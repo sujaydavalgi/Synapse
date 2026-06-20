@@ -135,7 +135,8 @@ fn with_machine<F, R>(
 ) -> Result<R, SpandaError>
 where
     F: FnOnce(&mut DebugMachine) -> Result<R, SpandaError>,
-{    // Produce with as the result.
+{
+    // Produce with as the result.
     DEBUG_MACHINE.with(|cell| {
         let mut slot = cell.borrow_mut();
 
@@ -220,10 +221,8 @@ pub fn serve(
                     .pointer("/arguments/breakpoints")
                     .and_then(|v| v.as_array())
                 {
-
                     // Iterate over bps.
                     for bp in bps {
-
                         // Emit output when as u64 provides a line.
                         if let Some(line) = bp.get("line").and_then(|l| l.as_u64()) {
                             breakpoints.insert(line as u32);
@@ -241,7 +240,6 @@ pub fn serve(
                 respond(writer, &req, json!({}))?;
             }
             "continue" | "next" | "stepIn" | "stepOut" | "pause" => {
-
                 // Take this path when running.
                 if running {
                     let kind = step_kind(command);

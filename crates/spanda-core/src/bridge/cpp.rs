@@ -112,10 +112,8 @@ pub fn call_extern(
 
     // Produce #[cfg as the result.
     #[cfg(feature = "cpp-native")]
-
     // Take this path when std::env::var("SPANDA CPP SUBPROCESS").is err().
     if std::env::var("SPANDA_CPP_SUBPROCESS").is_err() {
-
         // Take this path when super::cpp native::native available().
         if super::cpp_native::native_available() {
             return super::cpp_native::call_extern(decl, args);
@@ -172,7 +170,7 @@ mod tests {
                 },
             },
         }
-}
+    }
 
     #[test]
     fn subprocess_cpp_add_when_binary_available() {

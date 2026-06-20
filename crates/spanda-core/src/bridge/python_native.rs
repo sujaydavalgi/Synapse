@@ -153,7 +153,7 @@ mod tests {
                 },
             },
         }
-}
+    }
 
     #[test]
     fn native_py_add_when_available() {

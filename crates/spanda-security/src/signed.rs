@@ -49,7 +49,7 @@ impl SignedMessage {
             },
             hash: hash.0,
         }
-}
+    }
 
     pub fn verify(&self, identity: &RobotIdentity) -> SecurityResult<bool> {
         // Verify.
@@ -76,7 +76,7 @@ impl SignedMessage {
             &self.signature.value,
             &identity.signing_key(),
         ))
-}
+    }
 
     pub fn to_json(&self) -> SecurityResult<String> {
         // Convert to json.
@@ -96,7 +96,7 @@ impl SignedMessage {
         // Produce to string as the result.
         serde_json::to_string(self)
             .map_err(|e| SecurityError::Other(format!("serialization failed: {e}")))
-}
+    }
 }
 
 #[cfg(test)]

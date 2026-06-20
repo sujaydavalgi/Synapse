@@ -73,7 +73,7 @@ impl SafetyMonitor {
             config,
             emergency_stop: false,
         }
-}
+    }
 
     pub fn evaluate_before_motion(&mut self, env: &Environment, pose: &Pose2d) -> SafetyEvaluation {
         // Evaluate before motion.
@@ -100,7 +100,7 @@ impl SafetyMonitor {
             self.emergency_stop = true;
         }
         peek
-}
+    }
 
     pub fn peek_before_motion(&self, env: &Environment, pose: &Pose2d) -> SafetyEvaluation {
         // Peek before motion.
@@ -130,7 +130,6 @@ impl SafetyMonitor {
 
         // Process each stop if rule.
         for rule in &self.config.stop_if_rules {
-
             // Take this path when rule(env).
             if rule(env) {
                 return SafetyEvaluation {
@@ -143,7 +142,6 @@ impl SafetyMonitor {
 
         // Process each zone.
         for zone in &self.config.zones {
-
             // Take this path when Self::is point in zone(pose.x, pose.y, zone).
             if Self::is_point_in_zone(pose.x, pose.y, zone) {
                 return SafetyEvaluation {
@@ -158,7 +156,7 @@ impl SafetyMonitor {
             reason: None,
             emergency_stop: false,
         }
-}
+    }
 
     pub fn validate_action_proposal(
         &self,
@@ -200,7 +198,7 @@ impl SafetyMonitor {
             linear: self.clamp_speed(linear),
             angular,
         })
-}
+    }
 
     pub fn is_in_zone(&self, zone_name: &str, pose: &Pose2d) -> bool {
         //
@@ -223,7 +221,7 @@ impl SafetyMonitor {
             return false;
         };
         Self::is_point_in_zone(pose.x, pose.y, zone)
-}
+    }
 
     pub fn clamp_speed(&self, requested: f64) -> f64 {
         // Clamp speed.
@@ -248,7 +246,7 @@ impl SafetyMonitor {
             requested.signum()
         };
         requested.abs().min(self.config.max_speed) * sign
-}
+    }
 
     pub fn is_emergency_stop(&self) -> bool {
         //
@@ -266,7 +264,7 @@ impl SafetyMonitor {
 
         // Call emergency stop on the current instance.
         self.emergency_stop
-}
+    }
 
     pub fn set_emergency_stop(&mut self, active: bool) {
         // Set emergency stop.
@@ -286,7 +284,7 @@ impl SafetyMonitor {
 
         // Call emergency stop = active; on the current instance.
         self.emergency_stop = active;
-}
+    }
 
     pub fn reset(&mut self) {
         // Reset the value.
@@ -305,7 +303,7 @@ impl SafetyMonitor {
 
         // Call emergency stop = false; on the current instance.
         self.emergency_stop = false;
-}
+    }
 
     fn is_point_in_zone(x: f64, y: f64, zone: &SafetyZoneRuntime) -> bool {
         //
@@ -326,7 +324,6 @@ impl SafetyMonitor {
         // Match on shape and handle each case.
         match zone.shape {
             SafetyZoneShape::Circle => {
-
                 // Emit output when radius provides a radius.
                 if let Some(radius) = zone.radius {
                     let dx = x - zone.x;
@@ -337,7 +334,6 @@ impl SafetyMonitor {
                 }
             }
             SafetyZoneShape::Rect => {
-
                 // Take this path when let (Some(width), Some(height)) = (zone.width, zone.height).
                 if let (Some(width), Some(height)) = (zone.width, zone.height) {
                     x >= zone.x && x <= zone.x + width && y >= zone.y && y <= zone.y + height
@@ -346,7 +342,7 @@ impl SafetyMonitor {
                 }
             }
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

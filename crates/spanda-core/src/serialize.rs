@@ -175,7 +175,6 @@ fn runtime_to_json(value: &RuntimeValue) -> JsonValue {
             "value": runtime_to_json(value),
         }),
         RuntimeValue::Option { present, value } => {
-
             // Take this path when *present.
             if *present {
                 json!({ "kind": "some", "value": runtime_to_json(value.as_ref().unwrap()) })
@@ -349,7 +348,6 @@ fn json_to_runtime(value: &JsonValue) -> Result<RuntimeValue, SpandaError> {
 
             // Emit output when as object provides a field obj.
             if let Some(field_obj) = obj.get("fields").and_then(|v| v.as_object()) {
-
                 // Iterate over field obj with destructured elements.
                 for (k, v) in field_obj {
                     fields.insert(k.clone(), json_to_runtime(v)?);

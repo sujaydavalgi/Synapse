@@ -36,7 +36,7 @@ impl ModuleRegistry {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn register(&mut self, module_name: &str, program: &Program) {
         // Register the value.
@@ -71,7 +71,7 @@ impl ModuleRegistry {
             }
         }
         self.modules.insert(module_name.to_string(), exports);
-}
+    }
 
     pub fn exports_for(&self, import_path: &str) -> Option<&ModuleExports> {
         // Exports for.
@@ -91,7 +91,7 @@ impl ModuleRegistry {
 
         // Call get on the current instance.
         self.modules.get(import_path)
-}
+    }
 
     pub fn function(&self, import_path: &str, name: &str) -> Option<&ModuleFnDecl> {
         // Function.
@@ -113,10 +113,11 @@ impl ModuleRegistry {
         // Call exports for on the current instance.
         self.exports_for(import_path)
             .and_then(|e| e.functions.get(name))
-}
+    }
 
     /// Build a registry from parsed programs. Each entry is `(module_name, program)`.
-    pub fn from_programs(entries: &[(String, Program)]) -> Self {        // Create mutable registry for accumulating results.
+    pub fn from_programs(entries: &[(String, Program)]) -> Self {
+        // Create mutable registry for accumulating results.
         let mut registry = Self::new();
 
         // Iterate over entries with destructured elements.
@@ -124,7 +125,7 @@ impl ModuleRegistry {
             registry.register(name, program);
         }
         registry
-}
+    }
 
     pub fn module_count(&self) -> usize {
         //
@@ -142,7 +143,7 @@ impl ModuleRegistry {
 
         // Call len on the current instance.
         self.modules.len()
-}
+    }
 }
 
 /// Parse all `.sd` files under `src/` and `tests/`, building a module registry.
@@ -177,7 +178,6 @@ pub fn load_project_modules(project_root: &Path) -> Result<ModuleRegistry, Spand
 
     // Treat the path as a directory and scan its contents.
     if vendor_root.is_dir() {
-
         // Process each registry entry.
         for entry in std::fs::read_dir(&vendor_root).map_err(|e| SpandaError::Runtime {
             message: e.to_string(),
@@ -319,7 +319,7 @@ mod tests {
                 offset: 0,
             },
         }
-}
+    }
 
     fn sample_program(functions: Vec<ModuleFnDecl>) -> Program {
         // Sample program.
@@ -355,7 +355,7 @@ mod tests {
             robots: vec![],
             span: empty_span(),
         }
-}
+    }
 
     #[test]
     fn registry_exports_public_functions_only() {

@@ -112,7 +112,6 @@ pub fn cmd_init(args: &[String]) {
 
     // Repeat while i < args.len().
     while i < args.len() {
-
         // Match on as str and handle each case.
         match args[i].as_str() {
             "--description" => {
@@ -367,7 +366,6 @@ pub fn cmd_add(args: &[String]) {
 
     // Repeat while i < args.len().
     while i < args.len() {
-
         // Match on as str and handle each case.
         match args[i].as_str() {
             "--version" => {
@@ -508,10 +506,8 @@ fn run_install_inner(root: &Path, manifest: &PackageManifest, verbose: bool) -> 
     // Match on vendor dependencies and handle each case.
     match spanda_package::vendor_dependencies(root, &lockfile) {
         Ok(vendor) => {
-
             // Take this path when verbose.
             if verbose {
-
                 // Handle each entry in vendored.
                 for item in &vendor.vendored {
                     println!("  vendored {item}");
@@ -624,7 +620,6 @@ pub fn cmd_registry_search(args: &[String]) {
 
     // Iterate over each name in merged.
     for name in merged {
-
         // Emit output when registry info provides a info.
         if let Some(info) = registry_info(&name) {
             let version = info.versions.last().map(String::as_str).unwrap_or("?");
@@ -705,7 +700,6 @@ fn validate_project(root: &Path, manifest: &PackageManifest) {
     // Match on validate package and handle each case.
     match validate_package(manifest, &perms) {
         Ok(report) => {
-
             // Process each warning.
             for w in &report.warnings {
                 eprintln!("  ⚠ {w}");
@@ -740,7 +734,6 @@ fn parse_project_arg(args: &[String]) -> PathBuf {
 
     // Repeat while i < args.len().
     while i < args.len() {
-
         // Take the branch when args[i] equals "--project".
         if args[i] == "--project" {
             i += 1;

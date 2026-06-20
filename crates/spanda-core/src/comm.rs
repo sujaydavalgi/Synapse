@@ -47,7 +47,7 @@ impl TransportKind {
             "sim" => Some(Self::Sim),
             _ => None,
         }
-}
+    }
 
     pub fn as_str(self) -> &'static str {
         //
@@ -72,7 +72,7 @@ impl TransportKind {
             Self::Websocket => "websocket",
             Self::Sim => "sim",
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -150,7 +150,7 @@ impl MessageRegistry {
             reg.builtin.insert(name.into());
         }
         reg
-}
+    }
 
     pub fn register(&mut self, decl: &MessageDecl) {
         // Register the value.
@@ -186,7 +186,7 @@ impl MessageRegistry {
                 version: *version,
             },
         );
-}
+    }
 
     pub fn from_program(
         messages: &[MessageDecl],
@@ -231,7 +231,7 @@ impl MessageRegistry {
             );
         }
         reg
-}
+    }
 
     pub fn is_known(&self, name: &str) -> bool {
         //
@@ -250,7 +250,7 @@ impl MessageRegistry {
 
         // Call contains on the current instance.
         self.builtin.contains(name) || self.schemas.contains_key(name)
-}
+    }
 
     pub fn get(&self, name: &str) -> Option<&MessageSchema> {
         // Get.
@@ -270,7 +270,7 @@ impl MessageRegistry {
 
         // Call get on the current instance.
         self.schemas.get(name)
-}
+    }
 
     pub fn resolve_type(&self, name: &str) -> Option<SpandaType> {
         // Resolve type.
@@ -308,7 +308,7 @@ impl MessageRegistry {
             }
             _ => None,
         }
-}
+    }
 }
 
 // ── Communication declarations ─────────────────────────────────────────────
@@ -426,7 +426,7 @@ impl Default for SimNetworkConfig {
             delay_ms: 0.0,
             packet_loss: 0.0,
         }
-}
+    }
 }
 
 pub trait CommBus {
@@ -496,7 +496,7 @@ impl InMemoryCommBus {
             discovered_devices: vec!["Camera".into(), "IMU".into(), "Lidar".into()],
             ..Default::default()
         }
-}
+    }
 
     pub fn register_robot(&mut self, name: impl Into<String>) {
         // Register robot.
@@ -516,7 +516,7 @@ impl InMemoryCommBus {
 
         // Append into self.
         self.discovered_robots.push(name.into());
-}
+    }
 
     pub fn register_agent(&mut self, name: impl Into<String>) {
         // Register agent.
@@ -536,7 +536,7 @@ impl InMemoryCommBus {
 
         // Append into self.
         self.discovered_agents.push(name.into());
-}
+    }
 
     pub fn register_device(&mut self, name: impl Into<String>) {
         // Register device.
@@ -556,7 +556,7 @@ impl InMemoryCommBus {
 
         // Append into self.
         self.discovered_devices.push(name.into());
-}
+    }
 
     pub fn active_faults(&self) -> Vec<String> {
         // Active faults.
@@ -575,7 +575,7 @@ impl InMemoryCommBus {
 
         // Call clone on the current instance.
         self.faults.clone()
-}
+    }
 
     pub fn subscription_paths(&self) -> Vec<String> {
         // Subscription paths.
@@ -594,7 +594,7 @@ impl InMemoryCommBus {
 
         // Collect filtered entries into a new list.
         self.subscriptions.keys().cloned().collect()
-}
+    }
 
     pub fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
         // Push inbound.
@@ -618,7 +618,7 @@ impl InMemoryCommBus {
             .entry(topic_path.to_string())
             .or_default()
             .push_back(value);
-}
+    }
 
     /// Deliver a message to a peer robot topic namespace (`/{peer}/{topic}`).
     pub fn publish_peer(
@@ -649,7 +649,7 @@ impl InMemoryCommBus {
         // Resolve the filesystem path for the next step.
         let path = format!("/{peer}/{topic}");
         self.publish(&path, "PeerMessage", value, transport);
-}
+    }
 }
 
 impl CommBus for InMemoryCommBus {
@@ -703,7 +703,7 @@ impl CommBus for InMemoryCommBus {
         if let Some(buf) = self.buffers.get_mut(topic_path) {
             buf.push_back(value);
         }
-}
+    }
 
     fn subscribe(&mut self, topic_path: &str, handler: &str) {
         // Subscribe.
@@ -728,7 +728,7 @@ impl CommBus for InMemoryCommBus {
             .or_default()
             .push(handler.to_string());
         self.buffers.entry(topic_path.to_string()).or_default();
-}
+    }
 
     fn receive(&mut self, topic_path: &str) -> Option<RuntimeValue> {
         // Receive.
@@ -748,7 +748,7 @@ impl CommBus for InMemoryCommBus {
 
         // Transform self and continue the chain.
         self.buffers.get_mut(topic_path).and_then(|q| q.pop_front())
-}
+    }
 
     fn call_service(
         &mut self,
@@ -778,7 +778,7 @@ impl CommBus for InMemoryCommBus {
             type_name: service_type.to_string(),
             fields: HashMap::from([("ok".into(), RuntimeValue::Bool { value: true })]),
         }
-}
+    }
 
     fn send_action(
         &mut self,
@@ -808,7 +808,7 @@ impl CommBus for InMemoryCommBus {
             type_name: action_type.to_string(),
             fields: HashMap::from([("success".into(), RuntimeValue::Bool { value: true })]),
         }
-}
+    }
 
     fn discover(&self, target: DiscoverTarget, filter: &DiscoverFilter) -> Vec<String> {
         // Discover.
@@ -842,7 +842,7 @@ impl CommBus for InMemoryCommBus {
         } else {
             base
         }
-}
+    }
 
     fn published_messages(&self) -> Vec<PublishedCommMessage> {
         // Published messages.
@@ -861,7 +861,7 @@ impl CommBus for InMemoryCommBus {
 
         // Call clone on the current instance.
         self.published.clone()
-}
+    }
 
     fn inject_fault(&mut self, fault: &str) {
         // Inject fault.
@@ -881,7 +881,7 @@ impl CommBus for InMemoryCommBus {
 
         // Append into self.
         self.faults.push(fault.to_string());
-}
+    }
 
     fn set_network_config(&mut self, config: SimNetworkConfig) {
         // Set network config.
@@ -901,7 +901,7 @@ impl CommBus for InMemoryCommBus {
 
         // Call network = config; on the current instance.
         self.network = config;
-}
+    }
 
     fn active_faults(&self) -> Vec<String> {
         // Active faults.
@@ -920,7 +920,7 @@ impl CommBus for InMemoryCommBus {
 
         // Call clone on the current instance.
         self.faults.clone()
-}
+    }
 
     fn subscription_paths(&self) -> Vec<String> {
         // Subscription paths.
@@ -939,7 +939,7 @@ impl CommBus for InMemoryCommBus {
 
         // Collect filtered entries into a new list.
         self.subscriptions.keys().cloned().collect()
-}
+    }
 
     fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
         // Push inbound.
@@ -963,7 +963,7 @@ impl CommBus for InMemoryCommBus {
             .entry(topic_path.to_string())
             .or_default()
             .push_back(value);
-}
+    }
 }
 
 // ── Safety communication wrappers ────────────────────────────────────────────
@@ -998,7 +998,6 @@ pub fn validate_comm_safety_chain(
     // Match on stage and handle each case.
     match stage {
         CommSafetyStage::ActionProposal => {
-
             // Keep entries that match the expected pattern.
             if !matches!(value, RuntimeValue::Object { type_name, .. } if type_name == "ActionProposal")
             {
@@ -1006,7 +1005,6 @@ pub fn validate_comm_safety_chain(
             }
         }
         CommSafetyStage::SafeAction => {
-
             // Keep entries that match the expected pattern.
             if !matches!(value, RuntimeValue::Object { type_name, .. } if type_name == "SafeAction")
             {
@@ -1014,7 +1012,6 @@ pub fn validate_comm_safety_chain(
             }
         }
         CommSafetyStage::CommandMessage => {
-
             // Keep entries that match the expected pattern.
             if !matches!(value, RuntimeValue::Object { type_name, .. } if type_name == "CommandMessage")
             {

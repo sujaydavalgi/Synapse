@@ -29,7 +29,7 @@ impl Default for FfiRegistry {
 
         // Build the result via new.
         Self::new()
-}
+    }
 }
 
 impl FfiRegistry {
@@ -55,7 +55,7 @@ impl FfiRegistry {
         registry.register("stub_echo", stub_echo);
         registry.register("stub_add", stub_add);
         registry
-}
+    }
 
     pub fn register(&mut self, name: &str, handler: FfiHandler) {
         // Register the value.
@@ -76,7 +76,7 @@ impl FfiRegistry {
 
         // Append into self.
         self.handlers.insert(name.to_string(), handler);
-}
+    }
 
     pub fn has_handler(&self, name: &str) -> bool {
         //
@@ -95,7 +95,7 @@ impl FfiRegistry {
 
         // Call contains key on the current instance.
         self.handlers.contains_key(name)
-}
+    }
 
     pub fn call(
         &self,
@@ -142,7 +142,7 @@ impl FfiRegistry {
                 line: decl.span.start.line,
             })?;
         handler(args)
-}
+    }
 }
 
 fn stub_echo(args: &[RuntimeValue]) -> Result<RuntimeValue, SpandaError> {

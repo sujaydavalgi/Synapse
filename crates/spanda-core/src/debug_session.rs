@@ -97,7 +97,7 @@ impl DebugMachine {
             source_path: options.source_path,
             finished: false,
         })
-}
+    }
 
     pub fn is_finished(&self) -> bool {
         //
@@ -115,7 +115,7 @@ impl DebugMachine {
 
         // Call finished on the current instance.
         self.finished
-}
+    }
 
     pub fn source_path(&self) -> Option<&str> {
         // Source path.
@@ -134,7 +134,7 @@ impl DebugMachine {
 
         // Call as deref on the current instance.
         self.source_path.as_deref()
-}
+    }
 
     pub fn pauses(&self) -> Vec<DebugPause> {
         // Pauses.
@@ -153,7 +153,7 @@ impl DebugMachine {
 
         // Call pauses on the current instance.
         self.controller.pauses().borrow().clone()
-}
+    }
 
     pub fn stack_trace(&self) -> Vec<(String, u32)> {
         // Stack trace.
@@ -175,7 +175,7 @@ impl DebugMachine {
             .into_iter()
             .map(|frame| (frame.name, frame.line))
             .collect()
-}
+    }
 
     pub fn stack_trace_frames(&self) -> Vec<DebugStackFrame> {
         // Stack trace frames.
@@ -206,7 +206,7 @@ impl DebugMachine {
                 }
             })
             .collect()
-}
+    }
 
     pub fn frame_variables(&self, frame_id: usize) -> HashMap<String, String> {
         // Frame variables.
@@ -233,7 +233,7 @@ impl DebugMachine {
             .get(index)
             .map(|frame| frame.locals.clone())
             .unwrap_or_default()
-}
+    }
 
     pub fn set_variable(&mut self, name: &str, value: &str) -> Result<(), SpandaError> {
         // Set variable.
@@ -262,7 +262,7 @@ impl DebugMachine {
             frame.locals = self.interpreter.env().snapshot_display();
         }
         Ok(())
-}
+    }
 
     pub fn run_until_pause(&mut self, step: DebugStepKind) -> Result<DebugSession, SpandaError> {
         // Run until pause.
@@ -298,10 +298,8 @@ impl DebugMachine {
 
         // Run the loop body until it exits.
         loop {
-
             // Skip further work when frames is empty.
             if self.frames.is_empty() {
-
                 // Proceed only when is some is available.
                 if self.step_out_target_depth.is_some() {
                     self.record_pause_at_top(1, "step-out");
@@ -314,7 +312,6 @@ impl DebugMachine {
 
             // Take this path when self.frames[frame top].index >= self.frames[frame top].stmts.len().
             if self.frames[frame_top].index >= self.frames[frame_top].stmts.len() {
-
                 // Emit output when take provides a env.
                 if let Some(env) = self.frames[frame_top].restore_env.take() {
                     self.interpreter.restore_env(env);
@@ -323,7 +320,6 @@ impl DebugMachine {
 
                 // Emit output when step out target depth provides a target.
                 if let Some(target) = self.step_out_target_depth {
-
                     // Take this path when self.frames.len() <= target.
                     if self.frames.len() <= target {
                         let line = self
@@ -373,7 +369,7 @@ impl DebugMachine {
         Ok(DebugSession {
             pauses: self.controller.pauses().borrow().clone(),
         })
-}
+    }
 
     fn sync_top_locals(&mut self) {
         // Sync top locals.
@@ -396,7 +392,7 @@ impl DebugMachine {
         if let Some(frame) = self.frames.last_mut() {
             frame.locals = self.interpreter.env().snapshot_display();
         }
-}
+    }
 
     fn record_pause_at_top(&mut self, line: u32, reason: &str) {
         // Record pause at top.
@@ -423,7 +419,7 @@ impl DebugMachine {
             .map(|frame| frame.locals.clone())
             .unwrap_or_default();
         self.controller.record_pause(line, reason, variables);
-}
+    }
 
     fn try_enter_inner(
         &mut self,
@@ -486,7 +482,7 @@ impl DebugMachine {
             return Ok(true);
         }
         Ok(false)
-}
+    }
 }
 
 fn behavior_body(robot: &RobotDecl) -> Result<(String, Vec<Stmt>), SpandaError> {

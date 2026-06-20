@@ -38,7 +38,7 @@ impl TrustLevel {
             Self::Trusted,
             Self::Certified,
         ]
-}
+    }
 
     pub fn rank(self) -> u8 {
         // Rank.
@@ -62,7 +62,7 @@ impl TrustLevel {
             Self::Trusted => 2,
             Self::Certified => 3,
         }
-}
+    }
 
     pub fn as_str(self) -> &'static str {
         //
@@ -85,7 +85,7 @@ impl TrustLevel {
             Self::Trusted => "trusted",
             Self::Certified => "certified",
         }
-}
+    }
 
     pub fn satisfies(self, required: TrustLevel) -> bool {
         // Satisfies.
@@ -105,7 +105,7 @@ impl TrustLevel {
 
         // Call rank on the current instance.
         self.rank().cmp(&required.rank()) != Ordering::Less
-}
+    }
 }
 
 impl FromStr for TrustLevel {
@@ -134,7 +134,7 @@ impl FromStr for TrustLevel {
             "certified" => Ok(Self::Certified),
             other => Err(format!("unknown trust level '{other}'")),
         }
-}
+    }
 }
 
 #[cfg(test)]

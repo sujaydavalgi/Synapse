@@ -27,7 +27,7 @@ impl PackagePermissions {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn permissive() -> Self {
         // Permissive.
@@ -48,7 +48,7 @@ impl PackagePermissions {
         Self {
             capabilities: CapabilitySet::permissive(),
         }
-}
+    }
 
     pub fn from_capabilities(caps: impl IntoIterator<Item = impl Into<String>>) -> Self {
         // Construct from capabilities.
@@ -69,5 +69,5 @@ impl PackagePermissions {
         let mut set = CapabilitySet::new();
         set.grant_all(caps);
         Self { capabilities: set }
-}
+    }
 }

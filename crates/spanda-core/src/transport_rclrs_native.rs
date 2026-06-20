@@ -51,7 +51,6 @@ fn library_candidates() -> Vec<PathBuf> {
 
     // Handle the success value from current exe.
     if let Ok(exe) = std::env::current_exe() {
-
         // Emit output when parent provides a dir.
         if let Some(dir) = exe.parent() {
             #[cfg(target_os = "macos")]
@@ -121,13 +120,10 @@ fn native() -> Option<&'static NativeLib> {
     // Produce NATIVE as the result.
     NATIVE
         .get_or_init(|| {
-
             // Process each filesystem path.
             for path in library_candidates() {
-
                 // Continue only when the path is a regular file.
                 if path.is_file() {
-
                     // Emit output when load library provides a lib.
                     if let Some(lib) = load_library(&path) {
                         return Some(lib);

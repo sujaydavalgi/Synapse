@@ -197,7 +197,6 @@ pub fn search_registry_merged(query: &str) -> Vec<String> {
 
     // Iterate over search remote registry.
     for remote in super::registry_remote::search_remote_registry(query) {
-
         // Take the branch when any equals name).
         if !names.iter().any(|name| name == &remote.name) {
             names.push(remote.name);
@@ -254,7 +253,6 @@ pub fn registry_package_dir(name: &str) -> Option<std::path::PathBuf> {
 }
 
 impl RegistryEntry {
-
     /// Default safety level for registry packages (until per-entry metadata is stored remotely).
     pub fn safety_level(&self) -> SafetyLevel {
         // Safety level.
@@ -280,7 +278,7 @@ impl RegistryEntry {
             "spanda-openai" => SafetyLevel::Experimental,
             _ => SafetyLevel::Experimental,
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -118,10 +118,8 @@ pub fn collect_source_files(project_root: &Path) -> PackageResult<Vec<PathBuf>> 
 
     // Skip further work when files is empty.
     if files.is_empty() {
-
         // Handle the success value from read dir.
         if let Ok(entries) = fs::read_dir(project_root) {
-
             // Process each registry entry.
             for entry in entries.flatten() {
                 let path = entry.path();

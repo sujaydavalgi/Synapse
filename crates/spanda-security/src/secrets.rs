@@ -42,7 +42,7 @@ impl SecretHandle {
             }),
             SecretSource::Literal { value } => Ok(value.clone()),
         }
-}
+    }
 
     /// Redacted representation safe for audit logs.
     pub fn redacted_label(&self) -> String {
@@ -62,7 +62,7 @@ impl SecretHandle {
 
         // Produce name) as the result.
         format!("secret:{}", self.name)
-}
+    }
 }
 
 /// In-memory secret store keyed by declaration name.
@@ -89,7 +89,7 @@ impl SecretStore {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn register(&mut self, handle: SecretHandle) {
         // Register the value.
@@ -109,7 +109,7 @@ impl SecretStore {
 
         // Append into self.
         self.secrets.insert(handle.name.clone(), handle);
-}
+    }
 
     pub fn get(&self, name: &str) -> SecurityResult<&SecretHandle> {
         // Get.
@@ -131,7 +131,7 @@ impl SecretStore {
         self.secrets
             .get(name)
             .ok_or_else(|| SecurityError::SecretNotFound(name.to_string()))
-}
+    }
 
     pub fn resolve(&self, name: &str) -> SecurityResult<String> {
         // Resolve.
@@ -151,7 +151,7 @@ impl SecretStore {
 
         // Call get on the current instance.
         self.get(name)?.resolve()
-}
+    }
 
     pub fn names(&self) -> impl Iterator<Item = &str> {
         // Names.
@@ -170,7 +170,7 @@ impl SecretStore {
 
         // Transform self and continue the chain.
         self.secrets.keys().map(String::as_str)
-}
+    }
 }
 
 #[cfg(test)]

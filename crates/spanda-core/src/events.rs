@@ -63,7 +63,7 @@ impl EventBus {
         Self {
             handlers: HashMap::new(),
         }
-}
+    }
 
     pub fn register(&mut self, event: String, body: Vec<Stmt>) {
         // Registers or replaces the handler body for an event name.
@@ -88,7 +88,7 @@ impl EventBus {
 
         // bus.register("tick".into(), vec![]);
         self.handlers.insert(event, body);
-}
+    }
 
     pub fn handler_body(&self, event: &str) -> Option<&[Stmt]> {
         // Returns the handler statement slice for an event, if registered.
@@ -112,7 +112,7 @@ impl EventBus {
 
         // assert!(bus.handler_body("missing").is_none());
         self.handlers.get(event).map(|v| v.as_slice())
-}
+    }
 }
 
 impl Default for EventBus {
@@ -132,5 +132,5 @@ impl Default for EventBus {
 
         // Build the result via new.
         Self::new()
-}
+    }
 }

@@ -114,10 +114,8 @@ pub fn sign(data: &str, key_material: &str) -> String {
 
     // Compute sk for the following logic.
     let sk = if key_material.len() == 64 && key_material.chars().all(|c| c.is_ascii_hexdigit()) {
-
         // Handle the success value from decode.
         if let Ok(bytes) = hex::decode(key_material) {
-
             // Take the branch when len equals 32.
             if bytes.len() == 32 {
                 SigningKey::from_bytes(&bytes.try_into().expect("32-byte seed"))
@@ -166,13 +164,10 @@ pub fn verify_signature(data: &str, signature: &str, key: &str) -> bool {
 
     // Take this path when is hex public key(key).
     if is_hex_public_key(key) {
-
         // Handle the success value from decode.
         if let Ok(pk) = hex::decode(key) {
-
             // Take the branch when len equals 32.
             if pk.len() == 32 {
-
                 // Handle the success value from expect.
                 if let Ok(vk) = VerifyingKey::from_bytes(&pk.try_into().expect("32-byte key")) {
                     return verify_with(&vk);

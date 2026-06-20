@@ -40,7 +40,7 @@ impl SensorInterface {
             SensorInterface::Ethernet => "ethernet",
             SensorInterface::Gpio => "gpio",
         }
-}
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1392,7 +1392,6 @@ pub fn all_library_sensor_types() -> HashMap<String, LibrarySensorTypeInfo> {
 
     // Iterate over registry with destructured elements.
     for (lib_id, module) in registry() {
-
         // Process each key.
         for type_name in module.sensors.keys() {
             result.insert(

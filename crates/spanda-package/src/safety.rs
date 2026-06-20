@@ -37,7 +37,7 @@ impl SafetyLevel {
             Self::HardwareSafe,
             Self::Certified,
         ]
-}
+    }
 
     pub fn as_str(&self) -> &'static str {
         //
@@ -60,7 +60,7 @@ impl SafetyLevel {
             Self::HardwareSafe => "hardware_safe",
             Self::Certified => "certified",
         }
-}
+    }
 
     /// Whether this level may control physical actuators on real hardware.
     pub fn can_control_actuators_default(&self) -> bool {
@@ -80,7 +80,7 @@ impl SafetyLevel {
 
         // Produce Certified) as the result.
         matches!(self, Self::HardwareSafe | Self::Certified)
-}
+    }
 
     /// Whether packages at this level require manual review before deployment.
     pub fn requires_review_default(&self) -> bool {
@@ -100,7 +100,7 @@ impl SafetyLevel {
 
         // Produce SimulationOnly) as the result.
         matches!(self, Self::Experimental | Self::SimulationOnly)
-}
+    }
 }
 
 impl FromStr for SafetyLevel {
@@ -129,7 +129,7 @@ impl FromStr for SafetyLevel {
             "certified" => Ok(Self::Certified),
             other => Err(format!("unknown safety level '{other}'")),
         }
-}
+    }
 }
 
 /// Safety metadata from `[safety]` in spanda.toml.
@@ -184,7 +184,7 @@ impl Default for SafetyMetadata {
             requires_review: level.requires_review_default(),
             can_control_actuators: level.can_control_actuators_default(),
         }
-}
+    }
 }
 
 impl SafetyMetadata {
@@ -207,5 +207,5 @@ impl SafetyMetadata {
         if self.level == SafetyLevel::default() && !self.can_control_actuators {
             self.requires_review = self.level.requires_review_default();
         }
-}
+    }
 }

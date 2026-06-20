@@ -64,7 +64,7 @@ impl BridgeKind {
             Self::Python => "python",
             Self::Cpp => "cpp",
         }
-}
+    }
 }
 
 /// Foreign function interface declaration (`extern fn read_sensor() -> Int;`).
@@ -263,7 +263,7 @@ impl TaskPriority {
             "low" => Some(Self::Low),
             _ => None,
         }
-}
+    }
 }
 
 /// Event declaration and handler.
@@ -591,7 +591,7 @@ impl Default for SecureBlockDecl {
                 },
             },
         }
-}
+    }
 }
 
 /// Capability granted to an agent (`can [ read(lidar), propose_motion ]`).

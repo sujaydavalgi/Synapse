@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 /// Driver / adapter package model — what a community package provides and requires.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct AdapterMetadata {
-
     /// Symbols this package exports (e.g. `LidarAdapter`, `Topic<LidarScan>`).
     #[serde(default)]
     pub provides: Vec<String>,

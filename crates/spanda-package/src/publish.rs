@@ -228,7 +228,6 @@ fn update_registry_index(base: &str, manifest: &PackageManifest) -> Result<(), S
         .iter_mut()
         .find(|entry| entry.name == manifest.package.name)
     {
-
         // Check membership before continuing.
         if !existing.versions.contains(&version) {
             existing.versions.push(version);

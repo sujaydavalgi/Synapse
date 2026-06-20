@@ -42,7 +42,6 @@ pub fn vendor_dependencies(
 
     // Iterate over dependencies with destructured elements.
     for (name, dep) in &lockfile.dependencies {
-
         // Match on source and handle each case.
         match &dep.source {
             LockedSource::Local { path } => {
@@ -51,7 +50,6 @@ pub fn vendor_dependencies(
                     .push(format!("{name} (local path {})", path.display()));
             }
             LockedSource::Registry { .. } => {
-
                 // Match on version, &vendor root)? and handle each case.
                 match vendor_registry_package(project_root, name, &dep.version, &vendor_root)? {
                     Some(path) => report.vendored.push(format!("{name} → {}", path.display())),

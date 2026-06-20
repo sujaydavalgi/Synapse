@@ -87,7 +87,7 @@ impl RuntimeTelemetry {
                 interval_ms,
                 ..Default::default()
             })
-}
+    }
 
     pub fn record_task_tick(&mut self, name: &str, priority: TaskPriority, interval_ms: f64) {
         // Record task tick.
@@ -109,7 +109,7 @@ impl RuntimeTelemetry {
 
         // Call task mut on the current instance.
         self.task_mut(name, priority, interval_ms).ticks += 1;
-}
+    }
 
     pub fn record_task_duration(
         &mut self,
@@ -144,7 +144,7 @@ impl RuntimeTelemetry {
         if duration_ms > entry.max_duration_ms {
             entry.max_duration_ms = duration_ms;
         }
-}
+    }
 
     pub fn record_budget_violation(
         &mut self,
@@ -171,7 +171,7 @@ impl RuntimeTelemetry {
 
         // Call task mut on the current instance.
         self.task_mut(name, priority, interval_ms).budget_violations += 1;
-}
+    }
 
     pub fn record_task_skip(&mut self, name: &str, priority: TaskPriority, interval_ms: f64) {
         // Record task skip.
@@ -193,7 +193,7 @@ impl RuntimeTelemetry {
 
         // Call task mut on the current instance.
         self.task_mut(name, priority, interval_ms).skipped += 1;
-}
+    }
 
     pub fn record_missed_deadline(&mut self, name: &str, priority: TaskPriority, interval_ms: f64) {
         // Record missed deadline.
@@ -215,7 +215,7 @@ impl RuntimeTelemetry {
 
         // Call task mut on the current instance.
         self.task_mut(name, priority, interval_ms).missed_deadlines += 1;
-}
+    }
 
     pub fn record_scheduler_start(&mut self, task_count: u64, base_tick_ms: f64) {
         // Record scheduler start.
@@ -237,7 +237,7 @@ impl RuntimeTelemetry {
         // Call multiplexed tasks = task count; on the current instance.
         self.scheduler.multiplexed_tasks = task_count;
         self.scheduler.base_tick_ms = base_tick_ms;
-}
+    }
 
     pub fn record_scheduler_tick(&mut self) {
         // Record scheduler tick.
@@ -256,7 +256,7 @@ impl RuntimeTelemetry {
 
         // Call scheduler ticks += 1; on the current instance.
         self.scheduler.scheduler_ticks += 1;
-}
+    }
 
     pub fn record_emergency_stop(&mut self) {
         // Record emergency stop.
@@ -275,7 +275,7 @@ impl RuntimeTelemetry {
 
         // Call emergency stops += 1; on the current instance.
         self.scheduler.emergency_stops += 1;
-}
+    }
 
     pub fn record_spawn(&mut self) {
         // Record spawn.
@@ -294,7 +294,7 @@ impl RuntimeTelemetry {
 
         // Call spawns += 1; on the current instance.
         self.execution.spawns += 1;
-}
+    }
 
     pub fn record_fire_and_forget_spawn(&mut self) {
         // Record fire and forget spawn.
@@ -313,7 +313,7 @@ impl RuntimeTelemetry {
 
         // Call fire and forget spawns += 1; on the current instance.
         self.execution.fire_and_forget_spawns += 1;
-}
+    }
 
     pub fn record_join(&mut self) {
         // Record join.
@@ -332,7 +332,7 @@ impl RuntimeTelemetry {
 
         // Call joins += 1; on the current instance.
         self.execution.joins += 1;
-}
+    }
 
     pub fn record_parallel_block(&mut self) {
         // Record parallel block.
@@ -351,7 +351,7 @@ impl RuntimeTelemetry {
 
         // Call parallel blocks += 1; on the current instance.
         self.execution.parallel_blocks += 1;
-}
+    }
 
     pub fn record_replay_frames(&mut self, count: u64) {
         // Record replay frames.
@@ -371,7 +371,7 @@ impl RuntimeTelemetry {
 
         // Call replay frames = count; on the current instance.
         self.replay_frames = count;
-}
+    }
 
     pub fn trigger_mut(
         &mut self,
@@ -405,7 +405,7 @@ impl RuntimeTelemetry {
                 priority: priority_label(priority),
                 ..Default::default()
             })
-}
+    }
 
     pub fn record_trigger_execution(
         &mut self,
@@ -448,7 +448,7 @@ impl RuntimeTelemetry {
         if duration_ms > entry.max_duration_ms {
             entry.max_duration_ms = duration_ms;
         }
-}
+    }
 
     pub fn record_trigger_missed_deadline(
         &mut self,
@@ -475,7 +475,7 @@ impl RuntimeTelemetry {
 
         // Call trigger mut on the current instance.
         self.trigger_mut(name, category, priority).missed_deadlines += 1;
-}
+    }
 }
 
 fn priority_label(priority: TaskPriority) -> String {

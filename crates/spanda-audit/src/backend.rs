@@ -43,7 +43,7 @@ impl LocalAuditBackend {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn records(&self) -> &[AuditRecord] {
         // Records.
@@ -62,7 +62,7 @@ impl LocalAuditBackend {
 
         // Return records from this handle.
         &self.records
-}
+    }
 
     pub fn last_hash(&self) -> Option<Hash> {
         // Last hash.
@@ -81,7 +81,7 @@ impl LocalAuditBackend {
 
         // Transform self and continue the chain.
         self.records.last().map(|r| r.hash.clone())
-}
+    }
 }
 
 impl AuditBackend for LocalAuditBackend {
@@ -105,7 +105,7 @@ impl AuditBackend for LocalAuditBackend {
         let id = record.id.clone();
         self.records.push(record);
         Ok(id)
-}
+    }
 
     fn verify(&self, record_id: &RecordId) -> AuditResult<bool> {
         // Verify.
@@ -150,7 +150,7 @@ impl AuditBackend for LocalAuditBackend {
             }
         }
         Ok(true)
-}
+    }
 
     fn export(&self) -> AuditResult<AuditExport> {
         // Export.
@@ -174,7 +174,7 @@ impl AuditBackend for LocalAuditBackend {
             mission: self.mission.clone(),
             exported_at: chrono::Utc::now(),
         })
-}
+    }
 
     fn record_count(&self) -> usize {
         //
@@ -192,7 +192,7 @@ impl AuditBackend for LocalAuditBackend {
 
         // Call len on the current instance.
         self.records.len()
-}
+    }
 }
 
 /// JSON-serializing audit backend (stores in memory, exports as JSON).
@@ -219,7 +219,7 @@ impl JsonAuditBackend {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn export_json(&self) -> AuditResult<String> {
         // Export json.
@@ -239,7 +239,7 @@ impl JsonAuditBackend {
         // Compute export for the following logic.
         let export = self.export()?;
         serde_json::to_string_pretty(&export).map_err(|e| AuditError::Serialization(e.to_string()))
-}
+    }
 
     pub fn export_json_compact(&self) -> AuditResult<String> {
         // Export json compact.
@@ -259,7 +259,7 @@ impl JsonAuditBackend {
         // Compute export for the following logic.
         let export = self.export()?;
         serde_json::to_string(&export).map_err(|e| AuditError::Serialization(e.to_string()))
-}
+    }
 }
 
 impl AuditBackend for JsonAuditBackend {
@@ -281,7 +281,7 @@ impl AuditBackend for JsonAuditBackend {
 
         // Call append on the current instance.
         self.inner.append(record)
-}
+    }
 
     fn verify(&self, record_id: &RecordId) -> AuditResult<bool> {
         // Verify.
@@ -301,7 +301,7 @@ impl AuditBackend for JsonAuditBackend {
 
         // Call verify on the current instance.
         self.inner.verify(record_id)
-}
+    }
 
     fn export(&self) -> AuditResult<AuditExport> {
         // Export.
@@ -320,7 +320,7 @@ impl AuditBackend for JsonAuditBackend {
 
         // Call export on the current instance.
         self.inner.export()
-}
+    }
 
     fn record_count(&self) -> usize {
         //
@@ -338,7 +338,7 @@ impl AuditBackend for JsonAuditBackend {
 
         // Call record count on the current instance.
         self.inner.record_count()
-}
+    }
 }
 
 /// Mock ledger that anchors hashes without connecting to real chains.
@@ -370,7 +370,7 @@ impl MockLedgerBackend {
             next_tx: 1,
             ..Default::default()
         }
-}
+    }
 
     pub fn anchored_count(&self) -> usize {
         //
@@ -388,7 +388,7 @@ impl MockLedgerBackend {
 
         // Call len on the current instance.
         self.anchors.len()
-}
+    }
 }
 
 impl AuditBackend for MockLedgerBackend {
@@ -410,7 +410,7 @@ impl AuditBackend for MockLedgerBackend {
 
         // Call append on the current instance.
         self.audit.append(record)
-}
+    }
 
     fn verify(&self, record_id: &RecordId) -> AuditResult<bool> {
         // Verify.
@@ -430,7 +430,7 @@ impl AuditBackend for MockLedgerBackend {
 
         // Call verify on the current instance.
         self.audit.verify(record_id)
-}
+    }
 
     fn export(&self) -> AuditResult<AuditExport> {
         // Export.
@@ -449,7 +449,7 @@ impl AuditBackend for MockLedgerBackend {
 
         // Call export on the current instance.
         self.audit.export()
-}
+    }
 
     fn record_count(&self) -> usize {
         //
@@ -467,7 +467,7 @@ impl AuditBackend for MockLedgerBackend {
 
         // Call record count on the current instance.
         self.audit.record_count()
-}
+    }
 }
 
 impl LedgerBackend for MockLedgerBackend {
@@ -492,7 +492,7 @@ impl LedgerBackend for MockLedgerBackend {
         self.next_tx += 1;
         self.anchors.push((hash.clone(), tx.clone()));
         Ok(tx)
-}
+    }
 
     fn verify_anchor(&self, hash: &Hash) -> AuditResult<bool> {
         // Verify anchor.
@@ -512,5 +512,5 @@ impl LedgerBackend for MockLedgerBackend {
 
         // Return the success value to the caller.
         Ok(self.anchors.iter().any(|(h, _)| h == hash))
-}
+    }
 }

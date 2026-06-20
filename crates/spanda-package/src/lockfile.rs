@@ -49,7 +49,7 @@ impl Lockfile {
             },
             dependencies: deps,
         }
-}
+    }
 
     pub fn parse_str(content: &str) -> PackageResult<Self> {
         // Parse str.
@@ -68,7 +68,7 @@ impl Lockfile {
 
         // Produce to string as the result.
         serde_json::from_str(content).map_err(|e| PackageError::Lockfile(e.to_string()))
-}
+    }
 
     pub fn load(path: &Path) -> PackageResult<Self> {
         // Load the value.
@@ -88,7 +88,7 @@ impl Lockfile {
         // Compute content for the following logic.
         let content = std::fs::read_to_string(path).map_err(PackageError::from)?;
         Self::parse_str(&content)
-}
+    }
 
     pub fn load_from_dir(dir: &Path) -> PackageResult<Self> {
         // Load from dir.
@@ -107,7 +107,7 @@ impl Lockfile {
 
         // Build the result via join.
         Self::load(&dir.join(LOCKFILE_FILENAME))
-}
+    }
 
     pub fn save(&self, path: &Path) -> PackageResult<()> {
         // Save the value.
@@ -130,7 +130,7 @@ impl Lockfile {
             .map_err(|e| PackageError::Lockfile(e.to_string()))?;
         std::fs::write(path, content).map_err(PackageError::from)?;
         Ok(())
-}
+    }
 
     pub fn save_to_dir(&self, dir: &Path) -> PackageResult<()> {
         // Save to dir.
@@ -150,5 +150,5 @@ impl Lockfile {
 
         // Call save on the current instance.
         self.save(&dir.join(LOCKFILE_FILENAME))
-}
+    }
 }

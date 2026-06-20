@@ -105,7 +105,6 @@ fn python_command() -> Option<String> {
 
     // Iterate over ["python3", "python"].
     for cmd in ["python3", "python"] {
-
         // Take this path when Command::new(cmd).
         if Command::new(cmd)
             .arg("-c")
@@ -143,10 +142,8 @@ pub fn call_extern(
 
     // Produce #[cfg as the result.
     #[cfg(feature = "python-native")]
-
     // Take this path when std::env::var("SPANDA PYTHON SUBPROCESS").is err().
     if std::env::var("SPANDA_PYTHON_SUBPROCESS").is_err() {
-
         // Take this path when super::python native::native available().
         if super::python_native::native_available() {
             return super::python_native::call_extern(decl, args);
@@ -212,7 +209,7 @@ mod tests {
                 },
             },
         }
-}
+    }
 
     #[test]
     fn subprocess_py_add_when_python_available() {

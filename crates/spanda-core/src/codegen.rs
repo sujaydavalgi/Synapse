@@ -251,7 +251,6 @@ fn render_extern_c(ext: &ExternFnDecl) -> String {
         "extern {} {}({});\n",
         ret,
         ext.name,
-
         // Skip further work when params is empty.
         if params.is_empty() {
             "void".into()
@@ -289,7 +288,6 @@ fn render_fn_decl_c(func: &ModuleFnDecl) -> String {
         "{} {}({});\n",
         ret,
         func.name,
-
         // Skip further work when params is empty.
         if params.is_empty() {
             "void".into()

@@ -448,7 +448,7 @@ impl UnitLexeme {
             UnitLexeme::Psu => "psu",
             UnitLexeme::Vwc => "vwc",
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -789,7 +789,6 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
 
         // Take the branch when ch equals len.
         if ch == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
-
             // Repeat while i < chars.len() && chars[i] != '\n'.
             while i < chars.len() && chars[i] != '\n' {
                 i += 1;
@@ -1101,7 +1100,6 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
 
                 // Repeat while i < chars.len() && chars[i] != '"'.
                 while i < chars.len() && chars[i] != '"' {
-
                     // Take the branch when chars[i] equals len.
                     if chars[i] == '\\' && i + 1 < chars.len() {
                         value.push(chars[i + 1]);
@@ -1189,7 +1187,6 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
 
                             // Emit output when next provides a n.
                             if let Some(n) = next {
-
                                 // Take the branch when is ident char equals '/'.
                                 if is_ident_char(n) || n == '/' {
                                     continue;

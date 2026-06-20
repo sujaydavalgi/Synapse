@@ -140,7 +140,6 @@ pub fn emit_module_ir_with_options(
 
     // Handle each robot declared in the program.
     for robot in &sir.robots {
-
         // Process each behavior.
         for behavior in &robot.behaviors {
             out.push_str(&format!(
@@ -172,7 +171,6 @@ pub fn emit_module_ir_with_options(
 
     // Generate code for each module function.
     for func in &sir.functions {
-
         // Keep entries that match the expected pattern.
         if matches!(func.visibility, SirVisibility::Private) {
             continue;
@@ -280,7 +278,6 @@ fn emit_native_main(sir: &SirProgram) -> String {
 
     // Emit output when first provides a robot.
     if let Some(robot) = sir.robots.first() {
-
         // Emit output when first provides a behavior.
         if let Some(behavior) = robot.behaviors.first() {
             return format!(
@@ -318,7 +315,6 @@ fn collect_string_literals(sir: &SirProgram) -> Vec<String> {
 
     // Handle each robot declared in the program.
     for robot in &sir.robots {
-
         // Process each behavior.
         for behavior in &robot.behaviors {
             collect_stmt_strings(&behavior.body, &mut set);
@@ -345,7 +341,6 @@ fn collect_stmt_strings(stmts: &[SirStmt], set: &mut BTreeSet<String>) {
 
     // Execute each statement in sequence.
     for stmt in stmts {
-
         // Match on stmt and handle each case.
         match stmt {
             SirStmt::Publish { topic, payload } => {
@@ -455,7 +450,6 @@ fn collect_stmt_strings(stmts: &[SirStmt], set: &mut BTreeSet<String>) {
                 }
             }
             SirStmt::MatchEnumUnit { arms, .. } => {
-
                 // Process each arm.
                 for arm in arms {
                     collect_stmt_strings(&arm.body, set);
@@ -484,7 +478,6 @@ pub fn default_target_triple_for_host() -> &'static str {
 
     // take this path when cfg!(target os = "macos").
     if cfg!(target_os = "macos") {
-
         // Take this path when cfg!(target arch = "aarch64").
         if cfg!(target_arch = "aarch64") {
             "arm64-apple-macosx"
@@ -492,7 +485,6 @@ pub fn default_target_triple_for_host() -> &'static str {
             "x86_64-apple-macosx"
         }
     } else if cfg!(target_os = "linux") {
-
         // Take this path when cfg!(target arch = "aarch64").
         if cfg!(target_arch = "aarch64") {
             "aarch64-unknown-linux-gnu"
@@ -598,7 +590,6 @@ fn collect_actuator_globals(sir: &SirProgram, out: &mut String) {
 
     // Handle each robot declared in the program.
     for robot in &sir.robots {
-
         // Process each behavior.
         for behavior in &robot.behaviors {
             collect_actuator_names(&behavior.body, &mut names);
@@ -635,11 +626,9 @@ fn collect_actuator_names(stmts: &[SirStmt], names: &mut Vec<String>) {
 
     // Execute each statement in sequence.
     for stmt in stmts {
-
         // Match on stmt and handle each case.
         match stmt {
             SirStmt::ActuatorDrive { actuator, .. } | SirStmt::ActuatorStop { actuator } => {
-
                 // Check membership before continuing.
                 if !names.contains(actuator) {
                     names.push(actuator.clone());
@@ -670,7 +659,6 @@ fn collect_actuator_names(stmts: &[SirStmt], names: &mut Vec<String>) {
                 }
             }
             SirStmt::MatchEnumUnit { arms, .. } => {
-
                 // Process each arm.
                 for arm in arms {
                     collect_actuator_names(&arm.body, names);
@@ -1142,7 +1130,6 @@ fn emit_stmt(
             format!("  call void @spanda_rt_publish(i8* {topic_ptr}, i8* {payload_ptr})\n")
         }
         SirStmt::Subscribe { target } => {
-
             // Take this path when hal.skip network.
             if hal.skip_network {
                 format!("  ; hal-profile: subscribe {target} omitted on esp32\n")
@@ -1156,7 +1143,6 @@ fn emit_stmt(
             then_body,
             else_body,
         } => {
-
             // Take this path when *condition.
             if *condition {
                 emit_stmts(
@@ -1254,7 +1240,6 @@ fn emit_stmt(
                  {else_ir}\
                    br label %{merge_label}\n\
                  {merge_label}:\n",
-
                 // Take this path when *equals { 1 } else { 0 },.
                 if *equals { 1 } else { 0 },
                 then_label = then_label,

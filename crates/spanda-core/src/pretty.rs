@@ -32,7 +32,7 @@ impl PrettyPrinter {
             indent: 0,
             at_line_start: true,
         }
-}
+    }
 
     fn finish(mut self) -> String {
         // Finish.
@@ -55,7 +55,7 @@ impl PrettyPrinter {
         }
         self.out.push('\n');
         self.out
-}
+    }
 
     fn write_indent(&mut self) {
         // Write indent.
@@ -74,14 +74,13 @@ impl PrettyPrinter {
 
         // take this path when self.at line start.
         if self.at_line_start {
-
             // Iterate over indent.
             for _ in 0..self.indent {
                 self.out.push_str("  ");
             }
             self.at_line_start = false;
         }
-}
+    }
 
     fn write(&mut self, text: &str) {
         // Write.
@@ -102,7 +101,7 @@ impl PrettyPrinter {
         // Call write indent on the current instance.
         self.write_indent();
         self.out.push_str(text);
-}
+    }
 
     fn space(&mut self) {
         // Space.
@@ -123,7 +122,7 @@ impl PrettyPrinter {
         if !self.at_line_start && !self.out.ends_with(' ') && !self.out.ends_with('\n') {
             self.out.push(' ');
         }
-}
+    }
 
     fn newline(&mut self) {
         // Newline.
@@ -143,7 +142,7 @@ impl PrettyPrinter {
         // Append into self.
         self.out.push('\n');
         self.at_line_start = true;
-}
+    }
 
     fn write_line(&mut self, text: &str) {
         // Write line.
@@ -164,7 +163,7 @@ impl PrettyPrinter {
         // Call write on the current instance.
         self.write(text);
         self.newline();
-}
+    }
 
     fn open_block(&mut self, header: &str) {
         // Open block.
@@ -185,7 +184,7 @@ impl PrettyPrinter {
         // Call write line on the current instance.
         self.write_line(&format!("{header} {{"));
         self.indent += 1;
-}
+    }
 
     fn close_block(&mut self, suffix: &str) {
         // Close block.
@@ -206,7 +205,7 @@ impl PrettyPrinter {
         // Call saturating sub on the current instance.
         self.indent = self.indent.saturating_sub(1);
         self.write_line(&format!("}}{suffix}"));
-}
+    }
 
     fn emit_source_span(&mut self, source: &str, span: &Span) {
         // Emit source span.
@@ -234,7 +233,7 @@ impl PrettyPrinter {
         for line in chunk.lines() {
             self.write_line(line.trim_end());
         }
-}
+    }
 
     fn print_type(&mut self, ty: &SpandaType) {
         // Print type.
@@ -278,7 +277,6 @@ impl PrettyPrinter {
 
                 // Iterate over enumerate with destructured elements.
                 for (i, arg) in type_args.iter().enumerate() {
-
                     // Take this path when i > 0.
                     if i > 0 {
                         self.write(", ");
@@ -303,7 +301,7 @@ impl PrettyPrinter {
                 self.write(trait_name);
             }
         }
-}
+    }
 
     fn visibility_prefix(v: Visibility) -> &'static str {
         // Visibility prefix.
@@ -326,7 +324,7 @@ impl PrettyPrinter {
             Visibility::Public => "public ",
             Visibility::Private => "private ",
         }
-}
+    }
 
     fn print_program(&mut self, source: &str, program: &Program) {
         // Print program.
@@ -493,14 +491,13 @@ impl PrettyPrinter {
 
         // Iterate over enumerate with destructured elements.
         for (i, robot) in robots.iter().enumerate() {
-
             // Take this path when i > 0.
             if i > 0 {
                 self.newline();
             }
             self.print_robot(source, robot);
         }
-}
+    }
 
     fn print_module_fn(&mut self, func: &crate::foundations::ModuleFnDecl) {
         // Print module fn.
@@ -539,7 +536,6 @@ impl PrettyPrinter {
 
         // Bind each formal parameter to its call argument.
         for (i, param) in func.params.iter().enumerate() {
-
             // Take this path when i > 0.
             if i > 0 {
                 header.push_str(", ");
@@ -558,7 +554,7 @@ impl PrettyPrinter {
         self.open_block(&header);
         self.print_stmts(&func.body);
         self.close_block("");
-}
+    }
 
     fn print_test(&mut self, test: &crate::foundations::TestDecl) {
         // Print test.
@@ -580,7 +576,7 @@ impl PrettyPrinter {
         self.open_block(&format!("test \"{}\"", test.name));
         self.print_stmts(&test.body);
         self.close_block("");
-}
+    }
 
     fn print_struct(&mut self, decl: &crate::foundations::StructDecl) {
         // Print struct.
@@ -607,7 +603,7 @@ impl PrettyPrinter {
             self.write_line(&format!("{}: {};", field.name, field.type_name));
         }
         self.close_block("");
-}
+    }
 
     fn print_enum(&mut self, decl: &crate::foundations::EnumDecl) {
         // Print enum.
@@ -645,7 +641,7 @@ impl PrettyPrinter {
             }
         }
         self.close_block("");
-}
+    }
 
     fn print_trait(&mut self, decl: &crate::foundations::TraitDecl) {
         // Print trait.
@@ -682,7 +678,7 @@ impl PrettyPrinter {
             ));
         }
         self.close_block("");
-}
+    }
 
     fn print_robot(&mut self, source: &str, robot: &RobotDecl) {
         // Print robot.
@@ -767,7 +763,6 @@ impl PrettyPrinter {
 
             // Process each rule.
             for rule in rules {
-
                 // Match on rule and handle each case.
                 match rule {
                     SafetyRule::MaxSpeedRule {
@@ -966,7 +961,7 @@ impl PrettyPrinter {
             self.close_block("");
         }
         self.close_block("");
-}
+    }
 
     fn print_stmts(&mut self, stmts: &[Stmt]) {
         // Print stmts.
@@ -988,7 +983,7 @@ impl PrettyPrinter {
         for stmt in stmts {
             self.print_stmt(stmt);
         }
-}
+    }
 
     fn print_stmt(&mut self, stmt: &Stmt) {
         // Print stmt.
@@ -1142,7 +1137,6 @@ impl PrettyPrinter {
 
                     // Iterate over enumerate with destructured elements.
                     for (i, arg) in args.iter().enumerate() {
-
                         // Take this path when i > 0.
                         if i > 0 {
                             self.write(", ");
@@ -1179,7 +1173,7 @@ impl PrettyPrinter {
                 self.close_block(";");
             }
         }
-}
+    }
 
     fn print_expr(&mut self, expr: &Expr) {
         // Print expr.
@@ -1225,7 +1219,6 @@ impl PrettyPrinter {
                 self.print_expr(right);
             }
             Expr::UnaryExpr { op, operand, .. } => {
-
                 // Match on op and handle each case.
                 match op {
                     UnaryOp::Neg => self.write("-"),
@@ -1245,7 +1238,6 @@ impl PrettyPrinter {
 
                 // Apply each command-line argument.
                 for arg in args {
-
                     // Take the branch when first is false.
                     if !first {
                         self.write(", ");
@@ -1256,7 +1248,6 @@ impl PrettyPrinter {
 
                 // Process each named arg.
                 for named in named_args {
-
                     // Take the branch when first is false.
                     if !first {
                         self.write(", ");
@@ -1312,7 +1303,6 @@ impl PrettyPrinter {
 
                 // Iterate over enumerate with destructured elements.
                 for (i, field) in fields.iter().enumerate() {
-
                     // Take this path when i > 0.
                     if i > 0 {
                         self.write(", ");
@@ -1361,7 +1351,6 @@ impl PrettyPrinter {
 
                     // Iterate over enumerate with destructured elements.
                     for (i, arg) in args.iter().enumerate() {
-
                         // Take this path when i > 0.
                         if i > 0 {
                             self.write(", ");
@@ -1372,7 +1361,7 @@ impl PrettyPrinter {
                 }
             }
         }
-}
+    }
 }
 
 fn span_of<T: HasSpan>(value: &T) -> &Span {
@@ -1418,7 +1407,7 @@ impl HasSpan for crate::foundations::HardwareDecl {
         match self {
             crate::foundations::HardwareDecl::HardwareDecl { span, .. } => span,
         }
-}
+    }
 }
 
 impl HasSpan for crate::foundations::DeployDecl {
@@ -1441,7 +1430,7 @@ impl HasSpan for crate::foundations::DeployDecl {
         match self {
             crate::foundations::DeployDecl::DeployDecl { span, .. } => span,
         }
-}
+    }
 }
 
 impl HasSpan for crate::foundations::RequiresHardwareDecl {
@@ -1464,7 +1453,7 @@ impl HasSpan for crate::foundations::RequiresHardwareDecl {
         match self {
             crate::foundations::RequiresHardwareDecl::RequiresHardwareDecl { span, .. } => span,
         }
-}
+    }
 }
 
 impl HasSpan for crate::foundations::RequiresNetworkDecl {
@@ -1487,7 +1476,7 @@ impl HasSpan for crate::foundations::RequiresNetworkDecl {
         match self {
             crate::foundations::RequiresNetworkDecl::RequiresNetworkDecl { span, .. } => span,
         }
-}
+    }
 }
 
 impl HasSpan for crate::foundations::SimulateCompatibilityDecl {
@@ -1513,7 +1502,7 @@ impl HasSpan for crate::foundations::SimulateCompatibilityDecl {
                 ..
             } => span,
         }
-}
+    }
 }
 
 impl HasSpan for crate::comm::MessageDecl {
@@ -1536,7 +1525,7 @@ impl HasSpan for crate::comm::MessageDecl {
         match self {
             crate::comm::MessageDecl::MessageDecl { span, .. } => span,
         }
-}
+    }
 }
 
 fn format_capability(cap: &CapabilityDecl) -> String {

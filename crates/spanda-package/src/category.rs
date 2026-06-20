@@ -66,7 +66,7 @@ impl PackageCategory {
             Self::SupplyChain,
             Self::Ledger,
         ]
-}
+    }
 
     pub fn as_str(&self) -> &'static str {
         //
@@ -104,7 +104,7 @@ impl PackageCategory {
             Self::SupplyChain => "supply-chain",
             Self::Ledger => "ledger",
         }
-}
+    }
 }
 
 impl FromStr for PackageCategory {
@@ -148,7 +148,7 @@ impl FromStr for PackageCategory {
             "ledger" => Ok(Self::Ledger),
             other => Err(format!("unknown package category '{other}'")),
         }
-}
+    }
 }
 
 impl std::fmt::Display for PackageCategory {

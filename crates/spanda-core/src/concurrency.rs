@@ -51,7 +51,7 @@ impl Default for ConcurrencyRuntime {
 
         // Build the result via new.
         Self::new()
-}
+    }
 }
 
 impl ConcurrencyRuntime {
@@ -81,7 +81,7 @@ impl ConcurrencyRuntime {
             agent_inboxes: HashMap::new(),
             agent_routes: Vec::new(),
         }
-}
+    }
 
     pub fn register_agent_route(&mut self, from: &str, to: &str, message_type: &str) {
         // Register agent route.
@@ -107,7 +107,7 @@ impl ConcurrencyRuntime {
             to: to.to_string(),
             message_type: message_type.to_string(),
         });
-}
+    }
 
     pub fn send_agent(
         &mut self,
@@ -155,7 +155,6 @@ impl ConcurrencyRuntime {
             .iter()
             .find(|route| route.from == from && route.to == to)
         {
-
             // Skip further work when message type is empty.
             if !route.message_type.is_empty() {
                 let actual = runtime_type_tag(&value);
@@ -179,7 +178,7 @@ impl ConcurrencyRuntime {
             .or_default()
             .push_back(value);
         Ok(())
-}
+    }
 
     pub fn try_recv_agent(&mut self, agent: &str, _line: u32) -> Option<RuntimeValue> {
         // Try recv agent.
@@ -202,7 +201,7 @@ impl ConcurrencyRuntime {
         self.agent_inboxes
             .get_mut(agent)
             .and_then(|inbox| inbox.pop_front())
-}
+    }
 
     pub fn agent_inbox_len(&self, agent: &str) -> usize {
         // Agent inbox len.
@@ -225,7 +224,7 @@ impl ConcurrencyRuntime {
             .get(agent)
             .map(|inbox| inbox.len())
             .unwrap_or(0)
-}
+    }
 
     pub fn create_channel(&mut self) -> RuntimeValue {
         // Create channel.
@@ -248,7 +247,7 @@ impl ConcurrencyRuntime {
         let handle = Rc::new(RefCell::new(VecDeque::new()));
         self.channels.insert(id, handle);
         RuntimeValue::Channel { id }
-}
+    }
 
     pub fn send(
         &self,
@@ -296,7 +295,7 @@ impl ConcurrencyRuntime {
         }
         handle.borrow_mut().push_back(value);
         Ok(())
-}
+    }
 
     pub fn try_recv(
         &self,
@@ -327,7 +326,7 @@ impl ConcurrencyRuntime {
             RuntimeError::new(format!("Unknown channel id {id}"), line).into_spanda()
         })?;
         Ok(handle.borrow_mut().pop_front())
-}
+    }
 
     pub fn create_task_handle(
         &mut self,
@@ -362,7 +361,7 @@ impl ConcurrencyRuntime {
             },
         );
         RuntimeValue::TaskHandle { id }
-}
+    }
 
     pub fn queue_fire_and_forget(&mut self, func_name: String, args: Vec<RuntimeValue>) {
         // Queue fire and forget.
@@ -388,7 +387,7 @@ impl ConcurrencyRuntime {
         if let RuntimeValue::TaskHandle { id } = handle {
             self.fire_and_forget_queue.push(id);
         }
-}
+    }
 
     pub fn handle(&self, id: u64) -> Option<&SpawnHandle> {
         // Handle.
@@ -408,7 +407,7 @@ impl ConcurrencyRuntime {
 
         // Call get on the current instance.
         self.handles.get(&id)
-}
+    }
 
     pub fn handle_mut(&mut self, id: u64) -> Option<&mut SpawnHandle> {
         // Handle mut.
@@ -428,7 +427,7 @@ impl ConcurrencyRuntime {
 
         // Call get mut on the current instance.
         self.handles.get_mut(&id)
-}
+    }
 
     pub fn set_handle_result(&mut self, id: u64, result: RuntimeValue) {
         // Set handle result.
@@ -453,7 +452,7 @@ impl ConcurrencyRuntime {
         if let Some(handle) = self.handles.get_mut(&id) {
             handle.result = Some(result);
         }
-}
+    }
 
     pub fn drain_fire_and_forget_queue(&mut self) -> Vec<u64> {
         // Drain fire and forget queue.
@@ -472,7 +471,7 @@ impl ConcurrencyRuntime {
 
         // Move out the stored value and leave a default behind.
         std::mem::take(&mut self.fire_and_forget_queue)
-}
+    }
 
     pub fn bind_channel_type(
         &mut self,
@@ -507,7 +506,6 @@ impl ConcurrencyRuntime {
 
         // Emit output when get provides a existing.
         if let Some(existing) = self.channel_type_tags.get(id) {
-
             // Take the branch when existing differs from next.
             if existing != &next {
                 return Err(RuntimeError::new(
@@ -520,7 +518,7 @@ impl ConcurrencyRuntime {
         }
         self.channel_type_tags.insert(*id, next);
         Ok(())
-}
+    }
 }
 
 fn runtime_type_tag(value: &RuntimeValue) -> String {

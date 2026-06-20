@@ -45,7 +45,7 @@ impl AuditRuntime {
             signed_by: None,
             next_id: 1,
         }
-}
+    }
 
     pub fn with_identity(mut self, identity: DeviceIdentity) -> Self {
         //
@@ -65,7 +65,7 @@ impl AuditRuntime {
         // Call identity = Some on the current instance.
         self.identity = Some(identity);
         self
-}
+    }
 
     pub fn with_provenance(
         mut self,
@@ -91,7 +91,7 @@ impl AuditRuntime {
         self.hash_algo = hash_algo.into();
         self.signed_by = Some(signed_by.into());
         self
-}
+    }
 
     pub fn record_event(&mut self, event_type: &str, payload: &str) -> AuditResult<RecordId> {
         // Record event.
@@ -146,7 +146,7 @@ impl AuditRuntime {
         };
         self.backend.append(record)?;
         Ok(id)
-}
+    }
 
     pub fn verify_record(&self, record_id: &RecordId) -> AuditResult<bool> {
         // Verify record.
@@ -166,7 +166,7 @@ impl AuditRuntime {
 
         // Call verify on the current instance.
         self.backend.verify(record_id)
-}
+    }
 
     pub fn export_json(&self) -> AuditResult<String> {
         // Export json.
@@ -186,7 +186,7 @@ impl AuditRuntime {
         // Compute export for the following logic.
         let export = self.backend.export()?;
         serde_json::to_string_pretty(&export).map_err(|e| AuditError::Serialization(e.to_string()))
-}
+    }
 
     pub fn record_count(&self) -> usize {
         //
@@ -204,7 +204,7 @@ impl AuditRuntime {
 
         // Call record count on the current instance.
         self.backend.record_count()
-}
+    }
 
     pub fn create_provenance(
         &self,
@@ -254,7 +254,7 @@ impl AuditRuntime {
             anchored: false,
             anchor_tx: None,
         })
-}
+    }
 
     pub fn verify_provenance_signature(&self, prov: &ProvenanceRecord) -> bool {
         // Verify provenance signature.
@@ -279,7 +279,7 @@ impl AuditRuntime {
             .map(|i| i.verifying_key_hex())
             .unwrap_or_else(|| prov.signed_by.clone());
         verify_signature(&prov.hash.0, &prov.signature, &verify_key)
-}
+    }
 
     pub fn root_hash(&self) -> Option<Hash> {
         // Root hash.
@@ -298,5 +298,5 @@ impl AuditRuntime {
 
         // Call last hash on the current instance.
         self.backend.last_hash()
-}
+    }
 }

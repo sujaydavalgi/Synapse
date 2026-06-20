@@ -154,7 +154,7 @@ mod tests {
                 },
             },
         }
-}
+    }
 
     #[test]
     fn native_cpp_add_when_available() {

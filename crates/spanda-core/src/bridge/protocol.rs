@@ -15,7 +15,6 @@ use std::process::{Command, Stdio};
 /// JSON request envelope sent to a bridge subprocess on stdin.
 #[derive(Serialize)]
 pub struct BridgeRequest<'a> {
-
     /// Extern function name to invoke.
     #[serde(rename = "fn")]
     pub fn_name: &'a str,
@@ -27,7 +26,6 @@ pub struct BridgeRequest<'a> {
 /// JSON response envelope read from a bridge subprocess stdout.
 #[derive(Deserialize)]
 pub struct BridgeResponse {
-
     /// `true` when the handler succeeded.
     pub ok: bool,
 

@@ -46,7 +46,7 @@ impl ApplicationPermissions {
                 .map(|s| (*s).to_string())
                 .collect(),
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -89,7 +89,7 @@ impl ValidationReport {
             .issues
             .iter()
             .any(|i| i.severity == ValidationSeverity::Error)
-}
+    }
 
     pub fn push_error(&mut self, category: &str, message: impl Into<String>) {
         // Push error.
@@ -114,7 +114,7 @@ impl ValidationReport {
             category: category.to_string(),
             message: message.into(),
         });
-}
+    }
 
     pub fn push_warning(&mut self, category: &str, message: impl Into<String>) {
         // Push warning.
@@ -141,7 +141,7 @@ impl ValidationReport {
             category: category.to_string(),
             message: msg,
         });
-}
+    }
 }
 
 /// Validate a package manifest before use.
@@ -236,7 +236,6 @@ fn validate_capabilities(caps: &CapabilityRequirements, report: &mut ValidationR
 
     // Validate each requested capability.
     for cap in caps.all() {
-
         // Handle the error returned from validate capability.
         if let Err(e) = validate_capability(cap) {
             report.push_warning("capabilities", e.to_string());
@@ -264,7 +263,6 @@ fn validate_hardware_requirements(req: &HardwareRequirements, report: &mut Valid
 
     // Emit output when memory provides a mem.
     if let Some(mem) = &req.memory {
-
         // Take this path when req.memory mb min().is none().
         if req.memory_mb_min().is_none() {
             report.push_error(
@@ -276,7 +274,6 @@ fn validate_hardware_requirements(req: &HardwareRequirements, report: &mut Valid
 
     // Emit output when gpu provides a gpu.
     if let Some(gpu) = &req.gpu {
-
         // Check membership before continuing.
         if req.gpu_tops_min().is_none() && !gpu.to_lowercase().contains("required") {
             report.push_warning(
@@ -313,7 +310,6 @@ fn validate_hardware_targets(
 
     // Process each target.
     for target in &manifest.hardware.targets {
-
         // Check membership before continuing.
         if !known.contains(target) {
             report.push_warning(
@@ -409,7 +405,6 @@ fn validate_license(
 
     // Emit output when license provides a license.
     if let Some(license) = &manifest.package.license {
-
         // Skip further work when allowed licenses is empty.
         if !app_perms.allowed_licenses.is_empty()
             && !app_perms.allowed_licenses.contains(license)
@@ -424,7 +419,6 @@ fn validate_license(
 
     // Iterate over license compat.
     for compat in &manifest.license_compat {
-
         // Check membership before continuing.
         if !app_perms.allowed_licenses.contains(compat) {
             report.push_warning(
@@ -453,7 +447,6 @@ fn validate_adapter(manifest: &PackageManifest, report: &mut ValidationReport) {
 
     // Process each require.
     for req in &manifest.adapter.requires {
-
         // Handle the error returned from validate capability.
         if let Err(e) = validate_capability(req) {
             report.push_warning("adapter", e.to_string());
@@ -487,10 +480,8 @@ fn validate_dependencies(manifest: &PackageManifest, report: &mut ValidationRepo
 
     // Iterate over all dependencies with destructured elements.
     for (name, spec) in manifest.all_dependencies() {
-
         // Take the branch when source kind equals Registry.
         if spec.source_kind() == crate::dependency::DependencySourceKind::Registry {
-
             // Take this path when find registry entry(name).is none().
             if find_registry_entry(name).is_none() {
                 report.push_warning(
@@ -534,7 +525,6 @@ fn check_capability_excess(
 
     // Validate each requested capability.
     for cap in caps.uses.iter().chain(caps.required.iter()) {
-
         // Check membership before continuing.
         if !app_perms.capabilities.contains(cap) {
             let severity = if crate::hardware_req::is_high_risk_capability(cap) {
@@ -553,7 +543,6 @@ fn check_capability_excess(
 
     // Validate each requested capability.
     for cap in caps.all() {
-
         // Take this path when crate::hardware req::is high risk capability(cap).
         if crate::hardware_req::is_high_risk_capability(cap) {
             report.push_warning(

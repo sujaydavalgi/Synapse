@@ -23,7 +23,6 @@ fn python_cmd() -> Option<String> {
 
     // Iterate over ["python3", "python"].
     for cmd in ["python3", "python"] {
-
         // Take this path when Command::new(cmd).
         if Command::new(cmd)
             .arg("-c")

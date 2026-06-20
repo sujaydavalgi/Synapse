@@ -428,7 +428,7 @@ impl LowerCtx<'_> {
             variant_index,
             _program: std::marker::PhantomData,
         }
-}
+    }
 
     fn lower_function(&self, func: &ModuleFnDecl) -> SirFunction {
         // Lower function.
@@ -448,7 +448,7 @@ impl LowerCtx<'_> {
 
         // Produce lower function as the result.
         lower_function(func, self)
-}
+    }
 
     fn lower_stmts(&self, stmts: &[Stmt]) -> Vec<SirStmt> {
         // Lower stmts.
@@ -468,7 +468,7 @@ impl LowerCtx<'_> {
 
         // Collect filtered entries into a new list.
         stmts.iter().map(|stmt| self.lower_stmt(stmt)).collect()
-}
+    }
 
     fn lower_stmt(&self, stmt: &Stmt) -> SirStmt {
         // Lower stmt.
@@ -489,13 +489,10 @@ impl LowerCtx<'_> {
         // Match on stmt and handle each case.
         match stmt {
             Stmt::VarDecl { name, init, .. } => {
-
                 // Emit output when init provides a init.
                 if let Some(init) = init {
-
                     // Emit output when float literal provides a value.
                     if let Some(value) = float_literal(init) {
-
                         // Take this path when value.fract().abs() > f64::EPSILON.
                         if value.fract().abs() > f64::EPSILON {
                             return SirStmt::LetDouble {
@@ -592,7 +589,7 @@ impl LowerCtx<'_> {
                 label: stmt_kind(other),
             },
         }
-}
+    }
 
     fn lower_if_stmt(
         &self,
@@ -697,7 +694,6 @@ impl LowerCtx<'_> {
             ..
         } = condition
         {
-
             // Take this path when let Expr::IdentExpr { name, .. } = operand.as ref().
             if let Expr::IdentExpr { name, .. } = operand.as_ref() {
                 return SirStmt::IfNotVar {
@@ -716,7 +712,6 @@ impl LowerCtx<'_> {
             ..
         } = condition
         {
-
             // Take this path when let Some((var, cmp op, rhs)) = extract double compare(left).
             if let Some((var, cmp_op, rhs)) = extract_double_compare(left) {
                 return SirStmt::IfCompareDouble {
@@ -763,7 +758,6 @@ impl LowerCtx<'_> {
             ..
         } = condition
         {
-
             // Take this path when let Some((var, cmp op, rhs)) = extract double compare(left).
             if let Some((var, cmp_op, rhs)) = extract_double_compare(left) {
                 return SirStmt::IfCompareDouble {
@@ -806,7 +800,7 @@ impl LowerCtx<'_> {
             then_body,
             else_body,
         }
-}
+    }
 
     fn lower_expr_stmt(&self, expr: &Expr) -> SirStmt {
         // Lower expr stmt.
@@ -832,7 +826,6 @@ impl LowerCtx<'_> {
             Expr::MatchExpr {
                 scrutinee, arms, ..
             } => {
-
                 // Take this path when let Expr::IdentExpr { name, .. } = scrutinee.as ref().
                 if let Expr::IdentExpr { name, .. } = scrutinee.as_ref() {
                     let enum_name = arms.first().and_then(|arm| {
@@ -879,7 +872,7 @@ impl LowerCtx<'_> {
                 label: "expr_stmt".into(),
             },
         }
-}
+    }
 
     fn resolve_enum_unit(&self, expr: &Expr) -> Option<(String, String, u32)> {
         // Resolve enum unit.
@@ -906,14 +899,12 @@ impl LowerCtx<'_> {
             Expr::MemberExpr {
                 object, property, ..
             } => {
-
                 // Take this path when let Expr::IdentExpr.
                 if let Expr::IdentExpr {
                     name: enum_name, ..
                 } = object.as_ref()
                 {
                     self.variant_index.get(property).and_then(|(owner, tag)| {
-
                         // Take the branch when owner equals enum name.
                         if owner == enum_name {
                             Some((enum_name.clone(), property.clone(), *tag))
@@ -927,7 +918,7 @@ impl LowerCtx<'_> {
             }
             _ => None,
         }
-}
+    }
 
     fn resolve_enum_payload(&self, expr: &Expr) -> Option<(String, String, u32, Vec<f64>)> {
         // Resolve enum payload.
@@ -965,7 +956,7 @@ impl LowerCtx<'_> {
             return None;
         }
         Some((enum_name.clone(), name.clone(), *tag, payloads))
-}
+    }
 }
 
 fn compare_bool_literal(expr: &Expr) -> Option<(String, bool)> {
@@ -990,7 +981,6 @@ fn compare_bool_literal(expr: &Expr) -> Option<(String, bool)> {
         right,
         ..
     } = expr
-
     // Handle any remaining cases.
     else {
         return None;
@@ -998,7 +988,6 @@ fn compare_bool_literal(expr: &Expr) -> Option<(String, bool)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = left.as ref().
     if let Expr::IdentExpr { name, .. } = left.as_ref() {
-
         // Emit output when bool literal provides a value.
         if let Some(value) = bool_literal(right) {
             return Some((name.clone(), value));
@@ -1007,7 +996,6 @@ fn compare_bool_literal(expr: &Expr) -> Option<(String, bool)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = right.as ref().
     if let Expr::IdentExpr { name, .. } = right.as_ref() {
-
         // Emit output when bool literal provides a value.
         if let Some(value) = bool_literal(left) {
             return Some((name.clone(), value));
@@ -1038,7 +1026,6 @@ fn compare_bool_ne_literal(expr: &Expr) -> Option<(String, bool)> {
         right,
         ..
     } = expr
-
     // Handle any remaining cases.
     else {
         return None;
@@ -1046,7 +1033,6 @@ fn compare_bool_ne_literal(expr: &Expr) -> Option<(String, bool)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = left.as ref().
     if let Expr::IdentExpr { name, .. } = left.as_ref() {
-
         // Emit output when bool literal provides a value.
         if let Some(value) = bool_literal(right) {
             return Some((name.clone(), !value));
@@ -1055,7 +1041,6 @@ fn compare_bool_ne_literal(expr: &Expr) -> Option<(String, bool)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = right.as ref().
     if let Expr::IdentExpr { name, .. } = right.as_ref() {
-
         // Emit output when bool literal provides a value.
         if let Some(value) = bool_literal(left) {
             return Some((name.clone(), !value));
@@ -1083,7 +1068,6 @@ fn lower_return(value: Option<&Expr>) -> SirStmt {
     match value {
         None => SirStmt::ReturnVoid,
         Some(expr) => {
-
             // Emit output when int literal provides a value.
             if let Some(value) = int_literal(expr) {
                 SirStmt::ReturnInt { value }
@@ -1118,7 +1102,6 @@ fn lower_actuator_call(callee: &Expr, named_args: &[NamedArg]) -> SirStmt {
     let Expr::MemberExpr {
         object, property, ..
     } = callee
-
     // Handle any remaining cases.
     else {
         return SirStmt::Unsupported {
@@ -1451,7 +1434,6 @@ fn extract_double_compare(expr: &Expr) -> Option<(String, SirCompareOp, f64)> {
     let Expr::BinaryExpr {
         op, left, right, ..
     } = expr
-
     // Handle any remaining cases.
     else {
         return None;
@@ -1460,7 +1442,6 @@ fn extract_double_compare(expr: &Expr) -> Option<(String, SirCompareOp, f64)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = left.as ref().
     if let Expr::IdentExpr { name, .. } = left.as_ref() {
-
         // Emit output when float literal provides a value.
         if let Some(value) = float_literal(right) {
             return Some((name.clone(), sir_op, value));
@@ -1469,7 +1450,6 @@ fn extract_double_compare(expr: &Expr) -> Option<(String, SirCompareOp, f64)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = right.as ref().
     if let Expr::IdentExpr { name, .. } = right.as_ref() {
-
         // Emit output when float literal provides a value.
         if let Some(value) = float_literal(left) {
             return Some((name.clone(), reverse_compare(sir_op), value));
@@ -1497,7 +1477,6 @@ fn extract_scan_distance_compare(expr: &Expr) -> Option<(String, SirCompareOp, f
     let Expr::BinaryExpr {
         op, left, right, ..
     } = expr
-
     // Handle any remaining cases.
     else {
         return None;
@@ -1507,7 +1486,6 @@ fn extract_scan_distance_compare(expr: &Expr) -> Option<(String, SirCompareOp, f
     let Expr::MemberExpr {
         object, property, ..
     } = left.as_ref()
-
     // Handle any remaining cases.
     else {
         return None;
@@ -1582,10 +1560,8 @@ fn eval_const_bool(expr: &Expr) -> Option<bool> {
         op, left, right, ..
     } = expr
     {
-
         // Take this path when let (Some(l), Some(r)) = (float literal(left), float literal(right)).
         if let (Some(l), Some(r)) = (float_literal(left), float_literal(right)) {
-
             // Emit output when binary op to compare provides a cmp.
             if let Some(cmp) = binary_op_to_compare(*op) {
                 return Some(eval_double_compare(cmp, l, r));
@@ -1742,7 +1718,6 @@ fn compare_string_literal(expr: &Expr) -> Option<(String, String)> {
         right,
         ..
     } = expr
-
     // Handle any remaining cases.
     else {
         return None;
@@ -1750,7 +1725,6 @@ fn compare_string_literal(expr: &Expr) -> Option<(String, String)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = left.as ref().
     if let Expr::IdentExpr { name, .. } = left.as_ref() {
-
         // Emit output when string literal provides a value.
         if let Some(value) = string_literal(right) {
             return Some((name.clone(), value));
@@ -1759,7 +1733,6 @@ fn compare_string_literal(expr: &Expr) -> Option<(String, String)> {
 
     // Take this path when let Expr::IdentExpr { name, .. } = right.as ref().
     if let Expr::IdentExpr { name, .. } = right.as_ref() {
-
         // Emit output when string literal provides a value.
         if let Some(value) = string_literal(left) {
             return Some((name.clone(), value));

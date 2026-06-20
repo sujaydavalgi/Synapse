@@ -81,7 +81,7 @@ impl SpandaError {
                 column: 1,
             }],
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

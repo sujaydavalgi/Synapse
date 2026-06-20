@@ -239,7 +239,6 @@ fn render_enum(decl: &crate::foundations::EnumDecl) -> String {
 
     // Handle each enum variant arm.
     for variant in variants {
-
         // Skip further work when field types is empty.
         if variant.field_types.is_empty() {
             out.push_str(&format!("- `{}`\n", variant.name));
@@ -411,7 +410,6 @@ fn type_name(ty: &SpandaType) -> String {
         SpandaType::Bytes => "Bytes".into(),
         SpandaType::Null => "Null".into(),
         SpandaType::Number { unit } => {
-
             // Take the branch when *unit equals None.
             if *unit == UnitKind::None {
                 "Number".into()

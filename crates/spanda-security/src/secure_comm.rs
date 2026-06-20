@@ -33,7 +33,7 @@ impl SecurePolicy {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn signed_trusted() -> Self {
         // Signed trusted.
@@ -56,7 +56,7 @@ impl SecurePolicy {
             min_trust: Some(TrustLevel::Trusted),
             requires: vec!["identity.verify".into()],
         }
-}
+    }
 
     pub fn check_trust(&self, trust: TrustLevel) -> SecurityResult<()> {
         // Check trust.
@@ -78,7 +78,6 @@ impl SecurePolicy {
 
         // Emit output when min trust provides a required.
         if let Some(required) = self.min_trust {
-
             // Take the branch when satisfies is false.
             if !trust.satisfies(required) {
                 return Err(SecurityError::TrustInsufficient {
@@ -88,7 +87,7 @@ impl SecurePolicy {
             }
         }
         Ok(())
-}
+    }
 
     pub fn check_capabilities(&self, caps: &CapabilitySet) -> SecurityResult<()> {
         // Check capabilities.
@@ -111,7 +110,7 @@ impl SecurePolicy {
             caps.require(cap)?;
         }
         Ok(())
-}
+    }
 
     pub fn prepare_outbound(
         &self,
@@ -158,7 +157,7 @@ impl SecurePolicy {
             });
         }
         Ok(None)
-}
+    }
 
     pub fn verify_inbound(
         &self,
@@ -207,7 +206,7 @@ impl SecurePolicy {
             }
         }
         Ok(())
-}
+    }
 }
 
 /// Registry of secure policies keyed by endpoint path.
@@ -234,7 +233,7 @@ impl SecureEndpointRegistry {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn register(&mut self, path: impl Into<String>, policy: SecurePolicy) {
         // Register the value.
@@ -255,7 +254,7 @@ impl SecureEndpointRegistry {
 
         // Append into self.
         self.policies.insert(path.into(), policy);
-}
+    }
 
     pub fn get(&self, path: &str) -> Option<&SecurePolicy> {
         // Get.
@@ -275,7 +274,7 @@ impl SecureEndpointRegistry {
 
         // Call get on the current instance.
         self.policies.get(path)
-}
+    }
 
     pub fn policy_or_open(&self, path: &str) -> SecurePolicy {
         // Policy or open.
@@ -295,7 +294,7 @@ impl SecureEndpointRegistry {
 
         // Call get on the current instance.
         self.get(path).cloned().unwrap_or_default()
-}
+    }
 
     pub fn len(&self) -> usize {
         // Len.
@@ -314,7 +313,7 @@ impl SecureEndpointRegistry {
 
         // Call len on the current instance.
         self.policies.len()
-}
+    }
 
     pub fn is_empty(&self) -> bool {
         //
@@ -332,7 +331,7 @@ impl SecureEndpointRegistry {
 
         // Call is empty on the current instance.
         self.policies.is_empty()
-}
+    }
 }
 
 #[cfg(test)]

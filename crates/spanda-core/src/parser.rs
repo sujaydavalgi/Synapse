@@ -49,7 +49,7 @@ impl Parser {
 
         // Assemble the struct fields and return it.
         Self { tokens, pos: 0 }
-}
+    }
 
     fn peek(&self) -> &Token {
         // Peek.
@@ -68,7 +68,7 @@ impl Parser {
 
         // Return pos] from this handle.
         &self.tokens[self.pos]
-}
+    }
 
     fn previous(&self) -> &Token {
         // Previous.
@@ -87,7 +87,7 @@ impl Parser {
 
         // Return pos - 1] from this handle.
         &self.tokens[self.pos - 1]
-}
+    }
 
     fn advance(&mut self) -> Token {
         // Advance.
@@ -109,7 +109,7 @@ impl Parser {
             self.pos += 1;
         }
         self.tokens[self.pos - 1].clone()
-}
+    }
 
     fn check(&self, ty: TokenType) -> bool {
         // Check input.
@@ -129,7 +129,7 @@ impl Parser {
 
         // Call peek on the current instance.
         self.peek().token_type == ty
-}
+    }
 
     fn match_types(&mut self, types: &[TokenType]) -> bool {
         // Match types.
@@ -149,7 +149,6 @@ impl Parser {
 
         // Process each type.
         for t in types {
-
             // Take this path when self.check(*t).
             if self.check(*t) {
                 self.advance();
@@ -157,7 +156,7 @@ impl Parser {
             }
         }
         false
-}
+    }
 
     fn expect(&mut self, ty: TokenType, message: &str) -> Result<Token, SpandaError> {
         // Expect.
@@ -187,7 +186,7 @@ impl Parser {
                 column: t.column,
             })
         }
-}
+    }
 
     fn span_from(&self, start: &Token, end: &Token) -> Span {
         // Span from.
@@ -211,7 +210,7 @@ impl Parser {
             start: loc(start),
             end: loc(end),
         }
-}
+    }
 
     fn parse_binding_ident(&mut self, message: &str) -> Result<String, SpandaError> {
         // Parse binding ident.
@@ -280,7 +279,7 @@ impl Parser {
                 column: t.column,
             })
         }
-}
+    }
 
     fn parse_label(&mut self, message: &str) -> Result<String, SpandaError> {
         // Parse label.
@@ -351,7 +350,7 @@ impl Parser {
                 column: t.column,
             })
         }
-}
+    }
 
     fn parse_hal_binding_name(&mut self, message: &str) -> Result<String, SpandaError> {
         // Parse hal binding name.
@@ -397,7 +396,7 @@ impl Parser {
                 column: t.column,
             })
         }
-}
+    }
 
     fn parse_type_name_part(&mut self, message: &str) -> Result<String, SpandaError> {
         // Parse type name part.
@@ -420,7 +419,7 @@ impl Parser {
             return Ok(self.advance().lexeme);
         }
         self.parse_label(message)
-}
+    }
 
     fn parse_type_name(&mut self) -> Result<String, SpandaError> {
         // Parse type name.
@@ -445,7 +444,7 @@ impl Parser {
             name = self.finish_generic_type_name(name)?;
         }
         Ok(name)
-}
+    }
 
     fn finish_generic_type_name(&mut self, base: String) -> Result<String, SpandaError> {
         // Finish generic type name.
@@ -469,7 +468,6 @@ impl Parser {
 
         // Take the branch when Gt) is false.
         if !self.check(TokenType::Gt) {
-
             // Run the loop body until it exits.
             loop {
                 args.push(self.parse_type_name()?);
@@ -482,7 +480,7 @@ impl Parser {
         }
         self.expect(TokenType::Gt, "Expected '>' to close generic type")?;
         Ok(format!("{base}<{args}>", args = args.join(", ")))
-}
+    }
 
     fn parse_type_annotation(&mut self) -> Result<SpandaType, SpandaError> {
         // Parse type annotation.
@@ -522,7 +520,6 @@ impl Parser {
 
             // Take the branch when Gt) is false.
             if !self.check(TokenType::Gt) {
-
                 // Run the loop body until it exits.
                 loop {
                     args.push(self.parse_type_annotation()?);
@@ -541,7 +538,6 @@ impl Parser {
                 column: start.column,
             })
         } else {
-
             // Match on resolve type name and handle each case.
             match resolve_type_name(&qualified) {
                 Ok(ty) => Ok(ty),
@@ -553,7 +549,7 @@ impl Parser {
                 }),
             }
         }
-}
+    }
 
     fn parse_program(&mut self) -> Result<Program, SpandaError> {
         // Parse program.
@@ -605,7 +601,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Eof).
         while !self.check(TokenType::Eof) {
-
             // Take this path when self.is module fn start().
             if self.is_module_fn_start() {
                 functions.push(self.parse_module_fn()?);
@@ -661,7 +656,7 @@ impl Parser {
             robots,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_hardware(&mut self) -> Result<HardwareDecl, SpandaError> {
         // Parse hardware.
@@ -698,7 +693,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Cpu]).
             if self.match_types(&[TokenType::Cpu]) {
                 self.expect(TokenType::Colon, "Expected ':' after cpu")?;
@@ -737,7 +731,6 @@ impl Parser {
 
                 // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
                 while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
                     // Take this path when self.match types(&[TokenType::Capacity]).
                     if self.match_types(&[TokenType::Capacity]) {
                         self.expect(TokenType::Colon, "Expected ':' after capacity")?;
@@ -758,7 +751,6 @@ impl Parser {
 
                 // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
                 while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
                     // Take this path when self.match types(&[TokenType::Bandwidth]).
                     if self.match_types(&[TokenType::Bandwidth]) {
                         self.expect(TokenType::Colon, "Expected ':' after bandwidth")?;
@@ -783,7 +775,6 @@ impl Parser {
 
                 // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
                 while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
                     // Take this path when self.match types(&[TokenType::MinPeriod]).
                     if self.match_types(&[TokenType::MinPeriod]) {
                         self.expect(TokenType::Colon, "Expected ':' after min_period")?;
@@ -834,7 +825,7 @@ impl Parser {
             power_draw_w,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_hardware_type_list(&mut self, kind: &str) -> Result<Vec<String>, SpandaError> {
         // Parse hardware type list.
@@ -858,14 +849,12 @@ impl Parser {
 
         // Take the branch when Rbracket) is false.
         if !self.check(TokenType::Rbracket) {
-
             // Run the loop body until it exits.
             loop {
                 items.push(self.parse_label(&format!("Expected {kind} type name"))?);
 
                 // Take this path when self.match types(&[TokenType::Comma]).
                 if self.match_types(&[TokenType::Comma]) {
-
                     // Take this path when self.check(TokenType::Rbracket).
                     if self.check(TokenType::Rbracket) {
                         break;
@@ -884,7 +873,7 @@ impl Parser {
             &format!("Expected ';' after {kind} list"),
         )?;
         Ok(items)
-}
+    }
 
     fn parse_storage_amount(&mut self) -> Result<f64, SpandaError> {
         // Parse storage amount.
@@ -927,7 +916,7 @@ impl Parser {
             return Ok(mb);
         }
         Ok(value)
-}
+    }
 
     fn parse_number_value(&mut self) -> Result<f64, SpandaError> {
         // Parse number value.
@@ -956,7 +945,7 @@ impl Parser {
                 column: tok.column,
             }),
         }
-}
+    }
 
     fn parse_deploy(&mut self) -> Result<DeployDecl, SpandaError> {
         // Parse deploy.
@@ -982,10 +971,8 @@ impl Parser {
 
         // Take this path when self.match types(&[TokenType::Lbracket]).
         if self.match_types(&[TokenType::Lbracket]) {
-
             // Take the branch when Rbracket) is false.
             if !self.check(TokenType::Rbracket) {
-
                 // Run the loop body until it exits.
                 loop {
                     targets.push(self.parse_label("Expected hardware target name")?);
@@ -1007,7 +994,7 @@ impl Parser {
             targets,
             span: self.span_from(&start, end),
         })
-}
+    }
 
     fn parse_network_amount(&mut self) -> Result<f64, SpandaError> {
         // Parse network amount.
@@ -1044,7 +1031,7 @@ impl Parser {
             }
         }
         Ok(value)
-}
+    }
 
     fn parse_requires_hardware(
         &mut self,
@@ -1076,7 +1063,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Memory]).
             if self.match_types(&[TokenType::Memory]) {
                 self.expect(
@@ -1099,7 +1085,6 @@ impl Parser {
                     "Expected ';' after storage requirement",
                 )?;
             } else if self.match_types(&[TokenType::Gpu]) {
-
                 // Take this path when self.check(TokenType::Gte).
                 if self.check(TokenType::Gte) {
                     self.advance();
@@ -1148,7 +1133,7 @@ impl Parser {
             actuators,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_requires_network(
         &mut self,
@@ -1176,7 +1161,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Bandwidth]).
             if self.match_types(&[TokenType::Bandwidth]) {
                 self.expect(TokenType::Gte, "Expected '>=' after bandwidth")?;
@@ -1207,7 +1191,7 @@ impl Parser {
             latency_ms_max,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_simulate_compatibility(
         &mut self,
@@ -1237,7 +1221,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Fault]).
             if self.match_types(&[TokenType::Fault]) {
                 let fault_start = self.peek().clone();
@@ -1264,7 +1247,7 @@ impl Parser {
             faults,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_mission(&mut self) -> Result<crate::foundations::MissionDecl, SpandaError> {
         // Parse mission.
@@ -1289,7 +1272,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Duration]).
             if self.match_types(&[TokenType::Duration]) {
                 self.expect(TokenType::Colon, "Expected ':' after duration")?;
@@ -1317,7 +1299,7 @@ impl Parser {
             duration_hours,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_duration_hours(&mut self) -> Result<f64, SpandaError> {
         // Parse duration hours.
@@ -1374,7 +1356,7 @@ impl Parser {
             return Ok(hours);
         }
         Ok(value)
-}
+    }
 
     fn duration_to_hours(value: f64, unit: UnitKind) -> f64 {
         // Duration to hours.
@@ -1401,7 +1383,7 @@ impl Parser {
             UnitKind::Us => value / 3_600_000_000.0,
             _ => value,
         }
-}
+    }
 
     fn parse_energy_wh_value(&mut self) -> Result<f64, SpandaError> {
         // Parse energy wh value.
@@ -1452,7 +1434,7 @@ impl Parser {
             return Ok(wh);
         }
         Ok(value)
-}
+    }
 
     fn parse_budget(&mut self) -> Result<crate::foundations::ResourceBudgetDecl, SpandaError> {
         // Parse budget.
@@ -1481,7 +1463,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Battery]).
             if self.match_types(&[TokenType::Battery]) {
                 self.expect(TokenType::Lte, "Expected '<=' after battery in budget")?;
@@ -1521,7 +1502,7 @@ impl Parser {
             storage_mb_max,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_percent_value(&mut self) -> Result<f64, SpandaError> {
         // Parse percent value.
@@ -1547,7 +1528,7 @@ impl Parser {
         } else if self.match_types(&[TokenType::Percent]) {
         }
         Ok(value)
-}
+    }
 
     fn parse_dotted_name(&mut self, message: &str) -> Result<String, SpandaError> {
         // Parse dotted name.
@@ -1573,7 +1554,7 @@ impl Parser {
             parts.push(self.parse_import_segment("Expected name after '.'")?);
         }
         Ok(parts.join("."))
-}
+    }
 
     fn parse_import(&mut self) -> Result<ImportDecl, SpandaError> {
         // Parse import.
@@ -1600,7 +1581,7 @@ impl Parser {
             path: format!("{}.{}", vendor, module),
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_import_segment(&mut self, message: &str) -> Result<String, SpandaError> {
         // Parse import segment.
@@ -1636,7 +1617,7 @@ impl Parser {
             });
         }
         Ok(self.advance().lexeme)
-}
+    }
 
     fn is_module_fn_start(&self) -> bool {
         //
@@ -1658,7 +1639,7 @@ impl Parser {
             || self.check(TokenType::Private)
             || self.check(TokenType::Async)
             || self.check(TokenType::Fn)
-}
+    }
 
     fn parse_type_params(&mut self) -> Result<Vec<String>, SpandaError> {
         // Parse type params.
@@ -1692,7 +1673,7 @@ impl Parser {
         }
         self.expect(TokenType::Gt, "Expected '>' after type parameters")?;
         Ok(params)
-}
+    }
 
     fn parse_module_fn(&mut self) -> Result<crate::foundations::ModuleFnDecl, SpandaError> {
         // Parse module fn.
@@ -1731,7 +1712,6 @@ impl Parser {
 
         // Take the branch when Rparen) is false.
         if !self.check(TokenType::Rparen) {
-
             // Run the loop body until it exits.
             loop {
                 let pstart = self.peek().clone();
@@ -1766,7 +1746,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_extern_fn(&mut self) -> Result<crate::foundations::ExternFnDecl, SpandaError> {
         // Parse extern fn.
@@ -1796,7 +1776,6 @@ impl Parser {
             };
             (Some(lib), BridgeKind::Native)
         } else if self.check(TokenType::Ident) {
-
             // Match on as str and handle each case.
             match self.peek().lexeme.as_str() {
                 "python" => {
@@ -1819,7 +1798,6 @@ impl Parser {
 
         // Take the branch when Rparen) is false.
         if !self.check(TokenType::Rparen) {
-
             // Run the loop body until it exits.
             loop {
                 let pstart = self.peek().clone();
@@ -1853,7 +1831,7 @@ impl Parser {
             return_type,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_test(&mut self) -> Result<crate::foundations::TestDecl, SpandaError> {
         // Parse test.
@@ -1889,7 +1867,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_struct(&mut self) -> Result<StructDecl, SpandaError> {
         // Parse struct.
@@ -1937,7 +1915,7 @@ impl Parser {
             fields,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_enum(&mut self) -> Result<EnumDecl, SpandaError> {
         // Parse enum.
@@ -1968,7 +1946,6 @@ impl Parser {
 
             // Take this path when self.match types(&[TokenType::Lparen]).
             if self.match_types(&[TokenType::Lparen]) {
-
                 // Repeat while !self.check(TokenType::Rparen) && !self.check(TokenType::Eof).
                 while !self.check(TokenType::Rparen) && !self.check(TokenType::Eof) {
                     field_types.push(self.parse_type_name()?);
@@ -1997,7 +1974,7 @@ impl Parser {
             variants,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_trait(&mut self) -> Result<TraitDecl, SpandaError> {
         // Parse trait.
@@ -2030,7 +2007,7 @@ impl Parser {
             methods,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_trait_method(&mut self) -> Result<TraitMethodDecl, SpandaError> {
         // Parse trait method.
@@ -2055,7 +2032,6 @@ impl Parser {
 
         // Take the branch when Rparen) is false.
         if !self.check(TokenType::Rparen) {
-
             // Run the loop body until it exits.
             loop {
                 let param_start = self.peek().clone();
@@ -2087,7 +2063,7 @@ impl Parser {
             return_type: return_type.lexeme,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn is_robot_member_keyword(&self, kw: &str) -> bool {
         //
@@ -2106,7 +2082,7 @@ impl Parser {
 
         // Call check on the current instance.
         self.check(TokenType::Ident) && self.peek().lexeme == kw
-}
+    }
 
     fn parse_robot(&mut self) -> Result<RobotDecl, SpandaError> {
         // Parse robot.
@@ -2166,7 +2142,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.check(TokenType::Soc).
             if self.check(TokenType::Soc) {
                 soc = Some(self.parse_soc()?);
@@ -2191,7 +2166,6 @@ impl Parser {
             } else if self.check(TokenType::Ident) && self.is_agent_channel() {
                 agent_channels.push(self.parse_agent_channel()?);
             } else if self.check(TokenType::Agent) {
-
                 // Take this path when self.is agent shorthand().
                 if self.is_agent_shorthand() {
                     self.parse_agent_shorthand(&mut agents)?;
@@ -2316,7 +2290,7 @@ impl Parser {
             twin_sync,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn is_agent_shorthand(&mut self) -> bool {
         //
@@ -2346,7 +2320,7 @@ impl Parser {
         }
         idx += 1;
         idx < self.tokens.len() && self.tokens[idx].token_type == TokenType::Semicolon
-}
+    }
 
     fn is_agent_channel(&self) -> bool {
         //
@@ -2368,7 +2342,7 @@ impl Parser {
             && self.tokens[idx].token_type == TokenType::Ident
             && self.tokens[idx + 1].token_type == TokenType::Arrow
             && self.tokens[idx + 2].token_type == TokenType::Ident
-}
+    }
 
     fn parse_agent_shorthand(&mut self, agents: &mut Vec<AgentDecl>) -> Result<(), SpandaError> {
         // Parse agent shorthand.
@@ -2403,7 +2377,7 @@ impl Parser {
             span: self.span_from(&start, self.previous()),
         });
         Ok(())
-}
+    }
 
     fn parse_bus(&mut self) -> Result<crate::comm::BusDecl, SpandaError> {
         // Parse bus.
@@ -2432,7 +2406,7 @@ impl Parser {
             transport,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_peer_robot(&mut self) -> Result<crate::comm::PeerRobotDecl, SpandaError> {
         // Parse peer robot.
@@ -2458,7 +2432,7 @@ impl Parser {
             name: name.lexeme,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_device(&mut self) -> Result<crate::comm::DeviceDecl, SpandaError> {
         // Parse device.
@@ -2490,7 +2464,7 @@ impl Parser {
             device_type: device_type.lexeme,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_agent_channel(&mut self) -> Result<crate::comm::AgentChannelDecl, SpandaError> {
         // Parse agent channel.
@@ -2530,7 +2504,7 @@ impl Parser {
             message_type,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn is_twin_sync(&self) -> bool {
         //
@@ -2551,7 +2525,7 @@ impl Parser {
         idx < self.tokens.len()
             && self.tokens[idx].token_type == TokenType::Ident
             && self.tokens[idx].lexeme == "sync"
-}
+    }
 
     #[allow(dead_code)]
     fn parse_twin_sync(&mut self) -> Result<crate::comm::TwinSyncDecl, SpandaError> {
@@ -2581,7 +2555,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Telemetry]).
             if self.match_types(&[TokenType::Telemetry]) {
                 telemetry = true;
@@ -2595,7 +2568,6 @@ impl Parser {
             } else if self.match_types(&[TokenType::Event])
                 || (self.check(TokenType::Ident) && self.peek().lexeme == "events")
             {
-
                 // Take this path when self.check(TokenType::Ident).
                 if self.check(TokenType::Ident) {
                     self.advance();
@@ -2619,7 +2591,7 @@ impl Parser {
             events,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_trait_impl(&mut self) -> Result<crate::foundations::TraitImplDecl, SpandaError> {
         // Parse trait impl.
@@ -2656,7 +2628,7 @@ impl Parser {
             methods,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_trait_impl_method(
         &mut self,
@@ -2684,7 +2656,6 @@ impl Parser {
 
         // Take the branch when Rparen) is false.
         if !self.check(TokenType::Rparen) {
-
             // Run the loop body until it exits.
             loop {
                 let pstart = self.peek().clone();
@@ -2726,7 +2697,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_soc(&mut self) -> Result<SocDecl, SpandaError> {
         // Parse soc.
@@ -2751,7 +2722,7 @@ impl Parser {
             profile: profile.lexeme,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_hal(&mut self) -> Result<HalBlock, SpandaError> {
         // Parse hal.
@@ -2782,7 +2753,7 @@ impl Parser {
             members,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_hal_member(&mut self) -> Result<HalMemberDecl, SpandaError> {
         // Parse hal member.
@@ -2910,7 +2881,7 @@ impl Parser {
             line: t.line,
             column: t.column,
         })
-}
+    }
 
     fn parse_frequency_hz(&mut self) -> Result<f64, SpandaError> {
         // Parse frequency hz.
@@ -2951,7 +2922,7 @@ impl Parser {
             line: tok.line,
             column: tok.column,
         })
-}
+    }
 
     fn parse_message(&mut self) -> Result<crate::comm::MessageDecl, SpandaError> {
         // Parse message.
@@ -2978,7 +2949,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take the branch when lexeme equals "version".
             if self.check(TokenType::Ident) && self.peek().lexeme == "version" {
                 self.advance();
@@ -3005,7 +2975,7 @@ impl Parser {
             version,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_qos_block(&mut self) -> Result<crate::comm::QosDecl, SpandaError> {
         // Parse qos block.
@@ -3033,10 +3003,8 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Qos]).
             if self.match_types(&[TokenType::Qos]) {
-
                 // Take this path when self.match types(&[TokenType::Reliable]).
                 if self.match_types(&[TokenType::Reliable]) {
                     reliability = Some(QosReliability::Reliable);
@@ -3073,7 +3041,7 @@ impl Parser {
             history,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_node(&mut self) -> Result<NodeDecl, SpandaError> {
         // Parse node.
@@ -3107,7 +3075,7 @@ impl Parser {
             namespace,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_topic(&mut self) -> Result<TopicDecl, SpandaError> {
         // Parse topic.
@@ -3141,7 +3109,6 @@ impl Parser {
 
             // Take this path when self.match types(&[TokenType::On]).
             if self.match_types(&[TokenType::On]) {
-
                 // Take this path when self.check(TokenType::String).
                 if self.check(TokenType::String) {
                     topic_path = Some(str_val(&self.advance()));
@@ -3156,7 +3123,6 @@ impl Parser {
 
             // Take this path when self.match types(&[TokenType::On]).
             if self.match_types(&[TokenType::On]) {
-
                 // Take this path when self.check(TokenType::String).
                 if self.check(TokenType::String) {
                     topic_path = Some(str_val(&self.advance()));
@@ -3175,7 +3141,6 @@ impl Parser {
 
         // Take this path when self.match types(&[TokenType::On]) && topic path.is none() && transpor.
         if self.match_types(&[TokenType::On]) && topic_path.is_none() && transport.is_none() {
-
             // Take this path when self.check(TokenType::String).
             if self.check(TokenType::String) {
                 topic_path = Some(str_val(&self.advance()));
@@ -3200,7 +3165,7 @@ impl Parser {
             secure,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_service(&mut self) -> Result<ServiceDecl, SpandaError> {
         // Parse service.
@@ -3229,7 +3194,6 @@ impl Parser {
 
             // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
             while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
                 // Take this path when self.match types(&[TokenType::Request]).
                 if self.match_types(&[TokenType::Request]) {
                     request_type = Some(
@@ -3290,7 +3254,7 @@ impl Parser {
             secure,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_action(&mut self) -> Result<ActionDecl, SpandaError> {
         // Parse action.
@@ -3320,7 +3284,6 @@ impl Parser {
 
             // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
             while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
                 // Take this path when self.match types(&[TokenType::Request]).
                 if self.match_types(&[TokenType::Request]) {
                     request_type = Some(
@@ -3389,7 +3352,7 @@ impl Parser {
             secure,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_sensor(&mut self) -> Result<SensorDecl, SpandaError> {
         // Parse sensor.
@@ -3420,7 +3383,6 @@ impl Parser {
             None
         };
         let binding = if self.match_types(&[TokenType::On]) {
-
             // Take this path when self.check(TokenType::String).
             if self.check(TokenType::String) {
                 Some(SensorBinding::Topic {
@@ -3447,7 +3409,7 @@ impl Parser {
             binding,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_actuator(&mut self) -> Result<ActuatorDecl, SpandaError> {
         // Parse actuator.
@@ -3478,7 +3440,7 @@ impl Parser {
             actuator_type: actuator_type.lexeme,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_safety(&mut self) -> Result<SafetyBlock, SpandaError> {
         // Parse safety.
@@ -3503,7 +3465,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.check(TokenType::StopIf).
             if self.check(TokenType::StopIf) {
                 rules.push(self.parse_stop_if_rule()?);
@@ -3526,7 +3487,7 @@ impl Parser {
             zones,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_verify(&mut self) -> Result<crate::foundations::VerifyDecl, SpandaError> {
         // Parse verify.
@@ -3552,7 +3513,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Warning]).
             if self.match_types(&[TokenType::Warning]) {
                 warnings.push(self.parse_expr()?);
@@ -3567,7 +3527,7 @@ impl Parser {
             warnings,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_observe(&mut self) -> Result<crate::foundations::ObserveDecl, SpandaError> {
         // Parse observe.
@@ -3601,7 +3561,7 @@ impl Parser {
             sensors,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_identity(&mut self) -> Result<IdentityDecl, SpandaError> {
         // Parse identity.
@@ -3638,7 +3598,7 @@ impl Parser {
             fields,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_audit(&mut self) -> Result<AuditDecl, SpandaError> {
         // Parse audit.
@@ -3683,7 +3643,7 @@ impl Parser {
             records,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_provenance(&mut self) -> Result<ProvenanceDecl, SpandaError> {
         // Parse provenance.
@@ -3740,7 +3700,7 @@ impl Parser {
             signed_by,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_signed_record(&mut self) -> Result<SignedRecordDecl, SpandaError> {
         // Parse signed record.
@@ -3774,7 +3734,7 @@ impl Parser {
             signed_by,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_secret(&mut self) -> Result<crate::foundations::SecretDecl, SpandaError> {
         // Parse secret.
@@ -3822,7 +3782,7 @@ impl Parser {
             source,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_trust(&mut self) -> Result<crate::foundations::TrustDecl, SpandaError> {
         // Parse trust.
@@ -3850,7 +3810,7 @@ impl Parser {
             level,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_dotted_capability(&mut self) -> Result<String, SpandaError> {
         // Parse dotted capability.
@@ -3877,7 +3837,7 @@ impl Parser {
         } else {
             Ok(first)
         }
-}
+    }
 
     fn parse_permissions(&mut self) -> Result<crate::foundations::PermissionsDecl, SpandaError> {
         // Parse permissions.
@@ -3902,7 +3862,6 @@ impl Parser {
 
         // Take the branch when Rbracket) is false.
         if !self.check(TokenType::Rbracket) {
-
             // Run the loop body until it exits.
             loop {
                 capabilities.push(self.parse_dotted_capability()?);
@@ -3922,7 +3881,7 @@ impl Parser {
             capabilities,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_secure_block(&mut self) -> Result<crate::foundations::SecureBlockDecl, SpandaError> {
         // Parse secure block.
@@ -3970,7 +3929,6 @@ impl Parser {
 
                     // Take the branch when Rbracket) is false.
                     if !self.check(TokenType::Rbracket) {
-
                         // Run the loop body until it exits.
                         loop {
                             requires.push(self.parse_dotted_capability()?);
@@ -4000,7 +3958,7 @@ impl Parser {
             requires,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_config_value_string(&mut self) -> Result<String, SpandaError> {
         // Parse config value string.
@@ -4030,7 +3988,7 @@ impl Parser {
                 column: tok.column,
             }),
         }
-}
+    }
 
     fn expr_path_string(expr: &Expr) -> String {
         // Expr path string.
@@ -4057,7 +4015,7 @@ impl Parser {
             }
             _ => String::new(),
         }
-}
+    }
 
     fn parse_ai_model(&mut self) -> Result<AiModelDecl, SpandaError> {
         // Parse ai model.
@@ -4088,7 +4046,7 @@ impl Parser {
             config,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_ai_config_entries(&mut self) -> Result<Vec<AiConfigEntry>, SpandaError> {
         // Parse ai config entries.
@@ -4125,7 +4083,7 @@ impl Parser {
             });
         }
         Ok(entries)
-}
+    }
 
     fn parse_config_key_token(&mut self) -> Result<String, SpandaError> {
         // Parse config key token.
@@ -4156,7 +4114,7 @@ impl Parser {
                 column: t.column,
             })
         }
-}
+    }
 
     fn parse_config_value(&mut self) -> Result<ConfigValue, SpandaError> {
         // Parse config value.
@@ -4215,7 +4173,7 @@ impl Parser {
                 column: t.column,
             })
         }
-}
+    }
 
     fn parse_agent(&mut self) -> Result<AgentDecl, SpandaError> {
         // Parse agent.
@@ -4247,7 +4205,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Uses]).
             if self.match_types(&[TokenType::Uses]) {
                 uses_ai.push(
@@ -4274,7 +4231,6 @@ impl Parser {
 
                 // Take the branch when Rbracket) is false.
                 if !self.check(TokenType::Rbracket) {
-
                     // Run the loop body until it exits.
                     loop {
                         tools.push(self.expect(TokenType::Ident, "Expected tool name")?.lexeme);
@@ -4295,7 +4251,6 @@ impl Parser {
 
                 // Take the branch when Rbracket) is false.
                 if !self.check(TokenType::Rbracket) {
-
                     // Run the loop body until it exits.
                     loop {
                         capabilities.push(self.parse_capability()?);
@@ -4339,7 +4294,7 @@ impl Parser {
             trigger_handlers,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_capability(&mut self) -> Result<CapabilityDecl, SpandaError> {
         // Parse capability.
@@ -4387,7 +4342,7 @@ impl Parser {
             target,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_safety_zone(&mut self) -> Result<SafetyZoneDecl, SpandaError> {
         // Parse safety zone.
@@ -4448,7 +4403,7 @@ impl Parser {
             height,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_max_speed_rule(&mut self) -> Result<SafetyRule, SpandaError> {
         // Parse max speed rule.
@@ -4482,7 +4437,7 @@ impl Parser {
             unit,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_stop_if_rule(&mut self) -> Result<SafetyRule, SpandaError> {
         // Parse stop if rule.
@@ -4507,7 +4462,7 @@ impl Parser {
             condition,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_contract_clauses(&mut self) -> Result<ContractClauses, SpandaError> {
         // Parse contract clauses.
@@ -4531,7 +4486,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Lbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Lbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Requires]).
             if self.match_types(&[TokenType::Requires]) {
                 requires = Some(self.parse_expr()?);
@@ -4544,7 +4498,7 @@ impl Parser {
             }
         }
         Ok((requires, ensures, invariant))
-}
+    }
 
     fn parse_behavior(&mut self) -> Result<BehaviorDecl, SpandaError> {
         // Parse behavior.
@@ -4578,7 +4532,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_task(&mut self) -> Result<TaskDecl, SpandaError> {
         // Parse task.
@@ -4602,7 +4556,6 @@ impl Parser {
 
         // Take this path when self.check(TokenType::Ident).
         if self.check(TokenType::Ident) {
-
             // Take this path when let Some(parsed priority) =.
             if let Some(parsed_priority) =
                 crate::foundations::TaskPriority::from_ident(&self.peek().lexeme)
@@ -4637,7 +4590,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_state_machine(&mut self) -> Result<StateMachineDecl, SpandaError> {
         // Parse state machine.
@@ -4663,7 +4616,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::State]).
             if self.match_types(&[TokenType::State]) {
                 states.push(self.expect(TokenType::Ident, "Expected state name")?.lexeme);
@@ -4696,7 +4648,7 @@ impl Parser {
             transitions,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_event(&mut self) -> Result<EventDecl, SpandaError> {
         // Parse event.
@@ -4743,7 +4695,7 @@ impl Parser {
             fields,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_on_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
         // Parse on trigger.
@@ -4805,7 +4757,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_state_trigger_kind(&mut self) -> Result<TriggerKind, SpandaError> {
         // Parse state trigger kind.
@@ -4844,7 +4796,7 @@ impl Parser {
                 column: phase.column,
             })
         }
-}
+    }
 
     fn parse_optional_trigger_priority(&mut self) -> Result<TaskPriority, SpandaError> {
         // Parse optional trigger priority.
@@ -4870,7 +4822,6 @@ impl Parser {
                 column: ident.column,
             })
         } else if self.check(TokenType::Ident) {
-
             // Emit output when lexeme) provides a priority.
             if let Some(priority) = TaskPriority::from_ident(&self.peek().lexeme) {
                 self.advance();
@@ -4881,7 +4832,7 @@ impl Parser {
         } else {
             Ok(TaskPriority::Normal)
         }
-}
+    }
 
     fn parse_every_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
         // Parse every trigger.
@@ -4911,7 +4862,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_when_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
         // Parse when trigger.
@@ -4941,7 +4892,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_while_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
         // Parse while trigger.
@@ -4971,7 +4922,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_agent_on_trigger(&mut self) -> Result<TriggerHandlerDecl, SpandaError> {
         // Parse agent on trigger.
@@ -5003,7 +4954,7 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_twin(&mut self) -> Result<TwinDecl, SpandaError> {
         // Parse twin.
@@ -5029,7 +4980,6 @@ impl Parser {
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
-
             // Take this path when self.match types(&[TokenType::Mirror]).
             if self.match_types(&[TokenType::Mirror]) {
                 mirrors.push(self.parse_label("Expected mirror field")?);
@@ -5058,7 +5008,7 @@ impl Parser {
             replay,
             span: self.span_from(&start, &end),
         })
-}
+    }
 
     fn parse_block(&mut self) -> Result<Vec<Stmt>, SpandaError> {
         // Parse block.
@@ -5083,7 +5033,7 @@ impl Parser {
             stmts.push(self.parse_stmt()?);
         }
         Ok(stmts)
-}
+    }
 
     fn parse_stmt(&mut self) -> Result<Stmt, SpandaError> {
         // Parse stmt.
@@ -5353,10 +5303,8 @@ impl Parser {
 
             // Take this path when self.match types(&[TokenType::Lparen]).
             if self.match_types(&[TokenType::Lparen]) {
-
                 // Take the branch when Rparen) is false.
                 if !self.check(TokenType::Rparen) {
-
                     // Run the loop body until it exits.
                     loop {
                         args.push(self.parse_expr()?);
@@ -5441,7 +5389,7 @@ impl Parser {
             expr,
             span: self.span_from(&start, self.previous()),
         })
-}
+    }
 
     fn parse_subscribe_target(&mut self) -> Result<String, SpandaError> {
         // Parse subscribe target.
@@ -5468,7 +5416,7 @@ impl Parser {
         } else {
             Ok(first)
         }
-}
+    }
 
     fn parse_discover_target(&mut self) -> Result<crate::comm::DiscoverTarget, SpandaError> {
         // Parse discover target.
@@ -5502,7 +5450,7 @@ impl Parser {
                 column: self.previous().column,
             }),
         }
-}
+    }
 
     fn parse_discover_filter(
         &mut self,
@@ -5536,7 +5484,7 @@ impl Parser {
         Ok(Some(crate::comm::DiscoverFilter {
             capability: Some(cap),
         }))
-}
+    }
 
     fn parse_duration(&mut self) -> Result<f64, SpandaError> {
         // Parse duration.
@@ -5583,7 +5531,7 @@ impl Parser {
             line: tok.line,
             column: tok.column,
         })
-}
+    }
 
     fn parse_unit_suffix(&mut self) -> Result<UnitKind, SpandaError> {
         // Parse unit suffix.
@@ -5609,7 +5557,7 @@ impl Parser {
                 column: t.column,
             }
         })
-}
+    }
 
     fn try_parse_unit_suffix(&mut self) -> Option<UnitKind> {
         // Try parse unit suffix.
@@ -5663,7 +5611,7 @@ impl Parser {
             }
         }
         None
-}
+    }
 
     fn parse_expr(&mut self) -> Result<Expr, SpandaError> {
         // Parse expr.
@@ -5682,7 +5630,7 @@ impl Parser {
 
         // Call parse or on the current instance.
         self.parse_or()
-}
+    }
 
     fn parse_or(&mut self) -> Result<Expr, SpandaError> {
         // Parse or.
@@ -5714,7 +5662,7 @@ impl Parser {
             };
         }
         Ok(left)
-}
+    }
 
     fn parse_and(&mut self) -> Result<Expr, SpandaError> {
         // Parse and.
@@ -5746,7 +5694,7 @@ impl Parser {
             };
         }
         Ok(left)
-}
+    }
 
     fn parse_comparison(&mut self) -> Result<Expr, SpandaError> {
         // Parse comparison.
@@ -5785,7 +5733,7 @@ impl Parser {
             };
         }
         Ok(left)
-}
+    }
 
     fn parse_additive(&mut self) -> Result<Expr, SpandaError> {
         // Parse additive.
@@ -5817,7 +5765,7 @@ impl Parser {
             };
         }
         Ok(left)
-}
+    }
 
     fn parse_multiplicative(&mut self) -> Result<Expr, SpandaError> {
         // Parse multiplicative.
@@ -5849,7 +5797,7 @@ impl Parser {
             };
         }
         Ok(left)
-}
+    }
 
     fn parse_unary(&mut self) -> Result<Expr, SpandaError> {
         // Parse unary.
@@ -5887,10 +5835,8 @@ impl Parser {
 
             // Take this path when self.match types(&[TokenType::Lparen]).
             if self.match_types(&[TokenType::Lparen]) {
-
                 // Take the branch when Rparen) is false.
                 if !self.check(TokenType::Rparen) {
-
                     // Run the loop body until it exits.
                     loop {
                         args.push(self.parse_expr()?);
@@ -5926,7 +5872,7 @@ impl Parser {
             });
         }
         self.parse_postfix()
-}
+    }
 
     fn parse_postfix(&mut self) -> Result<Expr, SpandaError> {
         // Parse postfix.
@@ -5948,7 +5894,6 @@ impl Parser {
 
         // Run the loop body until it exits.
         loop {
-
             // Take this path when self.match types(&[TokenType::Dot]).
             if self.match_types(&[TokenType::Dot]) {
                 let prop = self.parse_property_name()?;
@@ -5967,10 +5912,8 @@ impl Parser {
 
                 // Take the branch when Rparen) is false.
                 if !self.check(TokenType::Rparen) {
-
                     // Run the loop body until it exits.
                     loop {
-
                         // Take this path when self.is named arg start().
                         if self.is_named_arg_start() {
                             let name = self.parse_named_arg_name()?;
@@ -6002,10 +5945,8 @@ impl Parser {
                     },
                 };
             } else if self.check(TokenType::Lt) {
-
                 // Take this path when let Expr::IdentExpr { name, span, .. } = &expr.
                 if let Expr::IdentExpr { name, span, .. } = &expr {
-
                     // Take this path when name.chars().next().is some and(|c| c.is uppercase()).
                     if name.chars().next().is_some_and(|c| c.is_uppercase()) {
                         let start = span.start;
@@ -6022,10 +5963,8 @@ impl Parser {
                 }
                 break;
             } else if self.check(TokenType::Lbrace) {
-
                 // Take this path when let Expr::IdentExpr { name, .. } = &expr.
                 if let Expr::IdentExpr { name, .. } = &expr {
-
                     // Take this path when name.chars().next().is some and(|c| c.is uppercase()).
                     if name.chars().next().is_some_and(|c| c.is_uppercase()) {
                         self.advance();
@@ -6033,7 +5972,6 @@ impl Parser {
 
                         // Take the branch when Rbrace) is false.
                         if !self.check(TokenType::Rbrace) {
-
                             // Run the loop body until it exits.
                             loop {
                                 let fstart = self.peek().clone();
@@ -6075,7 +6013,7 @@ impl Parser {
             }
         }
         Ok(expr)
-}
+    }
 
     fn parse_primary(&mut self) -> Result<Expr, SpandaError> {
         // Parse primary.
@@ -6109,7 +6047,6 @@ impl Parser {
 
                 // Take this path when self.match types(&[TokenType::Lparen]).
                 if self.match_types(&[TokenType::Lparen]) {
-
                     // Repeat while !self.check(TokenType::Rparen) && !self.check(TokenType::Eof).
                     while !self.check(TokenType::Rparen) && !self.check(TokenType::Eof) {
                         bindings.push(self.parse_import_segment("Expected binding name")?);
@@ -6317,7 +6254,7 @@ impl Parser {
             line: t.line,
             column: t.column,
         })
-}
+    }
 
     fn parse_property_name(&mut self) -> Result<Token, SpandaError> {
         // Parse property name.
@@ -6345,7 +6282,7 @@ impl Parser {
             column: self.previous().column,
             offset: self.previous().offset,
         })
-}
+    }
 
     fn parse_local_name(&mut self, message: &str) -> Result<Token, SpandaError> {
         // Parse local name.
@@ -6374,7 +6311,7 @@ impl Parser {
             column: self.previous().column,
             offset: self.previous().offset,
         })
-}
+    }
 
     fn is_named_arg_start(&self) -> bool {
         //
@@ -6396,7 +6333,7 @@ impl Parser {
                 || self.check(TokenType::From)
                 || self.check(TokenType::To)
                 || self.check(TokenType::Goal))
-}
+    }
 
     fn parse_named_arg_name(&mut self) -> Result<String, SpandaError> {
         // Parse named arg name.
@@ -6423,7 +6360,7 @@ impl Parser {
         } else {
             Ok(self.advance().lexeme)
         }
-}
+    }
 }
 
 fn loc(t: &Token) -> SourceLocation {

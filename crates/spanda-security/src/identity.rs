@@ -33,7 +33,7 @@ impl RobotIdentity {
             device: DeviceIdentity::new(id, public_key),
             trust: TrustLevel::Trusted,
         }
-}
+    }
 
     pub fn with_trust(mut self, trust: TrustLevel) -> Self {
         //
@@ -53,7 +53,7 @@ impl RobotIdentity {
         // Call trust = trust; on the current instance.
         self.trust = trust;
         self
-}
+    }
 
     pub fn id(&self) -> &str {
         // Id.
@@ -72,7 +72,7 @@ impl RobotIdentity {
 
         // Return id from this handle.
         &self.device.id
-}
+    }
 
     pub fn public_key(&self) -> &str {
         // Public key.
@@ -91,7 +91,7 @@ impl RobotIdentity {
 
         // Return public key from this handle.
         &self.device.public_key
-}
+    }
 
     pub fn signing_key(&self) -> String {
         // Signing key.
@@ -110,7 +110,7 @@ impl RobotIdentity {
 
         // Call default key on the current instance.
         self.device.default_key()
-}
+    }
 }
 
 impl From<DeviceIdentity> for RobotIdentity {
@@ -134,5 +134,5 @@ impl From<DeviceIdentity> for RobotIdentity {
             device,
             trust: TrustLevel::Trusted,
         }
-}
+    }
 }

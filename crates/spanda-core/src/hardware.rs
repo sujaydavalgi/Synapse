@@ -68,7 +68,7 @@ impl CompatibilityReport {
         self.items
             .iter()
             .filter(|i| i.severity == CompatSeverity::Error)
-}
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -513,7 +513,6 @@ fn apply_fault(mut profile: HardwareProfile, fault_type: &str) -> HardwareProfil
             profile.sensors.retain(|s| s != "Lidar");
         }
         "BatteryDegradation" => {
-
             // Emit output when battery wh provides a b.
             if let Some(b) = profile.battery_wh {
                 profile.battery_wh = Some(b * 0.5);
@@ -551,7 +550,6 @@ fn collect_loop_intervals(stmts: &[Stmt]) -> Vec<f64> {
 
     // Execute each statement in sequence.
     for stmt in stmts {
-
         // Match on stmt and handle each case.
         match stmt {
             Stmt::LoopStmt {
@@ -578,12 +576,11 @@ fn collect_loop_intervals(stmts: &[Stmt]) -> Vec<f64> {
     intervals
 }
 
-fn ai_config_number(config: &[(String, ConfigValue)], key: &str) -> Option<f64> {    // Iterate over config.
+fn ai_config_number(config: &[(String, ConfigValue)], key: &str) -> Option<f64> {
+    // Iterate over config.
     config.iter().find_map(|e| {
-
         // Take the branch when 0 equals key.
         if e.0 == key {
-
             // Match on 1 and handle each case.
             match &e.1 {
                 ConfigValue::Number(n) => Some(*n),
@@ -595,9 +592,9 @@ fn ai_config_number(config: &[(String, ConfigValue)], key: &str) -> Option<f64> 
     })
 }
 
-fn ai_config_bool(config: &[(String, ConfigValue)], key: &str) -> bool {    // Iterate over config.
+fn ai_config_bool(config: &[(String, ConfigValue)], key: &str) -> bool {
+    // Iterate over config.
     config.iter().any(|(k, v)| {
-
         // Take the branch when k differs from key.
         if k != key {
             return false;
@@ -647,7 +644,6 @@ fn verify_requires_hardware(
 
     // Emit output when memory mb min provides a min mem.
     if let Some(min_mem) = memory_mb_min {
-
         // Match on memory mb and handle each case.
         match profile.memory_mb {
             Some(mem) if mem >= *min_mem => {
@@ -677,7 +673,6 @@ fn verify_requires_hardware(
 
     // Emit output when storage mb min provides a min storage.
     if let Some(min_storage) = storage_mb_min {
-
         // Match on storage mb and handle each case.
         match profile.storage_mb {
             Some(storage) if storage >= *min_storage => {
@@ -720,7 +715,6 @@ fn verify_requires_hardware(
 
     // Emit output when gpu tops min provides a min tops.
     if let Some(min_tops) = gpu_tops_min {
-
         // Match on gpu tops and handle each case.
         match profile.gpu_tops {
             Some(tops) if tops >= *min_tops => {
@@ -751,7 +745,6 @@ fn verify_requires_hardware(
 
     // Process each sensor.
     for sensor_type in sensors {
-
         // Check membership before continuing.
         if sensor_set.contains(sensor_type) {
             items.push(pass(
@@ -780,7 +773,6 @@ fn verify_requires_hardware(
 
     // Process each actuator.
     for actuator_type in actuators {
-
         // Check membership before continuing.
         if actuator_set.contains(actuator_type) {
             items.push(pass(
@@ -839,7 +831,6 @@ fn verify_requires_network(
 
     // Emit output when bandwidth mbps min provides a min bw.
     if let Some(min_bw) = bandwidth_mbps_min {
-
         // Match on network bandwidth mbps and handle each case.
         match profile.network_bandwidth_mbps {
             Some(bw) if bw >= *min_bw => {
@@ -869,7 +860,6 @@ fn verify_requires_network(
 
     // Emit output when latency ms max provides a max lat.
     if let Some(max_lat) = latency_ms_max {
-
         // Match on network latency ms and handle each case.
         match profile.network_latency_ms {
             Some(lat) if lat <= *max_lat => {
@@ -935,7 +925,6 @@ fn verify_resource_budget(
 
     // Emit output when memory mb max provides a mem max.
     if let Some(mem_max) = memory_mb_max {
-
         // Match on memory mb and handle each case.
         match profile.memory_mb {
             Some(total) if *mem_max <= total => {
@@ -998,7 +987,6 @@ fn verify_resource_budget(
 
     // Emit output when network mbps max provides a net max.
     if let Some(net_max) = network_mbps_max {
-
         // Match on network bandwidth mbps and handle each case.
         match profile.network_bandwidth_mbps {
             Some(bw) if *net_max <= bw => {
@@ -1028,7 +1016,6 @@ fn verify_resource_budget(
 
     // Emit output when storage mb max provides a stor max.
     if let Some(stor_max) = storage_mb_max {
-
         // Match on storage mb and handle each case.
         match profile.storage_mb {
             Some(total) if *stor_max <= total => {
@@ -1130,7 +1117,6 @@ fn verify_timing(robot: &RobotDecl, profile: &HardwareProfile) -> Vec<CompatItem
 
         // Process each collect loop interval.
         for interval in collect_loop_intervals(body) {
-
             // Take this path when interval < min period.
             if interval < min_period {
                 items.push(error(
@@ -1224,7 +1210,6 @@ fn verify_ai_models(robot: &RobotDecl, profile: &HardwareProfile) -> Vec<CompatI
 
         // Emit output when ai config number provides a mem req.
         if let Some(mem_req) = ai_config_number(&config_pairs, "memory_required") {
-
             // Match on memory mb and handle each case.
             match profile.memory_mb {
                 Some(mem) if mem >= mem_req => {
@@ -1254,7 +1239,6 @@ fn verify_ai_models(robot: &RobotDecl, profile: &HardwareProfile) -> Vec<CompatI
 
         // Take this path when ai config bool(&config pairs, "gpu required").
         if ai_config_bool(&config_pairs, "gpu_required") {
-
             // Proceed only when is some is available.
             if profile.gpu_required || profile.gpu_tops.is_some() {
                 items.push(pass(
@@ -1389,7 +1373,6 @@ fn verify_adapters(
         ..
     } in sensors
     {
-
         // Emit output when sensor adapter provides a adapter.
         if let Some(adapter) = sensor_adapter(sensor_type) {
             let hw_ok = profile.sensors.iter().any(|s| s == sensor_type);
@@ -1584,7 +1567,6 @@ fn verify_robot_against_profile(
         ..
     } in sensors
     {
-
         // Check membership before continuing.
         if sensor_set.contains(sensor_type) {
             items.push(pass(
@@ -1626,7 +1608,6 @@ fn verify_robot_against_profile(
 
             // Take this path when let Some(SensorDecl::SensorDecl { sensor type, .. }) = declared.
             if let Some(SensorDecl::SensorDecl { sensor_type, .. }) = declared {
-
                 // Check membership before continuing.
                 if !sensor_set.contains(sensor_type) {
                     items.push(error(
@@ -1892,7 +1873,6 @@ pub fn verify_program_compatibility(
             1,
         ));
     } else if let Some(target) = &options.target {
-
         // Skip further work when robots is empty.
         if robots.is_empty() {
             items.push(error(
@@ -1925,12 +1905,10 @@ pub fn verify_program_compatibility(
 
         // Take this path when run simulation.
         if run_simulation {
-
             // Take this path when let Some(SimulateCompatibilityDecl::SimulateCompatibilityDecl { faults.
             if let Some(SimulateCompatibilityDecl::SimulateCompatibilityDecl { faults, span }) =
                 simulate_compatibility
             {
-
                 // Inject each configured hardware fault.
                 for fault in faults {
                     profile = apply_fault(profile, &fault.fault_type);

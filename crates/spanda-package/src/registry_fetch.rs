@@ -164,7 +164,6 @@ pub fn cache_registry_tarball(
 
     // Emit output when global registry cache dir provides a global.
     if let Some(global) = global_registry_cache_dir() {
-
         // Take the branch when global differs from cache dir.
         if global != cache_dir {
             let _ = fs::create_dir_all(&global);

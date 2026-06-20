@@ -55,7 +55,7 @@ impl Default for SimulatorConfig {
             },
             lidar_range: 10.0,
         }
-}
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -118,7 +118,7 @@ impl Simulator {
             action_log: Vec::new(),
             hal: create_sim_hal(),
         }
-}
+    }
 
     pub fn get_event_log(&self) -> Vec<String> {
         //
@@ -136,7 +136,7 @@ impl Simulator {
 
         // Call clone on the current instance.
         self.event_log.clone()
-}
+    }
 
     pub fn get_arm_position(&self) -> (f64, f64, f64) {
         //
@@ -154,7 +154,7 @@ impl Simulator {
 
         // Call arm position on the current instance.
         self.arm_position
-}
+    }
 
     pub fn get_service_log(&self) -> Vec<String> {
         //
@@ -172,7 +172,7 @@ impl Simulator {
 
         // Call clone on the current instance.
         self.service_log.clone()
-}
+    }
 
     pub fn get_action_log(&self) -> Vec<String> {
         //
@@ -190,7 +190,7 @@ impl Simulator {
 
         // Call clone on the current instance.
         self.action_log.clone()
-}
+    }
 
     pub fn get_published_topics(&self) -> Vec<PublishedMessage> {
         //
@@ -208,7 +208,7 @@ impl Simulator {
 
         // Call clone on the current instance.
         self.published.clone()
-}
+    }
 
     fn simulate_lidar(&self) -> f64 {
         // Simulate lidar.
@@ -246,7 +246,7 @@ impl Simulator {
             nearest = wall_dist;
         }
         nearest.max(0.01)
-}
+    }
 }
 
 impl RobotBackend for Simulator {
@@ -362,7 +362,7 @@ impl RobotBackend for Simulator {
             },
             _ => RuntimeValue::Void,
         }
-}
+    }
 
     fn publish_topic(&mut self, topic_path: &str, message_type: &str, value: RuntimeValue) {
         // Publish topic.
@@ -396,7 +396,7 @@ impl RobotBackend for Simulator {
         });
         self.event_log
             .push(format!("publish({topic_path}, {message_type})"));
-}
+    }
 
     fn call_service(&mut self, service_name: &str, service_type: &str) -> RuntimeValue {
         // Call service.
@@ -420,7 +420,7 @@ impl RobotBackend for Simulator {
             .push(format!("{service_name}:{service_type}"));
         self.event_log.push(format!("service({service_name})"));
         RuntimeValue::Bool { value: true }
-}
+    }
 
     fn send_action(
         &mut self,
@@ -465,7 +465,7 @@ impl RobotBackend for Simulator {
             _ => {}
         }
         RuntimeValue::Bool { value: true }
-}
+    }
 
     fn execute_motion(&mut self, cmd: MotionCommand) {
         // Execute motion.
@@ -543,7 +543,7 @@ impl RobotBackend for Simulator {
                 self.event_log.push("hover()".into());
             }
         }
-}
+    }
 
     fn tick(&mut self, dt_ms: f64) {
         // Tick.
@@ -608,7 +608,7 @@ impl RobotBackend for Simulator {
         self.pose.x = new_x;
         self.pose.y = new_y;
         self.pose.theta = new_theta;
-}
+    }
 
     fn get_state(&self) -> RobotState {
         //
@@ -630,7 +630,7 @@ impl RobotBackend for Simulator {
             velocity: self.velocity.clone(),
             emergency_stop: self.emergency_stop,
         }
-}
+    }
 
     fn set_emergency_stop(&mut self, value: bool) {
         // Set emergency stop.
@@ -659,7 +659,7 @@ impl RobotBackend for Simulator {
             };
             self.follow_queue.clear();
         }
-}
+    }
 
     fn get_hal(&mut self) -> Option<&mut dyn HalBackend> {
         //
@@ -677,7 +677,7 @@ impl RobotBackend for Simulator {
 
         // Produce hal) as the result.
         Some(&mut self.hal)
-}
+    }
 
     fn event_log(&self) -> Vec<String> {
         // Event log.
@@ -696,7 +696,7 @@ impl RobotBackend for Simulator {
 
         // Call get event log on the current instance.
         self.get_event_log()
-}
+    }
 }
 
 pub fn create_default_simulator(config: SimulatorConfig) -> Simulator {

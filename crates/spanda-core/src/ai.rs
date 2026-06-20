@@ -34,7 +34,7 @@ impl AiRuntimeKind {
             AiRuntimeKind::Tensorrt => "tensorrt",
             AiRuntimeKind::OpenVino => "openvino",
         }
-}
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -238,7 +238,6 @@ fn scan_distance(input: Option<&RuntimeValue>) -> f64 {
     match input {
         Some(RuntimeValue::Scan { nearest_distance }) => *nearest_distance,
         Some(RuntimeValue::Object { type_name, fields }) if type_name == "Detection" => {
-
             // Take this path when let Some(RuntimeValue::Number { value, .. }) = fields.get("nearest dis.
             if let Some(RuntimeValue::Number { value, .. }) = fields.get("nearest_distance") {
                 *value
@@ -351,7 +350,7 @@ impl AiProvider for MockAiProvider {
                 "decision=forward".into(),
             ],
         )
-}
+    }
 
     fn detect(&self, request: &DetectionRequest) -> RuntimeValue {
         // Detect.
@@ -389,7 +388,7 @@ impl AiProvider for MockAiProvider {
             RuntimeValue::number(dist, UnitKind::M),
         );
         RuntimeValue::object("Detection", fields)
-}
+    }
 
     fn embed(&self, request: &EmbedRequest) -> RuntimeValue {
         // Embed.
@@ -415,7 +414,7 @@ impl AiProvider for MockAiProvider {
             dimensions: vector.len(),
             vector,
         }
-}
+    }
 }
 
 fn regex_stop_halt_wait(prompt: &str) -> bool {
@@ -592,7 +591,6 @@ pub fn build_prompt(base: &str, input: Option<&RuntimeValue>, goal: Option<&str>
 
     // Skip further work when !base is empty.
     if !base.is_empty() {
-
         // Skip further work when !header is empty.
         if !header.is_empty() {
             header.push_str("\n\n");
@@ -758,7 +756,7 @@ impl AiModel {
             config: parse_config(decl),
             provider: provider.unwrap_or_else(|| Box::new(MockAiProvider)),
         }
-}
+    }
 
     pub fn reason(
         &self,
@@ -798,7 +796,7 @@ impl AiModel {
             temperature: self.config.temperature,
             max_tokens: self.config.max_tokens,
         }))
-}
+    }
 
     pub fn summarize(&self, input: Option<RuntimeValue>) -> Result<RuntimeValue, String> {
         // Summarize.
@@ -824,7 +822,7 @@ impl AiModel {
             ));
         }
         Ok(mock_summarize(input.as_ref(), &self.config.model))
-}
+    }
 
     pub fn detect(&self, frame: RuntimeValue) -> Result<RuntimeValue, String> {
         // Detect.
@@ -854,7 +852,7 @@ impl AiModel {
             provider: self.config.provider.clone(),
             frame,
         }))
-}
+    }
 
     pub fn to_runtime_value(&self) -> RuntimeValue {
         // Convert to runtime value.
@@ -877,7 +875,7 @@ impl AiModel {
             model_type: self.model_type.clone(),
             provider: self.config.provider.clone(),
         }
-}
+    }
 }
 
 fn parse_config(decl: &AiModelDecl) -> AiModelConfig {
@@ -1104,7 +1102,7 @@ impl From<MemoryKind> for AiMemoryKind {
             MemoryKind::ShortTerm => AiMemoryKind::ShortTerm,
             MemoryKind::LongTerm => AiMemoryKind::LongTerm,
         }
-}
+    }
 }
 
 #[derive(Clone)]
@@ -1149,7 +1147,7 @@ impl MemoryStore {
             entries: Vec::new(),
             limit: limit.unwrap_or(default_limit),
         }
-}
+    }
 
     pub fn remember(&mut self, key: impl Into<String>, value: RuntimeValue) {
         // Remember.
@@ -1182,7 +1180,7 @@ impl MemoryStore {
         if self.entries.len() > self.limit {
             self.entries.remove(0);
         }
-}
+    }
 
     pub fn recall(&self, key: &str) -> Option<&RuntimeValue> {
         // Recall.
@@ -1206,7 +1204,7 @@ impl MemoryStore {
             .rev()
             .find(|e| e.key == key)
             .map(|e| &e.value)
-}
+    }
 
     pub fn recent(&self, count: usize) -> Vec<&RuntimeValue> {
         // Recent.
@@ -1234,7 +1232,7 @@ impl MemoryStore {
             .into_iter()
             .rev()
             .collect()
-}
+    }
 
     pub fn clear(&mut self) {
         // Clear the value.
@@ -1253,7 +1251,7 @@ impl MemoryStore {
 
         // Call clear on the current instance.
         self.entries.clear();
-}
+    }
 
     pub fn summary_for_prompt(&self) -> Option<String> {
         // Summary for prompt.
@@ -1286,7 +1284,7 @@ impl MemoryStore {
             .map(|e| e.key.as_str())
             .collect();
         Some(format!("Agent memory ({kind}): {}", keys.join(", ")))
-}
+    }
 }
 
 pub fn runtime_safe_action(linear: f64, angular: f64) -> RuntimeValue {
@@ -1376,13 +1374,10 @@ pub fn proposal_confidence(value: &RuntimeValue) -> f64 {
     // Match on value and handle each case.
     match value {
         RuntimeValue::ActionProposal { trace, .. } => {
-
             // Handle each input line.
             for line in trace {
-
                 // Emit output when strip prefix provides a dist str.
                 if let Some(dist_str) = line.strip_prefix("nearest_distance=") {
-
                     // Handle the success value from <f64>.
                     if let Ok(dist) = dist_str.parse::<f64>() {
                         return (dist / 5.0).clamp(0.05, 1.0);
@@ -1397,7 +1392,6 @@ pub fn proposal_confidence(value: &RuntimeValue) -> f64 {
             0.75
         }
         RuntimeValue::Object { fields, .. } => {
-
             // Take this path when let Some(RuntimeValue::Number { value, .. }) = fields.get("confidence".
             if let Some(RuntimeValue::Number { value, .. }) = fields.get("confidence") {
                 return value.clamp(0.0, 1.0);

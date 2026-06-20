@@ -251,7 +251,7 @@ version = "{version}"
 "#
         );
         fs::write(dir.join(MANIFEST_FILENAME), content).unwrap();
-}
+    }
 
     #[test]
     fn resolves_local_dependency() {

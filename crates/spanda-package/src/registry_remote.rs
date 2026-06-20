@@ -73,7 +73,6 @@ pub fn fetch_index_json(url: &str) -> Result<String, String> {
         .args(["-fsSL", url])
         .output()
     {
-
         // Handle output when the subprocess succeeds.
         if output.status.success() {
             return String::from_utf8(output.stdout)
@@ -331,7 +330,7 @@ impl RegistryEntryLookup {
             RegistryEntryLookup::Local(entry) => entry.name,
             RegistryEntryLookup::Remote(entry) => &entry.name,
         }
-}
+    }
 
     pub fn versions(&self) -> Vec<String> {
         // Versions.
@@ -355,7 +354,7 @@ impl RegistryEntryLookup {
             }
             RegistryEntryLookup::Remote(entry) => entry.versions.clone(),
         }
-}
+    }
 
     pub fn registry_label(&self) -> &'static str {
         // Registry label.
@@ -377,7 +376,7 @@ impl RegistryEntryLookup {
             RegistryEntryLookup::Local(_) => "local",
             RegistryEntryLookup::Remote(_) => "remote",
         }
-}
+    }
 }
 
 #[cfg(test)]

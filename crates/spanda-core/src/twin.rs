@@ -44,7 +44,7 @@ impl TwinRuntime {
             shadow: HashMap::new(),
             replay_buffer: Vec::new(),
         }
-}
+    }
 
     pub fn with_sync(mut self, telemetry: bool, replay: bool, faults: bool, events: bool) -> Self {
         //
@@ -76,10 +76,8 @@ impl TwinRuntime {
 
         // Take this path when telemetry.
         if telemetry {
-
             // Check each struct field.
             for field in ["pose", "velocity"] {
-
                 // Take the branch when any equals field).
                 if !self.mirrors.iter().any(|m| m == field) {
                     self.mirrors.push(field.to_string());
@@ -87,7 +85,7 @@ impl TwinRuntime {
             }
         }
         self
-}
+    }
 
     pub fn snapshot(&mut self, field: &str, value: RuntimeValue) {
         // Snapshot.
@@ -110,7 +108,7 @@ impl TwinRuntime {
         if self.mirrors.iter().any(|m| m == field) {
             self.shadow.insert(field.to_string(), value);
         }
-}
+    }
 
     pub fn commit_frame(&mut self) {
         // Commit frame.
@@ -131,7 +129,7 @@ impl TwinRuntime {
         if self.replay && !self.shadow.is_empty() {
             self.replay_buffer.push(self.shadow.clone());
         }
-}
+    }
 
     pub fn replay_frame_count(&self) -> usize {
         //
@@ -149,7 +147,7 @@ impl TwinRuntime {
 
         // Call len on the current instance.
         self.replay_buffer.len()
-}
+    }
 
     pub fn shadow_field(&self, field: &str) -> Option<&RuntimeValue> {
         // Shadow field.
@@ -173,7 +171,7 @@ impl TwinRuntime {
         } else {
             None
         }
-}
+    }
 
     pub fn replay_field(&self, index: usize, field: &str) -> Option<&RuntimeValue> {
         // Replay field.
@@ -197,7 +195,7 @@ impl TwinRuntime {
             return None;
         }
         self.replay_buffer.get(index)?.get(field)
-}
+    }
 
     /// Compare previous shadow against live mirrored values; true when divergence exceeds threshold.
     pub fn detect_divergence(&self, live: &HashMap<String, RuntimeValue>, threshold: f64) -> bool {
@@ -232,13 +230,14 @@ impl TwinRuntime {
             }
         }
         false
-}
+    }
 
     pub fn live_mirrored_fields(
         pose: (f64, f64, f64, f64),
         velocity: (f64, f64),
         mirrors: &[String],
-    ) -> HashMap<String, RuntimeValue> {        // Create mutable live for accumulating results.
+    ) -> HashMap<String, RuntimeValue> {
+        // Create mutable live for accumulating results.
         let mut live = HashMap::new();
 
         // Take the branch when any equals "pose").
@@ -265,7 +264,7 @@ impl TwinRuntime {
             );
         }
         live
-}
+    }
 }
 
 fn value_distance(a: &RuntimeValue, b: &RuntimeValue) -> f64 {

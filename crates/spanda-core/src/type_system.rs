@@ -452,7 +452,6 @@ pub fn binary_physical_op_allowed(
     // Match on op and handle each case.
     match op {
         BinaryOp::Add | BinaryOp::Sub => {
-
             // Take the branch when cat l equals Scalar.
             if cat_l == PhysicalCategory::Scalar && cat_r == PhysicalCategory::Scalar {
                 return true;

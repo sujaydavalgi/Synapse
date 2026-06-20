@@ -36,7 +36,7 @@ impl HardwareMonitor {
 
         // Append into self.
         self.sensors.push((name.into(), sensor_type.into()));
-}
+    }
 
     pub fn register_actuator(&mut self, name: impl Into<String>, actuator_type: impl Into<String>) {
         // Register actuator.
@@ -57,7 +57,7 @@ impl HardwareMonitor {
 
         // Append into self.
         self.actuators.push((name.into(), actuator_type.into()));
-}
+    }
 
     pub fn inject_fault(&mut self, fault: impl Into<String>) {
         // Inject fault.
@@ -77,7 +77,7 @@ impl HardwareMonitor {
 
         // Append into self.
         self.injected_faults.insert(fault.into());
-}
+    }
 
     pub fn sensor_event_for_type(sensor_type: &str) -> Option<&'static str> {
         // Sensor event for type.
@@ -102,7 +102,7 @@ impl HardwareMonitor {
             "GPS" => Some("GpsFailure"),
             _ => None,
         }
-}
+    }
 
     pub fn actuator_event_for_type(actuator_type: &str) -> Option<&'static str> {
         // Actuator event for type.
@@ -125,7 +125,7 @@ impl HardwareMonitor {
             "Arm" | "Manipulator" => Some("ActuatorFailure"),
             _ => None,
         }
-}
+    }
 
     fn fault_matches_sensor(fault: &str, sensor_type: &str, sensor_name: &str) -> bool {
         // Fault matches sensor.
@@ -155,7 +155,6 @@ impl HardwareMonitor {
 
         // Emit output when sensor event for type provides a event.
         if let Some(event) = Self::sensor_event_for_type(sensor_type) {
-
             // Take the branch when fault equals to ascii lowercase.
             if fault == event || fault_lower == event.to_ascii_lowercase() {
                 return true;
@@ -170,7 +169,7 @@ impl HardwareMonitor {
             "GPS" => fault_lower.contains("gps"),
             _ => false,
         }
-}
+    }
 
     pub fn record_sensor_reading(&mut self, name: &str, sensor_type: &str, reading: &RuntimeValue) {
         // Record sensor reading.
@@ -197,7 +196,6 @@ impl HardwareMonitor {
 
             // Take this path when *count >= FAILURE THRESHOLD.
             if *count >= FAILURE_THRESHOLD {
-
                 // Emit output when sensor event for type provides a event.
                 if let Some(event) = Self::sensor_event_for_type(sensor_type) {
                     self.active_events.insert(event.to_string());
@@ -206,7 +204,7 @@ impl HardwareMonitor {
         } else {
             self.read_failures.remove(name);
         }
-}
+    }
 
     fn reading_failed(reading: &RuntimeValue) -> bool {
         // Reading failed.
@@ -228,7 +226,7 @@ impl HardwareMonitor {
             reading,
             RuntimeValue::Null | RuntimeValue::Void | RuntimeValue::Result { ok: false, .. }
         )
-}
+    }
 
     pub fn evaluate_injected_faults(&mut self) {
         // Evaluate injected faults.
@@ -247,13 +245,10 @@ impl HardwareMonitor {
 
         // Inject each configured hardware fault.
         for fault in self.injected_faults.clone() {
-
             // Iterate over sensors with destructured elements.
             for (name, sensor_type) in &self.sensors {
-
                 // Take this path when Self::fault matches sensor(&fault, sensor type, name).
                 if Self::fault_matches_sensor(&fault, sensor_type, name) {
-
                     // Emit output when sensor event for type provides a event.
                     if let Some(event) = Self::sensor_event_for_type(sensor_type) {
                         self.active_events.insert(event.to_string());
@@ -269,7 +264,7 @@ impl HardwareMonitor {
                 self.active_events.insert(fault.clone());
             }
         }
-}
+    }
 
     /// Returns newly detected hardware events to dispatch (edge-triggered).
     pub fn poll_new_events(&mut self) -> Vec<String> {
@@ -293,14 +288,13 @@ impl HardwareMonitor {
 
         // Process each active event.
         for event in &self.active_events {
-
             // Take this path when self.dispatched events.insert(event.clone()).
             if self.dispatched_events.insert(event.clone()) {
                 new_events.push(event.clone());
             }
         }
         new_events
-}
+    }
 
     pub fn clear_event(&mut self, event: &str) {
         // Clear event.
@@ -321,7 +315,7 @@ impl HardwareMonitor {
         // Call remove on the current instance.
         self.active_events.remove(event);
         self.dispatched_events.remove(event);
-}
+    }
 }
 
 #[cfg(test)]

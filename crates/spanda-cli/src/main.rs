@@ -291,7 +291,6 @@ fn human_run(
             );
             println!(
                 "  E-stop:   {}",
-
                 // Take this path when s.emergency stop { "ACTIVE" } else { "off" }.
                 if s.emergency_stop { "ACTIVE" } else { "off" }
             );
@@ -558,7 +557,6 @@ fn fleet_dispatch(args: &[String]) {
 
     // Apply each command-line argument.
     for arg in args.iter().skip(1) {
-
         // Match on as str and handle each case.
         match arg.as_str() {
             "--json" => json = true,
@@ -635,7 +633,6 @@ fn human_fleet_run(
 
     // Handle the success value from tokenize.
     if let Ok(tokens) = spanda_core::lexer::tokenize(source) {
-
         // Handle the success value from parse.
         if let Ok(program) = spanda_core::parser::parse(tokens) {
             let Program::Program {
@@ -712,7 +709,6 @@ fn human_fleet_run(
             );
             println!(
                 "  E-stop:   {}",
-
                 // Take this path when s.emergency stop { "ACTIVE" } else { "off" }.
                 if s.emergency_stop { "ACTIVE" } else { "off" }
             );
@@ -729,7 +725,6 @@ fn human_fleet_run(
             println!("\n✓ Fleet simulation complete\n");
         }
         Err(err) => {
-
             // Process each diagnostic.
             for d in err.diagnostics() {
                 eprintln!("  [{}:{}] {}", d.line, d.column, d.message);
@@ -878,7 +873,6 @@ fn main() {
 
     // Repeat while i < args.len().
     while i < args.len() {
-
         // Match on as str and handle each case.
         match args[i].as_str() {
             "--json" => json = true,
@@ -972,7 +966,6 @@ fn main() {
     // Match on command and handle each case.
     match command {
         "check" => {
-
             // Take this path when project mode || file.is none().
             if project_mode || file.is_none() {
                 package::cmd_check_project(&args[2..]);
@@ -1089,7 +1082,6 @@ fn main() {
             // Match on lint and handle each case.
             match lint(&source) {
                 Ok(report) => {
-
                     // Take this path when json.
                     if json {
                         let resp = LintResponse {
@@ -1121,7 +1113,6 @@ fn main() {
                     }
                 }
                 Err(e) => {
-
                     // Take this path when json.
                     if json {
                         let resp = LintResponse {
@@ -1157,7 +1148,6 @@ fn main() {
             // Match on generate markdown and handle each case.
             match generate_markdown(&source) {
                 Ok(markdown) => {
-
                     // Take this path when let Some(ref out) = out path.
                     if let Some(ref out) = out_path {
                         fs::write(out, &markdown).unwrap_or_else(|e| {
@@ -1196,7 +1186,6 @@ fn main() {
             // Match on codegen and handle each case.
             match codegen(&source, codegen_target) {
                 Ok(output) => {
-
                     // Take this path when let Some(ref out) = out path.
                     if let Some(ref out) = out_path {
                         fs::write(out, &output).unwrap_or_else(|e| {
@@ -1231,7 +1220,6 @@ fn main() {
             // Match on wasm deploy manifest and handle each case.
             match wasm_deploy_manifest(&source) {
                 Ok(manifest) => {
-
                     // Take this path when let Some(ref out) = out path.
                     if let Some(ref out) = out_path {
                         fs::write(out, &manifest).unwrap_or_else(|e| {
@@ -1260,7 +1248,6 @@ fn main() {
             // Match on lower to sir and handle each case.
             match lower_to_sir(&source) {
                 Ok(sir) => {
-
                     // Take this path when json.
                     if json {
                         let resp = IrResponse { ok: true, sir };
@@ -1284,7 +1271,6 @@ fn main() {
                     }
                 }
                 Err(e) => {
-
                     // Take this path when json.
                     if json {
                         println!(
@@ -1399,7 +1385,6 @@ fn main() {
                 },
             ) {
                 Ok(session) => {
-
                     // Skip further work when pauses is empty.
                     if session.pauses.is_empty() {
                         println!("✓ {file} — completed without hitting breakpoints");

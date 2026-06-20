@@ -49,7 +49,7 @@ impl TriggerRegistry {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn register(&mut self, decl: &TriggerHandlerDecl, agent: Option<String>) {
         // Register the value.
@@ -92,7 +92,7 @@ impl TriggerRegistry {
             agent,
         });
         let _ = span;
-}
+    }
 
     pub fn register_legacy_event(&mut self, event_name: String, body: Vec<Stmt>) {
         // Register legacy event.
@@ -123,7 +123,7 @@ impl TriggerRegistry {
             },
             None,
         );
-}
+    }
 
     pub fn handler_count(&self) -> usize {
         //
@@ -141,7 +141,7 @@ impl TriggerRegistry {
 
         // Call len on the current instance.
         self.handlers.len()
-}
+    }
 
     pub fn all(&self) -> &[RegisteredTrigger] {
         // All.
@@ -160,7 +160,7 @@ impl TriggerRegistry {
 
         // Return handlers from this handle.
         &self.handlers
-}
+    }
 
     pub fn get(&self, id: usize) -> Option<&RegisteredTrigger> {
         // Get.
@@ -180,7 +180,7 @@ impl TriggerRegistry {
 
         // Iterate over handlers.
         self.handlers.iter().find(|h| h.id == id)
-}
+    }
 
     pub fn event_handler_body(&self, event_name: &str) -> Option<&[Stmt]> {
         // Event handler body.
@@ -203,7 +203,7 @@ impl TriggerRegistry {
             .get(event_name)
             .and_then(|id| self.get(*id))
             .map(|h| h.body.as_slice())
-}
+    }
 
     pub fn handlers_for_event(&self, event_name: &str) -> Vec<&RegisteredTrigger> {
         // Handlers for event.
@@ -226,7 +226,7 @@ impl TriggerRegistry {
             .iter()
             .filter(|h| matches!(&h.kind, TriggerKind::Event { name } if name == event_name))
             .collect()
-}
+    }
 
     pub fn handlers_for_message(
         &self,
@@ -262,7 +262,7 @@ impl TriggerRegistry {
                 _ => false,
             })
             .collect()
-}
+    }
 
     pub fn timer_handlers(&self) -> Vec<&RegisteredTrigger> {
         // Timer handlers.
@@ -284,7 +284,7 @@ impl TriggerRegistry {
             .iter()
             .filter(|h| matches!(h.kind, TriggerKind::Timer { .. }))
             .collect()
-}
+    }
 
     pub fn condition_handlers(&self) -> Vec<&RegisteredTrigger> {
         // Condition handlers.
@@ -306,7 +306,7 @@ impl TriggerRegistry {
             .iter()
             .filter(|h| matches!(h.kind, TriggerKind::Condition { .. }))
             .collect()
-}
+    }
 
     pub fn handlers_for_state_entered(&self, state: &str) -> Vec<&RegisteredTrigger> {
         // Handlers for state entered.
@@ -334,7 +334,7 @@ impl TriggerRegistry {
                 )
             })
             .collect()
-}
+    }
 
     pub fn handlers_for_state_exited(&self, state: &str) -> Vec<&RegisteredTrigger> {
         // Handlers for state exited.
@@ -362,7 +362,7 @@ impl TriggerRegistry {
                 )
             })
             .collect()
-}
+    }
 
     pub fn handlers_for_category(
         &self,
@@ -399,7 +399,7 @@ impl TriggerRegistry {
                 _ => false,
             })
             .collect()
-}
+    }
 
     pub fn sorted_by_priority(handlers: Vec<&RegisteredTrigger>) -> Vec<&RegisteredTrigger> {
         // Sorted by priority.
@@ -420,7 +420,7 @@ impl TriggerRegistry {
         let mut sorted = handlers;
         sorted.sort_by_key(|h| priority_rank(h.priority));
         sorted
-}
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -529,7 +529,7 @@ impl TriggerTimerSchedule {
         } else {
             None
         }
-}
+    }
 }
 
 /// Tracks edge state for condition triggers (fire on transition to true).
@@ -567,7 +567,7 @@ impl ConditionTriggerState {
             self.was_active.remove(&trigger_id);
             false
         }
-}
+    }
 
     pub fn is_level_active(&self, trigger_id: usize) -> bool {
         //
@@ -586,7 +586,7 @@ impl ConditionTriggerState {
 
         // Call contains on the current instance.
         self.was_active.contains(&trigger_id)
-}
+    }
 }
 
 #[cfg(test)]

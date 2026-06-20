@@ -19,7 +19,6 @@ pub struct HardwareRequirements {
 }
 
 impl HardwareRequirements {
-
     /// Parse memory string like `">=2GB"` into megabytes.
     pub fn memory_mb_min(&self) -> Option<f64> {
         // Memory mb min.
@@ -38,7 +37,7 @@ impl HardwareRequirements {
 
         // Transform self and continue the chain.
         self.memory.as_ref().and_then(|s| parse_memory_mb(s))
-}
+    }
 
     pub fn storage_mb_min(&self) -> Option<f64> {
         // Storage mb min.
@@ -57,7 +56,7 @@ impl HardwareRequirements {
 
         // Transform self and continue the chain.
         self.storage.as_ref().and_then(|s| parse_memory_mb(s))
-}
+    }
 
     pub fn gpu_tops_min(&self) -> Option<f64> {
         // Gpu tops min.
@@ -76,7 +75,7 @@ impl HardwareRequirements {
 
         // Transform self and continue the chain.
         self.gpu.as_ref().and_then(|s| parse_gpu_tops(s))
-}
+    }
 
     pub fn gpu_required(&self) -> bool {
         // Gpu required.
@@ -95,7 +94,7 @@ impl HardwareRequirements {
 
         // Call is some on the current instance.
         self.gpu.is_some()
-}
+    }
 }
 
 fn parse_memory_mb(s: &str) -> Option<f64> {
@@ -172,7 +171,6 @@ fn parse_gpu_tops(s: &str) -> Option<f64> {
 /// Capability declarations from `[capabilities]` in spanda.toml.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct CapabilityRequirements {
-
     /// Capabilities the package needs at runtime (`uses`).
     #[serde(default)]
     pub uses: Vec<String>,
@@ -203,7 +201,7 @@ impl CapabilityRequirements {
             .iter()
             .chain(self.required.iter())
             .map(String::as_str)
-}
+    }
 }
 
 /// Known capability identifiers for validation.

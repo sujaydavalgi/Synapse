@@ -9,7 +9,6 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DependencySpec {
-
     /// Registry version constraint, e.g. `"0.1.0"` or `">=0.1.0, <1.0.0"`.
     Version(String),
 
@@ -54,7 +53,6 @@ impl DependencySpec {
         match self {
             Self::Version(v) => Ok(Some(parse_version_req(v)?)),
             Self::Detail(d) => {
-
                 // Emit output when version provides a v.
                 if let Some(v) = &d.version {
                     Ok(Some(parse_version_req(v)?))
@@ -63,7 +61,7 @@ impl DependencySpec {
                 }
             }
         }
-}
+    }
 
     pub fn source_kind(&self) -> DependencySourceKind {
         // Source kind.
@@ -84,7 +82,6 @@ impl DependencySpec {
         match self {
             Self::Version(_) => DependencySourceKind::Registry,
             Self::Detail(d) => {
-
                 // Proceed only when is some is available.
                 if d.path.is_some() {
                     DependencySourceKind::Local
@@ -95,7 +92,7 @@ impl DependencySpec {
                 }
             }
         }
-}
+    }
 
     pub fn local_path(&self, project_root: &std::path::Path) -> Option<PathBuf> {
         // Local path.
@@ -127,7 +124,7 @@ impl DependencySpec {
             }
             _ => None,
         }
-}
+    }
 
     pub fn git_url(&self) -> Option<&str> {
         // Git url.
@@ -149,7 +146,7 @@ impl DependencySpec {
             Self::Detail(d) => d.git.as_deref(),
             _ => None,
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

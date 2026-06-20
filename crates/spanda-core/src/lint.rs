@@ -45,7 +45,7 @@ impl LintReport {
         self.issues
             .iter()
             .any(|i| i.severity == LintSeverity::Error)
-}
+    }
 }
 
 pub fn lint(source: &str) -> Result<LintReport, SpandaError> {
@@ -131,7 +131,6 @@ fn lint_stmt_channel_flow(stmts: &[Stmt], issues: &mut Vec<LintIssue>) {
 
     // Iterate over channels with destructured elements.
     for (name, (sent, recv, line, column)) in channels {
-
         // Take this path when recv && !sent.
         if recv && !sent {
             issues.push(LintIssue {
@@ -182,18 +181,14 @@ fn collect_channel_flow(
 
     // Execute each statement in sequence.
     for stmt in stmts {
-
         // Match on stmt and handle each case.
         match stmt {
             Stmt::VarDecl {
                 name, init, span, ..
-            } =>
-            {
+            } => {
                 #[allow(clippy::collapsible_if)]
-
                 // Emit output when init provides a value.
                 if let Some(value) = init {
-
                     // Keep entries that match the expected pattern.
                     if matches!(value, Expr::CallExpr { callee, .. }
 
@@ -230,10 +225,8 @@ fn collect_channel_flow(
             Stmt::LoopStmt { body, .. } => collect_channel_flow(body, channels),
             Stmt::ParallelStmt { body, .. } => collect_channel_flow(body, channels),
             Stmt::SelectStmt { arms, .. } => {
-
                 // Process each arm.
                 for arm in arms {
-
                     // Match on channel and handle each case.
                     match &arm.channel {
                         Expr::IdentExpr { name, span } => {
@@ -246,13 +239,10 @@ fn collect_channel_flow(
                             entry.1 = true;
                         }
                         Expr::CallExpr { callee, args, .. } => {
-
                             // Take this path when let Expr::IdentExpr { name: fn name, .. } = callee.as ref().
                             if let Expr::IdentExpr { name: fn_name, .. } = callee.as_ref() {
-
                                 // Take the branch when fn name equals "recv".
                                 if fn_name == "recv" {
-
                                     // Take this path when let Some(Expr::IdentExpr { name, span }) = args.first().
                                     if let Some(Expr::IdentExpr { name, span }) = args.first() {
                                         let entry = channels.entry(name.clone()).or_insert((
@@ -298,13 +288,10 @@ fn mark_channel_usage(
     // Match on expr and handle each case.
     match expr {
         Expr::CallExpr { callee, args, .. } => {
-
             // Take this path when let Expr::IdentExpr { name: fn name, .. } = callee.as ref().
             if let Expr::IdentExpr { name: fn_name, .. } = callee.as_ref() {
-
                 // Take the branch when fn name equals "send" || fn name == "recv".
                 if fn_name == "send" || fn_name == "recv" {
-
                     // Take this path when let Some(Expr::IdentExpr { name, span }) = args.first().
                     if let Some(Expr::IdentExpr { name, span }) = args.first() {
                         let entry = channels.entry(name.clone()).or_insert((
@@ -453,7 +440,6 @@ fn lint_program_structure(program: &Program, issues: &mut Vec<LintIssue>) {
 
     // Run each test block in program order.
     for test in tests {
-
         // Skip further work when body is empty.
         if test.body.is_empty() {
             issues.push(LintIssue {

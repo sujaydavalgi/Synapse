@@ -351,7 +351,6 @@ pub fn validate_hal_against_soc(
 
     // Process each hal member.
     for m in hal_members {
-
         // Match on m and handle each case.
         match m {
             HalMemberConfig::I2c { .. } => {
@@ -448,7 +447,6 @@ pub fn validate_hal_against_soc(
                 }
             }
             HalMemberConfig::Gpio { pin, .. } => {
-
                 // Take this path when *pin as u32 >= profile.gpio pins.
                 if *pin as u32 >= profile.gpio_pins {
                     errors.push(SocValidationError {

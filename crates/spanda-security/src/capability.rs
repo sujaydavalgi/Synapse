@@ -89,7 +89,7 @@ impl Permission {
         Self {
             capability: capability.into(),
         }
-}
+    }
 }
 
 /// Set of granted capabilities with runtime enforcement.
@@ -117,7 +117,7 @@ impl CapabilitySet {
 
         // Build the result via default.
         Self::default()
-}
+    }
 
     pub fn permissive() -> Self {
         // Permissive.
@@ -142,7 +142,7 @@ impl CapabilitySet {
                 .collect(),
             permissive: true,
         }
-}
+    }
 
     pub fn grant(&mut self, capability: impl Into<String>) {
         // Grant.
@@ -162,7 +162,7 @@ impl CapabilitySet {
 
         // Append into self.
         self.granted.insert(capability.into());
-}
+    }
 
     pub fn grant_all(&mut self, caps: impl IntoIterator<Item = impl Into<String>>) {
         // Grant all.
@@ -184,7 +184,7 @@ impl CapabilitySet {
         for cap in caps {
             self.grant(cap);
         }
-}
+    }
 
     pub fn has(&self, capability: &str) -> bool {
         // Has.
@@ -204,7 +204,7 @@ impl CapabilitySet {
 
         // Call contains on the current instance.
         self.permissive || self.granted.contains(capability)
-}
+    }
 
     pub fn require(&self, capability: &str) -> SecurityResult<()> {
         // Require.
@@ -228,7 +228,7 @@ impl CapabilitySet {
         } else {
             Err(SecurityError::CapabilityDenied(capability.to_string()))
         }
-}
+    }
 
     pub fn granted(&self) -> impl Iterator<Item = &str> {
         // Granted.
@@ -247,7 +247,7 @@ impl CapabilitySet {
 
         // Iterate over granted.
         self.granted.iter().map(String::as_str)
-}
+    }
 }
 
 /// Maps high-level runtime operations to required package capabilities.

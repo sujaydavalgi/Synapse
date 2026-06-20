@@ -92,7 +92,7 @@ impl SimHalBackend {
             pwm_duty: HashMap::new(),
             uart_buffers: HashMap::new(),
         }
-}
+    }
 
     pub fn simulate_uart_data(&mut self, name: &str, data: &str) {
         // Simulate uart data.
@@ -113,7 +113,7 @@ impl SimHalBackend {
 
         // Append into self.
         self.uart_buffers.insert(name.to_string(), data.to_string());
-}
+    }
 
     pub fn set_adc_value(&mut self, name: &str, value: f64) {
         // Set adc value.
@@ -134,7 +134,7 @@ impl SimHalBackend {
 
         // Append into self.
         self.adc_values.insert(name.to_string(), value);
-}
+    }
 
     pub fn seed_imu_registers(&mut self, bus_name: &str, yaw: f64) {
         // Seed imu registers.
@@ -160,7 +160,7 @@ impl SimHalBackend {
             0x1a,
             &[(yaw_int & 0xff) as u8, ((yaw_int >> 8) & 0xff) as u8],
         );
-}
+    }
 }
 
 impl Default for SimHalBackend {
@@ -180,7 +180,7 @@ impl Default for SimHalBackend {
 
         // Build the result via new.
         Self::new()
-}
+    }
 }
 
 impl HalBackend for SimHalBackend {
@@ -240,7 +240,7 @@ impl HalBackend for SimHalBackend {
                 _ => {}
             }
         }
-}
+    }
 
     fn read_gpio(&self, name: &str) -> bool {
         // Read gpio.
@@ -260,7 +260,7 @@ impl HalBackend for SimHalBackend {
 
         // Call get on the current instance.
         self.gpio_state.get(name).copied().unwrap_or(false)
-}
+    }
 
     fn write_gpio(&mut self, name: &str, value: bool) {
         // Write gpio.
@@ -281,7 +281,7 @@ impl HalBackend for SimHalBackend {
 
         // Append into self.
         self.gpio_state.insert(name.to_string(), value);
-}
+    }
 
     fn read_i2c(&self, name: &str, register: u8, length: usize) -> Vec<u8> {
         // Read i2c.
@@ -314,7 +314,7 @@ impl HalBackend for SimHalBackend {
             result.push(val);
         }
         result
-}
+    }
 
     fn write_i2c(&mut self, name: &str, register: u8, data: &[u8]) {
         // Write i2c.
@@ -341,7 +341,7 @@ impl HalBackend for SimHalBackend {
         for (i, &byte) in data.iter().enumerate() {
             regs.insert(register + i as u8, byte);
         }
-}
+    }
 
     fn transfer_spi(&self, _name: &str, data: &[u8]) -> Vec<u8> {
         // Transfer spi.
@@ -362,7 +362,7 @@ impl HalBackend for SimHalBackend {
 
         // Collect filtered entries into a new list.
         data.iter().map(|b| b ^ 0xff).collect()
-}
+    }
 
     fn read_uart(&self, name: &str) -> String {
         // Read uart.
@@ -382,7 +382,7 @@ impl HalBackend for SimHalBackend {
 
         // Call get on the current instance.
         self.uart_buffers.get(name).cloned().unwrap_or_default()
-}
+    }
 
     fn read_adc(&self, name: &str) -> f64 {
         // Read adc.
@@ -402,7 +402,7 @@ impl HalBackend for SimHalBackend {
 
         // Call get on the current instance.
         self.adc_values.get(name).copied().unwrap_or(0.0)
-}
+    }
 
     fn set_pwm(&mut self, name: &str, duty_cycle: f64) {
         // Set pwm.
@@ -424,7 +424,7 @@ impl HalBackend for SimHalBackend {
         // Call pwm duty on the current instance.
         self.pwm_duty
             .insert(name.to_string(), duty_cycle.clamp(0.0, 1.0));
-}
+    }
 
     fn get_member(&self, name: &str) -> Option<HalMemberConfig> {
         //
@@ -443,7 +443,7 @@ impl HalBackend for SimHalBackend {
 
         // Call get on the current instance.
         self.members.get(name).cloned()
-}
+    }
 
     fn list_members(&self) -> Vec<HalMemberConfig> {
         // List members.
@@ -462,7 +462,7 @@ impl HalBackend for SimHalBackend {
 
         // Collect filtered entries into a new list.
         self.members.values().cloned().collect()
-}
+    }
 }
 
 pub fn create_sim_hal() -> SimHalBackend {

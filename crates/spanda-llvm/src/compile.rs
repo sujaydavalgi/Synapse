@@ -139,7 +139,6 @@ fn detect_clang() -> Option<String> {
 
     // Iterate over ["clang", "clang-18", "clang-17", "clang-16"].
     for candidate in ["clang", "clang-18", "clang-17", "clang-16"] {
-
         // Take this path when Command::new(candidate).
         if Command::new(candidate)
             .arg("--version")

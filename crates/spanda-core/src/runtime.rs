@@ -80,7 +80,7 @@ impl Default for PoseValue {
             theta: 0.0,
             z: 0.0,
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -244,7 +244,7 @@ impl RuntimeValue {
 
         // Build a Number runtime value.
         RuntimeValue::Number { value, unit }
-}
+    }
 
     pub fn string(value: impl Into<String>) -> Self {
         // String.
@@ -265,7 +265,7 @@ impl RuntimeValue {
         RuntimeValue::String {
             value: value.into(),
         }
-}
+    }
 
     pub fn object(type_name: impl Into<String>, fields: HashMap<String, RuntimeValue>) -> Self {
         // Object.
@@ -288,7 +288,7 @@ impl RuntimeValue {
             type_name: type_name.into(),
             fields,
         }
-}
+    }
 
     pub fn scan(nearest_distance: f64) -> Self {
         // Scan.
@@ -307,7 +307,7 @@ impl RuntimeValue {
 
         // Build a Scan runtime value.
         RuntimeValue::Scan { nearest_distance }
-}
+    }
 
     pub fn as_number(&self) -> Option<f64> {
         //
@@ -328,7 +328,7 @@ impl RuntimeValue {
             RuntimeValue::Number { value, .. } => Some(*value),
             _ => None,
         }
-}
+    }
 
     pub fn as_string(&self) -> Option<&str> {
         //
@@ -349,7 +349,7 @@ impl RuntimeValue {
             RuntimeValue::String { value } => Some(value),
             _ => None,
         }
-}
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -415,7 +415,7 @@ pub trait RobotBackend {
         //
         // Example:
         // let result = instance.set_emergency_stop(_active);
-}
+    }
     fn publish_topic(&mut self, _topic_path: &str, _message_type: &str, _value: RuntimeValue) {
         // Publish topic.
         //
@@ -433,7 +433,7 @@ pub trait RobotBackend {
         //
         // Example:
         // let result = instance.publish_topic(_topic_path, _message_type, _value);
-}
+    }
     fn call_service(&mut self, _service_name: &str, _service_type: &str) -> RuntimeValue {
         // Call service.
         //
@@ -453,7 +453,7 @@ pub trait RobotBackend {
 
         // Build a Bool runtime value.
         RuntimeValue::Bool { value: true }
-}
+    }
     fn send_action(
         &mut self,
         _action_name: &str,
@@ -479,7 +479,7 @@ pub trait RobotBackend {
 
         // Build a Bool runtime value.
         RuntimeValue::Bool { value: true }
-}
+    }
     fn get_hal(&mut self) -> Option<&mut dyn HalBackend> {
         //
         // Parameters:
@@ -496,7 +496,7 @@ pub trait RobotBackend {
 
         // Return no value for this path.
         None
-}
+    }
     fn event_log(&self) -> Vec<String> {
         // Event log.
         //
@@ -514,7 +514,7 @@ pub trait RobotBackend {
 
         // Return an empty list.
         Vec::new()
-}
+    }
 }
 
 pub fn format_runtime_value(value: &RuntimeValue) -> String {
@@ -535,7 +535,6 @@ pub fn format_runtime_value(value: &RuntimeValue) -> String {
     // Match on value and handle each case.
     match value {
         RuntimeValue::Number { value, unit } => {
-
             // Take the branch when *unit equals None.
             if *unit == UnitKind::None {
                 value.to_string()
@@ -549,7 +548,6 @@ pub fn format_runtime_value(value: &RuntimeValue) -> String {
         RuntimeValue::Enum {
             variant, payloads, ..
         } => {
-
             // Skip further work when payloads is empty.
             if payloads.is_empty() {
                 variant.clone()
@@ -605,7 +603,7 @@ impl Environment {
         Self {
             bindings: HashMap::new(),
         }
-}
+    }
 
     pub fn define(&mut self, name: impl Into<String>, value: RuntimeValue) {
         // Define.
@@ -626,7 +624,7 @@ impl Environment {
 
         // Append into self.
         self.bindings.insert(name.into(), value);
-}
+    }
 
     pub fn get(&self, name: &str) -> Option<&RuntimeValue> {
         // Get.
@@ -646,7 +644,7 @@ impl Environment {
 
         // Call get on the current instance.
         self.bindings.get(name)
-}
+    }
 
     pub fn set(&mut self, name: impl Into<String>, value: RuntimeValue) {
         // Set.
@@ -667,7 +665,7 @@ impl Environment {
 
         // Append into self.
         self.bindings.insert(name.into(), value);
-}
+    }
 
     pub fn clone_bindings(&self) -> Self {
         // Clone bindings.
@@ -688,7 +686,7 @@ impl Environment {
         Self {
             bindings: self.bindings.clone(),
         }
-}
+    }
 
     pub fn snapshot_display(&self) -> std::collections::HashMap<String, String> {
         // Snapshot display.
@@ -710,7 +708,7 @@ impl Environment {
             .iter()
             .map(|(name, value)| (name.clone(), format_runtime_value(value)))
             .collect()
-}
+    }
 }
 
 impl Default for Environment {
@@ -730,7 +728,7 @@ impl Default for Environment {
 
         // Build the result via new.
         Self::new()
-}
+    }
 }
 
 pub struct RuntimeError {
@@ -760,7 +758,7 @@ impl RuntimeError {
             message: message.into(),
             line,
         }
-}
+    }
 
     pub fn into_spanda(self) -> SpandaError {
         // Convert into spanda.
@@ -782,7 +780,7 @@ impl RuntimeError {
             message: self.message,
             line: self.line,
         }
-}
+    }
 }
 
 type LogCallback = Rc<dyn Fn(String)>;
@@ -835,7 +833,7 @@ impl Default for InterpreterOptions {
             replay_trace: false,
             max_triggers_per_tick: MAX_TRIGGERS_PER_TICK,
         }
-}
+    }
 }
 
 pub struct Interpreter<B: RobotBackend> {
@@ -943,7 +941,7 @@ impl<B: RobotBackend> Interpreter<B> {
             concurrency: crate::concurrency::ConcurrencyRuntime::new(),
             telemetry: crate::telemetry::RuntimeTelemetry::default(),
         }
-}
+    }
 
     pub fn telemetry(&self) -> &crate::telemetry::RuntimeTelemetry {
         // Telemetry.
@@ -962,7 +960,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Return telemetry from this handle.
         &self.telemetry
-}
+    }
 
     pub fn take_telemetry(&mut self) -> crate::telemetry::RuntimeTelemetry {
         // Take telemetry.
@@ -981,7 +979,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Move out the stored value and leave a default behind.
         std::mem::take(&mut self.telemetry)
-}
+    }
 
     fn trace_scheduler_log(&self, message: impl Into<String>) {
         // Trace scheduler log.
@@ -1003,7 +1001,7 @@ impl<B: RobotBackend> Interpreter<B> {
         if self.options.trace_scheduler {
             self.log(format!("trace-scheduler: {}", message.into()));
         }
-}
+    }
 
     fn trace_task_log(&self, message: impl Into<String>) {
         // Trace task log.
@@ -1025,7 +1023,7 @@ impl<B: RobotBackend> Interpreter<B> {
         if self.options.trace_tasks {
             self.log(format!("trace-task: {}", message.into()));
         }
-}
+    }
 
     fn trace_trigger_log(&self, message: impl Into<String>) {
         // Trace trigger log.
@@ -1047,7 +1045,7 @@ impl<B: RobotBackend> Interpreter<B> {
         if self.options.trace_triggers {
             self.log(format!("trace-trigger: {}", message.into()));
         }
-}
+    }
 
     fn trace_event_log(&self, message: impl Into<String>) {
         // Trace event log.
@@ -1069,7 +1067,7 @@ impl<B: RobotBackend> Interpreter<B> {
         if self.options.trace_events || self.options.trace_triggers {
             self.log(format!("trace-event: {}", message.into()));
         }
-}
+    }
 
     fn trace_replay_log(&self, message: impl Into<String>) {
         // Trace replay log.
@@ -1091,7 +1089,7 @@ impl<B: RobotBackend> Interpreter<B> {
         if self.options.replay_trace {
             self.log(format!("trace-replay: {}", message.into()));
         }
-}
+    }
 
     pub fn robot_backend(&self) -> &B {
         // Robot backend.
@@ -1110,7 +1108,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Return backend from this handle.
         &self.backend
-}
+    }
 
     pub fn env(&self) -> &Environment {
         // Env.
@@ -1129,7 +1127,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Return env from this handle.
         &self.env
-}
+    }
 
     pub fn env_mut(&mut self) -> &mut Environment {
         // Env mut.
@@ -1148,7 +1146,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Produce env as the result.
         &mut self.env
-}
+    }
 
     pub fn setup_robot_for_debug(&mut self, robot: &RobotDecl) -> Result<(), SpandaError> {
         // Setup robot for debug.
@@ -1168,7 +1166,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Call setup robot on the current instance.
         self.setup_robot(robot)
-}
+    }
 
     pub fn debug_execute_stmt(&mut self, stmt: &Stmt) -> Result<(), SpandaError> {
         // Debug execute stmt.
@@ -1188,7 +1186,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Call execute stmt on the current instance.
         self.execute_stmt(stmt)
-}
+    }
 
     pub fn resolve_sync_call(
         &self,
@@ -1242,7 +1240,7 @@ impl<B: RobotBackend> Interpreter<B> {
             return None;
         }
         Some((name.clone(), func, args.clone()))
-}
+    }
 
     pub fn bind_call_args(
         &mut self,
@@ -1270,7 +1268,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Bind each formal parameter to its call argument.
         for (i, param) in func.params.iter().enumerate() {
-
             // Emit output when get provides a arg.
             if let Some(arg) = args.get(i) {
                 let val = self.eval_expr(arg)?;
@@ -1278,7 +1275,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(saved)
-}
+    }
 
     pub fn restore_env(&mut self, env: Environment) {
         // Restore env.
@@ -1298,7 +1295,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Call env = env; on the current instance.
         self.env = env;
-}
+    }
 
     pub fn run(
         &mut self,
@@ -1379,7 +1376,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
             // Emit output when behavior name provides a name.
             if let Some(name) = behavior_name {
-
                 // Take this path when let Some((body, requires, ensures, invariant)) =.
                 if let Some((body, requires, ensures, invariant)) =
                     robot.behavior_with_contracts(&name)
@@ -1423,7 +1419,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(self.backend.get_state())
-}
+    }
 
     pub fn run_tests(&mut self, program: &Program) -> Result<(), SpandaError> {
         // Run tests.
@@ -1452,7 +1448,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.process_spawn_queue()?;
         }
         Ok(())
-}
+    }
 
     pub fn load_program_metadata(&mut self, program: &Program) {
         // Load program metadata.
@@ -1505,14 +1501,12 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when module registry provides a registry.
         if let Some(registry) = &self.options.module_registry {
-
             // Process each import.
             for imp in imports {
                 let ImportDecl::ImportDecl { path, .. } = imp;
 
                 // Emit output when exports for provides a exports.
                 if let Some(exports) = registry.exports_for(path) {
-
                     // Iterate over functions with destructured elements.
                     for (name, func) in &exports.functions {
                         self.imported_functions.insert(name.clone(), func.clone());
@@ -1557,7 +1551,7 @@ impl<B: RobotBackend> Interpreter<B> {
             let TraitDecl::TraitDecl { name, .. } = trait_decl;
             let _ = name;
         }
-}
+    }
 
     fn setup_robot(&mut self, robot: &RobotDecl) -> Result<(), SpandaError> {
         // Setup robot.
@@ -1753,7 +1747,6 @@ impl<B: RobotBackend> Interpreter<B> {
                 .register_agent_route(from_agent, to_agent, message_type);
             self.log(format!(
                 "agent channel: {from_agent} -> {to_agent}{}",
-
                 // Skip further work when message type is empty.
                 if message_type.is_empty() {
                     String::new()
@@ -2078,10 +2071,8 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when safety provides a safety block.
         if let Some(safety_block) = safety {
-
             // Process each rule.
             for rule in safety_block.rules() {
-
                 // Match on rule and handle each case.
                 match rule {
                     SafetyRule::MaxSpeedRule { value, .. } => {
@@ -2110,7 +2101,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.zones.clone(),
         )));
         Ok(())
-}
+    }
 
     fn evaluate_stop_if(&mut self, env: &Environment) -> bool {
         // Evaluate stop if.
@@ -2141,7 +2132,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         false
-}
+    }
 
     fn check_safety_before_motion(&mut self) -> bool {
         // Check safety before motion.
@@ -2183,7 +2174,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
             // Take the branch when allowed is false.
             if !result.allowed {
-
                 // Take this path when result.emergency stop.
                 if result.emergency_stop {
                     self.backend.set_emergency_stop(true);
@@ -2197,7 +2187,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         true
-}
+    }
 
     fn eval_safety_zone(
         &mut self,
@@ -2244,7 +2234,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Take the branch when *shape equals Circle.
         if *shape == ZoneShape::Circle {
-
             // Emit output when radius provides a r.
             if let Some(r) = radius {
                 runtime.radius = Some(get_number(&self.eval_expr(r)?, 0.0));
@@ -2253,7 +2242,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Take the branch when *shape equals Rect.
         if *shape == ZoneShape::Rect {
-
             // Emit output when width provides a w.
             if let Some(w) = width {
                 runtime.width = Some(get_number(&self.eval_expr(w)?, 0.0));
@@ -2265,7 +2253,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(runtime)
-}
+    }
 
     fn define_topic(&mut self, topic: &TopicDecl) {
         // Define topic.
@@ -2311,7 +2299,7 @@ impl<B: RobotBackend> Interpreter<B> {
             },
         );
         let _ = transport;
-}
+    }
 
     fn define_service(&mut self, service: &ServiceDecl) {
         // Define service.
@@ -2357,7 +2345,7 @@ impl<B: RobotBackend> Interpreter<B> {
             },
         );
         let _ = request_type;
-}
+    }
 
     fn define_action(&mut self, action: &ActionDecl) {
         // Define action.
@@ -2401,7 +2389,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 action_type: at,
             },
         );
-}
+    }
 
     fn define_sensor(&mut self, sensor: &SensorDecl) {
         // Define sensor.
@@ -2444,7 +2432,7 @@ impl<B: RobotBackend> Interpreter<B> {
         );
         self.hardware_monitor
             .register_sensor(name.clone(), sensor_type.clone());
-}
+    }
 
     fn define_actuator(&mut self, actuator: &ActuatorDecl) {
         // Define actuator.
@@ -2477,7 +2465,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 actuator_type: actuator_type.clone(),
             },
         );
-}
+    }
 
     fn setup_agent(&mut self, agent_decl: &AgentDecl) {
         // Setup agent.
@@ -2512,7 +2500,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.env
             .define(name.clone(), RuntimeValue::Agent { name: name.clone() });
         self.log(format!("Agent '{name}': {goal}"));
-}
+    }
 
     fn run_scheduled_task(&mut self, schedule: &TaskSchedule) -> Result<bool, SpandaError> {
         // Run scheduled task.
@@ -2534,13 +2522,10 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when budget provides a budget.
         if let Some(budget) = &schedule.budget {
-
             // Emit output when name) provides a metrics.
             if let Some(metrics) = self.telemetry.tasks.get(&schedule.name) {
-
                 // Take this path when metrics.max duration ms > 0.0.
                 if metrics.max_duration_ms > 0.0 {
-
                     // Emit output when task budget violation kind provides a kind.
                     if let Some(kind) = task_budget_violation_kind(
                         budget,
@@ -2586,7 +2571,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when budget provides a budget.
         if let Some(budget) = &schedule.budget {
-
             // Take this path when let Some(kind) =.
             if let Some(kind) =
                 task_budget_violation_kind(budget, duration_ms, schedule.interval_ms)
@@ -2607,7 +2591,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(continue_running)
-}
+    }
 
     fn eval_contract(&mut self, expr: &Expr) -> Result<bool, SpandaError> {
         // Eval contract.
@@ -2630,7 +2614,7 @@ impl<B: RobotBackend> Interpreter<B> {
             RuntimeValue::Bool { value, .. } => Ok(value),
             _ => Err(RuntimeError::new("Contract expression must be boolean", 0).into_spanda()),
         }
-}
+    }
 
     fn execute_with_contracts(
         &mut self,
@@ -2661,7 +2645,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when requires provides a req.
         if let Some(req) = requires {
-
             // Take the branch when eval contract is false.
             if !self.eval_contract(req)? {
                 return Err(RuntimeError::new("requires contract failed", 0).into_spanda());
@@ -2671,7 +2654,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when ensures provides a ens.
         if let Some(ens) = ensures {
-
             // Take the branch when eval contract is false.
             if !self.eval_contract(ens)? {
                 return Err(RuntimeError::new("ensures contract failed", 0).into_spanda());
@@ -2680,7 +2662,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when invariant provides a inv.
         if let Some(inv) = invariant {
-
             // Take the branch when eval contract is false.
             if !self.eval_contract(inv)? {
                 return Err(RuntimeError::new("invariant contract failed", 0).into_spanda());
@@ -2689,7 +2670,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.run_verify_rules()?;
         self.run_verify_warnings()?;
         Ok(())
-}
+    }
 
     fn run_verify_warnings(&mut self) -> Result<(), SpandaError> {
         // Run verify warnings.
@@ -2716,7 +2697,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Iterate over enumerate with destructured elements.
         for (index, rule) in warnings.iter().enumerate() {
-
             // Match on eval expr and handle each case.
             match self.eval_expr(rule)? {
                 RuntimeValue::Bool { value: false, .. } => {
@@ -2735,7 +2715,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(())
-}
+    }
 
     fn run_verify_rules(&mut self) -> Result<(), SpandaError> {
         // Run verify rules.
@@ -2762,7 +2742,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Iterate over enumerate with destructured elements.
         for (index, rule) in rules.iter().enumerate() {
-
             // Match on eval expr and handle each case.
             match self.eval_expr(rule)? {
                 RuntimeValue::Bool { value: true, .. } => {}
@@ -2785,7 +2764,7 @@ impl<B: RobotBackend> Interpreter<B> {
         }
         self.log(format!("verify: all {} rule(s) passed", rules.len()));
         Ok(())
-}
+    }
 
     #[allow(clippy::too_many_arguments)]
     fn execute_task_loop_with_contracts(
@@ -2865,7 +2844,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.update_twin_snapshot();
         }
         Ok(())
-}
+    }
 
     fn execute_task_iteration(
         &mut self,
@@ -2898,7 +2877,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when requires provides a req.
         if let Some(req) = requires {
-
             // Take the branch when eval contract is false.
             if !self.eval_contract(req)? {
                 let label = task_name
@@ -2921,7 +2899,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when ensures provides a ens.
         if let Some(ens) = ensures {
-
             // Take the branch when eval contract is false.
             if !self.eval_contract(ens)? {
                 return Err(RuntimeError::new("task ensures contract failed", 0).into_spanda());
@@ -2930,7 +2907,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when invariant provides a inv.
         if let Some(inv) = invariant {
-
             // Take the branch when eval contract is false.
             if !self.eval_contract(inv)? {
                 return Err(RuntimeError::new("task invariant contract failed", 0).into_spanda());
@@ -2942,7 +2918,7 @@ impl<B: RobotBackend> Interpreter<B> {
             .map(|m| m.is_emergency_stop())
             .unwrap_or(false);
         Ok(!stop)
-}
+    }
 
     fn execute_multiplexed_tasks(&mut self, tasks: Vec<TaskSchedule>) -> Result<(), SpandaError> {
         // Execute multiplexed tasks.
@@ -2997,10 +2973,8 @@ impl<B: RobotBackend> Interpreter<B> {
 
             // Process each schedule.
             for schedule in &mut schedules {
-
                 // Take this path when schedule.next due ms <= sim time.
                 if schedule.next_due_ms <= sim_time {
-
                     // Take this path when sim time > schedule.next due ms + schedule.interval ms.
                     if sim_time > schedule.next_due_ms + schedule.interval_ms {
                         self.telemetry.record_missed_deadline(
@@ -3049,7 +3023,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(())
-}
+    }
 
     fn execute_trigger_only_loop(&mut self) -> Result<(), SpandaError> {
         // Execute trigger only loop.
@@ -3104,7 +3078,7 @@ impl<B: RobotBackend> Interpreter<B> {
             let _ = iteration;
         }
         Ok(())
-}
+    }
 
     fn update_twin_snapshot(&mut self) {
         // Update twin snapshot.
@@ -3159,7 +3133,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 "twin {twin_name} mirrored {field_count} field(s), replay frames={replay_frames}"
             ));
         }
-}
+    }
 
     fn refresh_twin_shadow_from_backend(&mut self) {
         // Refresh twin shadow from backend.
@@ -3205,7 +3179,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 },
             );
         }
-}
+    }
 
     fn has_standalone_triggers(&self) -> bool {
         //
@@ -3225,10 +3199,11 @@ impl<B: RobotBackend> Interpreter<B> {
         if !self.trigger_timers.is_empty() {
             return true;
         }
-        self.trigger_registry.condition_handlers().iter().any(|h| {
-            matches!(h.kind, TriggerKind::Condition { level: true, .. })
-        })
-}
+        self.trigger_registry
+            .condition_handlers()
+            .iter()
+            .any(|h| matches!(h.kind, TriggerKind::Condition { level: true, .. }))
+    }
 
     fn register_trigger_decl(&mut self, trigger: &TriggerHandlerDecl, agent: Option<String>) {
         // Register trigger decl.
@@ -3255,7 +3230,6 @@ impl<B: RobotBackend> Interpreter<B> {
             span,
         } = trigger;
         let final_kind = if let TriggerKind::Event { name } = trigger_kind {
-
             // Check membership before continuing.
             if self.declared_topic_names.contains(name) && !self.declared_event_names.contains(name)
             {
@@ -3280,7 +3254,7 @@ impl<B: RobotBackend> Interpreter<B> {
             "trigger registered: {name} priority={}",
             priority_label(*priority)
         ));
-}
+    }
 
     fn can_dispatch_trigger(&mut self) -> bool {
         // Can dispatch trigger.
@@ -3299,7 +3273,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Call max triggers per tick on the current instance.
         self.triggers_dispatched_this_tick < self.options.max_triggers_per_tick
-}
+    }
 
     fn execute_trigger_handlers(&mut self, handler_ids: Vec<usize>) -> Result<(), SpandaError> {
         // Execute trigger handlers.
@@ -3328,7 +3302,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Iterate over ids.
         for id in ids {
-
             // Take the branch when execute trigger body by id is false.
             if !self.execute_trigger_body_by_id(id)? {
                 break;
@@ -3345,7 +3318,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(())
-}
+    }
 
     fn execute_trigger_body_by_id(&mut self, handler_id: usize) -> Result<bool, SpandaError> {
         // Execute trigger body by id.
@@ -3409,7 +3382,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.current_agent = saved_agent;
         result?;
         Ok(true)
-}
+    }
 
     fn dispatch_system_trigger(
         &mut self,
@@ -3445,7 +3418,7 @@ impl<B: RobotBackend> Interpreter<B> {
         }
         self.log(format!("system trigger: {:?}:{event}", category));
         self.execute_trigger_handlers(ids)
-}
+    }
 
     fn dispatch_message_triggers(
         &mut self,
@@ -3480,7 +3453,7 @@ impl<B: RobotBackend> Interpreter<B> {
             return Ok(());
         }
         self.execute_trigger_handlers(ids)
-}
+    }
 
     fn run_condition_triggers(&mut self) -> Result<(), SpandaError> {
         // Run condition triggers.
@@ -3503,7 +3476,6 @@ impl<B: RobotBackend> Interpreter<B> {
             .condition_handlers()
             .iter()
             .filter_map(|handler| {
-
                 // Take this path when let TriggerKind::Condition { expr, level } = &handler.kind.
                 if let TriggerKind::Condition { expr, level } = &handler.kind {
                     Some((handler.id, expr.clone(), *level))
@@ -3523,7 +3495,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
             // Take this path when level.
             if level {
-
                 // Take this path when active.
                 if active {
                     to_run.push(id);
@@ -3533,7 +3504,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         self.execute_trigger_handlers(to_run)
-}
+    }
 
     fn run_trigger_maintenance(&mut self) -> Result<(), SpandaError> {
         // Run trigger maintenance.
@@ -3555,7 +3526,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.poll_transport_inbound_triggers()?;
         self.run_twin_fault_triggers()?;
         Ok(())
-}
+    }
 
     fn run_hardware_triggers(&mut self) -> Result<(), SpandaError> {
         // Run hardware triggers.
@@ -3577,7 +3548,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.dispatch_system_trigger(SystemTriggerCategory::Hardware, &event)?;
         }
         Ok(())
-}
+    }
 
     fn poll_transport_inbound_triggers(&mut self) -> Result<(), SpandaError> {
         // Poll transport inbound triggers.
@@ -3607,7 +3578,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.dispatch_message_triggers(&topic_name, &topic_path)?;
         }
         Ok(())
-}
+    }
 
     fn run_twin_fault_triggers(&mut self) -> Result<(), SpandaError> {
         // Run twin fault triggers.
@@ -3643,7 +3614,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         Ok(())
-}
+    }
 
     fn run_timer_triggers(&mut self, sim_time: f64) -> Result<(), SpandaError> {
         // Run timer triggers.
@@ -3666,13 +3637,10 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Process each trigger timer.
         for schedule in &mut self.trigger_timers {
-
             // Take this path when schedule.next due ms <= sim time.
             if schedule.next_due_ms <= sim_time {
-
                 // Take this path when sim time > schedule.next due ms + schedule.interval ms.
                 if sim_time > schedule.next_due_ms + schedule.interval_ms {
-
                     // Emit output when trigger id) provides a handler.
                     if let Some(handler) = self.trigger_registry.get(schedule.trigger_id) {
                         self.telemetry.record_trigger_missed_deadline(
@@ -3687,7 +3655,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         self.execute_trigger_handlers(to_run)
-}
+    }
 
     fn dispatch_event(&mut self, event_name: &str) -> Result<(), SpandaError> {
         //
@@ -3728,7 +3696,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.log(format!("emit {event_name} (no handler)"));
         }
         Ok(())
-}
+    }
 
     fn execute_enter(&mut self, state_name: &str, line: u32) -> Result<(), SpandaError> {
         // Execute enter.
@@ -3754,7 +3722,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Iterate over state machines with destructured elements.
         for (sm_name, sm) in &mut self.state_machines {
-
             // Emit output when try enter provides a previous.
             if let Some(previous) = sm.try_enter(state_name) {
                 logs.push(format!(
@@ -3797,7 +3764,7 @@ impl<B: RobotBackend> Interpreter<B> {
             .collect();
         self.execute_trigger_handlers(ids)?;
         Ok(())
-}
+    }
 
     fn check_agent_capability(
         &self,
@@ -3851,7 +3818,7 @@ impl<B: RobotBackend> Interpreter<B> {
             .into_spanda());
         }
         Ok(())
-}
+    }
 
     fn secure_policy_from_block(block: &crate::foundations::SecureBlockDecl) -> SecurePolicy {
         // Secure policy from block.
@@ -3877,7 +3844,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 .and_then(|s| s.parse::<TrustLevel>().ok()),
             requires: block.requires.clone(),
         }
-}
+    }
 
     fn resolve_signing_key(&self, key: &str) -> Result<String, SpandaError> {
         // Resolve signing key.
@@ -3904,7 +3871,7 @@ impl<B: RobotBackend> Interpreter<B> {
         } else {
             Ok(key.to_string())
         }
-}
+    }
 
     fn security_error(&self, err: crate::security::SecurityError, line: u32) -> SpandaError {
         // Security error.
@@ -3925,7 +3892,7 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Produce into spanda as the result.
         RuntimeError::new(err.to_string(), line).into_spanda()
-}
+    }
 
     fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), SpandaError> {
         // Execute block.
@@ -3948,7 +3915,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.execute_stmt(stmt)?;
         }
         Ok(())
-}
+    }
 
     fn execute_stmt(&mut self, stmt: &Stmt) -> Result<(), SpandaError> {
         // Execute stmt.
@@ -3991,14 +3958,11 @@ impl<B: RobotBackend> Interpreter<B> {
                 init,
                 ..
             } => {
-
                 // Emit output when init provides a expr.
                 if let Some(expr) = init {
                     let value = if matches!(type_annotation, Some(SpandaType::TraitObject { .. })) {
-
                         // Take this path when let Expr::IdentExpr { name: agent, .. } = expr.
                         if let Expr::IdentExpr { name: agent, .. } = expr {
-
                             // Take this path when let Some(SpandaType::TraitObject { trait name }) = type annotation.
                             if let Some(SpandaType::TraitObject { trait_name }) = type_annotation {
                                 RuntimeValue::TraitObject {
@@ -4037,7 +4001,6 @@ impl<B: RobotBackend> Interpreter<B> {
             Stmt::LoopStmt {
                 interval_ms, body, ..
             } => {
-
                 // Process each max loop iteration.
                 for _ in 0..self.options.max_loop_iterations {
                     self.backend.tick(*interval_ms);
@@ -4252,7 +4215,6 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
             }
             Stmt::EmergencyStopStmt { .. } => {
-
                 // Emit output when safety monitor provides a monitor.
                 if let Some(monitor) = &mut self.safety_monitor {
                     monitor.set_emergency_stop(true);
@@ -4266,7 +4228,6 @@ impl<B: RobotBackend> Interpreter<B> {
                     self.dispatch_system_trigger(SystemTriggerCategory::Safety, "EmergencyStop");
             }
             Stmt::ResetEmergencyStopStmt { .. } => {
-
                 // Emit output when safety monitor provides a monitor.
                 if let Some(monitor) = &mut self.safety_monitor {
                     monitor.reset();
@@ -4323,7 +4284,7 @@ impl<B: RobotBackend> Interpreter<B> {
                         break 'select;
                     }
                 }
-}
+            }
             Stmt::ParallelStmt { body, span } => {
                 self.telemetry.record_parallel_block();
                 self.trace_task_log(format!("parallel block {} branch(es)", body.len()));
@@ -4413,14 +4374,13 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Execute each statement in sequence.
         for stmt in stmts {
-
             // Emit output when execute stmt with return provides a val.
             if let Some(val) = self.execute_stmt_with_return(stmt)? {
                 return Ok(Some(val));
             }
         }
         Ok(None)
-}
+    }
 
     fn execute_stmt_with_return(
         &mut self,
@@ -4461,13 +4421,11 @@ impl<B: RobotBackend> Interpreter<B> {
 
                 // Keep entries that match the expected pattern.
                 if matches!(cond, RuntimeValue::Bool { value: true, .. }) {
-
                     // Emit output when execute block with return provides a v.
                     if let Some(v) = self.execute_block_with_return(then_branch)? {
                         return Ok(Some(v));
                     }
                 } else if let Some(else_branch) = else_branch {
-
                     // Emit output when execute block with return provides a v.
                     if let Some(v) = self.execute_block_with_return(else_branch)? {
                         return Ok(Some(v));
@@ -4480,7 +4438,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 Ok(None)
             }
         }
-}
+    }
 
     fn call_module_function(
         &mut self,
@@ -4510,7 +4468,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Bind each formal parameter to its call argument.
         for (i, param) in func.params.iter().enumerate() {
-
             // Emit output when get provides a arg.
             if let Some(arg) = args.get(i) {
                 let val = self.eval_expr(arg)?;
@@ -4522,7 +4479,7 @@ impl<B: RobotBackend> Interpreter<B> {
             .unwrap_or(RuntimeValue::Void);
         self.env = saved;
         Ok(result)
-}
+    }
 
     fn resolve_future(
         &mut self,
@@ -4570,7 +4527,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
                 // Bind each formal parameter to its call argument.
                 for (i, param) in func.params.iter().enumerate() {
-
                     // Emit output when get provides a val.
                     if let Some(val) = args.get(i) {
                         self.env.define(param.name.clone(), val.clone());
@@ -4584,7 +4540,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             other => Ok(other),
         }
-}
+    }
 
     fn eval_spawn_target(
         &mut self,
@@ -4621,7 +4577,7 @@ impl<B: RobotBackend> Interpreter<B> {
             _ => return Err(RuntimeError::new("spawn requires function name", line).into_spanda()),
         };
         Ok((name, arg_values))
-}
+    }
 
     fn execute_spawn_job(
         &mut self,
@@ -4659,7 +4615,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Bind each formal parameter to its call argument.
         for (i, param) in func.params.iter().enumerate() {
-
             // Emit output when get provides a val.
             if let Some(val) = args.get(i) {
                 self.env.define(param.name.clone(), val.clone());
@@ -4670,7 +4625,7 @@ impl<B: RobotBackend> Interpreter<B> {
             .unwrap_or(RuntimeValue::Void);
         self.env = saved;
         Ok(result)
-}
+    }
 
     fn resolve_task_handle(&mut self, id: u64, line: u32) -> Result<RuntimeValue, SpandaError> {
         // Resolve task handle.
@@ -4699,7 +4654,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.telemetry.record_join();
         self.trace_task_log(format!("join handle {id} -> completed"));
         Ok(result)
-}
+    }
 
     fn execute_spawn_handle(&mut self, id: u64, line: u32) -> Result<RuntimeValue, SpandaError> {
         // Execute spawn handle.
@@ -4733,7 +4688,7 @@ impl<B: RobotBackend> Interpreter<B> {
         let result = self.execute_spawn_job(&func_name, &args, line)?;
         self.concurrency.set_handle_result(id, result.clone());
         Ok(result)
-}
+    }
 
     fn process_spawn_queue(&mut self) -> Result<(), SpandaError> {
         // Process spawn queue.
@@ -4758,7 +4713,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.execute_spawn_handle(id, 0)?;
         }
         Ok(())
-}
+    }
 
     fn eval_expr(&mut self, expr: &Expr) -> Result<RuntimeValue, SpandaError> {
         // Eval expr.
@@ -4792,7 +4747,6 @@ impl<B: RobotBackend> Interpreter<B> {
                 unit: *unit,
             }),
             Expr::IdentExpr { name, span } => {
-
                 // Emit output when get provides a enum name.
                 if let Some(enum_name) = self.variant_owner.get(name) {
                     return Ok(RuntimeValue::Enum {
@@ -4829,7 +4783,6 @@ impl<B: RobotBackend> Interpreter<B> {
                         value: matches!(operand_val, RuntimeValue::Bool { value, .. } if !value),
                     }),
                     UnaryOp::Neg => {
-
                         // Take this path when let RuntimeValue::Number { value, unit } = operand val.
                         if let RuntimeValue::Number { value, unit } = operand_val {
                             Ok(RuntimeValue::Number {
@@ -4847,13 +4800,10 @@ impl<B: RobotBackend> Interpreter<B> {
                 property,
                 span: _,
             } => {
-
                 // Take this path when let Expr::IdentExpr { name, .. } = object.as ref().
                 if let Expr::IdentExpr { name, .. } = object.as_ref() {
-
                     // Emit output when get provides a variants.
                     if let Some(variants) = self.enum_variants.get(name) {
-
                         // Take the branch when any equals property).
                         if variants.iter().any(|v| v == property) {
                             return Ok(RuntimeValue::Enum {
@@ -4900,16 +4850,12 @@ impl<B: RobotBackend> Interpreter<B> {
 
                 // Process each arm.
                 for arm in arms {
-
                     // Take the branch when variant equals variant.
                     if arm.variant == variant {
-
                         // Skip further work when bindings is empty.
                         if !arm.bindings.is_empty() {
-
                             // Take this path when let RuntimeValue::Enum { payloads, .. } = &value.
                             if let RuntimeValue::Enum { payloads, .. } = &value {
-
                                 // Iterate over iter with destructured elements.
                                 for (binding, payload) in arm.bindings.iter().zip(payloads.iter()) {
                                     self.env.set(binding.clone(), payload.clone());
@@ -4937,7 +4883,6 @@ impl<B: RobotBackend> Interpreter<B> {
                 span,
             } => self.eval_struct_literal(type_name, fields, span.start.line),
             Expr::ServiceCallExpr { service_name, .. } => {
-
                 // Take this path when let Some(RuntimeValue::Service { name, service type }) =.
                 if let Some(RuntimeValue::Service { name, service_type }) =
                     self.env.get(service_name).cloned()
@@ -4953,7 +4898,6 @@ impl<B: RobotBackend> Interpreter<B> {
             Expr::ExecuteExpr {
                 action_name, goal, ..
             } => {
-
                 // Take this path when let Some(RuntimeValue::Action { name, action type }) =.
                 if let Some(RuntimeValue::Action { name, action_type }) =
                     self.env.get(action_name).cloned()
@@ -4988,7 +4932,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 })
             }
         }
-}
+    }
 
     fn eval_struct_literal(
         &mut self,
@@ -5048,7 +4992,7 @@ impl<B: RobotBackend> Interpreter<B> {
             type_name: type_name.to_string(),
             fields: values,
         })
-}
+    }
 
     fn eval_member(
         &mut self,
@@ -5110,7 +5054,6 @@ impl<B: RobotBackend> Interpreter<B> {
                 _ => Ok(RuntimeValue::Void),
             },
             RuntimeValue::Sensor { .. } if property == "nearest_distance" => {
-
                 // Take this path when let RuntimeValue::Scan { nearest distance } = self.read sensor value(o.
                 if let RuntimeValue::Scan { nearest_distance } = self.read_sensor_value(obj)? {
                     Ok(RuntimeValue::Number {
@@ -5184,7 +5127,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             _ => Ok(RuntimeValue::Void),
         }
-}
+    }
 
     fn eval_call(
         &mut self,
@@ -5358,7 +5301,7 @@ impl<B: RobotBackend> Interpreter<B> {
                         let result = self.interp.execute_block(stmts);
                         self.interp.current_agent = None;
                         result
-}
+                    }
                 }
                 let mut runner = PlanRunner {
                     interp: self,
@@ -5527,7 +5470,7 @@ impl<B: RobotBackend> Interpreter<B> {
             .into_spanda()),
             _ => Ok(RuntimeValue::Void),
         }
-}
+    }
 
     fn read_sensor_value(&mut self, target: &RuntimeValue) -> Result<RuntimeValue, SpandaError> {
         // Read sensor value.
@@ -5553,14 +5496,12 @@ impl<B: RobotBackend> Interpreter<B> {
             hal_binding,
             topic,
         } = target
-
         // Handle any remaining cases.
         else {
             return Ok(RuntimeValue::Void);
         };
         let state = self.backend.get_state();
         let reading = if let Some(lib) = library {
-
             // Emit output when get sensor driver provides a driver.
             if let Some(driver) = get_sensor_driver(lib, sensor_type) {
                 let ctx = DriverContext {
@@ -5583,7 +5524,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.hardware_monitor
             .record_sensor_reading(name, sensor_type, &reading);
         Ok(reading)
-}
+    }
 
     fn read_fused_observation(&mut self) -> Result<RuntimeValue, SpandaError> {
         // Read fused observation.
@@ -5626,7 +5567,7 @@ impl<B: RobotBackend> Interpreter<B> {
             type_name: "FusedObservation".into(),
             fields,
         })
-}
+    }
 
     fn eval_builtin_function(
         &mut self,
@@ -5699,7 +5640,6 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             "goal" => {
                 let text = if let Some(arg) = args.first() {
-
                     // Match on eval expr and handle each case.
                     match self.eval_expr(arg)? {
                         RuntimeValue::String { value } => value,
@@ -5713,7 +5653,6 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             "recall" => {
                 let key = if let Some(arg) = args.first() {
-
                     // Match on eval expr and handle each case.
                     match self.eval_expr(arg)? {
                         RuntimeValue::String { value } => value,
@@ -6015,7 +5954,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             _ => Ok(RuntimeValue::Void),
         }
-}
+    }
 
     fn goal_text_from_value(value: &RuntimeValue) -> Option<String> {
         // Goal text from value.
@@ -6038,7 +5977,7 @@ impl<B: RobotBackend> Interpreter<B> {
             RuntimeValue::String { value } => Some(value.clone()),
             _ => None,
         }
-}
+    }
 
     fn resolve_reason_goal(
         &mut self,
@@ -6063,7 +6002,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // handle the success value from get named arg value.
         if let Ok(value) = self.get_named_arg_value(named_args, "goal") {
-
             // Keep entries that match the expected pattern.
             if !matches!(value, RuntimeValue::Void) {
                 return Ok(Self::goal_text_from_value(&value));
@@ -6072,7 +6010,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when as deref provides a agent name.
         if let Some(agent_name) = self.current_agent.as_deref() {
-
             // Emit output when get provides a agent.
             if let Some(agent) = self.agents.get(agent_name) {
                 let text = match &agent.decl {
@@ -6087,7 +6024,7 @@ impl<B: RobotBackend> Interpreter<B> {
         }
         let _ = line;
         Ok(None)
-}
+    }
 
     fn enrich_reason_goal(&self, goal: Option<String>) -> Option<String> {
         // Enrich reason goal.
@@ -6115,7 +6052,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Emit output when as deref provides a agent name.
         if let Some(agent_name) = self.current_agent.as_deref() {
-
             // Emit output when self provides a summary.
             if let Some(summary) = self
                 .agents
@@ -6133,7 +6069,7 @@ impl<B: RobotBackend> Interpreter<B> {
         } else {
             Some(parts.join("\n"))
         }
-}
+    }
 
     fn expr_path_string(expr: &Expr) -> String {
         // Expr path string.
@@ -6160,7 +6096,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             _ => String::new(),
         }
-}
+    }
 
     fn runtime_value_payload(value: &RuntimeValue) -> String {
         // Runtime value payload.
@@ -6196,7 +6132,7 @@ impl<B: RobotBackend> Interpreter<B> {
             } => format!(r#"{{"linear":{linear},"angular":{angular},"source":"{source}"}}"#),
             _ => format!("{value:?}"),
         }
-}
+    }
 
     fn eval_audit_method(
         &mut self,
@@ -6305,7 +6241,6 @@ impl<B: RobotBackend> Interpreter<B> {
                     "provenance".into()
                 };
                 let record_id = if args.len() > 1 {
-
                     // Match on eval expr and handle each case.
                     match self.eval_expr(&args[1])? {
                         RuntimeValue::Object { fields, .. } => fields
@@ -6365,7 +6300,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             _ => Ok(RuntimeValue::Void),
         }
-}
+    }
 
     fn eval_ledger_method(
         &mut self,
@@ -6402,7 +6337,6 @@ impl<B: RobotBackend> Interpreter<B> {
                     .require_operation("ledger.anchor")
                     .map_err(|e| self.security_error(e, line))?;
                 let hash_hex = if let Some(arg) = args.first() {
-
                     // Match on eval expr and handle each case.
                     match self.eval_expr(arg)? {
                         RuntimeValue::Object { fields, .. } => fields
@@ -6430,7 +6364,6 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             "verify" => {
                 let hash_hex = if let Some(arg) = args.first() {
-
                     // Match on eval expr and handle each case.
                     match self.eval_expr(arg)? {
                         RuntimeValue::Object { fields, .. } => fields
@@ -6454,7 +6387,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             _ => Ok(RuntimeValue::Void),
         }
-}
+    }
 
     fn eval_safety_validate(
         &mut self,
@@ -6509,7 +6442,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 Err(RuntimeError::new(reason, line).into_spanda())
             }
         }
-}
+    }
 
     fn eval_robot_method(
         &mut self,
@@ -6569,7 +6502,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 }),
             _ => Ok(RuntimeValue::Void),
         }
-}
+    }
 
     fn eval_twin_method(
         &mut self,
@@ -6627,7 +6560,6 @@ impl<B: RobotBackend> Interpreter<B> {
                     })
             }
             "replay" => {
-
                 // Take the branch when replay is false.
                 if !self.twin.as_ref().unwrap().replay {
                     return Err(RuntimeError::new(
@@ -6653,7 +6585,6 @@ impl<B: RobotBackend> Interpreter<B> {
                     })
             }
             method => {
-
                 // Take this path when self.
                 if self
                     .twin
@@ -6680,7 +6611,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
             }
         }
-}
+    }
 
     fn twin_field_name(
         &mut self,
@@ -6707,7 +6638,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Apply each command-line argument.
         for arg in named_args {
-
             // Take the branch when name equals "field".
             if arg.name == "field" {
                 return self.twin_field_from_expr(&arg.value, line);
@@ -6719,7 +6649,7 @@ impl<B: RobotBackend> Interpreter<B> {
             return self.twin_field_from_expr(arg, line);
         }
         Err(RuntimeError::new("Expected 'field' argument for twin method", line).into_spanda())
-}
+    }
 
     fn twin_field_from_expr(&mut self, expr: &Expr, _line: u32) -> Result<String, SpandaError> {
         // Twin field from expr.
@@ -6747,7 +6677,7 @@ impl<B: RobotBackend> Interpreter<B> {
             Expr::IdentExpr { name, .. } => Ok(name.clone()),
             _ => Ok(get_string(&self.eval_expr(expr)?, "")),
         }
-}
+    }
 
     fn execute_actuator_method(
         &mut self,
@@ -6794,7 +6724,6 @@ impl<B: RobotBackend> Interpreter<B> {
         if (motion_methods.contains(&method) || method == "stop")
             && !self.check_safety_before_motion()
         {
-
             // Emit output when on motion blocked provides a cb.
             if let Some(cb) = &self.options.on_motion_blocked {
                 cb("Safety rule triggered — motion blocked".into());
@@ -6873,7 +6802,6 @@ impl<B: RobotBackend> Interpreter<B> {
                 });
             }
             "execute" => {
-
                 // Emit output when as deref provides a agent.
                 if let Some(agent) = self.current_agent.as_deref() {
                     self.check_agent_capability(agent, "propose_motion", None, line)?;
@@ -6886,7 +6814,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
                 // Take the branch when is safe action is false.
                 if !is_safe_action(&action_val) {
-
                     // Take this path when is action proposal(&action val).
                     if is_action_proposal(&action_val) {
                         return Err(RuntimeError::new(
@@ -6904,7 +6831,6 @@ impl<B: RobotBackend> Interpreter<B> {
 
                 // Take the branch when check safety before motion is false.
                 if !self.check_safety_before_motion() {
-
                     // Emit output when on motion blocked provides a cb.
                     if let Some(cb) = &self.options.on_motion_blocked {
                         cb("Safety rule triggered — motion blocked".into());
@@ -6928,7 +6854,7 @@ impl<B: RobotBackend> Interpreter<B> {
         }
         self.log(format!("{name}.{method}()"));
         Ok(RuntimeValue::Void)
-}
+    }
 
     fn get_named_arg_value(
         &mut self,
@@ -6952,14 +6878,13 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Apply each command-line argument.
         for arg in named_args {
-
             // Take the branch when name equals name.
             if arg.name == name {
                 return self.eval_expr(&arg.value);
             }
         }
         Ok(RuntimeValue::Void)
-}
+    }
 
     fn eval_binary(
         &self,
@@ -6997,7 +6922,6 @@ impl<B: RobotBackend> Interpreter<B> {
                     || matches!(right, RuntimeValue::Bool { value: true, .. }),
             }),
             _ => {
-
                 // Keep entries that match the expected pattern.
                 if matches!(op, BinaryOp::Eq | BinaryOp::Neq)
                     && matches!(left, RuntimeValue::Enum { .. })
@@ -7008,7 +6932,6 @@ impl<B: RobotBackend> Interpreter<B> {
                         variant: v1,
                         payloads: p1,
                     } = left
-
                     // Handle any remaining cases.
                     else {
                         unreachable!()
@@ -7018,7 +6941,6 @@ impl<B: RobotBackend> Interpreter<B> {
                         variant: v2,
                         payloads: p2,
                     } = right
-
                     // Handle any remaining cases.
                     else {
                         unreachable!()
@@ -7082,7 +7004,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 Ok(RuntimeValue::Void)
             }
         }
-}
+    }
 
     fn log(&self, message: String) {
         // Log.
@@ -7106,7 +7028,7 @@ impl<B: RobotBackend> Interpreter<B> {
         if let Some(cb) = &self.options.on_log {
             cb(message);
         }
-}
+    }
 }
 
 pub fn runtime_pose(x: f64, y: f64, theta: f64, z: f64) -> RuntimeValue {
@@ -7385,7 +7307,6 @@ fn task_budget_violation_kind(
 
     // Emit output when cpu pct max provides a cpu max.
     if let Some(cpu_max) = cpu_pct_max {
-
         // Take this path when duty pct > *cpu max.
         if duty_pct > *cpu_max {
             return Some("cpu");
@@ -7394,7 +7315,6 @@ fn task_budget_violation_kind(
 
     // Emit output when battery pct max provides a bat max.
     if let Some(bat_max) = battery_pct_max {
-
         // Take this path when duty pct > *bat max.
         if duty_pct > *bat_max {
             return Some("battery");
@@ -7426,7 +7346,7 @@ impl TaskSchedule {
             TaskPriority::Normal => 2,
             TaskPriority::Low => 3,
         }
-}
+    }
 }
 
 fn priority_label(priority: TaskPriority) -> &'static str {
@@ -7521,7 +7441,7 @@ impl RobotDeclExt for RobotDecl {
         tasks.first().map(|t| match t {
             TaskDecl::TaskDecl { name, .. } => name.clone(),
         })
-}
+    }
 
     fn behavior_with_contracts(&self, name: &str) -> Option<BehaviorContracts> {
         // Behavior with contracts.
@@ -7557,7 +7477,7 @@ impl RobotDeclExt for RobotDecl {
             )),
             _ => None,
         })
-}
+    }
 
     fn task_with_contracts(&self, name: &str) -> Option<TaskContracts> {
         // Task with contracts.
@@ -7596,7 +7516,7 @@ impl RobotDeclExt for RobotDecl {
             )),
             _ => None,
         })
-}
+    }
 
     fn all_task_schedules(&self) -> Vec<TaskSchedule> {
         // All task schedules.
@@ -7641,7 +7561,7 @@ impl RobotDeclExt for RobotDecl {
                 },
             })
             .collect()
-}
+    }
 }
 
 trait SocDeclExt {
@@ -7668,7 +7588,7 @@ impl SocDeclExt for crate::ast::SocDecl {
         match self {
             crate::ast::SocDecl::SocDecl { profile, .. } => profile,
         }
-}
+    }
 }
 
 trait HalBlockExt {
@@ -7695,7 +7615,7 @@ impl HalBlockExt for crate::ast::HalBlock {
         match self {
             crate::ast::HalBlock::HalBlock { members, .. } => members,
         }
-}
+    }
 }
 
 trait SafetyBlockExt {
@@ -7723,7 +7643,7 @@ impl SafetyBlockExt for crate::ast::SafetyBlock {
         match self {
             crate::ast::SafetyBlock::SafetyBlock { rules, .. } => rules,
         }
-}
+    }
 
     fn zones(&self) -> &[SafetyZoneDecl] {
         // Zones.
@@ -7744,7 +7664,7 @@ impl SafetyBlockExt for crate::ast::SafetyBlock {
         match self {
             crate::ast::SafetyBlock::SafetyBlock { zones, .. } => zones,
         }
-}
+    }
 }
 
 #[cfg(test)]
@@ -7787,7 +7707,7 @@ mod tests {
             },
         );
         interp.run(&program, None)
-}
+    }
 
     #[test]
     fn executes_let_bindings_and_if_else() {

@@ -331,7 +331,7 @@ impl UnitKind {
             UnitKind::PercentVwc => "%VWC",
             UnitKind::Vwc => "vwc",
         }
-}
+    }
 
     pub fn from_lexeme(lexeme: &str) -> Self {
         // Construct from lexeme.
@@ -427,7 +427,7 @@ impl UnitKind {
             "vwc" => UnitKind::Vwc,
             _ => UnitKind::None,
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1074,7 +1074,7 @@ impl BinaryOp {
             "or" => Some(BinaryOp::Or),
             _ => None,
         }
-}
+    }
 
     pub fn as_str(self) -> &'static str {
         //
@@ -1105,7 +1105,7 @@ impl BinaryOp {
             BinaryOp::And => "and",
             BinaryOp::Or => "or",
         }
-}
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1141,7 +1141,7 @@ impl Program {
         match self {
             Program::Program { imports, .. } => imports,
         }
-}
+    }
 
     pub fn robots(&self) -> &[RobotDecl] {
         // Robots.
@@ -1162,7 +1162,7 @@ impl Program {
         match self {
             Program::Program { robots, .. } => robots,
         }
-}
+    }
 }
 
 impl RobotDecl {
@@ -1185,5 +1185,5 @@ impl RobotDecl {
         match self {
             RobotDecl::RobotDecl { name, .. } => name,
         }
-}
+    }
 }
