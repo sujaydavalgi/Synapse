@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operating `mode` blocks execute on enter; topic QoS `deadline` violations are detected at runtime
 - `spanda replay --deterministic` re-runs the traced program and verifies frame parity
 - TypeScript mirror syncs parse/typecheck for realtime, reliability, regex, and replay features
+- Wall-clock RTOS scheduling via `--wall-clock`; frame-by-frame mission playback via `spanda replay --playback`
+- Mission traces (v2) embed robot state snapshots for playback without re-running program logic
 
 ## [0.1.0-alpha] - 2026-06-20
 

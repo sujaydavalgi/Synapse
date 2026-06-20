@@ -3,6 +3,7 @@
  * @module
  */
 
+export { ReliabilityRuntime } from "./reliability-runtime.js";
 export { Interpreter, Environment, RuntimeError } from "./interpreter.js";
 export type {
   RuntimeValue,

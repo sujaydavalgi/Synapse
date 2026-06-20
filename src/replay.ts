@@ -7,6 +7,20 @@ export type TraceFrame = {
   simTimeMs: number;
   event: string;
   payload?: unknown;
+  state?: ReplayStateSnapshot;
+};
+
+export type ReplayStateSnapshot = {
+  pose: { x: number; y: number; theta: number; z?: number };
+  velocity: { linear: number; angular: number };
+  emergencyStop: boolean;
+  activeMode?: string;
+};
+
+export type PlaybackReport = {
+  framesApplied: number;
+  statesApplied: number;
+  events: string[];
 };
 
 export type MissionTrace = {
@@ -68,7 +82,50 @@ export function recordTraceFrame(
   // Example:
   // recordTraceFrame(trace, 10.0, "task_tick", { task: "sense" });
 
-  trace.frames.push({ simTimeMs, event, payload });
+  trace.frames.push({ simTimeMs, event, payload, state: undefined });
+}
+
+export function recordTraceFrameWithState(
+  trace: MissionTrace,
+  simTimeMs: number,
+  event: string,
+  payload: unknown,
+  state: ReplayStateSnapshot,
+): void {
+  trace.frames.push({ simTimeMs, event, payload, state });
+  if (state) {
+    trace.version = 2;
+  }
+}
+
+export function playbackFrames(
+  frames: TraceFrame[],
+  applyState: (state: ReplayStateSnapshot) => void,
+  wallClock = false,
+): PlaybackReport {
+  let statesApplied = 0;
+  const events: string[] = [];
+  let prevSim = 0;
+  const wallStart = performance.now();
+  for (const frame of frames) {
+    if (wallClock) {
+      const delta = frame.simTimeMs - prevSim;
+      if (delta > 0) {
+        const end = performance.now() + delta;
+        while (performance.now() < end) {
+          /* wall pacing */
+        }
+      }
+      prevSim = frame.simTimeMs;
+    }
+    if (frame.state) {
+      applyState(frame.state);
+      statesApplied += 1;
+    }
+    events.push(frame.event);
+  }
+  void wallStart;
+  return { framesApplied: frames.length, statesApplied, events };
 }
 
 export function traceFramesFrom(trace: MissionTrace, offsetMs: number): TraceFrame[] {

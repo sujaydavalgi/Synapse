@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { compile } from "../src/compile.js";
+import { compile, run } from "../src/compile.js";
+import { createDefaultSimulator } from "../src/simulator/index.js";
 import {
   validateTaskTiming,
   validatePipeline,
@@ -104,6 +105,30 @@ describe("replay module", () => {
   it("parses replay offsets", () => {
     expect(parseReplayOffset("1500")).toBe(1500);
     expect(parseReplayOffset("T+01:30")).toBe(90000);
+  });
+});
+
+describe("TypeScript reliability runtime", () => {
+  it("executes run_pipeline and records mission trace frames", () => {
+    const source = `
+robot R {
+  pipeline p budget 30ms {
+    emergency_stop;
+  }
+  task driver every 10ms {
+    run_pipeline p;
+  }
+}
+`;
+    const { program } = compile(source);
+    const logs: string[] = [];
+    run(program, {
+      backend: createDefaultSimulator({}),
+      maxLoopIterations: 2,
+      recordTrace: true,
+      onLog: (msg) => logs.push(msg),
+    });
+    expect(logs.some((line) => line.includes("pipeline 'p'"))).toBe(true);
   });
 });
 

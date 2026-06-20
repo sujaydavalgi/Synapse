@@ -48,4 +48,14 @@ spanda run rover.sd --metrics-json
 
 `--trace-realtime` enables scheduler, task, trigger, and event traces. `--metrics-json` emits JSON metrics (same payload as `--json`).
 
+## Wall-clock RTOS scheduling
+
+By default the scheduler advances a **simulation clock** (deterministic, fast). For hardware-in-the-loop or latency characterization, use wall-clock mode:
+
+```bash
+spanda sim rover.sd --wall-clock
+```
+
+Wall-clock mode sleeps between scheduler ticks using real time. Mission trace recording and `--deterministic` replay remain on the sim clock for reproducibility.
+
 See also: [reliability](reliability.md), [watchdogs](watchdogs.md), [replay](replay.md).

@@ -51,6 +51,15 @@ import { callExternBridge } from "../ffi/subprocess-bridge.js";
 import { ConcurrencyRuntime } from "../concurrency.js";
 import type { ModuleRegistry } from "../modules/index.js";
 import type { ExternFnDecl, ModuleFnDecl, ResourceBudgetDecl, TaskDecl, TaskPriority } from "../foundations.js";
+import type { RegexPattern } from "../regex.js";
+import {
+  regexCapture,
+  regexFind,
+  regexMatches,
+  regexReplace,
+  regexSplit,
+} from "../regex.js";
+import { ReliabilityRuntime } from "./reliability-runtime.js";
 
 export type PoseValue = { x: number; y: number; theta: number; z: number };
 
@@ -87,7 +96,9 @@ export type RuntimeValue =
   | { kind: "secret"; name: string }
   | { kind: "channel"; id: number }
   | { kind: "task_handle"; id: number }
-  | { kind: "future"; funcName: string; args: RuntimeValue[]; resolved: RuntimeValue | null };
+  | { kind: "future"; funcName: string; args: RuntimeValue[]; resolved: RuntimeValue | null }
+  | { kind: "regex"; pattern: RegexPattern }
+  | { kind: "capture"; groups: string[] };
 
 export type MotionCommand =
   | { kind: "drive"; linear: number; angular: number; actuator: string }
@@ -125,6 +136,9 @@ export type InterpreterOptions = {
   onMotionBlocked?: (reason: string) => void;
   onLog?: (message: string) => void;
   moduleRegistry?: ModuleRegistry;
+  recordTrace?: boolean;
+  traceSource?: string;
+  schedulerClock?: "sim" | "wall";
 };
 
 export class Environment {
@@ -272,6 +286,7 @@ export class Interpreter {
   private taskMaxDurationMs = new Map<string, number>();
   private returning = false;
   private returnValue: RuntimeValue = { kind: "void" };
+  private reliability = new ReliabilityRuntime();
 
   constructor(private options: InterpreterOptions) {}
 
@@ -669,6 +684,7 @@ export class Interpreter {
         this.options.onLog?.(`task '${name}': ${kind} budget exceeded (${durationMs.toFixed(2)}ms)`);
       }
     }
+    this.reliability.touchHeartbeat(name, this.reliability.simTimeMs);
     return continueRunning;
 }
 
@@ -749,11 +765,21 @@ export class Interpreter {
     );
     const maxIter = this.options.maxLoopIterations ?? 10;
     let simTime = 0;
+    const wallMode = this.options.schedulerClock === "wall";
+    const wallStart = performance.now();
+    let wallNext = wallStart;
 
     // Loop with index variable i.
     for (let i = 0; i < maxIter; i++) {
+      if (wallMode) {
+        wallNext += baseTick;
+        this.sleepWallMs(wallNext - performance.now());
+        simTime = performance.now() - wallStart;
+      } else {
+        simTime += baseTick;
+      }
+      this.reliability.simTimeMs = simTime;
       this.options.backend.tick(baseTick);
-      simTime += baseTick;
       const due = schedules
         .filter((schedule) => schedule.nextDueMs <= simTime)
         .sort((a, b) => this.priorityRank(a.priority) - this.priorityRank(b.priority));
@@ -782,6 +808,11 @@ export class Interpreter {
       this.processSpawnQueue();
       this.runVerifyRules();
       this.updateTwinSnapshot();
+      this.reliability.checkWatchdogs(this.reliabilityHost());
+      this.reliability.recordEvent(this.reliabilityHost(), "scheduler_tick", {
+        simTimeMs: simTime,
+        iteration: i + 1,
+      });
 
       // continue when this.safetyMonitor?.isEmergencyStop().
       if (this.safetyMonitor?.isEmergencyStop()) break;
@@ -1368,7 +1399,23 @@ export class Interpreter {
     this.safetyMonitor = new SafetyMonitor(
       createSafetyConfigFromRobot(maxSpeed, stopIfRules, this.zones),
     );
+    this.reliability.loadFromRobot(
+      robot,
+      this.options.recordTrace ?? false,
+      this.options.traceSource,
+    );
+    if (this.reliability.modes.has("normal")) {
+      this.reliability.enterMode("normal", this.reliabilityHost());
+    }
 }
+
+  private reliabilityHost() {
+    return {
+      executeBlock: (stmts: Stmt[]) => this.executeBlock(stmts),
+      log: (message: string) => this.options.onLog?.(message),
+      getSimTimeMs: () => this.reliability.simTimeMs,
+    };
+  }
 
   private evalSafetyZone(zone: SafetyZoneDecl): SafetyZoneRuntime {
     // EvalSafetyZone.
@@ -1681,13 +1728,16 @@ export class Interpreter {
         this.executeEnter(stmt.stateName, stmt.span.start.line);
         break;
       case "EnterModeStmt":
-        this.options.onLog?.(`enter mode ${stmt.mode}`);
+        this.reliability.enterMode(stmt.mode, this.reliabilityHost());
         break;
       case "StopAllActuatorsStmt":
-        this.options.onLog?.("stop_all_actuators");
+        this.safetyMonitor?.setEmergencyStop(true);
+        this.options.backend.setEmergencyStop?.(true);
+        this.options.backend.executeMotion({ kind: "stop", actuator: "all" });
+        this.options.onLog?.("safety: stop_all_actuators invoked");
         break;
       case "RunPipelineStmt":
-        this.options.onLog?.(`run_pipeline ${stmt.name}`);
+        this.reliability.executePipeline(stmt.name, this.reliabilityHost());
         break;
       case "UseFallbackStmt":
         this.options.onLog?.(`use fallback ${stmt.resource}`);
@@ -1844,6 +1894,9 @@ export class Interpreter {
 
         // continue when value equals "string".
         if (typeof expr.value === "string") return { kind: "string", value: expr.value };
+        if (typeof expr.value === "object" && expr.value !== null && "source" in expr.value) {
+          return { kind: "regex", pattern: expr.value as RegexPattern };
+        }
         return { kind: "void" };
       case "UnitLiteralExpr":
         return { kind: "number", value: expr.value, unit: expr.unit };
@@ -2122,6 +2175,63 @@ export class Interpreter {
     return { kind: "void" };
 }
 
+  private evalStringRegexMethod(
+    method: string,
+    text: string,
+    expr: import("../ast/nodes.js").CallExpr,
+  ): RuntimeValue {
+    // Dispatch string regex methods against compiled patterns.
+    const patternArg = expr.args[0] ? this.evalExpr(expr.args[0]) : { kind: "void" as const };
+    if (patternArg.kind !== "regex") {
+      throw new RuntimeError("Regex method requires a regex pattern argument", expr.span.start.line);
+    }
+    const pattern = patternArg.pattern;
+    switch (method) {
+      case "matches":
+        return { kind: "bool", value: regexMatches(pattern, text) };
+      case "find": {
+        const found = regexFind(pattern, text);
+        return found === null ? { kind: "void" } : { kind: "string", value: found };
+      }
+      case "replace": {
+        const replacement = expr.args[1]
+          ? getString(this.evalExpr(expr.args[1]))
+          : "";
+        return { kind: "string", value: regexReplace(pattern, text, replacement) };
+      }
+      case "split":
+        return {
+          kind: "object",
+          typeName: "StringList",
+          fields: Object.fromEntries(
+            regexSplit(pattern, text).map((part, index) => [
+              String(index),
+              { kind: "string" as const, value: part },
+            ]),
+          ),
+        };
+      case "capture": {
+        const cap = regexCapture(pattern, text);
+        if (!cap) {
+          return { kind: "void" };
+        }
+        return { kind: "capture", groups: cap.groups };
+      }
+      default:
+        throw new RuntimeError(`Unknown string method '${method}'`, expr.span.start.line);
+    }
+  }
+
+  private sleepWallMs(ms: number): void {
+    if (ms <= 0) {
+      return;
+    }
+    const end = performance.now() + ms;
+    while (performance.now() < end) {
+      /* spin until wall deadline */
+    }
+  }
+
   private evalCall(expr: import("../ast/nodes.js").CallExpr): RuntimeValue {
     // EvalCall.
     //
@@ -2176,6 +2286,10 @@ export class Interpreter {
     // continue when target is falsy.
     if (!target) {
       throw new RuntimeError(`Undefined '${targetName}'`, expr.span.start.line);
+    }
+
+    if (target.kind === "string") {
+      return this.evalStringRegexMethod(method, target.value, expr);
     }
 
     // continue when kind equals "robot" || targetName === "robot".

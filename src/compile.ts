@@ -243,6 +243,9 @@ export type RunOptions = {
   /** When set, attempt Rust CLI run before TS interpreter */
   rustCli?: boolean;
   moduleRegistry?: ModuleRegistry;
+  recordTrace?: boolean;
+  traceSource?: string;
+  schedulerClock?: "sim" | "wall";
 };
 
 export function run(program: Program, options: RunOptions): RobotState {
@@ -267,6 +270,9 @@ export function run(program: Program, options: RunOptions): RobotState {
     onMotionBlocked: options.onMotionBlocked,
     onLog: options.onLog,
     moduleRegistry: options.moduleRegistry,
+    recordTrace: options.recordTrace,
+    traceSource: options.traceSource,
+    schedulerClock: options.schedulerClock,
   });
   return interpreter.run(program, options.entryBehavior);
 }
