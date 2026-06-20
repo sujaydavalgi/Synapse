@@ -5,12 +5,12 @@
 //! 2. Persistent rclpy daemon subprocess
 //! 3. Per-call Python bridge fallback
 
-use crate::transport_rclrs_native as native;
 use crate::runtime::RuntimeValue;
 use crate::transport_live::{
     try_ros2_bridge_publish, try_ros2_bridge_service_call, try_ros2_bridge_subscribe,
 };
 use crate::transport_rclrs_daemon::{daemon_publish, daemon_service_call, daemon_subscribe};
+use crate::transport_rclrs_native as native;
 
 pub fn rclrs_enabled() -> bool {
     std::env::var("SPANDA_ROS2_RCLRS").is_ok()
@@ -76,7 +76,10 @@ pub fn init_node(name: &str) -> Result<(), String> {
         let _ = name;
         Ok(())
     } else {
-        Err("ROS2 rclrs SDK unavailable — build libspanda_ros2_rclrs_native and source ROS 2".into())
+        Err(
+            "ROS2 rclrs SDK unavailable — build libspanda_ros2_rclrs_native and source ROS 2"
+                .into(),
+        )
     }
 }
 

@@ -4,7 +4,7 @@ use spanda_core::sir::SirProgram;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::{emit_module_ir_with_options, default_target_triple_for_host};
+use crate::{default_target_triple_for_host, emit_module_ir_with_options};
 
 #[derive(Debug, Clone)]
 pub struct CompileNativeOptions {
@@ -25,11 +25,10 @@ pub fn compile_native(
     sir: &SirProgram,
     opts: &CompileNativeOptions,
 ) -> Result<CompileNativeResult, String> {
-    let clang = opts
-        .clang
-        .clone()
-        .or_else(detect_clang)
-        .ok_or_else(|| "clang not found — install LLVM/clang to use compile-native".to_string())?;
+    let clang =
+        opts.clang.clone().or_else(detect_clang).ok_or_else(|| {
+            "clang not found — install LLVM/clang to use compile-native".to_string()
+        })?;
 
     let ir = emit_module_ir_with_options(
         sir,
@@ -63,11 +62,18 @@ pub fn compile_native(
 
     if cfg!(target_os = "macos") {
         cmd.arg("-Wl,-no_warn_duplicate_libraries");
-        cmd.args(["-framework", "Security", "-framework", "SystemConfiguration"]);
+        cmd.args([
+            "-framework",
+            "Security",
+            "-framework",
+            "SystemConfiguration",
+        ]);
         cmd.arg("-liconv");
     }
 
-    let status = cmd.status().map_err(|e| format!("failed to run clang: {e}"))?;
+    let status = cmd
+        .status()
+        .map_err(|e| format!("failed to run clang: {e}"))?;
     if !status.success() {
         return Err(format!(
             "clang failed linking native binary (exit {status})"
@@ -122,7 +128,9 @@ fn ensure_spanda_rt_staticlib(workspace_root: &Path) -> Result<PathBuf, String> 
     if let Ok(dir) = std::env::var("CARGO_TARGET_DIR") {
         cmd.env("CARGO_TARGET_DIR", dir);
     }
-    let status = cmd.status().map_err(|e| format!("failed to build spanda-rt: {e}"))?;
+    let status = cmd
+        .status()
+        .map_err(|e| format!("failed to build spanda-rt: {e}"))?;
     if !status.success() {
         return Err("cargo build -p spanda-rt failed".into());
     }

@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::io::{self, BufRead, Write};
 
 thread_local! {
-    static DEBUG_MACHINE: RefCell<Option<DebugMachine>> = RefCell::new(None);
+    static DEBUG_MACHINE: RefCell<Option<DebugMachine>> = const { RefCell::new(None) };
 }
 
 fn read_message(reader: &mut dyn BufRead) -> io::Result<Option<Value>> {
@@ -146,12 +146,14 @@ pub fn serve(
                     let session = with_machine(source, source_path, &breakpoints, |machine| {
                         machine.run_until_pause(kind)
                     })
-                    .unwrap_or_else(|e: SpandaError| spanda_core::DebugSession {
-                        pauses: vec![spanda_core::DebugPause {
-                            line: 1,
-                            reason: e.to_string(),
-                            variables: Default::default(),
-                        }],
+                    .unwrap_or_else(|e: SpandaError| {
+                        spanda_core::DebugSession {
+                            pauses: vec![spanda_core::DebugPause {
+                                line: 1,
+                                reason: e.to_string(),
+                                variables: Default::default(),
+                            }],
+                        }
                     });
                     for pause in session.pauses {
                         write_message(
@@ -204,9 +206,7 @@ pub fn serve(
             }
             "stackTrace" => {
                 let frames = with_machine(source, source_path, &breakpoints, |machine| {
-                    let source = machine.source_path().map(|path| {
-                        json!({ "path": path })
-                    });
+                    let source = machine.source_path().map(|path| json!({ "path": path }));
                     Ok(machine
                         .stack_trace()
                         .into_iter()

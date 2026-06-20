@@ -1,7 +1,7 @@
 //! Resumable debug sessions with step/continue and variable mutation.
 
 use crate::ast::{BehaviorDecl, Program, RobotDecl, Stmt, UnitKind};
-use crate::debug::{DebugController, DebugOptions, DebugPause, DebugSession, stmt_line};
+use crate::debug::{stmt_line, DebugController, DebugOptions, DebugPause, DebugSession};
 use crate::error::SpandaError;
 use crate::runtime::{Environment, Interpreter, InterpreterOptions, RuntimeValue};
 use crate::simulator::{create_default_simulator, Simulator, SimulatorConfig};
@@ -55,12 +55,10 @@ impl DebugMachine {
         );
         interpreter.load_program_metadata(&program);
         let Program::Program { robots, .. } = &program;
-        let robot = robots
-            .first()
-            .ok_or_else(|| SpandaError::Runtime {
-                message: "debug requires at least one robot".into(),
-                line: 1,
-            })?;
+        let robot = robots.first().ok_or_else(|| SpandaError::Runtime {
+            message: "debug requires at least one robot".into(),
+            line: 1,
+        })?;
         interpreter.setup_robot_for_debug(robot)?;
         let (name, body) = behavior_body(robot)?;
         let locals = interpreter.env().snapshot_display();
@@ -110,11 +108,7 @@ impl DebugMachine {
             .rev()
             .enumerate()
             .map(|(id, frame)| {
-                let line = frame
-                    .stmts
-                    .get(frame.index)
-                    .map(stmt_line)
-                    .unwrap_or(1);
+                let line = frame.stmts.get(frame.index).map(stmt_line).unwrap_or(1);
                 DebugStackFrame {
                     id: id + 1,
                     name: frame.name.clone(),
@@ -148,7 +142,8 @@ impl DebugMachine {
     pub fn run_until_pause(&mut self, step: DebugStepKind) -> Result<DebugSession, SpandaError> {
         self.step_kind = step;
         if step == DebugStepKind::Continue {
-            self.controller.command(crate::debug::DebugCommand::Continue);
+            self.controller
+                .command(crate::debug::DebugCommand::Continue);
             self.step_out_target_depth = None;
         } else if step == DebugStepKind::StepOut {
             self.step_out_target_depth = Some(self.frames.len().saturating_sub(1));
@@ -254,11 +249,7 @@ impl DebugMachine {
             self.frames[frame_top].index += 1;
             let locals = self.interpreter.env().snapshot_display();
             self.frames.push(DebugFrame {
-                name: format!(
-                    "{}:{}",
-                    self.frames[frame_top].name,
-                    stmt_kind_label(stmt)
-                ),
+                name: format!("{}:{}", self.frames[frame_top].name, stmt_kind_label(stmt)),
                 stmts: inner,
                 index: 0,
                 restore_env: None,
@@ -287,9 +278,8 @@ impl DebugMachine {
 
 fn behavior_body(robot: &RobotDecl) -> Result<(String, Vec<Stmt>), SpandaError> {
     let RobotDecl::RobotDecl { behaviors, .. } = robot;
-    let BehaviorDecl::BehaviorDecl { name, body, .. } = behaviors
-        .first()
-        .ok_or_else(|| SpandaError::Runtime {
+    let BehaviorDecl::BehaviorDecl { name, body, .. } =
+        behaviors.first().ok_or_else(|| SpandaError::Runtime {
             message: "robot has no behavior to debug".into(),
             line: 1,
         })?;
@@ -371,9 +361,7 @@ robot R {
             .run_until_pause(DebugStepKind::StepOver)
             .expect("step");
         assert!(!session.pauses.is_empty());
-        machine
-            .set_variable("speed", "1.0")
-            .expect("set variable");
+        machine.set_variable("speed", "1.0").expect("set variable");
         let _ = machine
             .run_until_pause(DebugStepKind::StepOver)
             .expect("step again");
@@ -408,7 +396,10 @@ robot R {
         let session = machine
             .run_until_pause(DebugStepKind::StepOut)
             .expect("step out");
-        assert!(session.pauses.iter().any(|pause| pause.reason == "step-out"));
+        assert!(session
+            .pauses
+            .iter()
+            .any(|pause| pause.reason == "step-out"));
     }
 
     #[test]
@@ -529,7 +520,9 @@ robot R {
         let _ = machine
             .run_until_pause(DebugStepKind::StepOver)
             .expect("let outer");
-        let _ = machine.run_until_pause(DebugStepKind::StepIn).expect("step in bump");
+        let _ = machine
+            .run_until_pause(DebugStepKind::StepIn)
+            .expect("step in bump");
         let caller_vars = machine.frame_variables(2);
         assert!(caller_vars.contains_key("outer"));
     }

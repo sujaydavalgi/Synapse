@@ -25,16 +25,12 @@ pub fn call_extern(
         message: "Python bridge script not found for native bridge".into(),
         line,
     })?;
-    let args_json = serde_json::to_string(
-        &args
-            .iter()
-            .map(runtime_value_to_json)
-            .collect::<Vec<_>>(),
-    )
-    .map_err(|e| SpandaError::Runtime {
-        message: format!("Failed to encode native bridge args: {e}"),
-        line,
-    })?;
+    let args_json =
+        serde_json::to_string(&args.iter().map(runtime_value_to_json).collect::<Vec<_>>())
+            .map_err(|e| SpandaError::Runtime {
+                message: format!("Failed to encode native bridge args: {e}"),
+                line,
+            })?;
 
     Python::with_gil(|py| -> PyResult<RuntimeValue> {
         let locals = PyDict::new(py);

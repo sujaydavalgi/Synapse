@@ -316,9 +316,7 @@ pub fn format_runtime_value(value: &RuntimeValue) -> String {
         RuntimeValue::String { value } => value.clone(),
         RuntimeValue::Void => "void".into(),
         RuntimeValue::Enum {
-            variant,
-            payloads,
-            ..
+            variant, payloads, ..
         } => {
             if payloads.is_empty() {
                 variant.clone()
@@ -529,12 +527,20 @@ impl<B: RobotBackend> Interpreter<B> {
     pub fn resolve_sync_call(
         &self,
         stmt: &Stmt,
-    ) -> Option<(String, crate::foundations::ModuleFnDecl, Vec<crate::ast::Expr>)> {
+    ) -> Option<(
+        String,
+        crate::foundations::ModuleFnDecl,
+        Vec<crate::ast::Expr>,
+    )> {
         use crate::ast::{Expr, Stmt};
         let expr = match stmt {
-            Stmt::VarDecl { init: Some(init), .. } => init,
+            Stmt::VarDecl {
+                init: Some(init), ..
+            } => init,
             Stmt::ExprStmt { expr, .. } => expr,
-            Stmt::ReturnStmt { value: Some(value), .. } => value,
+            Stmt::ReturnStmt {
+                value: Some(value), ..
+            } => value,
             _ => return None,
         };
         let Expr::CallExpr { callee, args, .. } = expr else {
@@ -1654,10 +1660,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 ..
             } => {
                 if let Some(expr) = init {
-                    let value = if matches!(
-                        type_annotation,
-                        Some(SpandaType::TraitObject { .. })
-                    ) {
+                    let value = if matches!(type_annotation, Some(SpandaType::TraitObject { .. })) {
                         if let Expr::IdentExpr { name: agent, .. } = expr {
                             if let Some(SpandaType::TraitObject { trait_name }) = type_annotation {
                                 RuntimeValue::TraitObject {

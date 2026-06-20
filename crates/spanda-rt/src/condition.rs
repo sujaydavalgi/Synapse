@@ -18,15 +18,40 @@ enum RtCompareOp {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 enum RtCondition {
-    Bool { value: bool },
-    Ident { name: String },
-    Not { operand: Box<RtCondition> },
-    And { left: Box<RtCondition>, right: Box<RtCondition> },
-    Or { left: Box<RtCondition>, right: Box<RtCondition> },
-    EqBool { name: String, value: bool },
-    NeqBool { name: String, value: bool },
-    EqString { name: String, value: String },
-    CompareDouble { name: String, cmp: RtCompareOp, value: f64 },
+    Bool {
+        value: bool,
+    },
+    Ident {
+        name: String,
+    },
+    Not {
+        operand: Box<RtCondition>,
+    },
+    And {
+        left: Box<RtCondition>,
+        right: Box<RtCondition>,
+    },
+    Or {
+        left: Box<RtCondition>,
+        right: Box<RtCondition>,
+    },
+    EqBool {
+        name: String,
+        value: bool,
+    },
+    NeqBool {
+        name: String,
+        value: bool,
+    },
+    EqString {
+        name: String,
+        value: String,
+    },
+    CompareDouble {
+        name: String,
+        cmp: RtCompareOp,
+        value: f64,
+    },
     ScanDistance {
         scan_var: String,
         cmp: RtCompareOp,
@@ -51,7 +76,10 @@ fn scan_distances() -> &'static Mutex<HashMap<String, f64>> {
 }
 
 pub fn store_bool(name: &str, value: bool) {
-    bool_bindings().lock().unwrap().insert(name.to_string(), value);
+    bool_bindings()
+        .lock()
+        .unwrap()
+        .insert(name.to_string(), value);
 }
 
 pub fn load_bool(name: &str) -> bool {

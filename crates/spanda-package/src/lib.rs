@@ -36,13 +36,13 @@ pub use registry::{
     find_registry_entry, registry_info, registry_package_dir, search_registry,
     search_registry_merged, RegistryEntry, RegistryInfo, LOCAL_REGISTRY,
 };
-pub use registry_remote::{
-    find_remote_entry, load_remote_registry, lookup_registry_entry, registry_base_url,
-    search_remote_registry, RegistryEntryLookup, RemoteRegistryEntry,
-};
 pub use registry_fetch::{
     cache_registry_tarball, fetch_registry_tarball, fetch_url_to_file, file_url_path,
     global_registry_cache_dir, registry_cache_dir, registry_tarball_url, resolve_local_tarball,
+};
+pub use registry_remote::{
+    find_remote_entry, load_remote_registry, lookup_registry_entry, registry_base_url,
+    search_remote_registry, RegistryEntryLookup, RemoteRegistryEntry,
 };
 pub use resolver::{resolve_dependencies, ResolveOptions, ResolveResult};
 pub use safety::{SafetyLevel, SafetyMetadata};

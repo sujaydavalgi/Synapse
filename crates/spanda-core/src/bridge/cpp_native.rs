@@ -66,10 +66,11 @@ pub fn call_extern(
             .to_string_lossy()
             .into_owned()
     };
-    let parsed: serde_json::Value = serde_json::from_str(&response).map_err(|e| SpandaError::Runtime {
-        message: format!("Invalid C++ native bridge JSON: {e}"),
-        line,
-    })?;
+    let parsed: serde_json::Value =
+        serde_json::from_str(&response).map_err(|e| SpandaError::Runtime {
+            message: format!("Invalid C++ native bridge JSON: {e}"),
+            line,
+        })?;
 
     if parsed
         .get("ok")

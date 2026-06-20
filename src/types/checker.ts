@@ -557,6 +557,11 @@ class TypeChecker {
 
     if (robot.safety) {
       const saved = new Map(this.symbols);
+      this.symbols.set("robot", {
+        name: "robot",
+        roboType: { kind: "named", name: "Robot" },
+        kind: "robot",
+      });
       for (const rule of robot.safety.rules) {
         this.checkSafetyRule(rule);
       }

@@ -1,7 +1,7 @@
 //! Optional live transport hooks via the Python bridge subprocess.
 
-use crate::bridge::python::{bridge_script_path, python_available};
 use crate::bridge::protocol::call_subprocess_bridge;
+use crate::bridge::python::{bridge_script_path, python_available};
 use crate::runtime::RuntimeValue;
 use std::path::PathBuf;
 use std::process::Command;
@@ -90,7 +90,10 @@ pub fn try_ros2_native_publish(topic: &str, value: &RuntimeValue) -> bool {
         return false;
     }
     let payload = payload_string(value);
-    let message = format!("{{data: \"{}\"}}", payload.replace('\\', "\\\\").replace('"', "\\\""));
+    let message = format!(
+        "{{data: \"{}\"}}",
+        payload.replace('\\', "\\\\").replace('"', "\\\"")
+    );
     Command::new("ros2")
         .args([
             "topic",
@@ -120,11 +123,7 @@ pub fn try_ros2_native_subscribe(topic: &str) -> bool {
         .unwrap_or(false)
 }
 
-pub fn try_ros2_native_service_call(
-    service: &str,
-    service_type: &str,
-    request: &str,
-) -> bool {
+pub fn try_ros2_native_service_call(service: &str, service_type: &str, request: &str) -> bool {
     if !ros2_native_enabled() {
         return false;
     }
@@ -245,12 +244,7 @@ mod tests {
         let _lock = ENV_LOCK.lock().unwrap();
         std::env::set_var("SPANDA_ROS2_NATIVE", "1");
         assert!(ros2_native_enabled());
-        let _ = try_ros2_publish(
-            "/spanda/test",
-            &RuntimeValue::String {
-                value: "hi".into(),
-            },
-        );
+        let _ = try_ros2_publish("/spanda/test", &RuntimeValue::String { value: "hi".into() });
         let _ = try_ros2_subscribe("/spanda/test");
         let _ = try_ros2_service_call("/spanda/srv", "std_srvs/srv/Trigger", "{}");
         std::env::remove_var("SPANDA_ROS2_NATIVE");

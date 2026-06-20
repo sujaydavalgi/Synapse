@@ -138,6 +138,7 @@ fn ptr_to_str(ptr: *const c_char) -> String {
     unsafe { CStr::from_ptr(ptr).to_string_lossy().into_owned() }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn events_since(start: usize) -> Vec<String> {
     EVENTS.lock().unwrap()[start..].to_vec()
 }
@@ -154,7 +155,9 @@ mod tests {
         spanda_rt_drive(wheels.as_ptr(), 0.5, 0.1);
         spanda_rt_stop(wheels.as_ptr());
         let events = events_since(start);
-        assert!(events.iter().any(|event| event.starts_with("drive:wheels:")));
+        assert!(events
+            .iter()
+            .any(|event| event.starts_with("drive:wheels:")));
         assert!(events.iter().any(|event| event == "stop:wheels"));
     }
 

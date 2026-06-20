@@ -70,7 +70,36 @@
     {
       "file": "examples/ai_safety_violation.sd",
       "check": "fail",
-      "errorContains": "SafeAction"
+      "errorContains": "ActionProposal"
+    },
+    {
+      "file": "examples/showcase/rover_navigation.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 5 }
+    },
+    {
+      "file": "examples/showcase/warehouse_robot.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 3 }
+    },
+    {
+      "file": "examples/showcase/hardware_compatibility.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/showcase/communication_demo.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 3 }
+    },
+    {
+      "file": "examples/showcase/digital_twin_demo.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 3 }
+    },
+    {
+      "file": "examples/showcase/ai_safety_violation.sd",
+      "check": "fail",
+      "errorContains": "ActionProposal"
     }
   ]
 }

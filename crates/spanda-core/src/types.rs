@@ -359,14 +359,8 @@ impl TypeChecker {
                     self.error(format!("Unknown type '{name}'"), line, column);
                 }
             }
-            SpandaType::TraitObject { trait_name } => {
-                if !self.trait_defs.contains_key(trait_name) {
-                    self.error(
-                        format!("Unknown trait '{trait_name}'"),
-                        line,
-                        column,
-                    );
-                }
+            SpandaType::TraitObject { trait_name } if !self.trait_defs.contains_key(trait_name) => {
+                self.error(format!("Unknown trait '{trait_name}'"), line, column);
             }
             _ => {}
         }
@@ -2467,10 +2461,7 @@ impl TypeChecker {
                         }
                     } else {
                         self.error(
-                            format!(
-                                "Variant '{}' has no payload bindings",
-                                arm.variant
-                            ),
+                            format!("Variant '{}' has no payload bindings", arm.variant),
                             arm.span.start.line,
                             arm.span.start.column,
                         );
@@ -2670,8 +2661,10 @@ impl TypeChecker {
                             .into_iter()
                             .zip(type_args.iter().map(type_name_from_spanda))
                             .collect();
-                        return self
-                            .type_name_to_spanda(&instantiate_type_name(type_name, &substitutions));
+                        return self.type_name_to_spanda(&instantiate_type_name(
+                            type_name,
+                            &substitutions,
+                        ));
                     }
                 }
                 self.error(

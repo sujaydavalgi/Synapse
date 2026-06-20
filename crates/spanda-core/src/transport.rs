@@ -3,19 +3,22 @@
 //! Each adapter records operations for simulation/testing and exposes a uniform
 //! interface that real broker/node integrations can implement later.
 
-use crate::transport_live as live;
-use crate::transport_rclrs as rclrs;
 use crate::comm::{
     CommBus, DiscoverFilter, DiscoverTarget, InMemoryCommBus, PublishedCommMessage,
     SimNetworkConfig, TransportKind,
 };
 use crate::runtime::RuntimeValue;
+use crate::transport_live as live;
+use crate::transport_rclrs as rclrs;
 use std::collections::{HashMap, VecDeque};
 
 fn payload_string_for_service(value: &RuntimeValue) -> String {
     match value {
         RuntimeValue::String { value } => {
-            format!("{{data: \"{}\"}}", value.replace('\\', "\\\\").replace('"', "\\\""))
+            format!(
+                "{{data: \"{}\"}}",
+                value.replace('\\', "\\\\").replace('"', "\\\"")
+            )
         }
         RuntimeValue::Number { value, .. } => format!("{{value: {value}}}"),
         RuntimeValue::Bool { value } => format!("{{ok: {value}}}"),

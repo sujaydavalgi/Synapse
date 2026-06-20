@@ -200,11 +200,7 @@ fn json_to_runtime(value: &JsonValue) -> Result<RuntimeValue, SpandaError> {
             let payloads = obj
                 .get("payloads")
                 .and_then(|v| v.as_array())
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| json_to_runtime(v).ok())
-                        .collect()
-                })
+                .map(|arr| arr.iter().filter_map(|v| json_to_runtime(v).ok()).collect())
                 .unwrap_or_default();
             Ok(RuntimeValue::Enum {
                 enum_name: obj

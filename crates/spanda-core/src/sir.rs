@@ -309,7 +309,10 @@ pub fn lower_program(program: &Program) -> SirProgram {
                 crate::ast::ImportDecl::ImportDecl { path, .. } => path.clone(),
             })
             .collect(),
-        functions: functions.iter().map(|func| ctx.lower_function(func)).collect(),
+        functions: functions
+            .iter()
+            .map(|func| ctx.lower_function(func))
+            .collect(),
         externs: extern_functions.iter().map(lower_extern).collect(),
         robot_names: robots
             .iter()
@@ -447,11 +450,15 @@ impl LowerCtx<'_> {
             Stmt::ReturnStmt { value, .. } => lower_return(value.as_ref()),
             Stmt::ExprStmt { expr, .. } => self.lower_expr_stmt(expr),
             Stmt::EmergencyStopStmt { .. } => SirStmt::EmergencyStop,
-            Stmt::LoopStmt { interval_ms, body, .. } => SirStmt::LoopEvery {
+            Stmt::LoopStmt {
+                interval_ms, body, ..
+            } => SirStmt::LoopEvery {
                 interval_ms: *interval_ms,
                 body: self.lower_stmts(body),
             },
-            Stmt::PublishStmt { topic_name, value, .. } => SirStmt::Publish {
+            Stmt::PublishStmt {
+                topic_name, value, ..
+            } => SirStmt::Publish {
                 topic: topic_name.clone(),
                 payload: string_literal(value),
             },
@@ -559,11 +566,7 @@ impl LowerCtx<'_> {
                     left: var,
                     op: cmp_op,
                     right: rhs,
-                    then_body: vec![self.lower_if_stmt(
-                        right,
-                        then_branch,
-                        else_branch,
-                    )],
+                    then_body: vec![self.lower_if_stmt(right, then_branch, else_branch)],
                     else_body,
                 };
             }
@@ -572,11 +575,7 @@ impl LowerCtx<'_> {
                     scan_var,
                     op: cmp_op,
                     threshold,
-                    then_body: vec![self.lower_if_stmt(
-                        right,
-                        then_branch,
-                        else_branch,
-                    )],
+                    then_body: vec![self.lower_if_stmt(right, then_branch, else_branch)],
                     else_body,
                 };
             }
@@ -607,11 +606,7 @@ impl LowerCtx<'_> {
                     op: cmp_op,
                     right: rhs,
                     then_body,
-                    else_body: Some(vec![self.lower_if_stmt(
-                        right,
-                        then_branch,
-                        else_branch,
-                    )]),
+                    else_body: Some(vec![self.lower_if_stmt(right, then_branch, else_branch)]),
                 };
             }
             if let Some((scan_var, cmp_op, threshold)) = extract_scan_distance_compare(left) {
@@ -620,11 +615,7 @@ impl LowerCtx<'_> {
                     op: cmp_op,
                     threshold,
                     then_body,
-                    else_body: Some(vec![self.lower_if_stmt(
-                        right,
-                        then_branch,
-                        else_branch,
-                    )]),
+                    else_body: Some(vec![self.lower_if_stmt(right, then_branch, else_branch)]),
                 };
             }
             if let (Expr::IdentExpr { name: l, .. }, Expr::IdentExpr { name: r, .. }) =
@@ -651,14 +642,10 @@ impl LowerCtx<'_> {
     fn lower_expr_stmt(&self, expr: &Expr) -> SirStmt {
         match expr {
             Expr::CallExpr {
-                callee,
-                named_args,
-                ..
+                callee, named_args, ..
             } => lower_actuator_call(callee, named_args),
             Expr::MatchExpr {
-                scrutinee,
-                arms,
-                ..
+                scrutinee, arms, ..
             } => {
                 if let Expr::IdentExpr { name, .. } = scrutinee.as_ref() {
                     let enum_name = arms.first().and_then(|arm| {
@@ -707,8 +694,13 @@ impl LowerCtx<'_> {
                 .variant_index
                 .get(name)
                 .map(|(enum_name, tag)| (enum_name.clone(), name.clone(), *tag)),
-            Expr::MemberExpr { object, property, .. } => {
-                if let Expr::IdentExpr { name: enum_name, .. } = object.as_ref() {
+            Expr::MemberExpr {
+                object, property, ..
+            } => {
+                if let Expr::IdentExpr {
+                    name: enum_name, ..
+                } = object.as_ref()
+                {
                     self.variant_index.get(property).and_then(|(owner, tag)| {
                         if owner == enum_name {
                             Some((enum_name.clone(), property.clone(), *tag))
@@ -735,7 +727,7 @@ impl LowerCtx<'_> {
         if args.is_empty() {
             return None;
         }
-        let payloads: Vec<f64> = args.iter().filter_map(|arg| float_literal(arg)).collect();
+        let payloads: Vec<f64> = args.iter().filter_map(float_literal).collect();
         if payloads.len() != args.len() {
             return None;
         }
@@ -807,7 +799,10 @@ fn lower_return(value: Option<&Expr>) -> SirStmt {
 }
 
 fn lower_actuator_call(callee: &Expr, named_args: &[NamedArg]) -> SirStmt {
-    let Expr::MemberExpr { object, property, .. } = callee else {
+    let Expr::MemberExpr {
+        object, property, ..
+    } = callee
+    else {
         return SirStmt::Unsupported {
             label: "call".into(),
         };
@@ -947,7 +942,10 @@ fn eval_double_compare(op: SirCompareOp, left: f64, right: f64) -> bool {
 }
 
 fn extract_double_compare(expr: &Expr) -> Option<(String, SirCompareOp, f64)> {
-    let Expr::BinaryExpr { op, left, right, .. } = expr else {
+    let Expr::BinaryExpr {
+        op, left, right, ..
+    } = expr
+    else {
         return None;
     };
     let sir_op = binary_op_to_compare(*op)?;
@@ -965,12 +963,18 @@ fn extract_double_compare(expr: &Expr) -> Option<(String, SirCompareOp, f64)> {
 }
 
 fn extract_scan_distance_compare(expr: &Expr) -> Option<(String, SirCompareOp, f64)> {
-    let Expr::BinaryExpr { op, left, right, .. } = expr else {
+    let Expr::BinaryExpr {
+        op, left, right, ..
+    } = expr
+    else {
         return None;
     };
     let sir_op = binary_op_to_compare(*op)?;
     let threshold = float_literal(right)?;
-    let Expr::MemberExpr { object, property, .. } = left.as_ref() else {
+    let Expr::MemberExpr {
+        object, property, ..
+    } = left.as_ref()
+    else {
         return None;
     };
     if property != "nearest_distance" {
@@ -1012,7 +1016,10 @@ fn eval_const_bool(expr: &Expr) -> Option<bool> {
     {
         return Some(eval_const_bool(left)? || eval_const_bool(right)?);
     }
-    if let Expr::BinaryExpr { op, left, right, .. } = expr {
+    if let Expr::BinaryExpr {
+        op, left, right, ..
+    } = expr
+    {
         if let (Some(l), Some(r)) = (float_literal(left), float_literal(right)) {
             if let Some(cmp) = binary_op_to_compare(*op) {
                 return Some(eval_double_compare(cmp, l, r));
@@ -1033,9 +1040,7 @@ fn expr_to_condition(expr: &Expr) -> SirCondition {
         return SirCondition::Bool { value };
     }
     if let Expr::IdentExpr { name, .. } = expr {
-        return SirCondition::Ident {
-            name: name.clone(),
-        };
+        return SirCondition::Ident { name: name.clone() };
     }
     if let Expr::UnaryExpr {
         op: crate::ast::UnaryOp::Not,
@@ -1238,7 +1243,10 @@ robot R {
                 ..
             } if (linear - 0.5).abs() < f64::EPSILON && (angular - 0.1).abs() < f64::EPSILON
         ));
-        assert!(matches!(sir.functions[0].body[0], SirStmt::ReturnInt { value: 42 }));
+        assert!(matches!(
+            sir.functions[0].body[0],
+            SirStmt::ReturnInt { value: 42 }
+        ));
     }
 
     #[test]
@@ -1260,8 +1268,12 @@ robot R {
         let sir = lower_program(&program);
         let body = &sir.robots[0].behaviors[0].body;
         assert!(matches!(body[0], SirStmt::Publish { ref topic, .. } if topic == "status"));
-        assert!(matches!(body[1], SirStmt::LoopEvery { interval_ms, .. } if (interval_ms - 100.0).abs() < f64::EPSILON));
-        assert!(matches!(body[1], SirStmt::LoopEvery { ref body, .. } if matches!(body[0], SirStmt::ActuatorStop { .. })));
+        assert!(
+            matches!(body[1], SirStmt::LoopEvery { interval_ms, .. } if (interval_ms - 100.0).abs() < f64::EPSILON)
+        );
+        assert!(
+            matches!(body[1], SirStmt::LoopEvery { ref body, .. } if matches!(body[0], SirStmt::ActuatorStop { .. }))
+        );
     }
 
     #[test]
@@ -1343,10 +1355,17 @@ robot R {
         types::check(&program).expect("check");
         let sir = lower_program(&program);
         let body = &sir.robots[0].behaviors[0].body;
-        assert!(matches!(body[0], SirStmt::LetEnumPayload { ref payloads, .. } if payloads.len() == 2));
-        assert!(matches!(body[2], SirStmt::IfCompareBool { equals: true, .. }));
+        assert!(
+            matches!(body[0], SirStmt::LetEnumPayload { ref payloads, .. } if payloads.len() == 2)
+        );
+        assert!(matches!(
+            body[2],
+            SirStmt::IfCompareBool { equals: true, .. }
+        ));
         assert!(matches!(body[3], SirStmt::IfNotVar { .. }));
-        assert!(matches!(body[4], SirStmt::MatchEnumUnit { ref arms, .. } if arms.iter().any(|arm| !arm.bindings.is_empty())));
+        assert!(
+            matches!(body[4], SirStmt::MatchEnumUnit { ref arms, .. } if arms.iter().any(|arm| !arm.bindings.is_empty()))
+        );
     }
 
     #[test]
@@ -1366,7 +1385,9 @@ robot R {
         types::check(&program).expect("check");
         let sir = lower_program(&program);
         let body = &sir.robots[0].behaviors[0].body;
-        assert!(matches!(body[0], SirStmt::LetDouble { value, .. } if (value - 1.5).abs() < f64::EPSILON));
+        assert!(
+            matches!(body[0], SirStmt::LetDouble { value, .. } if (value - 1.5).abs() < f64::EPSILON)
+        );
         assert!(matches!(
             body[1],
             SirStmt::IfCompareDouble {
@@ -1401,7 +1422,9 @@ robot R {
         types::check(&program).expect("check");
         let sir = lower_program(&program);
         let body = &sir.robots[0].behaviors[0].body;
-        assert!(matches!(body[1], SirStmt::IfRuntime { ref condition, .. } if condition.contains("eq_string")));
+        assert!(
+            matches!(body[1], SirStmt::IfRuntime { ref condition, .. } if condition.contains("eq_string"))
+        );
     }
 
     #[test]

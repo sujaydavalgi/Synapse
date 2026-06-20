@@ -20,9 +20,7 @@ pub fn global_registry_cache_dir() -> Option<PathBuf> {
     std::env::var("SPANDA_REGISTRY_CACHE")
         .ok()
         .map(PathBuf::from)
-        .or_else(|| {
-            dirs_home().map(|home| home.join(".spanda/registry"))
-        })
+        .or_else(|| dirs_home().map(|home| home.join(".spanda/registry")))
 }
 
 fn dirs_home() -> Option<PathBuf> {
@@ -32,11 +30,7 @@ fn dirs_home() -> Option<PathBuf> {
         .or_else(|| std::env::var("USERPROFILE").ok().map(PathBuf::from))
 }
 
-pub fn resolve_local_tarball(
-    project_root: &Path,
-    name: &str,
-    version: &str,
-) -> Option<PathBuf> {
+pub fn resolve_local_tarball(project_root: &Path, name: &str, version: &str) -> Option<PathBuf> {
     let mut candidates = vec![
         project_root
             .join("dist")
@@ -176,10 +170,7 @@ mod tests {
         fs::create_dir_all(root.join("dist")).unwrap();
         let bundle = root.join("dist/demo-0.1.0.tar.gz");
         fs::write(&bundle, b"not a real tar").unwrap();
-        assert_eq!(
-            resolve_local_tarball(&root, "demo", "0.1.0"),
-            Some(bundle)
-        );
+        assert_eq!(resolve_local_tarball(&root, "demo", "0.1.0"), Some(bundle));
         let _ = fs::remove_dir_all(&root);
     }
 
@@ -192,10 +183,7 @@ mod tests {
         fs::write(&src, b"payload").unwrap();
         let cached = cache_registry_tarball(&root, "demo", "0.2.0", &src).unwrap();
         assert!(cached.is_file());
-        assert_eq!(
-            resolve_local_tarball(&root, "demo", "0.2.0"),
-            Some(cached)
-        );
+        assert_eq!(resolve_local_tarball(&root, "demo", "0.2.0"), Some(cached));
         let _ = fs::remove_dir_all(&root);
     }
 }

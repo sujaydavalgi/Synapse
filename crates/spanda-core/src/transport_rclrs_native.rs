@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 type SdkFn = unsafe extern "C" fn() -> bool;
-type PublishFn = unsafe extern "C" fn(*const std::os::raw::c_char, *const std::os::raw::c_char) -> bool;
+type PublishFn =
+    unsafe extern "C" fn(*const std::os::raw::c_char, *const std::os::raw::c_char) -> bool;
 type SubscribeFn = unsafe extern "C" fn(*const std::os::raw::c_char) -> bool;
 type ServiceCallFn = unsafe extern "C" fn(
     *const std::os::raw::c_char,
@@ -40,7 +41,9 @@ fn library_candidates() -> Vec<PathBuf> {
             paths.push(dir.join("libspanda_ros2_rclrs_native.so"));
         }
     }
-    paths.push(PathBuf::from("target/release/libspanda_ros2_rclrs_native.so"));
+    paths.push(PathBuf::from(
+        "target/release/libspanda_ros2_rclrs_native.so",
+    ));
     paths.push(PathBuf::from("target/debug/libspanda_ros2_rclrs_native.so"));
     paths
 }
@@ -138,13 +141,7 @@ pub fn service_call(service: &str, service_type: &str, request: &str) -> bool {
     let Some(request) = c_string(request) else {
         return false;
     };
-    unsafe {
-        (lib.service_call)(
-            service.as_ptr(),
-            service_type.as_ptr(),
-            request.as_ptr(),
-        )
-    }
+    unsafe { (lib.service_call)(service.as_ptr(), service_type.as_ptr(), request.as_ptr()) }
 }
 
 #[cfg(test)]

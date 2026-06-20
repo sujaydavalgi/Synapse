@@ -59,11 +59,7 @@ fn main() {
 
     let ar = env::var("AR").unwrap_or_else(|_| "ar".into());
     let lib_ok = Command::new(&ar)
-        .args([
-            "rcs",
-            static_lib.to_str().unwrap(),
-            obj.to_str().unwrap(),
-        ])
+        .args(["rcs", static_lib.to_str().unwrap(), obj.to_str().unwrap()])
         .status()
         .map(|s| s.success())
         .unwrap_or(false);

@@ -82,7 +82,12 @@ pub fn emit_module_ir_with_options(
                 "; robot {} behavior {} ({} stmts)\n",
                 robot.name, behavior.name, behavior.stmt_count
             ));
-            out.push_str(&emit_behavior_fn(robot.name.as_str(), behavior, &strings, &hal));
+            out.push_str(&emit_behavior_fn(
+                robot.name.as_str(),
+                behavior,
+                &strings,
+                &hal,
+            ));
         }
         for task in &robot.task_names {
             out.push_str(&format!(
@@ -147,8 +152,7 @@ fn hal_emit_config(profile: Option<&str>) -> HalEmitConfig {
 
 fn has_export_main(sir: &SirProgram) -> bool {
     sir.functions.iter().any(|f| {
-        f.name == "main"
-            && matches!(f.visibility, SirVisibility::Export | SirVisibility::Public)
+        f.name == "main" && matches!(f.visibility, SirVisibility::Export | SirVisibility::Public)
     })
 }
 
@@ -416,7 +420,12 @@ fn escape_llvm_string(s: &str) -> String {
         .collect()
 }
 
-fn emit_behavior_fn(robot: &str, behavior: &SirBehavior, strings: &[String], hal: &HalEmitConfig) -> String {
+fn emit_behavior_fn(
+    robot: &str,
+    behavior: &SirBehavior,
+    strings: &[String],
+    hal: &HalEmitConfig,
+) -> String {
     let mut loop_id = 0usize;
     let mut branch_id = 0usize;
     let mut locals = EmitLocals::default();
@@ -569,9 +578,7 @@ fn emit_stmt(
         SirStmt::LetString { name, value } => {
             let name_ptr = string_global_ptr_for(name, strings);
             let value_ptr = string_global_ptr_for(value, strings);
-            format!(
-                "  call void @spanda_rt_store_string(i8* {name_ptr}, i8* {value_ptr})\n"
-            )
+            format!("  call void @spanda_rt_store_string(i8* {name_ptr}, i8* {value_ptr})\n")
         }
         SirStmt::LetEnumUnit { name, tag, .. } => {
             let slot = enum_slot(name);
@@ -582,7 +589,12 @@ fn emit_stmt(
             out.push_str(&format!("  store i32 {tag}, i32* %{slot}\n"));
             out
         }
-        SirStmt::LetEnumPayload { name, tag, payloads, .. } => {
+        SirStmt::LetEnumPayload {
+            name,
+            tag,
+            payloads,
+            ..
+        } => {
             let slot = enum_slot(name);
             let mut out = String::new();
             if locals.enum_slots.insert(name.clone()) {
@@ -592,7 +604,9 @@ fn emit_stmt(
             for (index, value) in payloads.iter().enumerate() {
                 let payload_slot = enum_payload_slot(name, index);
                 out.push_str(&format!("  %{payload_slot} = alloca double\n"));
-                out.push_str(&format!("  store double {value}, double* %{payload_slot}\n"));
+                out.push_str(&format!(
+                    "  store double {value}, double* %{payload_slot}\n"
+                ));
             }
             out
         }
@@ -618,9 +632,25 @@ fn emit_stmt(
             else_body,
         } => {
             if *condition {
-                emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals, hal)
+                emit_stmts(
+                    then_body,
+                    return_kind,
+                    strings,
+                    loop_id,
+                    branch_id,
+                    locals,
+                    hal,
+                )
             } else if let Some(else_body) = else_body {
-                emit_stmts(else_body, return_kind, strings, loop_id, branch_id, locals, hal)
+                emit_stmts(
+                    else_body,
+                    return_kind,
+                    strings,
+                    loop_id,
+                    branch_id,
+                    locals,
+                    hal,
+                )
             } else {
                 String::new()
             }
@@ -636,7 +666,15 @@ fn emit_stmt(
             let then_label = format!("if_then{id}");
             let else_label = format!("if_else{id}");
             let merge_label = format!("if_merge{id}");
-            let then_ir = emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals, hal);
+            let then_ir = emit_stmts(
+                then_body,
+                return_kind,
+                strings,
+                loop_id,
+                branch_id,
+                locals,
+                hal,
+            );
             let else_ir = else_body
                 .as_ref()
                 .map(|body| emit_stmts(body, return_kind, strings, loop_id, branch_id, locals, hal))
@@ -665,7 +703,15 @@ fn emit_stmt(
             let then_label = format!("if_then{id}");
             let else_label = format!("if_else{id}");
             let merge_label = format!("if_merge{id}");
-            let then_ir = emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals, hal);
+            let then_ir = emit_stmts(
+                then_body,
+                return_kind,
+                strings,
+                loop_id,
+                branch_id,
+                locals,
+                hal,
+            );
             let else_ir = else_body
                 .as_ref()
                 .map(|body| emit_stmts(body, return_kind, strings, loop_id, branch_id, locals, hal))
@@ -700,7 +746,15 @@ fn emit_stmt(
             let then_label = format!("if_then{id}");
             let else_label = format!("if_else{id}");
             let merge_label = format!("if_merge{id}");
-            let then_ir = emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals, hal);
+            let then_ir = emit_stmts(
+                then_body,
+                return_kind,
+                strings,
+                loop_id,
+                branch_id,
+                locals,
+                hal,
+            );
             let else_ir = else_body
                 .as_ref()
                 .map(|body| emit_stmts(body, return_kind, strings, loop_id, branch_id, locals, hal))
@@ -738,7 +792,15 @@ fn emit_stmt(
             let then_label = format!("if_then{id}");
             let else_label = format!("if_else{id}");
             let merge_label = format!("if_merge{id}");
-            let then_ir = emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals, hal);
+            let then_ir = emit_stmts(
+                then_body,
+                return_kind,
+                strings,
+                loop_id,
+                branch_id,
+                locals,
+                hal,
+            );
             let else_ir = else_body
                 .as_ref()
                 .map(|body| emit_stmts(body, return_kind, strings, loop_id, branch_id, locals, hal))
@@ -778,7 +840,15 @@ fn emit_stmt(
             let then_label = format!("if_then{id}");
             let else_label = format!("if_else{id}");
             let merge_label = format!("if_merge{id}");
-            let then_ir = emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals, hal);
+            let then_ir = emit_stmts(
+                then_body,
+                return_kind,
+                strings,
+                loop_id,
+                branch_id,
+                locals,
+                hal,
+            );
             let else_ir = else_body
                 .as_ref()
                 .map(|body| emit_stmts(body, return_kind, strings, loop_id, branch_id, locals, hal))
@@ -815,7 +885,15 @@ fn emit_stmt(
             let then_label = format!("if_then{id}");
             let else_label = format!("if_else{id}");
             let merge_label = format!("if_merge{id}");
-            let then_ir = emit_stmts(then_body, return_kind, strings, loop_id, branch_id, locals, hal);
+            let then_ir = emit_stmts(
+                then_body,
+                return_kind,
+                strings,
+                loop_id,
+                branch_id,
+                locals,
+                hal,
+            );
             let else_ir = else_body
                 .as_ref()
                 .map(|body| emit_stmts(body, return_kind, strings, loop_id, branch_id, locals, hal))
@@ -839,7 +917,9 @@ fn emit_stmt(
                 else_ir = else_ir,
             )
         }
-        SirStmt::MatchEnumUnit { scrutinee, arms, .. } => {
+        SirStmt::MatchEnumUnit {
+            scrutinee, arms, ..
+        } => {
             let id = *branch_id;
             *branch_id += 1;
             let slot = enum_slot(scrutinee);

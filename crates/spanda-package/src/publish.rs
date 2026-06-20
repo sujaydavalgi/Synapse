@@ -26,7 +26,10 @@ pub fn bundle_package(root: &Path, manifest: &PackageManifest) -> PackageResult<
 
     let dist = root.join("dist");
     fs::create_dir_all(&dist).map_err(PackageError::from)?;
-    let bundle_name = format!("{}-{}.tar.gz", manifest.package.name, manifest.package.version);
+    let bundle_name = format!(
+        "{}-{}.tar.gz",
+        manifest.package.name, manifest.package.version
+    );
     let bundle_path = dist.join(bundle_name);
 
     let mut paths = vec![root.join(MANIFEST_FILENAME)];
@@ -130,7 +133,10 @@ fn update_registry_index(base: &str, manifest: &PackageManifest) -> Result<(), S
         .description
         .clone()
         .unwrap_or_else(|| manifest.package.name.clone());
-    if let Some(existing) = entries.iter_mut().find(|entry| entry.name == manifest.package.name) {
+    if let Some(existing) = entries
+        .iter_mut()
+        .find(|entry| entry.name == manifest.package.name)
+    {
         if !existing.versions.contains(&version) {
             existing.versions.push(version);
         }

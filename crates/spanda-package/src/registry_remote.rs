@@ -129,10 +129,10 @@ impl<'a> From<&'static RegistryEntry> for RegistryEntryView<'a> {
         RegistryEntryView {
             name: entry.name,
             description: entry.description,
-            versions: entry.versions.iter().copied().collect(),
+            versions: entry.versions.to_vec(),
             category: entry.category,
             license: entry.license,
-            import_paths: entry.import_paths.iter().copied().collect(),
+            import_paths: entry.import_paths.to_vec(),
             safety_level: entry.safety_level(),
         }
     }
@@ -161,7 +161,9 @@ impl RegistryEntryLookup {
 
     pub fn versions(&self) -> Vec<String> {
         match self {
-            RegistryEntryLookup::Local(entry) => entry.versions.iter().map(|v| (*v).to_string()).collect(),
+            RegistryEntryLookup::Local(entry) => {
+                entry.versions.iter().map(|v| (*v).to_string()).collect()
+            }
             RegistryEntryLookup::Remote(entry) => entry.versions.clone(),
         }
     }
