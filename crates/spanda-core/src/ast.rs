@@ -474,6 +474,14 @@ pub enum SpandaType {
     EnumVariant { enum_name: String, variant: String },
     #[serde(rename = "trait_object")]
     TraitObject { trait_name: String },
+    #[serde(rename = "regex")]
+    Regex,
+    #[serde(rename = "match_type")]
+    Match,
+    #[serde(rename = "capture")]
+    Capture,
+    #[serde(rename = "capture_group")]
+    CaptureGroup,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -497,6 +505,8 @@ pub enum Program {
         requires_network: Option<crate::foundations::RequiresNetworkDecl>,
         simulate_compatibility: Option<crate::foundations::SimulateCompatibilityDecl>,
         messages: Vec<crate::comm::MessageDecl>,
+        #[serde(default)]
+        validate_rules: Vec<crate::foundations::ValidateRuleDecl>,
         robots: Vec<RobotDecl>,
         span: Span,
     },
@@ -526,6 +536,18 @@ pub enum RobotDecl {
         agents: Vec<AgentDecl>,
         behaviors: Vec<BehaviorDecl>,
         tasks: Vec<crate::foundations::TaskDecl>,
+        #[serde(default)]
+        pipelines: Vec<crate::foundations::PipelineDecl>,
+        #[serde(default)]
+        watchdogs: Vec<crate::foundations::WatchdogDecl>,
+        #[serde(default)]
+        modes: Vec<crate::foundations::ModeDecl>,
+        #[serde(default)]
+        retries: Vec<crate::foundations::RetryDecl>,
+        #[serde(default)]
+        recovers: Vec<crate::foundations::RecoverDecl>,
+        #[serde(default)]
+        fault_handlers: Vec<crate::foundations::FaultHandlerDecl>,
         state_machines: Vec<crate::foundations::StateMachineDecl>,
         events: Vec<crate::foundations::EventDecl>,
         event_handlers: Vec<crate::foundations::EventHandlerDecl>,
@@ -886,6 +908,8 @@ pub enum Stmt {
     },
     SubscribeStmt {
         target: String,
+        #[serde(default)]
+        filter: Option<crate::foundations::SubscribeFilterDecl>,
         span: Span,
     },
     ExecuteStmt {
@@ -914,6 +938,21 @@ pub enum Stmt {
     },
     ParallelStmt {
         body: Vec<Stmt>,
+        span: Span,
+    },
+    EnterModeStmt {
+        mode: String,
+        span: Span,
+    },
+    UseFallbackStmt {
+        resource: String,
+        span: Span,
+    },
+    StopAllActuatorsStmt {
+        span: Span,
+    },
+    RunPipelineStmt {
+        name: String,
         span: Span,
     },
 }
@@ -1005,6 +1044,7 @@ pub enum LiteralValue {
     String(String),
     Bool(bool),
     Null,
+    Regex(crate::regex_lang::RegexPattern),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

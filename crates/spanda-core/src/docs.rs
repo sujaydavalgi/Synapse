@@ -434,6 +434,10 @@ fn type_name(ty: &SpandaType) -> String {
         SpandaType::Transform => "Transform".into(),
         SpandaType::EnumVariant { enum_name, variant } => format!("{enum_name}.{variant}"),
         SpandaType::TraitObject { trait_name } => format!("dyn {trait_name}"),
+        SpandaType::Regex => "Regex".into(),
+        SpandaType::Match => "Match".into(),
+        SpandaType::Capture => "Capture".into(),
+        SpandaType::CaptureGroup => "CaptureGroup".into(),
     }
 }
 

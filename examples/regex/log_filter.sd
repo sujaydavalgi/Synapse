@@ -1,0 +1,5 @@
+robot LogRover {
+    on log matches /EMERGENCY_STOP|MOTOR_FAULT/ {
+        stop_all_actuators();
+    }
+}

@@ -300,6 +300,10 @@ impl PrettyPrinter {
                 self.write("dyn ");
                 self.write(trait_name);
             }
+            SpandaType::Regex => self.write("Regex"),
+            SpandaType::Match => self.write("Match"),
+            SpandaType::Capture => self.write("Capture"),
+            SpandaType::CaptureGroup => self.write("CaptureGroup"),
         }
     }
 
@@ -1172,6 +1176,18 @@ impl PrettyPrinter {
                 self.print_stmts(body);
                 self.close_block(";");
             }
+            Stmt::EnterModeStmt { mode, .. } => {
+                self.write_line(&format!("enter {mode}_mode;"));
+            }
+            Stmt::UseFallbackStmt { resource, .. } => {
+                self.write_line(&format!("use {resource};"));
+            }
+            Stmt::StopAllActuatorsStmt { .. } => {
+                self.write_line("stop_all_actuators();");
+            }
+            Stmt::RunPipelineStmt { name, .. } => {
+                self.write_line(&format!("run_pipeline {name};"));
+            }
         }
     }
 
@@ -1198,6 +1214,9 @@ impl PrettyPrinter {
                 LiteralValue::String(s) => self.write(&format!("\"{}\"", escape_string(s))),
                 LiteralValue::Bool(b) => self.write(if *b { "true" } else { "false" }),
                 LiteralValue::Null => self.write("null"),
+                LiteralValue::Regex(pattern) => {
+                    self.write(&format!("/{}/{}", pattern.source, pattern.flags));
+                }
             },
             Expr::UnitLiteralExpr { value, unit, .. } => {
                 self.write(&format_number(*value));

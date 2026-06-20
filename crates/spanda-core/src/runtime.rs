@@ -25,6 +25,10 @@ use crate::foundations::{
 use crate::hal::{create_sim_hal, hal_member_from_decl, HalBackend, SimHalBackend};
 use crate::hardware_monitor::HardwareMonitor;
 use crate::lib_registry::{get_sensor_driver, read_with_driver, DriverContext, SimState};
+use crate::reliability_runtime::{
+    recover_handlers_from_decls, PipelineRuntime, RecoverHandlers, RetryRuntime, WatchdogRuntime,
+};
+use crate::replay::MissionTrace;
 use crate::safety::{
     create_safety_config_from_robot, interpolate_poses, Pose2d, SafetyMonitor, SafetyZoneRuntime,
     SafetyZoneShape, ValidateActionResult,
@@ -94,6 +98,12 @@ pub enum RuntimeValue {
     },
     String {
         value: String,
+    },
+    Regex {
+        pattern: crate::regex_lang::RegexPattern,
+    },
+    Capture {
+        result: crate::regex_lang::CaptureResult,
     },
     Void,
     Scan {
@@ -798,6 +808,8 @@ pub struct InterpreterOptions {
     pub trace_triggers: bool,
     pub trace_events: bool,
     pub replay_trace: bool,
+    pub record_trace: bool,
+    pub trace_source: Option<String>,
 
     /// Max trigger dispatches per scheduler tick (hardware-aware storm protection).
     pub max_triggers_per_tick: usize,
@@ -831,6 +843,8 @@ impl Default for InterpreterOptions {
             trace_triggers: false,
             trace_events: false,
             replay_trace: false,
+            record_trace: false,
+            trace_source: None,
             max_triggers_per_tick: MAX_TRIGGERS_PER_TICK,
         }
     }
@@ -878,6 +892,14 @@ pub struct Interpreter<B: RobotBackend> {
     extern_functions: HashMap<String, crate::foundations::ExternFnDecl>,
     concurrency: crate::concurrency::ConcurrencyRuntime,
     telemetry: crate::telemetry::RuntimeTelemetry,
+    active_mode: String,
+    task_heartbeats: HashMap<String, f64>,
+    sim_time_ms: f64,
+    watchdogs: Vec<WatchdogRuntime>,
+    pipelines: HashMap<String, PipelineRuntime>,
+    retries: Vec<RetryRuntime>,
+    recovers: RecoverHandlers,
+    mission_trace: Option<MissionTrace>,
 }
 
 impl<B: RobotBackend> Interpreter<B> {
@@ -940,6 +962,14 @@ impl<B: RobotBackend> Interpreter<B> {
             extern_functions: HashMap::new(),
             concurrency: crate::concurrency::ConcurrencyRuntime::new(),
             telemetry: crate::telemetry::RuntimeTelemetry::default(),
+            active_mode: "normal".into(),
+            task_heartbeats: HashMap::new(),
+            sim_time_ms: 0.0,
+            watchdogs: Vec::new(),
+            pipelines: HashMap::new(),
+            retries: Vec::new(),
+            recovers: HashMap::new(),
+            mission_trace: None,
         }
     }
 
@@ -979,6 +1009,25 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Move out the stored value and leave a default behind.
         std::mem::take(&mut self.telemetry)
+    }
+
+    pub fn take_mission_trace(&mut self) -> Option<MissionTrace> {
+        // Take the recorded mission trace, if any.
+        //
+        // Parameters:
+        // None.
+        //
+        // Returns:
+        // Recorded trace or none when recording was disabled.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let trace = interp.take_mission_trace();
+
+        // Move out the stored trace container.
+        self.mission_trace.take()
     }
 
     fn trace_scheduler_log(&self, message: impl Into<String>) {
@@ -1350,6 +1399,7 @@ impl<B: RobotBackend> Interpreter<B> {
                     "simulate_compatibility: {} fault(s) active",
                     sim_faults.len()
                 ));
+                self.run_retry_policies()?;
             }
             let RobotDecl::RobotDecl {
                 behaviors, tasks, ..
@@ -2100,6 +2150,342 @@ impl<B: RobotBackend> Interpreter<B> {
             vec![],
             self.zones.clone(),
         )));
+        self.load_reliability_config(robot)?;
+        Ok(())
+    }
+
+    fn load_reliability_config(&mut self, robot: &RobotDecl) -> Result<(), SpandaError> {
+        // Load watchdog, pipeline, retry, and recovery runtime state from a robot block.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `robot` — parsed robot declaration
+        //
+        // Returns:
+        // Ok when configuration is loaded.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.load_reliability_config(robot)?;
+
+        // Reset reliability runtime containers for this robot.
+        self.watchdogs.clear();
+        self.pipelines.clear();
+        self.retries.clear();
+        self.recovers.clear();
+        self.task_heartbeats.clear();
+        self.active_mode = "normal".into();
+
+        // Start mission trace recording when enabled in interpreter options.
+        if self.options.record_trace {
+            let source = self
+                .options
+                .trace_source
+                .clone()
+                .unwrap_or_else(|| "program.sd".into());
+            self.mission_trace = Some(MissionTrace::new(source));
+        } else {
+            self.mission_trace = None;
+        }
+
+        // Copy parsed reliability declarations into runtime form.
+        let RobotDecl::RobotDecl {
+            pipelines,
+            watchdogs,
+            retries,
+            recovers,
+            ..
+        } = robot;
+        for pipeline in pipelines {
+            let runtime = PipelineRuntime::from_decl(pipeline);
+            self.pipelines.insert(runtime.name.clone(), runtime);
+        }
+        for watchdog in watchdogs {
+            self.watchdogs.push(WatchdogRuntime::from_decl(watchdog));
+        }
+        for retry in retries {
+            self.retries.push(RetryRuntime::from_decl(retry));
+        }
+        self.recovers = recover_handlers_from_decls(recovers);
+        Ok(())
+    }
+
+    fn record_mission_event(&mut self, event: impl Into<String>, payload: serde_json::Value) {
+        // Append one frame to the mission trace when recording is enabled.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `event` — event label
+        // - `payload` — structured payload
+        //
+        // Returns:
+        // Nothing.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.record_mission_event("task_tick", json!({"task":"sense"}));
+
+        // Skip when trace recording is disabled.
+        if let Some(trace) = self.mission_trace.as_mut() {
+            trace.record(self.sim_time_ms, event, payload);
+        }
+    }
+
+    fn touch_task_heartbeat(&mut self, task_name: &str) {
+        // Record the latest heartbeat time for watchdog evaluation.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `task_name` — watched task name
+        //
+        // Returns:
+        // Nothing.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.touch_task_heartbeat("SafetyMonitor");
+
+        // Store the current simulation time as the task heartbeat.
+        self.task_heartbeats
+            .insert(task_name.to_string(), self.sim_time_ms);
+    }
+
+    fn check_watchdogs(&mut self) -> Result<(), SpandaError> {
+        // Evaluate watchdog timeouts against task heartbeats at the current sim time.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Ok when watchdog bodies finish, or an execution error.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.check_watchdogs()?;
+
+        // Evaluate each declared watchdog handler.
+        for index in 0..self.watchdogs.len() {
+            let reference_ms = if let Some(target) = &self.watchdogs[index].target {
+                *self.task_heartbeats.get(target).unwrap_or(&0.0)
+            } else {
+                0.0
+            };
+            let elapsed = self.sim_time_ms - reference_ms;
+            let timeout_ms = self.watchdogs[index].timeout_ms;
+            let should_fire = elapsed >= timeout_ms
+                && self.watchdogs[index]
+                    .last_fired_at_ms
+                    .map(|last| self.sim_time_ms - last >= timeout_ms)
+                    .unwrap_or(true);
+            if !should_fire {
+                continue;
+            }
+            let name = self.watchdogs[index].name.clone();
+            let body = self.watchdogs[index].body.clone();
+            self.watchdogs[index].last_fired_at_ms = Some(self.sim_time_ms);
+            self.telemetry
+                .record_watchdog_timeout(&name, self.sim_time_ms);
+            self.record_mission_event(
+                "watchdog_timeout",
+                serde_json::json!({ "watchdog": name, "elapsed_ms": elapsed }),
+            );
+            self.log(format!(
+                "watchdog '{name}': timeout after {elapsed:.1}ms (limit {timeout_ms:.1}ms)"
+            ));
+            self.execute_block(&body)?;
+        }
+        Ok(())
+    }
+
+    fn execute_pipeline(&mut self, name: &str) -> Result<(), SpandaError> {
+        // Execute a named pipeline and record latency-budget telemetry.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `name` — pipeline name
+        //
+        // Returns:
+        // Ok when the pipeline body completes.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.execute_pipeline("obstacle_avoidance")?;
+
+        // Resolve the pipeline body and budget from runtime state.
+        let Some(pipeline) = self.pipelines.get(name).cloned() else {
+            return Err(RuntimeError::new(format!("unknown pipeline '{name}'"), 0).into_spanda());
+        };
+        let started = std::time::Instant::now();
+        self.execute_block(&pipeline.body)?;
+        let duration_ms = started.elapsed().as_secs_f64() * 1000.0;
+        let duration_ms = duration_ms.max(RUNTIME_TASK_COST_MS);
+        let slow = duration_ms > pipeline.budget_ms;
+        self.telemetry
+            .record_pipeline_execution(name, pipeline.budget_ms, duration_ms, slow);
+        if slow {
+            self.log(format!(
+                "pipeline '{name}': budget {:.1}ms exceeded ({duration_ms:.2}ms)",
+                pipeline.budget_ms
+            ));
+        } else {
+            self.log(format!(
+                "pipeline '{name}': completed in {duration_ms:.2}ms (budget {:.1}ms)",
+                pipeline.budget_ms
+            ));
+        }
+        self.record_mission_event(
+            "pipeline_run",
+            serde_json::json!({
+                "pipeline": name,
+                "duration_ms": duration_ms,
+                "budget_ms": pipeline.budget_ms,
+            }),
+        );
+        Ok(())
+    }
+
+    fn run_retry_policies(&mut self) -> Result<(), SpandaError> {
+        // Run robot-level retry policies when injected hardware faults are active.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Ok when retry and fallback blocks finish.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.run_retry_policies()?;
+
+        // Skip when no retry policies or faults are present.
+        if self.retries.is_empty() || !self.hardware_monitor.has_injected_faults() {
+            return Ok(());
+        }
+
+        // Execute each retry policy until success or fallback.
+        for index in 0..self.retries.len() {
+            if self.retries[index].exhausted {
+                continue;
+            }
+            while self.retries[index].attempt < self.retries[index].attempts {
+                self.retries[index].attempt += 1;
+                let attempt = self.retries[index].attempt;
+                let attempts = self.retries[index].attempts;
+                let backoff_ms = self.retries[index].backoff_ms;
+                self.log(format!(
+                    "retry: attempt {attempt}/{attempts} (backoff {backoff_ms:.0}ms)"
+                ));
+                self.record_mission_event(
+                    "retry_attempt",
+                    serde_json::json!({
+                        "attempt": attempt,
+                        "max_attempts": attempts,
+                    }),
+                );
+                let body = self.retries[index].body.clone();
+                self.execute_block(&body)?;
+                if !self.hardware_monitor.has_injected_faults() {
+                    self.retries[index].attempt = 0;
+                    break;
+                }
+            }
+            if self.retries[index].attempt >= self.retries[index].attempts
+                && !self.retries[index].exhausted
+            {
+                self.retries[index].exhausted = true;
+                self.log("retry: exhausted attempts — running fallback".into());
+                self.record_mission_event("retry_fallback", serde_json::json!({}));
+                let fallback = self.retries[index].fallback.clone();
+                self.execute_block(&fallback)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn try_invoke_recovery(&mut self, err: &SpandaError) -> Result<bool, SpandaError> {
+        // Attempt a declared recovery handler for a runtime error.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `err` — runtime error to match
+        //
+        // Returns:
+        // true when a recovery handler ran successfully.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // if interp.try_invoke_recovery(&err)? { ... }
+
+        // Only runtime errors participate in recovery dispatch.
+        let SpandaError::Runtime { message, .. } = err else {
+            return Ok(false);
+        };
+
+        // Match recovery handlers by declared error name or substring.
+        for (error_name, body) in self.recovers.clone() {
+            if message.contains(&error_name)
+                || (error_name == "RuntimeError" && matches!(err, SpandaError::Runtime { .. }))
+            {
+                self.log(format!("recover: invoking handler for '{error_name}'"));
+                self.record_mission_event(
+                    "recover",
+                    serde_json::json!({ "error": error_name, "message": message }),
+                );
+                self.execute_block(&body)?;
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn invoke_recovery_for_event(&mut self, event: &str) -> Result<(), SpandaError> {
+        // Run a recovery handler keyed by hardware event name.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `event` — hardware event label
+        //
+        // Returns:
+        // Ok when a handler completes or none matched.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // interp.invoke_recovery_for_event("LidarFailure")?;
+
+        // Prefer an exact event match, then generic sensor failure handlers.
+        let handler_key = if self.recovers.contains_key(event) {
+            Some(event.to_string())
+        } else if event.ends_with("Failure") && self.recovers.contains_key("SensorFailure") {
+            Some("SensorFailure".into())
+        } else {
+            None
+        };
+        if let Some(key) = handler_key {
+            if let Some(body) = self.recovers.get(&key).cloned() {
+                self.log(format!("recover: hardware event '{event}' -> '{key}'"));
+                self.record_mission_event(
+                    "recover_hardware",
+                    serde_json::json!({ "event": event, "handler": key }),
+                );
+                self.execute_block(&body)?;
+            }
+        }
         Ok(())
     }
 
@@ -2553,13 +2939,23 @@ impl<B: RobotBackend> Interpreter<B> {
             }
         }
         let started = std::time::Instant::now();
-        let continue_running = self.execute_task_iteration(
+        let continue_running = match self.execute_task_iteration(
             &schedule.body,
             &schedule.requires,
             &schedule.ensures,
             &schedule.invariant,
             Some(&schedule.name),
-        )?;
+        ) {
+            Ok(value) => value,
+            Err(err) => {
+                if self.try_invoke_recovery(&err)? {
+                    true
+                } else {
+                    return Err(err);
+                }
+            }
+        };
+        self.touch_task_heartbeat(&schedule.name);
         let measured_ms = started.elapsed().as_secs_f64() * 1000.0;
         let duration_ms = measured_ms.max(RUNTIME_TASK_COST_MS);
         self.telemetry.record_task_duration(
@@ -2810,7 +3206,11 @@ impl<B: RobotBackend> Interpreter<B> {
             name: task_name.to_string(),
             priority,
             interval_ms,
+            deadline_ms: None,
+            jitter_ms_max: None,
+            isolated: false,
             next_due_ms: 0.0,
+            last_start_ms: None,
             body: body.to_vec(),
             requires: requires.clone(),
             ensures: ensures.clone(),
@@ -2831,12 +3231,19 @@ impl<B: RobotBackend> Interpreter<B> {
                 priority_label(priority)
             ));
             let sim_time = (iteration as f64 + 1.0) * interval_ms;
+            self.sim_time_ms = sim_time;
             self.run_timer_triggers(sim_time)?;
             self.run_condition_triggers()?;
             self.run_trigger_maintenance()?;
 
             // Take the branch when run scheduled task is false.
-            if !self.run_scheduled_task(&schedule)? {
+            let continue_running = self.run_scheduled_task(&schedule)?;
+            self.check_watchdogs()?;
+            self.record_mission_event(
+                "scheduler_tick",
+                serde_json::json!({ "sim_time_ms": sim_time, "task": task_name }),
+            );
+            if !continue_running {
                 self.telemetry.record_emergency_stop();
                 break;
             }
@@ -2895,7 +3302,13 @@ impl<B: RobotBackend> Interpreter<B> {
                 return Ok(true);
             }
         }
-        self.execute_block(body)?;
+        self.execute_block(body).or_else(|err| {
+            if self.try_invoke_recovery(&err)? {
+                Ok(())
+            } else {
+                Err(err)
+            }
+        })?;
 
         // Emit output when ensures provides a ens.
         if let Some(ens) = ensures {
@@ -2963,6 +3376,7 @@ impl<B: RobotBackend> Interpreter<B> {
         for iteration in 0..self.options.max_loop_iterations {
             self.backend.tick(base_tick);
             sim_time += base_tick;
+            self.sim_time_ms = sim_time;
             self.triggers_dispatched_this_tick = 0;
             self.telemetry.record_scheduler_tick();
             self.trace_scheduler_log(format!("tick={} sim_time={sim_time}ms", iteration + 1));
@@ -2975,8 +3389,20 @@ impl<B: RobotBackend> Interpreter<B> {
             for schedule in &mut schedules {
                 // Take this path when schedule.next due ms <= sim time.
                 if schedule.next_due_ms <= sim_time {
-                    // Take this path when sim time > schedule.next due ms + schedule.interval ms.
-                    if sim_time > schedule.next_due_ms + schedule.interval_ms {
+                    // Record release jitter against the declared bound before running the task.
+                    if let Some(max_jitter) = schedule.jitter_ms_max {
+                        let lateness = (sim_time - schedule.next_due_ms).max(0.0);
+                        self.telemetry.record_task_jitter(
+                            &schedule.name,
+                            schedule.priority,
+                            schedule.interval_ms,
+                            lateness,
+                            max_jitter,
+                        );
+                    }
+                    // Take this path when sim time > schedule.next due ms + declared deadline slack.
+                    let deadline = schedule.deadline_ms.unwrap_or(schedule.interval_ms);
+                    if sim_time > schedule.next_due_ms + deadline {
                         self.telemetry.record_missed_deadline(
                             &schedule.name,
                             schedule.priority,
@@ -2999,6 +3425,7 @@ impl<B: RobotBackend> Interpreter<B> {
                         priority_label(schedule.priority),
                         schedule.interval_ms
                     ));
+                    schedule.last_start_ms = Some(sim_time);
 
                     // Take the branch when run scheduled task is false.
                     if !self.run_scheduled_task(schedule)? {
@@ -3008,6 +3435,11 @@ impl<B: RobotBackend> Interpreter<B> {
                     schedule.next_due_ms = sim_time + schedule.interval_ms;
                 }
             }
+            self.check_watchdogs()?;
+            self.record_mission_event(
+                "scheduler_tick",
+                serde_json::json!({ "sim_time_ms": sim_time, "iteration": iteration + 1 }),
+            );
             self.run_verify_rules()?;
             self.update_twin_snapshot();
 
@@ -3546,6 +3978,7 @@ impl<B: RobotBackend> Interpreter<B> {
         // Process each poll new event.
         for event in self.hardware_monitor.poll_new_events() {
             self.dispatch_system_trigger(SystemTriggerCategory::Hardware, &event)?;
+            self.invoke_recovery_for_event(&event)?;
         }
         Ok(())
     }
@@ -4349,6 +4782,26 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
             }
             Stmt::ReturnStmt { .. } => {}
+            Stmt::EnterModeStmt { mode, .. } => {
+                self.active_mode = mode.clone();
+                self.log(format!("mode: entered '{mode}'"));
+            }
+            Stmt::UseFallbackStmt { resource, .. } => {
+                self.log(format!("fault: using fallback resource '{resource}'"));
+            }
+            Stmt::StopAllActuatorsStmt { .. } => {
+                if let Some(monitor) = &mut self.safety_monitor {
+                    monitor.set_emergency_stop(true);
+                }
+                self.backend.set_emergency_stop(true);
+                self.backend.execute_motion(MotionCommand::Stop {
+                    actuator: "all".into(),
+                });
+                self.log("safety: stop_all_actuators invoked".into());
+            }
+            Stmt::RunPipelineStmt { name, .. } => {
+                self.execute_pipeline(name)?;
+            }
         }
         Ok(())
     }
@@ -4741,6 +5194,9 @@ impl<B: RobotBackend> Interpreter<B> {
                 },
                 LiteralValue::String(s) => RuntimeValue::String { value: s.clone() },
                 LiteralValue::Null => RuntimeValue::Void,
+                LiteralValue::Regex(pattern) => RuntimeValue::Regex {
+                    pattern: pattern.clone(),
+                },
             }),
             Expr::UnitLiteralExpr { value, unit, .. } => Ok(RuntimeValue::Number {
                 value: *value,
@@ -5129,6 +5585,70 @@ impl<B: RobotBackend> Interpreter<B> {
         }
     }
 
+    fn eval_string_regex_method(
+        &mut self,
+        method: &str,
+        text: &str,
+        args: &[Expr],
+        line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        // Evaluate string regex helper methods: matches, find, replace, split, capture.
+        let pattern_val = args.first().ok_or_else(|| {
+            RuntimeError::new("Regex method requires pattern argument", line).into_spanda()
+        })?;
+        let pattern = match self.eval_expr(pattern_val)? {
+            RuntimeValue::Regex { pattern } => pattern,
+            _ => {
+                return Err(
+                    RuntimeError::new("Regex method requires Regex pattern argument", line)
+                        .into_spanda(),
+                )
+            }
+        };
+        match method {
+            "matches" => Ok(RuntimeValue::Bool {
+                value: crate::regex_lang::regex_matches(&pattern, text)?,
+            }),
+            "find" => Ok(match crate::regex_lang::regex_find(&pattern, text)? {
+                Some(found) => RuntimeValue::String { value: found },
+                None => RuntimeValue::Null,
+            }),
+            "replace" => {
+                let replacement = args.get(1).ok_or_else(|| {
+                    RuntimeError::new("replace requires replacement argument", line).into_spanda()
+                })?;
+                let replacement = match self.eval_expr(replacement)? {
+                    RuntimeValue::String { value } => value,
+                    _ => {
+                        return Err(
+                            RuntimeError::new("replace replacement must be string", line)
+                                .into_spanda(),
+                        )
+                    }
+                };
+                Ok(RuntimeValue::String {
+                    value: crate::regex_lang::regex_replace(&pattern, text, &replacement)?,
+                })
+            }
+            "split" => {
+                let parts = crate::regex_lang::regex_split(&pattern, text)?;
+                Ok(RuntimeValue::Object {
+                    type_name: "StringList".into(),
+                    fields: parts
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, part)| (i.to_string(), RuntimeValue::String { value: part }))
+                        .collect(),
+                })
+            }
+            "capture" => Ok(match crate::regex_lang::regex_capture(&pattern, text)? {
+                Some(result) => RuntimeValue::Capture { result },
+                None => RuntimeValue::Null,
+            }),
+            _ => Ok(RuntimeValue::Void),
+        }
+    }
+
     fn eval_call(
         &mut self,
         callee: &Expr,
@@ -5201,6 +5721,12 @@ impl<B: RobotBackend> Interpreter<B> {
         else {
             return Ok(RuntimeValue::Void);
         };
+
+        // Handle string regex methods on arbitrary receiver expressions.
+        if let Ok(RuntimeValue::String { value: text }) = self.eval_expr(object) {
+            return self.eval_string_regex_method(property, &text, args, line);
+        }
+
         let Expr::IdentExpr {
             name: target_name, ..
         } = object.as_ref()
@@ -7265,7 +7791,11 @@ struct TaskSchedule {
     name: String,
     priority: TaskPriority,
     interval_ms: f64,
+    deadline_ms: Option<f64>,
+    jitter_ms_max: Option<f64>,
+    isolated: bool,
     next_due_ms: f64,
+    last_start_ms: Option<f64>,
     body: Vec<Stmt>,
     requires: Option<Expr>,
     ensures: Option<Expr>,
@@ -7339,13 +7869,15 @@ impl TaskSchedule {
         // Example:
         // let result = instance.priority_rank();
 
-        // Match on priority and handle each case.
-        match self.priority {
+        // Isolated safety tasks preempt other work at the same priority tier.
+        let isolation_rank = if self.isolated { 0 } else { 1 };
+        let priority_rank = match self.priority {
             TaskPriority::Critical => 0,
             TaskPriority::High => 1,
             TaskPriority::Normal => 2,
             TaskPriority::Low => 3,
-        }
+        };
+        isolation_rank * 10 + priority_rank
     }
 }
 
@@ -7401,6 +7933,8 @@ fn trigger_category_label(kind: &TriggerKind) -> &'static str {
         TriggerKind::Ai { .. } => "ai",
         TriggerKind::Verification { .. } => "verification",
         TriggerKind::Twin { .. } => "twin",
+        TriggerKind::LogMatch { .. } => "log_match",
+        TriggerKind::MessageMatch { .. } => "message_match",
     }
 }
 
@@ -7542,6 +8076,9 @@ impl RobotDeclExt for RobotDecl {
                     name,
                     priority,
                     interval_ms,
+                    deadline_ms,
+                    jitter_ms_max,
+                    isolated,
                     requires,
                     ensures,
                     invariant,
@@ -7552,7 +8089,11 @@ impl RobotDeclExt for RobotDecl {
                     name: name.clone(),
                     priority: *priority,
                     interval_ms: *interval_ms,
+                    deadline_ms: *deadline_ms,
+                    jitter_ms_max: *jitter_ms_max,
+                    isolated: *isolated,
                     next_due_ms: 0.0,
+                    last_start_ms: None,
                     body: body.clone(),
                     requires: requires.clone(),
                     ensures: ensures.clone(),

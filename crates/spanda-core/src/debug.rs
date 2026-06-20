@@ -219,6 +219,10 @@ pub fn stmt_line(stmt: &crate::ast::Stmt) -> u32 {
         | Stmt::ReceiveStmt { span, .. }
         | Stmt::SpawnStmt { span, .. }
         | Stmt::SelectStmt { span, .. }
-        | Stmt::ParallelStmt { span, .. } => span.start.line,
+        | Stmt::ParallelStmt { span, .. }
+        | Stmt::EnterModeStmt { span, .. }
+        | Stmt::UseFallbackStmt { span, .. }
+        | Stmt::StopAllActuatorsStmt { span, .. }
+        | Stmt::RunPipelineStmt { span, .. } => span.start.line,
     }
 }

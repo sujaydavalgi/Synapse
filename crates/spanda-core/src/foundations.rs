@@ -1,6 +1,7 @@
 //! foundations support for Spanda.
 //!
 use crate::ast::{Expr, Span, SpandaType, Stmt};
+use crate::regex_lang::RegexPattern;
 use serde::{Deserialize, Serialize};
 
 /// Symbol visibility for module-level items.
@@ -219,6 +220,12 @@ pub enum TaskDecl {
         name: String,
         priority: TaskPriority,
         interval_ms: f64,
+        #[serde(default)]
+        deadline_ms: Option<f64>,
+        #[serde(default)]
+        jitter_ms_max: Option<f64>,
+        #[serde(default)]
+        isolated: bool,
         requires: Option<Expr>,
         ensures: Option<Expr>,
         invariant: Option<Expr>,
@@ -327,6 +334,13 @@ pub enum TriggerKind {
     Twin {
         event: String,
     },
+    LogMatch {
+        pattern: RegexPattern,
+    },
+    MessageMatch {
+        field: String,
+        pattern: RegexPattern,
+    },
 }
 
 /// Unified trigger handler (`on`, `every`, `when` at robot or agent scope).
@@ -408,8 +422,101 @@ pub enum ResourceBudgetDecl {
         battery_pct_max: Option<f64>,
         memory_mb_max: Option<f64>,
         cpu_pct_max: Option<f64>,
+        #[serde(default)]
+        gpu_pct_max: Option<f64>,
         network_mbps_max: Option<f64>,
         storage_mb_max: Option<f64>,
+        span: Span,
+    },
+}
+
+/// Message subscription filter using regex pattern matching.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SubscribeFilterDecl {
+    pub field: String,
+    pub pattern: RegexPattern,
+    pub span: Span,
+}
+
+/// Latency-budgeted processing pipeline inside a robot block.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum PipelineDecl {
+    PipelineDecl {
+        name: String,
+        budget_ms: f64,
+        body: Vec<Stmt>,
+        span: Span,
+    },
+}
+
+/// Watchdog handler for hung or missed-heartbeat tasks.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum WatchdogDecl {
+    WatchdogDecl {
+        name: String,
+        #[serde(default)]
+        target: Option<String>,
+        timeout_ms: f64,
+        body: Vec<Stmt>,
+        span: Span,
+    },
+}
+
+/// Operating mode with configuration statements.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum ModeDecl {
+    ModeDecl {
+        name: String,
+        body: Vec<Stmt>,
+        span: Span,
+    },
+}
+
+/// Retry policy with optional fallback block.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum RetryDecl {
+    RetryDecl {
+        attempts: u32,
+        backoff_ms: f64,
+        body: Vec<Stmt>,
+        fallback: Vec<Stmt>,
+        span: Span,
+    },
+}
+
+/// Recovery handler for runtime or sensor failures.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum RecoverDecl {
+    RecoverDecl {
+        error_name: String,
+        body: Vec<Stmt>,
+        span: Span,
+    },
+}
+
+/// Hardware fault handler with fallback actions.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum FaultHandlerDecl {
+    FaultHandlerDecl {
+        fault_type: String,
+        body: Vec<Stmt>,
+        span: Span,
+    },
+}
+
+/// Top-level validation rule using regex pattern matching.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum ValidateRuleDecl {
+    ValidateRuleDecl {
+        name: String,
+        pattern: RegexPattern,
         span: Span,
     },
 }

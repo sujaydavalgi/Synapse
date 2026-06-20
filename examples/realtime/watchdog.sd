@@ -1,0 +1,9 @@
+robot WatchedRover {
+    task SafetyMonitor critical every 10ms {
+        emergency_stop;
+    }
+
+    watchdog SafetyMonitor timeout 50ms {
+        stop_all_actuators();
+    }
+}

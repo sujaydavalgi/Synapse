@@ -1,0 +1,12 @@
+robot ReplayRover {
+    sensor lidar: Lidar on "/scan";
+
+    twin Shadow {
+        replay true;
+        mirror lidar;
+    }
+
+    task sense every 20ms {
+        emergency_stop;
+    }
+}

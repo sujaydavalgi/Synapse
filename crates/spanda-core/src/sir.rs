@@ -1816,6 +1816,10 @@ fn type_to_string(ty: &SpandaType) -> String {
         SpandaType::EnumVariant { enum_name, variant } => format!("{enum_name}::{variant}"),
         SpandaType::TypeParam { name } => name.clone(),
         SpandaType::TraitObject { trait_name } => format!("dyn {trait_name}"),
+        SpandaType::Regex => "Regex".into(),
+        SpandaType::Match => "Match".into(),
+        SpandaType::Capture => "Capture".into(),
+        SpandaType::CaptureGroup => "CaptureGroup".into(),
     }
 }
 

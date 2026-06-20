@@ -1,0 +1,5 @@
+robot CommandRover {
+    on message.text matches /help|stop|cancel/i {
+        emergency_stop;
+    }
+}

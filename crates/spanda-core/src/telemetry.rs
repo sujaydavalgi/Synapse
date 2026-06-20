@@ -15,6 +15,8 @@ pub struct TaskMetrics {
     pub budget_violations: u64,
     pub last_duration_ms: f64,
     pub max_duration_ms: f64,
+    pub max_jitter_ms: f64,
+    pub jitter_violations: u64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -46,9 +48,28 @@ pub struct TriggerMetrics {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct PipelineMetrics {
+    pub name: String,
+    pub budget_ms: f64,
+    pub executions: u64,
+    pub total_duration_ms: f64,
+    pub deadline_misses: u64,
+    pub slow_stages: u64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct WatchdogMetrics {
+    pub name: String,
+    pub timeouts: u64,
+    pub last_timeout_ms: f64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct RuntimeTelemetry {
     pub tasks: HashMap<String, TaskMetrics>,
     pub triggers: HashMap<String, TriggerMetrics>,
+    pub pipelines: HashMap<String, PipelineMetrics>,
+    pub watchdogs: HashMap<String, WatchdogMetrics>,
     pub scheduler: SchedulerMetrics,
     pub execution: ExecutionMetrics,
     pub replay_frames: u64,
@@ -171,6 +192,43 @@ impl RuntimeTelemetry {
 
         // Call task mut on the current instance.
         self.task_mut(name, priority, interval_ms).budget_violations += 1;
+    }
+
+    pub fn record_task_jitter(
+        &mut self,
+        name: &str,
+        priority: TaskPriority,
+        interval_ms: f64,
+        jitter_ms: f64,
+        max_jitter_ms: f64,
+    ) {
+        // Record per-task release jitter against the declared bound.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `name` — task name
+        // - `priority` — task priority
+        // - `interval_ms` — task period
+        // - `jitter_ms` — observed lateness in milliseconds
+        // - `max_jitter_ms` — declared jitter ceiling
+        //
+        // Returns:
+        // Nothing.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // telemetry.record_task_jitter("sense", TaskPriority::High, 10.0, 0.5, 1.0);
+
+        // Update jitter peaks and violation counts.
+        let entry = self.task_mut(name, priority, interval_ms);
+        if jitter_ms > entry.max_jitter_ms {
+            entry.max_jitter_ms = jitter_ms;
+        }
+        if jitter_ms > max_jitter_ms {
+            entry.jitter_violations += 1;
+        }
     }
 
     pub fn record_task_skip(&mut self, name: &str, priority: TaskPriority, interval_ms: f64) {
@@ -475,6 +533,49 @@ impl RuntimeTelemetry {
 
         // Call trigger mut on the current instance.
         self.trigger_mut(name, category, priority).missed_deadlines += 1;
+    }
+
+    pub fn pipeline_mut(&mut self, name: &str, budget_ms: f64) -> &mut PipelineMetrics {
+        self.pipelines
+            .entry(name.to_string())
+            .or_insert_with(|| PipelineMetrics {
+                name: name.to_string(),
+                budget_ms,
+                ..Default::default()
+            })
+    }
+
+    pub fn record_pipeline_execution(
+        &mut self,
+        name: &str,
+        budget_ms: f64,
+        duration_ms: f64,
+        slow_stage: bool,
+    ) {
+        let metrics = self.pipeline_mut(name, budget_ms);
+        metrics.executions += 1;
+        metrics.total_duration_ms += duration_ms;
+        if duration_ms > budget_ms {
+            metrics.deadline_misses += 1;
+        }
+        if slow_stage {
+            metrics.slow_stages += 1;
+        }
+    }
+
+    pub fn watchdog_mut(&mut self, name: &str) -> &mut WatchdogMetrics {
+        self.watchdogs
+            .entry(name.to_string())
+            .or_insert_with(|| WatchdogMetrics {
+                name: name.to_string(),
+                ..Default::default()
+            })
+    }
+
+    pub fn record_watchdog_timeout(&mut self, name: &str, sim_time_ms: f64) {
+        let metrics = self.watchdog_mut(name);
+        metrics.timeouts += 1;
+        metrics.last_timeout_ms = sim_time_ms;
     }
 }
 

@@ -710,6 +710,8 @@ fn runtime_value_kind(value: &RuntimeValue) -> &'static str {
         RuntimeValue::TaskHandle { .. } => "task_handle",
         RuntimeValue::Channel { .. } => "channel",
         RuntimeValue::TraitObject { .. } => "trait_object",
+        RuntimeValue::Regex { .. } => "regex",
+        RuntimeValue::Capture { .. } => "capture",
     }
 }
 

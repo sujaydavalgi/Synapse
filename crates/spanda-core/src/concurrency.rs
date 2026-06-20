@@ -579,5 +579,7 @@ fn runtime_type_tag(value: &RuntimeValue) -> String {
         RuntimeValue::Secret { .. } => "secret".into(),
         RuntimeValue::Bytes { .. } => "bytes".into(),
         RuntimeValue::Null => "null".into(),
+        RuntimeValue::Regex { .. } => "regex".into(),
+        RuntimeValue::Capture { .. } => "capture".into(),
     }
 }

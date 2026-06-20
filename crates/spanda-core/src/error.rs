@@ -148,6 +148,34 @@ pub struct RunOptions {
     /// Emit event trigger diagnostics to runtime logs.
     #[serde(default)]
     pub trace_events: bool,
+
+    /// Enable all realtime trace channels (scheduler, tasks, triggers, events).
+    #[serde(default)]
+    pub trace_realtime: bool,
+
+    /// Record a deterministic mission trace during run/sim.
+    #[serde(default)]
+    pub record_trace: bool,
+
+    /// Source label or `.sd` path stored in mission traces.
+    #[serde(default)]
+    pub trace_source: Option<String>,
+
+    /// Optional mission trace output path (defaults to `<trace_source>.trace`).
+    #[serde(default)]
+    pub trace_output: Option<String>,
+
+    /// Emit metrics-only JSON (implies --json on CLI).
+    #[serde(default)]
+    pub metrics_json: bool,
+
+    /// Replay deterministic trace playback mode.
+    #[serde(default)]
+    pub replay_deterministic: bool,
+
+    /// Replay start offset in milliseconds.
+    #[serde(default)]
+    pub replay_from_ms: Option<f64>,
 }
 
 fn default_max_loop_iterations() -> usize {
@@ -202,4 +230,6 @@ pub struct RunResult {
     pub logs: Vec<String>,
     #[serde(default)]
     pub metrics: crate::telemetry::RuntimeTelemetry,
+    #[serde(default)]
+    pub mission_trace: Option<crate::replay::MissionTrace>,
 }

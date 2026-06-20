@@ -1,0 +1,16 @@
+robot SafetyRover {
+    sensor lidar: Lidar on "/scan";
+    actuator wheels: DifferentialDrive;
+
+    task safety_monitor critical every 5ms deadline 2ms {
+        if lidar.nearest_distance < 0.3 m {
+            wheels.stop();
+        }
+    }
+
+    task control_loop every 10ms deadline 8ms jitter <= 1ms {
+        if lidar.nearest_distance > 1.0 m {
+            wheels.move(linear: 0.2 m/s, angular: 0.0 rad/s);
+        }
+    }
+}

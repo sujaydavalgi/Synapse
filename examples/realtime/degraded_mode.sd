@@ -1,0 +1,20 @@
+robot DegradedRover {
+    actuator wheels: DifferentialDrive;
+
+    mode normal {
+        wheels.move(linear: 1.5 m/s, angular: 0.0 rad/s);
+    }
+
+    mode degraded {
+        wheels.move(linear: 0.3 m/s, angular: 0.0 rad/s);
+    }
+
+    mode emergency {
+        stop_all_actuators();
+    }
+
+    on hardware LidarFailure {
+        use camera_depth;
+        enter degraded_mode;
+    }
+}

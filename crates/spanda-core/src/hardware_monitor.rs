@@ -59,6 +59,25 @@ impl HardwareMonitor {
         self.actuators.push((name.into(), actuator_type.into()));
     }
 
+    pub fn has_injected_faults(&self) -> bool {
+        // Report whether simulate_compatibility faults are active.
+        //
+        // Parameters:
+        // None.
+        //
+        // Returns:
+        // true when at least one fault was injected.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let active = monitor.has_injected_faults();
+
+        // Check the injected fault set.
+        !self.injected_faults.is_empty()
+    }
+
     pub fn inject_fault(&mut self, fault: impl Into<String>) {
         // Inject fault.
         //

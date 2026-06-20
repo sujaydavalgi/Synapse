@@ -352,6 +352,7 @@ mod tests {
             requires_network: None,
             simulate_compatibility: None,
             messages: vec![],
+            validate_rules: vec![],
             robots: vec![],
             span: empty_span(),
         }

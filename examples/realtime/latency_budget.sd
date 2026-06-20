@@ -1,0 +1,13 @@
+robot PipelineRover {
+    sensor camera: Camera on "/camera";
+    actuator wheels: DifferentialDrive;
+
+    pipeline obstacle_avoidance budget 30ms {
+        emergency_stop;
+        wheels.stop();
+    }
+
+    task control every 10ms {
+        run_pipeline obstacle_avoidance;
+    }
+}

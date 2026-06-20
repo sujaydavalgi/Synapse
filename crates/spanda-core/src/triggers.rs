@@ -485,6 +485,10 @@ pub fn trigger_display_name(kind: &TriggerKind, agent: Option<&str>) -> String {
         TriggerKind::Ai { event } => format!("ai:{event}"),
         TriggerKind::Verification { event } => format!("verification:{event}"),
         TriggerKind::Twin { event } => format!("twin:{event}"),
+        TriggerKind::LogMatch { pattern } => format!("log_match:/{}/", pattern.source),
+        TriggerKind::MessageMatch { field, pattern } => {
+            format!("message_match:{field}:/{}/", pattern.source)
+        }
     };
 
     // Emit output when agent provides a agent.

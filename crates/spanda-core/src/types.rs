@@ -1786,6 +1786,9 @@ impl TypeChecker {
                 name,
                 priority: _priority,
                 interval_ms,
+                deadline_ms: _,
+                jitter_ms_max: _,
+                isolated: _isolated,
                 requires,
                 ensures,
                 invariant,
@@ -1793,6 +1796,14 @@ impl TypeChecker {
                 body,
                 span,
             } = task;
+
+            // Validate declared timing and priority constraints.
+            for diag in crate::reliability::validate_task_timing(task) {
+                self.error(diag.message, diag.line, diag.column);
+            }
+            for diag in crate::reliability::validate_task_priority(task) {
+                self.error(diag.message, diag.line, diag.column);
+            }
 
             // Take this path when *interval ms <= 0.0.
             if *interval_ms <= 0.0 {
@@ -1814,11 +1825,17 @@ impl TypeChecker {
                 battery_pct_max,
                 memory_mb_max,
                 cpu_pct_max,
+                gpu_pct_max: _,
                 network_mbps_max,
                 storage_mb_max,
                 ..
             }) = budget
             {
+                for diag in
+                    crate::reliability::validate_resource_budget(budget.as_ref().unwrap(), *span)
+                {
+                    self.error(diag.message, diag.line, diag.column);
+                }
                 let validate_non_negative =
                     |checker: &mut TypeChecker, label: &str, value: f64, line: u32, column: u32| {
                         // Take this path when value < 0.0.
@@ -2077,6 +2094,16 @@ impl TypeChecker {
                 | TriggerKind::Ai { event: _ }
                 | TriggerKind::Verification { event: _ }
                 | TriggerKind::Twin { event: _ } => {}
+                TriggerKind::LogMatch { pattern } | TriggerKind::MessageMatch { pattern, .. } => {
+                    if let Err(crate::error::SpandaError::Parse {
+                        message,
+                        line,
+                        column,
+                    }) = pattern.compile()
+                    {
+                        self.error(message, line, column);
+                    }
+                }
             }
             self.check_behavior(body);
         }
@@ -3267,7 +3294,11 @@ impl TypeChecker {
                     self.check_expr(v);
                 }
             }
-            Stmt::SubscribeStmt { target, span } => {
+            Stmt::SubscribeStmt {
+                target,
+                filter,
+                span,
+            } => {
                 let (topic_name, _) = target.split_once('.').unwrap_or((target.as_str(), ""));
 
                 // Take the branch when contains key is false.
@@ -3279,6 +3310,16 @@ impl TypeChecker {
                         span.start.line,
                         span.start.column,
                     );
+                }
+                if let Some(filter) = filter {
+                    if let Err(SpandaError::Parse {
+                        message,
+                        line,
+                        column,
+                    }) = filter.pattern.compile()
+                    {
+                        self.error(message, line, column);
+                    }
                 }
                 self.subscribed_topics.insert(target.clone());
             }
@@ -3379,6 +3420,10 @@ impl TypeChecker {
                     },
                 );
             }
+            Stmt::EnterModeStmt { .. }
+            | Stmt::UseFallbackStmt { .. }
+            | Stmt::StopAllActuatorsStmt { .. }
+            | Stmt::RunPipelineStmt { .. } => {}
         }
     }
 
@@ -3407,6 +3452,17 @@ impl TypeChecker {
                 },
                 LiteralValue::String(_) => SpandaType::String,
                 LiteralValue::Null => SpandaType::Void,
+                LiteralValue::Regex(pattern) => {
+                    if let Err(crate::error::SpandaError::Parse {
+                        message,
+                        line,
+                        column,
+                    }) = pattern.compile()
+                    {
+                        self.error(message, line, column);
+                    }
+                    SpandaType::Regex
+                }
             },
             Expr::UnitLiteralExpr { value: _, unit, .. } => SpandaType::Number { unit: *unit },
             Expr::IdentExpr { name, span } => {
@@ -4586,25 +4642,31 @@ impl TypeChecker {
             );
             return SpandaType::Void;
         }
-        let type_name = match sym.kind {
-            SymbolKind::Sensor => sym.sensor_type.clone().unwrap_or_default(),
-            SymbolKind::Actuator => sym.actuator_type.clone().unwrap_or_default(),
-            SymbolKind::Safety => "Safety".into(),
-            SymbolKind::AiModel => {
-                // Take this path when let SpandaType::Named { name } = sym.robo type.
-                if let SpandaType::Named { name } = sym.robo_type {
-                    name
-                } else {
-                    String::new()
+        let type_name = if sym.robo_type == SpandaType::String {
+            "String".into()
+        } else {
+            match sym.kind {
+                SymbolKind::Sensor => sym.sensor_type.clone().unwrap_or_default(),
+                SymbolKind::Actuator => sym.actuator_type.clone().unwrap_or_default(),
+                SymbolKind::Safety => "Safety".into(),
+                SymbolKind::AiModel => {
+                    // Take this path when let SpandaType::Named { name } = sym.robo type.
+                    if let SpandaType::Named { name } = sym.robo_type {
+                        name
+                    } else {
+                        String::new()
+                    }
                 }
-            }
-            SymbolKind::Agent => "Agent".into(),
-            _ => {
-                // Take this path when let SpandaType::Named { name } = sym.robo type.
-                if let SpandaType::Named { name } = sym.robo_type {
-                    name
-                } else {
-                    String::new()
+                SymbolKind::Agent => "Agent".into(),
+                _ => {
+                    // Take this path when let SpandaType::Named { name } = sym.robo type.
+                    if let SpandaType::Named { name } = sym.robo_type {
+                        name
+                    } else if sym.robo_type == SpandaType::Regex {
+                        "Regex".into()
+                    } else {
+                        String::new()
+                    }
                 }
             }
         };
@@ -5085,6 +5147,10 @@ fn display_type(ty: &SpandaType) -> String {
         SpandaType::Char => "Char".into(),
         SpandaType::Bytes => "Bytes".into(),
         SpandaType::Null => "Null".into(),
+        SpandaType::Regex => "Regex".into(),
+        SpandaType::Match => "Match".into(),
+        SpandaType::Capture => "Capture".into(),
+        SpandaType::CaptureGroup => "CaptureGroup".into(),
     }
 }
 
@@ -5156,6 +5222,10 @@ impl SpandaTypeExt for SpandaType {
                 let _ = trait_name;
                 "trait_object"
             }
+            SpandaType::Regex => "regex",
+            SpandaType::Match => "match_type",
+            SpandaType::Capture => "capture",
+            SpandaType::CaptureGroup => "capture_group",
         }
     }
 }
@@ -6115,6 +6185,38 @@ fn builtin_methods(type_name: &str) -> Option<HashMap<&'static str, MethodSig>> 
         other if all_library_sensor_types().contains_key(other) => {
             Some(library_sensor_methods(other))
         }
+        "String" => Some(HashMap::from([
+            (
+                "matches",
+                m(vec![SpandaType::Regex], HashMap::new(), SpandaType::Bool),
+            ),
+            (
+                "find",
+                m(vec![SpandaType::Regex], HashMap::new(), SpandaType::String),
+            ),
+            (
+                "replace",
+                m(
+                    vec![SpandaType::Regex, SpandaType::String],
+                    HashMap::new(),
+                    SpandaType::String,
+                ),
+            ),
+            (
+                "split",
+                m(
+                    vec![SpandaType::Regex],
+                    HashMap::new(),
+                    SpandaType::Named {
+                        name: "StringList".into(),
+                    },
+                ),
+            ),
+            (
+                "capture",
+                m(vec![SpandaType::Regex], HashMap::new(), SpandaType::Capture),
+            ),
+        ])),
         _ => None,
     }
 }

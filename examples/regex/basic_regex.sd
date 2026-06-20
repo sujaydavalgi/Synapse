@@ -1,0 +1,8 @@
+robot RegexDemo {
+    task validate_ids every 100ms {
+        let id_pattern = /^robot-[0-9]+$/;
+        if "robot-123".matches(id_pattern) {
+            emergency_stop;
+        }
+    }
+}

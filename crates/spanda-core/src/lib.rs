@@ -25,6 +25,10 @@ pub mod lint;
 pub mod modules;
 pub mod parser;
 pub mod pretty;
+pub mod regex_lang;
+pub mod reliability;
+pub mod reliability_runtime;
+pub mod replay;
 pub mod runtime;
 pub mod safety;
 pub mod security;
@@ -64,12 +68,14 @@ pub use hardware::{
 };
 pub use lint::{lint, LintIssue, LintReport, LintSeverity};
 pub use modules::{load_project_modules, ModuleRegistry};
+pub use replay::{parse_replay_offset, MissionTrace};
 pub use sir::{
     lower_program, SirBehavior, SirExtern, SirFunction, SirParam, SirProgram, SirStmt,
     SirVisibility,
 };
 pub use telemetry::{
-    ExecutionMetrics, RuntimeTelemetry, SchedulerMetrics, TaskMetrics, TriggerMetrics,
+    ExecutionMetrics, PipelineMetrics, RuntimeTelemetry, SchedulerMetrics, TaskMetrics,
+    TriggerMetrics, WatchdogMetrics,
 };
 
 use runtime::{Interpreter, InterpreterOptions, RobotBackend};
@@ -406,6 +412,9 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
     let sim = create_default_simulator(sim_config);
     let logs: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
     let logs_cb = logs.clone();
+    let trace_realtime = options.trace_realtime;
+    let trace_source = options.trace_source.clone();
+    let record_trace = options.record_trace;
     let mut interp = Interpreter::new(
         sim,
         InterpreterOptions {
@@ -413,23 +422,40 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
             on_log: Some(Rc::new(move |msg| logs_cb.borrow_mut().push(msg))),
             on_motion_blocked: None,
             module_registry: options.module_registry.clone(),
-            trace_scheduler: options.trace_scheduler,
-            trace_tasks: options.trace_tasks,
-            trace_triggers: options.trace_triggers,
-            trace_events: options.trace_events,
+            trace_scheduler: options.trace_scheduler || trace_realtime,
+            trace_tasks: options.trace_tasks || trace_realtime,
+            trace_triggers: options.trace_triggers || trace_realtime,
+            trace_events: options.trace_events || trace_realtime,
             replay_trace: options.replay_trace,
+            record_trace,
+            trace_source,
             ..Default::default()
         },
     );
     let state = interp.run(program, options.entry_behavior.as_deref())?;
     let events = interp.robot_backend().event_log();
     let metrics = interp.take_telemetry();
+    let mission_trace = interp.take_mission_trace();
+    if record_trace {
+        if let Some(trace) = &mission_trace {
+            let path = options.trace_output.clone().unwrap_or_else(|| {
+                let source = options.trace_source.as_deref().unwrap_or("program.sd");
+                if let Some(stripped) = source.strip_suffix(".sd") {
+                    format!("{stripped}.trace")
+                } else {
+                    format!("{source}.trace")
+                }
+            });
+            trace.save(&path)?;
+        }
+    }
     let run_logs = logs.borrow().clone();
     Ok(RunResult {
         state,
         events,
         logs: run_logs,
         metrics,
+        mission_trace,
     })
 }
 

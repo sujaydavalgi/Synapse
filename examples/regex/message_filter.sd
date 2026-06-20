@@ -1,0 +1,9 @@
+robot FilterRover {
+    task listen every 100ms {
+        subscribe diagnostics
+        where message.text matches /WARN|ERROR/;
+
+        subscribe commands
+        where command.source matches /^operator-[0-9]+$/;
+    }
+}

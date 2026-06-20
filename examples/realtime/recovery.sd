@@ -1,0 +1,12 @@
+robot RecoveryRover {
+    actuator wheels: DifferentialDrive;
+
+    recover from RuntimeError {
+        stop_all_actuators();
+        enter degraded_mode;
+    }
+
+    recover from SensorFailure {
+        enter degraded_mode;
+    }
+}

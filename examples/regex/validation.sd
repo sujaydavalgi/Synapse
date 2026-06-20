@@ -1,0 +1,13 @@
+validate RobotId {
+    value matches /^robot-[0-9]{3}$/;
+}
+
+validate TopicName {
+    value matches /^\/[a-z0-9_\/]+$/;
+}
+
+robot ValidatedRover {
+    task tick every 100ms {
+        emergency_stop;
+    }
+}

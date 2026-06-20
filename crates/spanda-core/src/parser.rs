@@ -4,6 +4,7 @@ use crate::ast::*;
 use crate::error::SpandaError;
 use crate::foundations::*;
 use crate::lexer::{unit_from_lexeme, Token, TokenType, TokenValue, UnitLexeme};
+use crate::regex_lang::RegexPattern;
 
 pub fn parse(tokens: Vec<Token>) -> Result<Program, SpandaError> {
     // Parse input.
@@ -592,6 +593,7 @@ impl Parser {
         let mut requires_network = None;
         let mut simulate_compatibility = None;
         let mut messages = Vec::new();
+        let mut validate_rules = Vec::new();
         let mut robots = Vec::new();
 
         // Repeat while self.check(TokenType::Import).
@@ -626,12 +628,14 @@ impl Parser {
                 simulate_compatibility = Some(self.parse_simulate_compatibility()?);
             } else if self.check(TokenType::Message) {
                 messages.push(self.parse_message()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "validate" {
+                validate_rules.push(self.parse_validate_rule()?);
             } else if self.check(TokenType::Robot) {
                 robots.push(self.parse_robot()?);
             } else {
                 let t = self.peek();
                 return Err(SpandaError::Parse {
-                    message: "Expected struct, enum, trait, hardware, deploy, or robot declaration"
+                    message: "Expected struct, enum, trait, hardware, deploy, validate, or robot declaration"
                         .into(),
                     line: t.line,
                     column: t.column,
@@ -653,6 +657,7 @@ impl Parser {
             requires_network,
             simulate_compatibility,
             messages,
+            validate_rules,
             robots,
             span: self.span_from(&start, self.previous()),
         })
@@ -1460,6 +1465,7 @@ impl Parser {
         let mut cpu_pct_max = None;
         let mut network_mbps_max = None;
         let mut storage_mb_max = None;
+        let mut gpu_pct_max = None;
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
@@ -1476,6 +1482,10 @@ impl Parser {
                 self.expect(TokenType::Lte, "Expected '<=' after cpu in budget")?;
                 cpu_pct_max = Some(self.parse_percent_value()?);
                 self.expect(TokenType::Semicolon, "Expected ';' after cpu budget")?;
+            } else if self.match_types(&[TokenType::Gpu]) {
+                self.expect(TokenType::Lte, "Expected '<=' after gpu in budget")?;
+                gpu_pct_max = Some(self.parse_percent_value()?);
+                self.expect(TokenType::Semicolon, "Expected ';' after gpu budget")?;
             } else if self.match_types(&[TokenType::Network]) {
                 self.expect(TokenType::Lte, "Expected '<=' after network in budget")?;
                 network_mbps_max = Some(self.parse_network_amount()?);
@@ -1498,6 +1508,7 @@ impl Parser {
             battery_pct_max,
             memory_mb_max,
             cpu_pct_max,
+            gpu_pct_max,
             network_mbps_max,
             storage_mb_max,
             span: self.span_from(&start, &end),
@@ -2116,6 +2127,12 @@ impl Parser {
         let mut agents = Vec::new();
         let mut behaviors = Vec::new();
         let mut tasks = Vec::new();
+        let mut pipelines = Vec::new();
+        let mut watchdogs = Vec::new();
+        let mut modes = Vec::new();
+        let mut retries = Vec::new();
+        let mut recovers = Vec::new();
+        let fault_handlers = Vec::new();
         let mut state_machines = Vec::new();
         let mut events = Vec::new();
         let mut event_handlers = Vec::new();
@@ -2176,6 +2193,16 @@ impl Parser {
                 behaviors.push(self.parse_behavior()?);
             } else if self.check(TokenType::Task) {
                 tasks.push(self.parse_task()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "mode" {
+                modes.push(self.parse_mode()?);
+            } else if self.check(TokenType::Pipeline) {
+                pipelines.push(self.parse_pipeline()?);
+            } else if self.check(TokenType::Watchdog) {
+                watchdogs.push(self.parse_watchdog()?);
+            } else if self.check(TokenType::Retry) {
+                retries.push(self.parse_retry()?);
+            } else if self.check(TokenType::Recover) {
+                recovers.push(self.parse_recover()?);
             } else if self.check(TokenType::StateMachine) {
                 state_machines.push(self.parse_state_machine()?);
             } else if self.check(TokenType::Event) {
@@ -2265,6 +2292,12 @@ impl Parser {
             agents,
             behaviors,
             tasks,
+            pipelines,
+            watchdogs,
+            modes,
+            retries,
+            recovers,
+            fault_handlers,
             state_machines,
             events,
             event_handlers,
@@ -4553,6 +4586,9 @@ impl Parser {
         let start = self.advance();
         let name = self.expect(TokenType::Ident, "Expected task name")?;
         let mut priority = crate::foundations::TaskPriority::Normal;
+        let mut deadline_ms = None;
+        let mut jitter_ms_max = None;
+        let mut isolated = false;
 
         // Take this path when self.check(TokenType::Ident).
         if self.check(TokenType::Ident) {
@@ -4564,11 +4600,44 @@ impl Parser {
                 priority = parsed_priority;
             }
         }
+
+        // Accept explicit `priority critical` after the task name.
+        if self.match_types(&[TokenType::Priority]) {
+            let level = self.expect(TokenType::Ident, "Expected priority level")?;
+            priority =
+                crate::foundations::TaskPriority::from_ident(&level.lexeme).ok_or_else(|| {
+                    SpandaError::Parse {
+                        message: format!(
+                            "Invalid priority '{}'; use critical, high, normal, or low",
+                            level.lexeme
+                        ),
+                        line: level.line,
+                        column: level.column,
+                    }
+                })?;
+        }
         let interval_ms = if self.match_types(&[TokenType::Every]) {
             self.parse_duration()?
         } else {
             10.0
         };
+
+        // Parse optional declared deadline and jitter constraints.
+        if self.match_types(&[TokenType::Deadline]) {
+            deadline_ms = Some(self.parse_duration()?);
+        }
+        if self.match_types(&[TokenType::Jitter]) {
+            self.expect(TokenType::Lte, "Expected '<=' after jitter")?;
+            jitter_ms_max = Some(self.parse_duration()?);
+        }
+        if self.match_types(&[TokenType::Isolated]) {
+            isolated = true;
+        }
+
+        // Critical tasks always receive the highest scheduler priority.
+        if matches!(priority, crate::foundations::TaskPriority::Critical) {
+            priority = crate::foundations::TaskPriority::Critical;
+        }
         let (requires, ensures, invariant) = self.parse_contract_clauses()?;
         self.expect(TokenType::Lbrace, "Expected '{' after task signature")?;
         let mut budget = None;
@@ -4583,6 +4652,9 @@ impl Parser {
             name: name.lexeme,
             priority,
             interval_ms,
+            deadline_ms,
+            jitter_ms_max,
+            isolated,
             requires,
             ensures,
             invariant,
@@ -4590,6 +4662,163 @@ impl Parser {
             body,
             span: self.span_from(&start, &end),
         })
+    }
+
+    fn parse_pipeline(&mut self) -> Result<PipelineDecl, SpandaError> {
+        // Parse latency-budgeted pipeline declaration.
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected pipeline name")?;
+        self.expect(TokenType::Budget, "Expected 'budget' after pipeline name")?;
+        let budget_ms = self.parse_duration()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after pipeline budget")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close pipeline")?;
+        Ok(PipelineDecl::PipelineDecl {
+            name: name.lexeme,
+            budget_ms,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_watchdog(&mut self) -> Result<WatchdogDecl, SpandaError> {
+        // Parse watchdog timeout handler.
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected watchdog name")?;
+        let mut target = None;
+        if self.check(TokenType::Ident) && self.peek().lexeme != "timeout" {
+            target = Some(self.advance().lexeme);
+        }
+        if self.check(TokenType::Ident) && self.peek().lexeme == "timeout" {
+            self.advance();
+        } else {
+            let t = self.peek();
+            return Err(SpandaError::Parse {
+                message: "Expected 'timeout' in watchdog declaration".into(),
+                line: t.line,
+                column: t.column,
+            });
+        }
+        let timeout_ms = self.parse_duration()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after watchdog timeout")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close watchdog")?;
+        Ok(WatchdogDecl::WatchdogDecl {
+            name: name.lexeme,
+            target,
+            timeout_ms,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_mode(&mut self) -> Result<ModeDecl, SpandaError> {
+        // Parse operating mode declaration.
+        let start = self.advance(); // mode
+        let name = self.expect(TokenType::Ident, "Expected mode name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after mode name")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close mode")?;
+        Ok(ModeDecl::ModeDecl {
+            name: name.lexeme,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_retry(&mut self) -> Result<RetryDecl, SpandaError> {
+        // Parse retry policy with optional fallback block.
+        let start = self.advance();
+        let attempts_tok = self.expect(TokenType::Number, "Expected retry attempt count")?;
+        let attempts = match attempts_tok.value {
+            TokenValue::Number(n) if n >= 1.0 => n as u32,
+            _ => {
+                return Err(SpandaError::Parse {
+                    message: "Retry attempts must be a positive number".into(),
+                    line: attempts_tok.line,
+                    column: attempts_tok.column,
+                })
+            }
+        };
+        self.expect(TokenType::Times, "Expected 'times' after retry count")?;
+        self.expect(
+            TokenType::Backoff,
+            "Expected 'backoff' in retry declaration",
+        )?;
+        let backoff_ms = self.parse_duration()?;
+        self.expect(TokenType::Lbrace, "Expected '{' after retry backoff")?;
+        let body = self.parse_block()?;
+        self.expect(TokenType::Rbrace, "Expected '}' to close retry body")?;
+        let mut fallback = Vec::new();
+        if self.match_types(&[TokenType::Fallback]) {
+            self.expect(TokenType::Lbrace, "Expected '{' after fallback")?;
+            fallback = self.parse_block()?;
+            self.expect(TokenType::Rbrace, "Expected '}' to close fallback")?;
+        }
+        Ok(RetryDecl::RetryDecl {
+            attempts,
+            backoff_ms,
+            body,
+            fallback,
+            span: self.span_from(&start, self.previous()),
+        })
+    }
+
+    fn parse_recover(&mut self) -> Result<RecoverDecl, SpandaError> {
+        // Parse recovery handler for a named error type.
+        let start = self.advance();
+        self.expect(TokenType::From, "Expected 'from' after recover")?;
+        let error_name = self.expect(TokenType::Ident, "Expected error name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after recover error")?;
+        let body = self.parse_block()?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close recover")?;
+        Ok(RecoverDecl::RecoverDecl {
+            error_name: error_name.lexeme,
+            body,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_validate_rule(&mut self) -> Result<ValidateRuleDecl, SpandaError> {
+        // Parse top-level validate rule with regex pattern.
+        let start = self.advance(); // validate
+        let name = self.expect(TokenType::Ident, "Expected validate rule name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after validate name")?;
+        self.expect(TokenType::Ident, "Expected 'value' in validate rule")?;
+        self.expect(TokenType::Matches, "Expected 'matches' in validate rule")?;
+        let pattern = self.parse_regex_literal()?;
+        self.expect(TokenType::Semicolon, "Expected ';' after validate pattern")?;
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close validate rule")?;
+        Ok(ValidateRuleDecl::ValidateRuleDecl {
+            name: name.lexeme,
+            pattern,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn regex_from_token(&self, tok: &Token) -> Result<RegexPattern, SpandaError> {
+        // Convert a regex literal token into structured pattern data.
+        let raw = tok.lexeme.as_str();
+        let body = raw
+            .trim_start_matches('/')
+            .rsplit_once('/')
+            .map(|(pat, flags)| (pat.to_string(), flags.to_string()))
+            .ok_or_else(|| SpandaError::Parse {
+                message: format!("Malformed regex literal '{raw}'"),
+                line: tok.line,
+                column: tok.column,
+            })?;
+        Ok(RegexPattern {
+            source: body.0,
+            flags: body.1,
+            span: self.span_from(tok, tok),
+        })
+    }
+
+    fn parse_regex_literal(&mut self) -> Result<RegexPattern, SpandaError> {
+        // Parse `/pattern/flags` regex literal token into structured pattern data.
+        let tok = self.expect(TokenType::RegexLiteral, "Expected regex literal")?;
+        self.regex_from_token(&tok)
     }
 
     fn parse_state_machine(&mut self) -> Result<StateMachineDecl, SpandaError> {
@@ -4714,7 +4943,26 @@ impl Parser {
 
         // Compute start for the following logic.
         let start = self.advance(); // on
-        let kind = if self.match_types(&[TokenType::State]) {
+        let kind = if self.check(TokenType::Ident) && self.peek().lexeme == "log" {
+            self.advance();
+            self.expect(TokenType::Matches, "Expected 'matches' after log")?;
+            let pattern = self.parse_regex_literal()?;
+            TriggerKind::LogMatch { pattern }
+        } else if self.match_types(&[TokenType::Message]) {
+            self.expect(TokenType::Dot, "Expected '.' after message in trigger")?;
+            let field_part = self
+                .expect(TokenType::Ident, "Expected field name after message.")?
+                .lexeme;
+            let field = format!("message.{field_part}");
+            self.expect(TokenType::Matches, "Expected 'matches' after message field")?;
+            let pattern = self.parse_regex_literal()?;
+            TriggerKind::MessageMatch { field, pattern }
+        } else if self.check(TokenType::Ident) && self.peek().lexeme.contains('.') {
+            let field = self.advance().lexeme.clone();
+            self.expect(TokenType::Matches, "Expected 'matches' after message field")?;
+            let pattern = self.parse_regex_literal()?;
+            TriggerKind::MessageMatch { field, pattern }
+        } else if self.match_types(&[TokenType::State]) {
             self.parse_state_trigger_kind()?
         } else if self.match_types(&[TokenType::Safety]) {
             let event = self
@@ -5053,6 +5301,44 @@ impl Parser {
         // Compute start for the following logic.
         let start = self.peek().clone();
 
+        // Parse stop_all_actuators(); as a dedicated safety statement.
+        if self.check(TokenType::Ident) && self.peek().lexeme == "stop_all_actuators" {
+            self.advance();
+            self.expect(TokenType::Lparen, "Expected '(' after stop_all_actuators")?;
+            self.expect(TokenType::Rparen, "Expected ')' after stop_all_actuators")?;
+            self.expect(
+                TokenType::Semicolon,
+                "Expected ';' after stop_all_actuators",
+            )?;
+            return Ok(Stmt::StopAllActuatorsStmt {
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+
+        // Parse run_pipeline name; pipeline execution statements.
+        if self.check(TokenType::Ident) && self.peek().lexeme == "run_pipeline" {
+            self.advance();
+            let name = self.expect(
+                TokenType::Ident,
+                "Expected pipeline name after run_pipeline",
+            )?;
+            self.expect(TokenType::Semicolon, "Expected ';' after run_pipeline")?;
+            return Ok(Stmt::RunPipelineStmt {
+                name: name.lexeme,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+
+        // Parse fallback resource selection statements.
+        if self.match_types(&[TokenType::Use]) {
+            let resource = self.expect(TokenType::Ident, "Expected fallback resource name")?;
+            self.expect(TokenType::Semicolon, "Expected ';' after use statement")?;
+            return Ok(Stmt::UseFallbackStmt {
+                resource: resource.lexeme,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+
         // Take this path when self.match types(&[TokenType::Return]).
         if self.match_types(&[TokenType::Return]) {
             let value = if self.check(TokenType::Semicolon) {
@@ -5160,12 +5446,23 @@ impl Parser {
             });
         }
 
-        // Take this path when self.match types(&[TokenType::Subscribe]).
         if self.match_types(&[TokenType::Subscribe]) {
             let target = self.parse_subscribe_target()?;
+            let mut filter = None;
+            if self.match_types(&[TokenType::Where]) {
+                let field = self.parse_dotted_name("Expected filter field after where")?;
+                self.expect(TokenType::Matches, "Expected 'matches' in subscribe filter")?;
+                let pattern = self.parse_regex_literal()?;
+                filter = Some(SubscribeFilterDecl {
+                    field,
+                    pattern,
+                    span: self.span_from(&start, self.previous()),
+                });
+            }
             self.expect(TokenType::Semicolon, "Expected ';' after subscribe")?;
             return Ok(Stmt::SubscribeStmt {
                 target,
+                filter,
                 span: self.span_from(&start, self.previous()),
             });
         }
@@ -5272,10 +5569,19 @@ impl Parser {
 
         // Take this path when self.match types(&[TokenType::Enter]).
         if self.match_types(&[TokenType::Enter]) {
-            let state = self.parse_label("Expected state name after enter")?;
+            let target = self.parse_label("Expected state or mode name after enter")?;
             self.expect(TokenType::Semicolon, "Expected ';' after enter statement")?;
+            if target.ends_with("_mode")
+                || matches!(target.as_str(), "normal" | "degraded" | "emergency")
+            {
+                let mode = target.strip_suffix("_mode").unwrap_or(&target).to_string();
+                return Ok(Stmt::EnterModeStmt {
+                    mode,
+                    span: self.span_from(&start, self.previous()),
+                });
+            }
             return Ok(Stmt::EnterStmt {
-                state_name: state,
+                state_name: target,
                 span: self.span_from(&start, self.previous()),
             });
         }
@@ -6161,6 +6467,15 @@ impl Parser {
             });
         }
 
+        // Take this path when self.match types(&[TokenType::RegexLiteral]).
+        if self.match_types(&[TokenType::RegexLiteral]) {
+            let tok = self.previous().clone();
+            return Ok(Expr::LiteralExpr {
+                value: LiteralValue::Regex(self.regex_from_token(&tok)?),
+                span: self.span_from(&tok, &tok),
+            });
+        }
+
         // Take this path when self.match types(&[TokenType::Number]).
         if self.match_types(&[TokenType::Number]) {
             let tok = self.previous().clone();
@@ -6270,6 +6585,32 @@ impl Parser {
         //
         // Example:
         // let result = instance.parse_property_name();
+
+        // Allow common method names that overlap with reliability keywords.
+        if self.match_types(&[TokenType::Matches]) {
+            let t = self.previous().clone();
+            return Ok(Token {
+                token_type: TokenType::Ident,
+                lexeme: "matches".into(),
+                value: TokenValue::Null,
+                unit: None,
+                line: t.line,
+                column: t.column,
+                offset: t.offset,
+            });
+        }
+        if self.check(TokenType::Ident) && self.peek().lexeme == "validate" {
+            let t = self.advance().clone();
+            return Ok(Token {
+                token_type: TokenType::Ident,
+                lexeme: "validate".into(),
+                value: TokenValue::Null,
+                unit: None,
+                line: t.line,
+                column: t.column,
+                offset: t.offset,
+            });
+        }
 
         // Compute lexeme for the following logic.
         let lexeme = self.parse_label("Expected property name after '.'")?;

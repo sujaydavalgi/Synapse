@@ -160,6 +160,18 @@ pub enum TokenType {
     And,
     Or,
     Not,
+    Watchdog,
+    Pipeline,
+    Recover,
+    Retry,
+    Fallback,
+    Isolated,
+    Jitter,
+    Backoff,
+    Times,
+    Matches,
+    Use,
+    RegexLiteral,
     Ident,
     Number,
     String,
@@ -741,6 +753,17 @@ fn keywords() -> HashMap<&'static str, TokenType> {
         ("and", TokenType::And),
         ("or", TokenType::Or),
         ("not", TokenType::Not),
+        ("watchdog", TokenType::Watchdog),
+        ("pipeline", TokenType::Pipeline),
+        ("recover", TokenType::Recover),
+        ("retry", TokenType::Retry),
+        ("fallback", TokenType::Fallback),
+        ("isolated", TokenType::Isolated),
+        ("jitter", TokenType::Jitter),
+        ("backoff", TokenType::Backoff),
+        ("times", TokenType::Times),
+        ("matches", TokenType::Matches),
+        ("use", TokenType::Use),
     ])
 }
 
@@ -969,16 +992,33 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
                 column += 1;
             }
             '/' => {
-                push_single(
-                    &mut tokens,
-                    TokenType::Slash,
-                    "/",
-                    start_line,
-                    start_column,
-                    start_offset,
-                );
-                i += 1;
-                column += 1;
+                // Emit a regex literal when slash begins a pattern, otherwise division.
+                if regex_literal_context(tokens.last()) {
+                    let (lexeme, advance_by) =
+                        lex_regex_literal(&chars, i, start_line, start_column, start_offset);
+                    tokens.push(Token {
+                        token_type: TokenType::RegexLiteral,
+                        lexeme,
+                        value: TokenValue::Null,
+                        unit: None,
+                        line: start_line,
+                        column: start_column,
+                        offset: start_offset,
+                    });
+                    i += advance_by;
+                    column += advance_by as u32;
+                } else {
+                    push_single(
+                        &mut tokens,
+                        TokenType::Slash,
+                        "/",
+                        start_line,
+                        start_column,
+                        start_offset,
+                    );
+                    i += 1;
+                    column += 1;
+                }
             }
             '%' => {
                 push_single(
@@ -1337,6 +1377,106 @@ fn is_ident_char(ch: char) -> bool {
 
     // Produce is ident start as the result.
     is_ident_start(ch) || is_digit(ch)
+}
+
+fn regex_literal_context(previous: Option<&Token>) -> bool {
+    // Decide whether `/` starts a regex literal instead of division.
+    //
+    // Parameters:
+    // - `previous` — prior emitted token, if any
+    //
+    // Returns:
+    // True when a regex literal is expected.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let is_regex = regex_literal_context(tokens.last());
+
+    // Treat file start and common pattern introducers as regex contexts.
+    let Some(prev) = previous else {
+        return true;
+    };
+    matches!(
+        prev.token_type,
+        TokenType::Assign
+            | TokenType::Lparen
+            | TokenType::Comma
+            | TokenType::Semicolon
+            | TokenType::Lbrace
+            | TokenType::Colon
+            | TokenType::Matches
+            | TokenType::Where
+            | TokenType::FatArrow
+            | TokenType::Return
+            | TokenType::Plus
+            | TokenType::Minus
+            | TokenType::Star
+            | TokenType::Lt
+            | TokenType::Lte
+            | TokenType::Gt
+            | TokenType::Gte
+            | TokenType::Eq
+            | TokenType::Neq
+            | TokenType::Let
+    )
+}
+
+fn lex_regex_literal(
+    chars: &[char],
+    start: usize,
+    line: u32,
+    column: u32,
+    offset: usize,
+) -> (String, usize) {
+    // Lex a `/pattern/flags` regex literal starting at the opening slash.
+    //
+    // Parameters:
+    // - `chars` — full source character buffer
+    // - `start` — index of opening `/`
+    // - `line` — source line for diagnostics
+    // - `column` — source column for diagnostics
+    // - `offset` — byte offset for diagnostics
+    //
+    // Returns:
+    // Tuple of raw lexeme text and number of consumed characters.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let (lexeme, n) = lex_regex_literal(&chars, i, line, column, offset);
+
+    // Walk until an unescaped closing slash marks the end of the pattern body.
+    let _ = (line, column, offset);
+    let mut i = start + 1;
+    let mut escaped = false;
+    while i < chars.len() {
+        let ch = chars[i];
+        if escaped {
+            escaped = false;
+            i += 1;
+            continue;
+        }
+        if ch == '\\' {
+            escaped = true;
+            i += 1;
+            continue;
+        }
+        if ch == '/' {
+            i += 1;
+            break;
+        }
+        i += 1;
+    }
+
+    // Consume optional trailing flag letters (`i`, `m`, `s`).
+    while i < chars.len() && matches!(chars[i], 'i' | 'm' | 's') {
+        i += 1;
+    }
+    let lexeme: String = chars[start..i].iter().collect();
+    (lexeme, i - start)
 }
 
 fn push_single(

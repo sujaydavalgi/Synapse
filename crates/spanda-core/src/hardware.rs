@@ -915,6 +915,7 @@ fn verify_resource_budget(
         battery_pct_max,
         memory_mb_max,
         cpu_pct_max,
+        gpu_pct_max,
         network_mbps_max,
         storage_mb_max,
         span,
@@ -968,6 +969,26 @@ fn verify_resource_budget(
             items.push(error(
                 "cpu",
                 format!("Estimated task CPU {duty:.1}% exceeds budget {cpu_max}%"),
+                line,
+                column,
+            ));
+        }
+    }
+
+    // Emit output when gpu pct max provides a gpu max.
+    if let Some(gpu_max) = gpu_pct_max {
+        let duty = (ESTIMATED_TASK_COST_MS / task_interval_ms.max(1.0)) * 100.0;
+        if duty <= *gpu_max {
+            items.push(pass(
+                "gpu",
+                format!("Estimated task GPU {duty:.1}% within budget {gpu_max}%"),
+                line,
+                column,
+            ));
+        } else {
+            items.push(error(
+                "gpu",
+                format!("Estimated task GPU {duty:.1}% exceeds budget {gpu_max}%"),
                 line,
                 column,
             ));

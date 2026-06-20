@@ -148,6 +148,10 @@ pub fn resolve_type_name(name: &str) -> Result<SpandaType, String> {
             name: name.to_string(),
         }),
         "Scan" => Ok(SpandaType::Scan),
+        "Regex" => Ok(SpandaType::Regex),
+        "Match" => Ok(SpandaType::Match),
+        "Capture" => Ok(SpandaType::Capture),
+        "CaptureGroup" => Ok(SpandaType::CaptureGroup),
         other if is_known_domain_type(other) => Ok(SpandaType::Named {
             name: other.to_string(),
         }),

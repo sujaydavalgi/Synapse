@@ -1,0 +1,13 @@
+robot VisionRover {
+    sensor camera: Camera on "/camera";
+
+    task vision every 50ms {
+        budget {
+            cpu <= 40%;
+            memory <= 512 MB;
+            gpu <= 30%;
+            battery <= 5%;
+        }
+        emergency_stop;
+    }
+}
