@@ -3,15 +3,14 @@ node_modules/
 dist/
 target/
 
-/*
+# env
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-*/
 
-// typescript
+# typescript
 *.tsbuildinfo
 
 //packages
