@@ -298,21 +298,14 @@ mod tests {
 
     #[test]
     fn missing_library_does_not_panic() {
-        // Missing library does not panic.
-        //
-        // Parameters:
-        // None.
-        //
-        // Returns:
-        // Nothing.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = spanda_core::transport_rclrs_native::missing_library_does_not_panic();
+        // Native loader calls must never panic, whether or not the cdylib is present.
+        let available = sdk_available();
+        let _ = publish("/x", "y");
+        let _ = subscribe("/x");
 
-        assert!(!sdk_available());
-        assert!(!publish("/x", "y"));
+        // When no library path is configured, the SDK should report unavailable.
+        if std::env::var("SPANDA_ROS2_RCLRS_LIB").is_err() {
+            assert!(!available);
+        }
     }
 }
