@@ -202,3 +202,62 @@ robot R {
 "#;
     run(source, RunOptions::default()).expect("py_add via subprocess bridge");
 }
+
+#[test]
+fn extern_cpp_fn_parses_with_bridge_kind() {
+    let source = r#"
+extern cpp fn cpp_version() -> Int;
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() { wheels.stop(); }
+}
+"#;
+    check(source).expect("extern cpp fn should parse and type-check");
+    let sir = spanda_core::lower_to_sir(source).expect("sir");
+    assert_eq!(
+        sir.externs[0].bridge,
+        spanda_core::foundations::BridgeKind::Cpp
+    );
+}
+
+#[test]
+fn extern_cpp_fn_fails_at_runtime_without_handler() {
+    let source = r#"
+extern cpp fn cpp_missing() -> Int;
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let _ = cpp_missing();
+    wheels.stop();
+  }
+}
+"#;
+    let err = run(source, RunOptions::default()).unwrap_err();
+    assert!(
+        err.to_string().contains("Unknown cpp extern")
+            || err.to_string().contains("not found")
+            || err.to_string().contains("C++")
+    );
+}
+
+#[test]
+fn extern_cpp_fn_runs_via_subprocess_bridge() {
+    if !spanda_core::bridge::cpp::bridge_available() {
+        return;
+    }
+    let source = r#"
+extern cpp fn cpp_add(a: Int, b: Int) -> Int;
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let sum = cpp_add(10, 32);
+    let _ = sum;
+    wheels.stop();
+  }
+}
+"#;
+    run(source, RunOptions::default()).expect("cpp_add via subprocess bridge");
+}

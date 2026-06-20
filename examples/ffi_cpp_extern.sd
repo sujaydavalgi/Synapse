@@ -1,0 +1,12 @@
+// C++ FFI bridge — calls cpp_version via subprocess bridge when the helper binary is available.
+extern cpp fn cpp_version() -> Int;
+
+robot CppBridge {
+  actuator wheels: DifferentialDrive;
+
+  behavior run() {
+    let v = cpp_version();
+    let _ = v;
+    wheels.stop();
+  }
+}

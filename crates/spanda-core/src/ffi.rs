@@ -43,15 +43,7 @@ impl FfiRegistry {
             return crate::bridge::python::call_extern(decl, args);
         }
         if matches!(decl.bridge, BridgeKind::Cpp) && !self.handlers.contains_key(&decl.name) {
-            return Err(SpandaError::Runtime {
-                message: format!(
-                    "Bridge '{}' extern fn '{}' is declared but not linked — \
-                     C++ shims are not yet available (see docs/ffi-and-ecosystem.md)",
-                    decl.bridge.as_str(),
-                    decl.name
-                ),
-                line: decl.span.start.line,
-            });
+            return crate::bridge::cpp::call_extern(decl, args);
         }
 
         let handler = self

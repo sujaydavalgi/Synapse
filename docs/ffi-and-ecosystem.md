@@ -15,10 +15,10 @@ Spanda is designed to **orchestrate** existing robotics and AI ecosystems — no
 | Layer | Status | Notes |
 |-------|--------|-------|
 | `extern fn` syntax | Implemented | Parsed and type-checked in Rust core |
-| `FfiRegistry` | Partially implemented | Stub handlers; `extern python`/`extern cpp` fail at runtime until linked |
+| `FfiRegistry` | Partially implemented | Stub handlers; `extern python`/`extern cpp` subprocess bridges |
 | N-API / WASM bindings | Partially implemented | `check` and `run` only |
 | Python bridge | **Partially implemented** | Subprocess bridge via `scripts/spanda_python_bridge.py` |
-| C/C++ bridge | Planned | See syntax below |
+| C/C++ bridge | **Partially implemented** | Subprocess bridge via build-time C++ helper binary |
 | ROS2 bridge | Stubbed | `Ros2AdapterStub` logs calls; no live ROS2 node |
 | OpenCV / PyTorch / TensorFlow | Planned | Import paths reserved in std registry |
 
@@ -52,6 +52,30 @@ let sum = py_add(2, 3);
 Protocol: Rust sends `{"fn":"py_add","args":[2,3]}` on stdin; Python returns `{"ok":true,"result":5}`.
 
 Calling `extern python fn` without a registered handler fails with `Unknown python extern 'name'`.
+
+### Subprocess C++ bridge (implemented)
+
+`spanda-core` compiles a small C++ helper at build time when a C++ compiler is available (`CXX` or `c++`). Override with:
+
+```bash
+export SPANDA_CPP_BRIDGE=/path/to/spanda_cpp_bridge
+spanda run examples/ffi_cpp_extern.sd
+```
+
+Built-in handlers in `crates/spanda-core/src/bridge/spanda_cpp_bridge.cpp`:
+
+- `cpp_add(a, b)` — numeric sum
+- `cpp_echo(x)` — identity
+- `cpp_version()` — returns `1`
+
+```spanda
+extern cpp fn cpp_add(a: Int, b: Int) -> Int;
+let sum = cpp_add(2, 3);
+```
+
+Uses the same JSON protocol as the Python bridge. Unknown handlers fail with `Unknown cpp extern 'name'`.
+
+Real static/dynamic linking via cxx/bindgen is **not** implemented yet.
 
 ## Planned import syntax
 
