@@ -97,7 +97,7 @@ pub struct RobotState {
     pub emergency_stop: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PoseState {
     pub x: f64,
     pub y: f64,
@@ -106,7 +106,7 @@ pub struct PoseState {
     pub z: Option<f64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VelocityState {
     pub linear: f64,
     pub angular: f64,
@@ -176,6 +176,14 @@ pub struct RunOptions {
     /// Replay start offset in milliseconds.
     #[serde(default)]
     pub replay_from_ms: Option<f64>,
+
+    /// Scheduler clock: sim-time (default) or wall-clock RTOS ticks.
+    #[serde(default)]
+    pub scheduler_clock: crate::scheduler::SchedulerClock,
+
+    /// Sleep between playback frames using recorded timestamps.
+    #[serde(default)]
+    pub playback_wall_clock: bool,
 }
 
 fn default_max_loop_iterations() -> usize {

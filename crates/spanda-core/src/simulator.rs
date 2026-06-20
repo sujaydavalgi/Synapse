@@ -718,6 +718,17 @@ pub fn create_default_simulator(config: SimulatorConfig) -> Simulator {
     Simulator::new(config)
 }
 
+impl crate::replay::ReplayStateTarget for Simulator {
+    fn apply_replay_state(&mut self, snapshot: &crate::replay::ReplayStateSnapshot) {
+        // Apply a recorded snapshot during frame-by-frame mission playback.
+        self.pose = snapshot.pose.clone();
+        self.velocity = snapshot.velocity.clone();
+        self.emergency_stop = snapshot.emergency_stop;
+        self.follow_queue.clear();
+        self.thrust = 0.0;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

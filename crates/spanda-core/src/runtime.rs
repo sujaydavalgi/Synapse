@@ -34,6 +34,7 @@ use crate::safety::{
     create_safety_config_from_robot, interpolate_poses, Pose2d, SafetyMonitor, SafetyZoneRuntime,
     SafetyZoneShape, ValidateActionResult,
 };
+use crate::scheduler::{self, SchedulerClock};
 use crate::security::{
     RobotIdentity, SecretHandle, SecretSource, SecurePolicy, SecurityContext, TrustLevel,
 };
@@ -811,6 +812,8 @@ pub struct InterpreterOptions {
     pub replay_trace: bool,
     pub record_trace: bool,
     pub trace_source: Option<String>,
+    pub scheduler_clock: SchedulerClock,
+    pub replay_deterministic: bool,
 
     /// Max trigger dispatches per scheduler tick (hardware-aware storm protection).
     pub max_triggers_per_tick: usize,
@@ -846,6 +849,8 @@ impl Default for InterpreterOptions {
             replay_trace: false,
             record_trace: false,
             trace_source: None,
+            scheduler_clock: SchedulerClock::Sim,
+            replay_deterministic: false,
             max_triggers_per_tick: MAX_TRIGGERS_PER_TICK,
         }
     }
@@ -2317,6 +2322,30 @@ impl<B: RobotBackend> Interpreter<B> {
         }
     }
 
+    fn capture_replay_state(&self) -> crate::replay::ReplayStateSnapshot {
+        // Capture the current robot snapshot for mission trace playback.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Pose, velocity, safety, and mode snapshot.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let snapshot = interp.capture_replay_state();
+
+        let state = self.backend.get_state();
+        crate::replay::ReplayStateSnapshot {
+            pose: state.pose,
+            velocity: state.velocity,
+            emergency_stop: state.emergency_stop,
+            active_mode: Some(self.active_mode.clone()),
+        }
+    }
+
     fn record_mission_event(&mut self, event: impl Into<String>, payload: serde_json::Value) {
         // Append one frame to the mission trace when recording is enabled.
         //
@@ -2335,9 +2364,18 @@ impl<B: RobotBackend> Interpreter<B> {
         // interp.record_mission_event("task_tick", json!({"task":"sense"}));
 
         // Skip when trace recording is disabled.
-        if let Some(trace) = self.mission_trace.as_mut() {
-            trace.record(self.sim_time_ms, event, payload);
+        if self.mission_trace.is_some() {
+            let state = self.capture_replay_state();
+            let sim_time = self.sim_time_ms;
+            if let Some(trace) = self.mission_trace.as_mut() {
+                trace.record_with_state(sim_time, event, payload, Some(state));
+            }
         }
+    }
+
+    fn uses_wall_scheduler(&self) -> bool {
+        // Report whether the scheduler should sleep on wall-clock deadlines.
+        self.options.scheduler_clock == SchedulerClock::Wall && !self.options.replay_deterministic
     }
 
     fn touch_task_heartbeat(&mut self, task_name: &str) {
@@ -3327,9 +3365,21 @@ impl<B: RobotBackend> Interpreter<B> {
             budget,
         };
 
+        let wall_mode = self.uses_wall_scheduler();
+        let wall_start = std::time::Instant::now();
+        let mut next_deadline = wall_start;
+
         // Process each max loop iteration.
         for iteration in 0..self.options.max_loop_iterations {
+            let sim_time = if wall_mode {
+                let deadline = scheduler::advance_wall_tick(&mut next_deadline, interval_ms);
+                scheduler::sleep_until(deadline);
+                scheduler::elapsed_ms(wall_start, std::time::Instant::now())
+            } else {
+                (iteration as f64 + 1.0) * interval_ms
+            };
             self.backend.tick(interval_ms);
+            self.sim_time_ms = sim_time;
             self.triggers_dispatched_this_tick = 0;
             self.telemetry.record_scheduler_tick();
             self.telemetry
@@ -3339,8 +3389,6 @@ impl<B: RobotBackend> Interpreter<B> {
                 iteration + 1,
                 priority_label(priority)
             ));
-            let sim_time = (iteration as f64 + 1.0) * interval_ms;
-            self.sim_time_ms = sim_time;
             self.run_timer_triggers(sim_time)?;
             self.run_condition_triggers()?;
             self.run_trigger_maintenance()?;
@@ -3481,11 +3529,22 @@ impl<B: RobotBackend> Interpreter<B> {
             "start tasks={} base_tick={base_tick}ms",
             schedules.len()
         ));
+        let wall_mode = self.uses_wall_scheduler();
+        let wall_start = std::time::Instant::now();
+        let mut next_deadline = wall_start;
 
         // Process each max loop iteration.
         for iteration in 0..self.options.max_loop_iterations {
-            self.backend.tick(base_tick);
-            sim_time += base_tick;
+            let dt_ms = if wall_mode {
+                let deadline = scheduler::advance_wall_tick(&mut next_deadline, base_tick);
+                scheduler::sleep_until(deadline);
+                sim_time = scheduler::elapsed_ms(wall_start, std::time::Instant::now());
+                base_tick
+            } else {
+                sim_time += base_tick;
+                base_tick
+            };
+            self.backend.tick(dt_ms);
             self.sim_time_ms = sim_time;
             self.triggers_dispatched_this_tick = 0;
             self.telemetry.record_scheduler_tick();
@@ -3595,11 +3654,23 @@ impl<B: RobotBackend> Interpreter<B> {
             "scheduler: trigger-only loop with base tick {base_tick}ms"
         ));
         self.trace_scheduler_log(format!("trigger-only base_tick={base_tick}ms"));
+        let wall_mode = self.uses_wall_scheduler();
+        let wall_start = std::time::Instant::now();
+        let mut next_deadline = wall_start;
 
         // Process each max loop iteration.
         for iteration in 0..self.options.max_loop_iterations {
-            self.backend.tick(base_tick);
-            sim_time += base_tick;
+            let dt_ms = if wall_mode {
+                let deadline = scheduler::advance_wall_tick(&mut next_deadline, base_tick);
+                scheduler::sleep_until(deadline);
+                sim_time = scheduler::elapsed_ms(wall_start, std::time::Instant::now());
+                base_tick
+            } else {
+                sim_time += base_tick;
+                base_tick
+            };
+            self.backend.tick(dt_ms);
+            self.sim_time_ms = sim_time;
             self.triggers_dispatched_this_tick = 0;
             self.telemetry.record_scheduler_tick();
             self.run_timer_triggers(sim_time)?;

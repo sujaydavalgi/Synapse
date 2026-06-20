@@ -31,6 +31,7 @@ pub mod reliability_runtime;
 pub mod replay;
 pub mod runtime;
 pub mod safety;
+pub mod scheduler;
 pub mod security;
 pub mod serialize;
 pub mod simulator;
@@ -68,7 +69,11 @@ pub use hardware::{
 };
 pub use lint::{lint, LintIssue, LintReport, LintSeverity};
 pub use modules::{load_project_modules, ModuleRegistry};
-pub use replay::{parse_replay_offset, verify_traces, MissionTrace, TraceVerification};
+pub use replay::{
+    parse_replay_offset, playback_frames, verify_traces, MissionTrace, PlaybackReport,
+    ReplayStateSnapshot, ReplayStateTarget, TraceVerification,
+};
+pub use scheduler::SchedulerClock;
 pub use sir::{
     lower_program, SirBehavior, SirExtern, SirFunction, SirParam, SirProgram, SirStmt,
     SirVisibility,
@@ -415,6 +420,11 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
     let trace_realtime = options.trace_realtime;
     let trace_source = options.trace_source.clone();
     let record_trace = options.record_trace;
+    let scheduler_clock = if options.replay_deterministic {
+        scheduler::SchedulerClock::Sim
+    } else {
+        options.scheduler_clock
+    };
     let mut interp = Interpreter::new(
         sim,
         InterpreterOptions {
@@ -429,6 +439,8 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
             replay_trace: options.replay_trace,
             record_trace,
             trace_source,
+            scheduler_clock,
+            replay_deterministic: options.replay_deterministic,
             ..Default::default()
         },
     );
@@ -498,6 +510,33 @@ pub fn replay_mission(
         })?;
     let verification = verify_traces(&expected, actual, from_ms);
     Ok((result, verification))
+}
+
+pub fn playback_mission(
+    trace_path: &str,
+    options: RunOptions,
+) -> Result<(PlaybackReport, RobotState), SpandaError> {
+    // Play back recorded mission frames without re-executing program logic.
+    //
+    // Parameters:
+    // - `trace_path` — input `.trace` file
+    // - `options` — playback offset and wall-clock pacing options
+    //
+    // Returns:
+    // Playback report and final robot state after applying snapshots.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let (report, state) = playback_mission("mission.trace", RunOptions::default())?;
+
+    let trace = MissionTrace::load(trace_path)?;
+    let from_ms = options.replay_from_ms.unwrap_or(0.0);
+    let frames: Vec<_> = trace.frames_from(from_ms).to_vec();
+    let mut sim = create_default_simulator(SimulatorConfig::default());
+    let report = playback_frames(&frames, &mut sim, options.playback_wall_clock);
+    Ok((report, sim.get_state()))
 }
 
 pub fn run_debug(source: &str, options: DebugOptions) -> Result<DebugSession, SpandaError> {

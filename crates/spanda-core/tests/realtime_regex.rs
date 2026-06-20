@@ -194,3 +194,52 @@ fn verify_traces_detects_event_mismatch() {
     assert!(!report.ok);
     assert!(!report.mismatches.is_empty());
 }
+
+#[test]
+fn mission_trace_includes_state_snapshots() {
+    let source = r#"
+robot R {
+    task sense every 10ms {
+        emergency_stop;
+    }
+}
+"#;
+    let result = spanda_core::run(
+        source,
+        spanda_core::RunOptions {
+            max_loop_iterations: 2,
+            record_trace: true,
+            trace_source: Some("sense.sd".into()),
+            ..Default::default()
+        },
+    )
+    .expect("run");
+    let trace = result.mission_trace.expect("trace");
+    assert!(trace.frames.iter().any(|frame| frame.state.is_some()));
+}
+
+#[test]
+fn playback_applies_recorded_state() {
+    use spanda_core::replay::playback_frames;
+    use spanda_core::simulator::{create_default_simulator, SimulatorConfig};
+    let source = r#"
+robot R {
+    task sense every 10ms {
+        emergency_stop;
+    }
+}
+"#;
+    let result = spanda_core::run(
+        source,
+        spanda_core::RunOptions {
+            max_loop_iterations: 2,
+            record_trace: true,
+            ..Default::default()
+        },
+    )
+    .expect("run");
+    let trace = result.mission_trace.expect("trace");
+    let mut sim = create_default_simulator(SimulatorConfig::default());
+    let report = playback_frames(trace.frames.as_slice(), &mut sim, false);
+    assert!(report.states_applied >= 1);
+}

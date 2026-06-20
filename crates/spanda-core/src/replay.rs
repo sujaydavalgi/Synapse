@@ -1,9 +1,19 @@
 //! Deterministic mission trace recording and replay for simulation runs.
 //!
-use crate::error::SpandaError;
+use crate::error::{PoseState, SpandaError, VelocityState};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+
+/// Robot state captured for frame-by-frame playback without re-running program logic.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReplayStateSnapshot {
+    pub pose: PoseState,
+    pub velocity: VelocityState,
+    pub emergency_stop: bool,
+    #[serde(default)]
+    pub active_mode: Option<String>,
+}
 
 /// One recorded simulation frame for deterministic replay.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -12,6 +22,8 @@ pub struct TraceFrame {
     pub event: String,
     #[serde(default)]
     pub payload: serde_json::Value,
+    #[serde(default)]
+    pub state: Option<ReplayStateSnapshot>,
 }
 
 /// Full mission trace file format.
@@ -72,11 +84,42 @@ impl MissionTrace {
         // trace.record(10.0, "task_tick", json!({"task":"sense"}));
 
         // Push the frame in arrival order for deterministic playback.
+        self.record_with_state(sim_time_ms, event, payload, None);
+    }
+
+    pub fn record_with_state(
+        &mut self,
+        sim_time_ms: f64,
+        event: impl Into<String>,
+        payload: serde_json::Value,
+        state: Option<ReplayStateSnapshot>,
+    ) {
+        // Append one trace frame with optional world-state snapshot.
+        //
+        // Parameters:
+        // - `sim_time_ms` — simulation clock in milliseconds
+        // - `event` — event label
+        // - `payload` — structured payload
+        // - `state` — optional robot snapshot for playback mode
+        //
+        // Returns:
+        // Nothing.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // trace.record_with_state(10.0, "scheduler_tick", json!({}), Some(snapshot));
+
         self.frames.push(TraceFrame {
             sim_time_ms,
             event: event.into(),
             payload,
+            state,
         });
+        if self.frames.iter().any(|f| f.state.is_some()) {
+            self.version = 2;
+        }
     }
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), SpandaError> {
@@ -259,5 +302,65 @@ pub fn verify_traces(
         ok: mismatches.is_empty(),
         matched: shared,
         mismatches,
+    }
+}
+
+/// Target that can receive replayed state snapshots during playback.
+pub trait ReplayStateTarget {
+    fn apply_replay_state(&mut self, snapshot: &ReplayStateSnapshot);
+}
+
+/// Summary of a frame-by-frame playback run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlaybackReport {
+    pub frames_applied: usize,
+    pub states_applied: usize,
+    pub events: Vec<String>,
+}
+
+pub fn playback_frames<T: ReplayStateTarget>(
+    frames: &[TraceFrame],
+    target: &mut T,
+    wall_clock: bool,
+) -> PlaybackReport {
+    // Apply trace frames sequentially without executing program logic.
+    //
+    // Parameters:
+    // - `frames` — slice of frames to play back
+    // - `target` — backend receiving state snapshots
+    // - `wall_clock` — sleep between frames using recorded timestamps
+    //
+    // Returns:
+    // Playback summary with applied frame counts.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let report = playback_frames(trace.frames_from(0.0), &mut sim, true);
+
+    let mut states_applied = 0usize;
+    let mut events = Vec::new();
+    let mut prev_sim_ms = 0.0;
+
+    for frame in frames {
+        if wall_clock {
+            let delta_ms = frame.sim_time_ms - prev_sim_ms;
+            if delta_ms > 0.0 {
+                std::thread::sleep(std::time::Duration::from_secs_f64(delta_ms / 1000.0));
+            }
+            prev_sim_ms = frame.sim_time_ms;
+        }
+        if let Some(state) = &frame.state {
+            target.apply_replay_state(state);
+            states_applied += 1;
+        }
+        events.push(frame.event.clone());
+    }
+
+    PlaybackReport {
+        frames_applied: frames.len(),
+        states_applied,
+        events,
     }
 }
