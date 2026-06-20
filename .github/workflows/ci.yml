@@ -39,9 +39,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - uses: ros-tooling/setup-ros@v0.7
-        with:
-          required-ros-distributions: humble
+      - name: Setup ROS 2 Humble (pinned ros-apt-source)
+        env:
+          ROS_APT_SOURCE_VERSION: "1.2.0"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+          curl --fail --location --retry 3 --retry-delay 2 \
+            -o /tmp/ros2-apt-source.deb \
+            "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.jammy_all.deb"
+          sudo dpkg -i /tmp/ros2-apt-source.deb
+          sudo apt-get update
+          sudo apt-get install -y ros-humble-ros-base
       - name: Install ROS message packages for rclrs
         run: sudo apt-get update && sudo apt-get install -y ros-humble-test-msgs
       - name: Test native rclrs crate

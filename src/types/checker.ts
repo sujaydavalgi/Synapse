@@ -3181,11 +3181,15 @@ class TypeChecker {
       }
     }
 
-    if (expr.callee.kind !== "MemberExpr" || expr.callee.object.kind !== "IdentExpr") {
+    if (expr.callee.kind !== "MemberExpr") {
       this.error("Invalid call target", expr.span.start.line, expr.span.start.column);
       return { kind: "void" };
     }
     const member = expr.callee;
+    if (member.object.kind !== "IdentExpr") {
+      this.error("Invalid call target", expr.span.start.line, expr.span.start.column);
+      return { kind: "void" };
+    }
     const targetName = member.object.name;
     const sym = this.symbols.get(targetName);
 

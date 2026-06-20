@@ -546,17 +546,15 @@ fn human_run(source: &str, file: &str, command: &str, opts: RunOptions) {
             }
 
             // Report mission trace output path when recording is enabled.
-            if opts.record_trace {
-                if result.mission_trace.is_some() {
-                    let path = opts.trace_output.clone().unwrap_or_else(|| {
-                        if file.ends_with(".sd") {
-                            format!("{}.trace", &file[..file.len() - 3])
-                        } else {
-                            format!("{file}.trace")
-                        }
-                    });
-                    println!("  Mission trace: {path}");
-                }
+            if opts.record_trace && result.mission_trace.is_some() {
+                let path = opts.trace_output.clone().unwrap_or_else(|| {
+                    if let Some(stem) = file.strip_suffix(".sd") {
+                        format!("{stem}.trace")
+                    } else {
+                        format!("{file}.trace")
+                    }
+                });
+                println!("  Mission trace: {path}");
             }
             let label = if command == "sim" {
                 "Simulation"

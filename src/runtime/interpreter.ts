@@ -51,7 +51,7 @@ import { callExternBridge } from "../ffi/subprocess-bridge.js";
 import { ConcurrencyRuntime } from "../concurrency.js";
 import type { ModuleRegistry } from "../modules/index.js";
 import type { ExternFnDecl, ModuleFnDecl, ResourceBudgetDecl, TaskDecl, TaskPriority } from "../foundations.js";
-import type { RegexPattern } from "../regex.js";
+import type { CaptureResult, RegexPattern } from "../regex.js";
 import {
   regexCapture,
   regexFind,
@@ -98,7 +98,7 @@ export type RuntimeValue =
   | { kind: "task_handle"; id: number }
   | { kind: "future"; funcName: string; args: RuntimeValue[]; resolved: RuntimeValue | null }
   | { kind: "regex"; pattern: RegexPattern }
-  | { kind: "capture"; groups: string[] };
+  | { kind: "capture"; result: CaptureResult };
 
 export type MotionCommand =
   | { kind: "drive"; linear: number; angular: number; actuator: string }
@@ -2215,7 +2215,7 @@ export class Interpreter {
         if (!cap) {
           return { kind: "void" };
         }
-        return { kind: "capture", groups: cap.groups };
+        return { kind: "capture", result: cap };
       }
       default:
         throw new RuntimeError(`Unknown string method '${method}'`, expr.span.start.line);
