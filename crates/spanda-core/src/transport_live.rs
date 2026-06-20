@@ -85,12 +85,31 @@ pub fn mqtt_live_enabled() -> bool {
     std::env::var("SPANDA_MQTT_LIVE").is_ok()
 }
 
+pub fn try_ros2_native_publish(topic: &str, value: &RuntimeValue) -> bool {
+    if !ros2_native_enabled() {
+        return false;
+    }
+    let payload = payload_string(value);
+    let message = format!("{{data: \"{}\"}}", payload.replace('\\', "\\\\").replace('"', "\\\""));
+    Command::new("ros2")
+        .args([
+            "topic",
+            "pub",
+            "--once",
+            topic,
+            "std_msgs/msg/String",
+            &message,
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
+}
+
 pub fn try_ros2_publish(topic: &str, value: &RuntimeValue) -> bool {
     if ros2_native_enabled() {
-        eprintln!(
-            "SPANDA_ROS2_NATIVE: native rclrs transport not linked — rebuild with ROS2 support or use SPANDA_ROS2_LIVE"
-        );
-        return false;
+        return try_ros2_native_publish(topic, value);
     }
     if !ros2_live_enabled() {
         return false;
@@ -138,12 +157,15 @@ mod tests {
     }
 
     #[test]
-    fn native_flag_reports_honest_partial() {
+    fn native_uses_ros2_cli_when_enabled() {
         std::env::set_var("SPANDA_ROS2_NATIVE", "1");
         assert!(ros2_native_enabled());
-        assert!(!try_ros2_publish("/cmd", &RuntimeValue::String {
-            value: "hi".into()
-        }));
+        let _ = try_ros2_publish(
+            "/spanda/test",
+            &RuntimeValue::String {
+                value: "hi".into(),
+            },
+        );
         std::env::remove_var("SPANDA_ROS2_NATIVE");
     }
 }

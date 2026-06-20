@@ -6,10 +6,10 @@
 use crate::category::PackageCategory;
 use crate::registry::RegistryEntry;
 use crate::safety::SafetyLevel;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct RemoteRegistryEntry {
     pub name: String,
     pub description: String,
@@ -29,7 +29,7 @@ pub fn registry_base_url() -> Option<String> {
         .filter(|url| !url.is_empty())
 }
 
-fn fetch_index_json(url: &str) -> Result<String, String> {
+pub fn fetch_index_json(url: &str) -> Result<String, String> {
     if let Ok(output) = std::process::Command::new("curl")
         .args(["-fsSL", url])
         .output()
