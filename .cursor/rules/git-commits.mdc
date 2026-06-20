@@ -1,0 +1,29 @@
+---
+description: Git commits must use sujaydavalgi only — no Cursor co-author
+alwaysApply: true
+---
+
+# Git Commits
+
+When creating git commits in this repository:
+
+- Author must be **Sujay Davalgi** / **sujaydavalgi** (`sujay@davalgi.com` or `sujaydavalgi@users.noreply.github.com`).
+- **Never** add `Co-authored-by: Cursor <cursoragent@cursor.com>` or any Cursor/agent co-author trailer.
+- **Never** add any `Co-authored-by` line unless the user explicitly requests a specific human co-author.
+- Keep commit messages clean: summary + body only, no agent attribution footers.
+
+## Logical chunks
+
+**Always commit in logically separate chunks** — never one large catch-all commit when the work spans distinct features.
+
+Split by cohesive unit of change, for example:
+- One feature or phase per commit (e.g. `verify` block, then `observe` fusion, then scheduler)
+- Rust core vs TypeScript mirror for the same feature can be one commit if they are inseparable; otherwise split
+- Tests and examples with the feature they cover, not in a separate "misc tests" commit
+- Refactors or unrelated fixes in their own commits
+
+Before committing, use `git status` and `git diff` to group related files. Stage and commit each group separately with a focused message. Push only when the user asks (or after all chunks are committed, if they said to push).
+
+If a session produced many unrelated changes, prefer multiple commits over squashing everything into one.
+
+If a commit message would include a Cursor co-author trailer, omit it entirely.

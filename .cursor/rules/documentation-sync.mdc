@@ -1,0 +1,57 @@
+---
+description: Keep README and docs in sync after major feature, CLI, or architecture changes
+alwaysApply: true
+---
+
+# Documentation Sync
+
+After **major** changes (new features, CLI commands/flags, runtime behavior, architecture, CI, release scope, or large refactors), update user-facing documentation in the **same PR or session** — do not leave docs stale.
+
+## When this applies
+
+Treat the change as major if it affects any of:
+
+- Language syntax, semantics, or runtime behavior
+- CLI commands, flags, or output formats
+- Architecture, crate layout, or CI jobs
+- Feature status (stable ↔ experimental ↔ planned)
+- Roadmap, release scope, or product positioning
+- New examples, transports, or integrations (ROS2, FFI, fleet, triggers, etc.)
+
+Small bug fixes, refactors with no user-visible effect, and test-only changes do **not** require doc updates unless CI or contributor workflow changed.
+
+## Required updates (checklist)
+
+Always review these after major work:
+
+| File | Update when |
+|------|-------------|
+| `README.md` | New capabilities, CLI, examples, differentiators, or roadmap shift |
+| `CHANGELOG.md` | Any user-visible addition, fix, or breaking change |
+| `docs/feature-status.md` | Stability tier or capability matrix changes |
+| `docs/getting-started.md` | New commands, workflows, or demo paths |
+| `docs/README.md` | New guides, repo layout, or doc index changes |
+
+Also update topic-specific docs when relevant:
+
+| Change type | Docs to update |
+|-------------|----------------|
+| Language / syntax | `docs/spanda-language.md`, dedicated guide if one exists (e.g. `docs/triggers.md`) |
+| Runtime / compiler | `docs/architecture.md`, `docs/spanda-architecture.md` |
+| Concurrency / fleet / triggers | `docs/concurrency.md`, `docs/triggers.md` |
+| Hardware / deploy / verify | `docs/hardware-compatibility.md` |
+| Packages / registry | `docs/packages.md`, `docs/spanda-toml.md`, `docs/registry.md` |
+| FFI / ROS2 / transports | `docs/ffi-and-ecosystem.md` |
+| Roadmap / release planning | `docs/roadmap.md`, `docs/product-strategy.md` |
+| Contributor workflow | `CONTRIBUTING.md` |
+| VS Code / LSP / editor | `editor/vscode/README.md`, `docs/getting-started.md` (LSP section) |
+
+## Workflow
+
+1. Implement the feature and tests.
+2. Before finishing, walk the checklist above and update every affected doc.
+3. Add or reference a runnable example; link it from `README.md` and/or `docs/getting-started.md` if it is a key demo.
+4. Add an `[Unreleased]` entry to `CHANGELOG.md` for user-visible changes.
+5. If feature status changed, update `docs/feature-status.md` and `docs/roadmap.md`.
+
+Do **not** consider a major change complete until documentation reflects it.

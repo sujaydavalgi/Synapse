@@ -1,0 +1,11 @@
+#!/bin/sh
+# Strip Cursor/agent co-author trailers from commit messages.
+# Enable once per clone: git config core.hooksPath .githooks
+
+msg_file="$1"
+tmp_file="${msg_file}.tmp"
+
+grep -viE '^co-authored-by:[[:space:]]*(cursor|cursoragent|cursor agent)[[:space:]]*<' "$msg_file" > "$tmp_file" \
+  && mv "$tmp_file" "$msg_file"
+
+exit 0

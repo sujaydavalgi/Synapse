@@ -1,0 +1,68 @@
+---
+description: Inline API and logic documentation for Rust and TypeScript
+alwaysApply: true
+---
+
+# Inline Documentation
+
+Every **module** and **function/method** in Rust (`crates/`) and TypeScript (`src/`, `packages/`) must be documented.
+
+## Module (file top)
+
+- **Rust:** `//!` block describing module purpose.
+- **TypeScript:** `/** ... @module */` block describing module purpose.
+
+## Function API doc (inside the body, first lines)
+
+Place the API doc **inside** the function body (not `///` / JSDoc above the signature):
+
+```rust
+pub fn parse_str(content: &str) -> PackageResult<Self> {
+    // Parse TOML manifest text into a validated struct.
+    //
+    // Parameters:
+    // - `content` — raw `spanda.toml` source
+    //
+    // Returns:
+    // Parsed manifest, or a parse/validation error.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let manifest = PackageManifest::parse_str(toml_text)?;
+
+    // Deserialize the TOML text into a manifest struct.
+    let mut manifest: Self = toml::from_str(content)?;
+
+    // Normalize safety metadata before returning to callers.
+    manifest.safety.normalize();
+    Ok(manifest)
+}
+```
+
+Required API sections: purpose, **Parameters**, **Returns**, **Options**, **Example** only. Do **not** add a Logic section to the API header.
+
+## Block explanations (required)
+
+Before **each logic block**, add a plain-English `//` comment that explains **what that block does** — never echo syntax or use generic placeholders:
+
+- Good: `// Emit codegen metadata for each import.`
+- Bad: `// Process each item in turn.`
+- Bad: `// Logic: When (topic == topic_name).`
+- Bad: `// Execute: Self {`
+
+Applies to: `if` / `else`, `match` / `switch`, loops, error paths, and meaningful steps in multi-step bodies.
+
+Do **not** prefix block comments with `Logic:`. Do **not** add blank lines between consecutive `//` doc lines. Block comments must use the **same indentation** as the code line they precede, with **one blank line** before each block comment.
+
+## When editing code
+
+- New or changed functions: update API doc and block comments in plain English.
+- Run `python3 scripts/normalize_inline_docs.py` after bulk doc edits.
+
+## Tooling
+
+- `scripts/add_inline_docs.py` — API doc blocks
+- `scripts/add_logic_block_docs.py` — plain-English block comments
+- `scripts/normalize_inline_docs.py` — fix spacing and block-comment indentation
