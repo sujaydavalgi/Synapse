@@ -1,6 +1,7 @@
 module ai.openai;
 
+extern python fn openai_complete(prompt: String) -> String;
+
 export fn complete(prompt: String) -> String {
-  let _ = prompt;
-  "mock-completion"
+  openai_complete(prompt)
 }

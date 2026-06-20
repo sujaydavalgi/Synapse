@@ -1,0 +1,61 @@
+{
+  "name": "spanda-vscode",
+  "displayName": "Spanda",
+  "description": "VS Code support for Spanda (.sd) with LSP diagnostics",
+  "version": "0.1.0",
+  "publisher": "spanda-lang",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:spanda"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Spanda",
+      "properties": {
+        "spanda.languageServerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the Spanda LSP server entrypoint (server.js). Defaults to <workspace>/packages/lsp/dist/server.js."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "spanda",
+        "aliases": [
+          "Spanda",
+          "spanda"
+        ],
+        "extensions": [
+          ".sd"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "spanda",
+        "scopeName": "source.spanda",
+        "path": "./syntaxes/spanda.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.7.0"
+  }
+}

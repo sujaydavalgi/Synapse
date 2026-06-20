@@ -72,6 +72,9 @@ Package dependencies expose import paths via the registry (see [registry.md](./r
 
 See [standard-library.md](./standard-library.md) for the full namespace list.
 
+`ai.openai` is available via the `spanda-openai` package and uses the Python
+bridge (`openai_complete`) for live calls when `OPENAI_API_KEY` is set.
+
 ## Audit and blockchain packages (optional)
 
 Blockchain is **not** part of the language core. Audit/provenance is built-in; ledger anchoring uses optional packages:

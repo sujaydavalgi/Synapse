@@ -1,0 +1,48 @@
+// Showcase: deploy target and hardware verification report
+// Run: spanda verify examples/showcase/hardware_compatibility.sd --json
+requires_hardware {
+  memory >= 2 GB;
+  sensors [ Camera, Lidar ];
+}
+
+hardware RoverV1 {
+  cpu: CortexA78;
+  memory: 4 GB;
+  sensors [ Camera, Lidar, IMU ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+  timing { min_period: 10 ms; }
+}
+
+robot RoverMission {
+  sensor camera: Camera on "/camera";
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  ai_model Vision: VisionModel {
+    memory_required: 512 MB;
+    gpu_required: false;
+  }
+
+  mission { duration: 1 h; }
+
+  task control_loop every 50ms {
+    budget {
+      cpu <= 25%;
+      memory <= 256 MB;
+    }
+    let scan = lidar.read();
+    let _ = scan;
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+
+  verify {
+    robot.velocity().linear <= 2.0 m/s;
+  }
+}
+
+simulate_compatibility {
+  fault BatteryDegradation;
+}
+
+deploy RoverMission to RoverV1;

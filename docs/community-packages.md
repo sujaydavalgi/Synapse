@@ -79,6 +79,16 @@ spanda-ros2 = "0.1.0"
 spanda-sim-gazebo = "0.1.0"
 ```
 
+## AI provider packages
+
+`spanda-openai` is included as a reference provider package in this repository.
+It exports `ai.openai.complete(prompt)` and routes through the Python subprocess
+bridge (`scripts/spanda_python_bridge.py`) to call OpenAI when
+`OPENAI_API_KEY` is present.
+
+Without an API key, the bridge returns deterministic mock completions so tests
+and simulations remain reproducible.
+
 ## Safety and trust
 
 Community packages must declare a safety level. Defaults:

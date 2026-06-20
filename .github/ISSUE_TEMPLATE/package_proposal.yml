@@ -1,0 +1,68 @@
+name: Package Proposal
+description: Propose a new community package for the Spanda ecosystem
+title: "[Package]: "
+labels: ["package-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose a reusable Spanda package (driver, AI provider, communication adapter, etc.).
+        See [docs/packages.md](docs/packages.md) and [docs/community-packages.md](docs/community-packages.md).
+
+  - type: input
+    id: name
+    attributes:
+      label: Package name
+      description: Proposed package identifier (e.g. spanda-velodyne-driver)
+      placeholder: spanda-my-driver
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Sensor driver
+        - Actuator driver
+        - AI provider
+        - Communication / transport
+        - Safety / verification
+        - Simulation
+        - Utility / stdlib extension
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What does this package provide?
+    validations:
+      required: true
+
+  - type: textarea
+    id: api
+    attributes:
+      label: Proposed API
+      description: Example import and usage in `.sd` code.
+      render: spanda
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: External dependencies
+      description: Hardware SDKs, cloud APIs, or other runtime requirements.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I plan to maintain this package
+          required: false
+        - label: I am willing to submit an initial implementation
+          required: false

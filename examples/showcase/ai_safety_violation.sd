@@ -1,0 +1,24 @@
+// Showcase: unsafe AI proposal blocked at compile time
+// Run: spanda check examples/showcase/ai_safety_violation.sd
+// Expected: error — wheels.execute requires SafeAction, not ActionProposal
+robot UnsafeBot {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  ai_model planner: LLM {
+    provider: "mock";
+    model: "unsafe-planner";
+    temperature: 0.0;
+  }
+
+  safety {
+    max_speed = 0.5 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  behavior unsafe() {
+    let scan = lidar.read();
+    let proposal = planner.reason(prompt: "Drive fast", input: scan);
+    wheels.execute(proposal);
+  }
+}

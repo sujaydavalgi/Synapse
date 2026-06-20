@@ -1,0 +1,76 @@
+name: Bug Report
+description: Report a bug in Spanda compiler, runtime, or tooling
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please include as much detail as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: spanda check fails with unexpected error on valid program...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps or `.sd` source to reproduce the issue.
+      placeholder: |
+        1. spanda check examples/foo.sd
+        2. See error: ...
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Rust version, Node version, Spanda version/commit.
+      placeholder: |
+        - OS: macOS 15 / Ubuntu 22.04
+        - Rust: 1.82
+        - Node: 24
+        - Commit: abc1234
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Compiler / type checker
+        - Runtime / simulator
+        - Safety validation
+        - Hardware verification
+        - CLI
+        - Package manager
+        - LSP
+        - WASM / web playground
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output
+      description: Paste relevant CLI output or error messages.
+      render: shell

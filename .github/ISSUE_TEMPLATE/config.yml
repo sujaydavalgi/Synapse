@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/sujaydavalgi/Spanda/blob/main/docs/README.md
+    about: Read the Spanda documentation
+  - name: Feature Status
+    url: https://github.com/sujaydavalgi/Spanda/blob/main/docs/feature-status.md
+    about: Check what is stable vs experimental

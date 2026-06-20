@@ -1,0 +1,63 @@
+// Showcase: message, topic, service, action
+module showcase.communication;
+
+message LidarReading {
+  scan: Scan;
+  timestamp: String;
+}
+
+message BatteryStatus {
+  percent: String;
+  voltage: String;
+}
+
+message NavigationFeedback {
+  distance_remaining: String;
+}
+
+message NavigationResult {
+  success: String;
+}
+
+robot CommRobot {
+  bus sim;
+
+  topic lidar_scan: LidarReading {
+    qos reliable;
+    rate 20Hz;
+  } on sim;
+
+  service GetBattery {
+    request String;
+    response BatteryStatus;
+  };
+
+  service reset_map: ResetCostmap;
+
+  action NavigateTo {
+    request Pose;
+    feedback NavigationFeedback;
+    result NavigationResult;
+  };
+
+  action navigate: NavigateTo;
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior communicate() {
+    let reading = lidar.read();
+    publish lidar_scan(reading);
+
+    call GetBattery();
+    call reset_map();
+
+    let target = pose(x: 3.0 m, y: 0.0 m, theta: 0.0 rad);
+    send_goal navigate with target;
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+}

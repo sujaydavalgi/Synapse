@@ -1,0 +1,70 @@
+{
+  "name": "Spanda",
+  "scopeName": "source.spanda",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#types"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.spanda",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.spanda",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.spanda",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.spanda",
+          "match": "\\b\\d+(?:\\.\\d+)?(?:\\s*(?:ms|s|m|rad|m\\/s|rad\\/s|Wh|GB|MB|Hz|Mbps))?\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.spanda",
+          "match": "\\b(robot|behavior|task|loop|every|if|else|match|module|import|struct|enum|trait|impl|for|fn|return|test|safety|verify|observe|twin|state_machine|event|on|transition|hardware|deploy|requires_hardware|requires_network|simulate_compatibility|agent|ai_model|goal|memory|publish|call|send_goal|topic|service|action|message|sensor|actuator|node|bus|spawn|select|extern|async|await)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.spanda",
+          "match": "\\b(Int|Float|Bool|String|Distance|Duration|Angle|Pose|Velocity|Trajectory|SafeAction|ActionProposal|Scan|LLM|VisionModel|EmbeddingModel|Result|Option)\\b"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+// Showcase: sensors, AI planning, ActionProposal → SafeAction, motion execution
+module showcase.rover_navigation;
+
+robot Rover {
+  sensor lidar: Lidar on "/scan";
+  sensor camera: Camera on "/camera";
+  actuator wheels: DifferentialDrive;
+
+  ai_model planner: LLM {
+    provider: "mock";
+    model: "safe-planner";
+    temperature: 0.1;
+  }
+
+  safety {
+    max_speed = 1.0 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  agent Navigator {
+    uses planner;
+    tools [lidar, camera, wheels];
+    memory short_term;
+
+    goal "Navigate to waypoint while avoiding obstacles";
+
+    plan {
+      let scan = lidar.read();
+      let scene = camera.analyze();
+      let proposal = planner.reason(
+        prompt: "Plan safe forward motion",
+        input: scene
+      );
+
+      let action = safety.validate(proposal);
+      wheels.execute(action);
+    }
+  }
+
+  behavior run() {
+    loop every 100ms {
+      Navigator.plan();
+    }
+  }
+}

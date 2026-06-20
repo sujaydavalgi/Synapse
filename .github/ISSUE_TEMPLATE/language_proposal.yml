@@ -1,0 +1,64 @@
+name: Language Proposal
+description: Propose a change to Spanda language syntax or semantics
+title: "[Language]: "
+labels: ["language-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Language proposals should describe syntax, semantics, motivation, and impact on safety/verification.
+        For tooling-only changes, use the Feature Request template.
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this language change needed? What use case does it enable?
+    validations:
+      required: true
+
+  - type: textarea
+    id: syntax
+    attributes:
+      label: Proposed syntax
+      description: Show example `.sd` code with the proposed syntax.
+      render: spanda
+    validations:
+      required: true
+
+  - type: textarea
+    id: semantics
+    attributes:
+      label: Semantics
+      description: How should the compiler and runtime behave? Type rules? Safety implications?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways to achieve the same goal with existing Spanda features.
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Breaking change?
+      options:
+        - "No — additive only"
+        - "Yes — requires migration"
+        - "Unsure"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Affected areas
+      options:
+        - label: Parser / AST
+        - label: Type system
+        - label: Safety validation
+        - label: Hardware verification
+        - label: Runtime / simulator
+        - label: Documentation
