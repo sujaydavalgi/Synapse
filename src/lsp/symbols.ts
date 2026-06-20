@@ -4,6 +4,8 @@ import { parse } from "../parser/index.js";
 
 export type SymbolKind =
   | "message"
+  | "struct"
+  | "enum"
   | "topic"
   | "service"
   | "action"
@@ -47,6 +49,27 @@ export function buildSymbolIndex(program: Program): SymbolIndex {
       kind: "message",
       span: msg.span,
       detail: msg.fields.map((f) => `${f.name}: ${f.typeName}`).join(", "),
+    });
+  }
+
+  for (const structDecl of program.structs) {
+    const typeParams = structDecl.typeParams?.length
+      ? `<${structDecl.typeParams.join(", ")}>`
+      : "";
+    addSymbol(index, {
+      name: structDecl.name,
+      kind: "struct",
+      span: structDecl.span,
+      detail: `${typeParams}{ ${structDecl.fields.map((f) => `${f.name}: ${f.typeName}`).join(", ")} }`,
+    });
+  }
+
+  for (const enumDecl of program.enums) {
+    addSymbol(index, {
+      name: enumDecl.name,
+      kind: "enum",
+      span: enumDecl.span,
+      detail: enumDecl.variants.map((v) => v.name).join(" | "),
     });
   }
 

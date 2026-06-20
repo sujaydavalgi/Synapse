@@ -94,6 +94,17 @@ robot Bot {
     expect(sym?.name).toBe("alerts");
   });
 
+  it("indexes struct and enum declarations", () => {
+    const source = `
+struct Box<T> { value: T; }
+enum Mode { Idle, Active }
+robot R { actuator wheels: DifferentialDrive; behavior run() { wheels.stop(); } }
+`;
+    const index = buildSymbolIndex(parse(tokenize(source)));
+    expect(index.symbols.some((s) => s.kind === "struct" && s.name === "Box")).toBe(true);
+    expect(index.symbols.some((s) => s.kind === "enum" && s.name === "Mode")).toBe(true);
+  });
+
   it("indexes hardware profiles and deploy targets", () => {
     const hwSource = `
 hardware Board { memory: 2 GB; }

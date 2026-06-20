@@ -9,15 +9,15 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 | Lexer / parser / AST | Implemented | Rust authoritative; TS mirror includes hardware/deploy |
 | Type checker + units | Implemented | Physical unit algebra enforced |
 | modules / imports | Implemented | Rust + TS `ModuleRegistry`; project vendor via `spanda install` |
-| structs / enums / traits | Implemented | Enum variants with associated data; generic struct params (declaration) |
-| generics | Partially implemented | Module fn type params; struct `<T>` declarations (literals planned) |
+| structs / enums / traits | Implemented | Generic struct literals `Box<Int> { ... }`; enum payloads |
+| generics | Partially implemented | Module fn + struct type params with instantiation |
 | match / Result / Option | Implemented | |
 | async / await | Implemented | Cooperative single-threaded |
 | spawn / select / channels | Partially implemented | Cooperative concurrency |
 | test blocks | Implemented | Rust runtime + TS `runTests()` |
 | `extern fn` / FFI | Partially implemented | `extern python`/`extern cpp` subprocess bridges; optional PyO3 in-process |
-| Spanda IR (SIR) | Partially implemented | `spanda ir`; stmt lowering incl. loop/publish/if/subscribe |
-| Codegen / LLVM | Partially implemented | `spanda llvm-ir` + `spanda compile-native` via clang; `--target-triple` |
+| Spanda IR (SIR) | Partially implemented | if/subscribe/match enum + bool vars; loop/publish |
+| Codegen / LLVM | Partially implemented | LLVM alloca/br/switch for bool if and enum match |
 
 ## Autonomous systems
 
@@ -41,7 +41,7 @@ Honest snapshot of Spanda capabilities. **Stubbed** = syntax or API exists witho
 | Native CLI (full) | Implemented | check, verify, run, fmt, lint, doc, package |
 | TypeScript CLI | Implemented | Delegates to Rust when built; includes `llvm-ir` / `compile-native` |
 | Formatter / linter / docgen | Implemented | Rust |
-| LSP | Partially implemented | Symbols include hardware/deploy |
+| LSP | Partially implemented | Symbols include struct/enum; hardware/deploy |
 | DAP debugger | Partially implemented | Breakpoints + continue/step commands |
 | N-API | Partially implemented | check, run, verify, sir, fmt |
 | WASM | Partially implemented | check, run, verify, sir, fmt |

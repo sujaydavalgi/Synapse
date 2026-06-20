@@ -47,7 +47,7 @@ Spanda source (.sd)
 - **`spanda llvm-ir [--target-triple <triple>] file.sd`** emits LLVM IR from SIR with `libspanda_rt` declarations and calls for supported statements (actuator drive/stop, publish/subscribe with string payloads, constant `if`, loop every, emergency stop, integer returns).
 - **`spanda compile-native [--out <binary>] [--target-triple <triple>] file.sd`** links LLVM IR with `libspanda_rt` via clang when available.
 - `crates/spanda-rt` exposes the C ABI (`spanda_rt_drive`, `spanda_rt_stop`, `spanda_rt_publish`, `spanda_rt_subscribe`, `spanda_rt_loop_delay_ms`, …).
-- `crates/spanda-llvm` lowers SIR statement bodies where supported; runtime `match` and dynamic `if` remain planned.
+- `crates/spanda-llvm` lowers bool variable `if` (alloca/br) and unit-enum `match` (switch); payload variants remain planned.
 - Robot scheduler, safety monitor, and comm routing remain in **`libspanda_rt`** (interpreter-backed for now).
 - `-O2` builds for deployment; `-O0` + debug info for DAP debugging.
 
