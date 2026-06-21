@@ -604,11 +604,19 @@ pub enum ValidateRuleDecl {
     },
 }
 
-/// Mission duration for power budgeting.
+/// Mission declaration for power budgeting and step-based execution.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum MissionDecl {
-    MissionDecl { duration_hours: f64, span: Span },
+    MissionDecl {
+        #[serde(default)]
+        name: Option<String>,
+        #[serde(default)]
+        duration_hours: Option<f64>,
+        #[serde(default)]
+        steps: Vec<String>,
+        span: Span,
+    },
 }
 
 /// Fault injection scenario for simulation-time compatibility checks.

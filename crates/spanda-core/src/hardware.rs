@@ -1365,10 +1365,14 @@ fn verify_battery_mission(mission: &MissionDecl, profile: &HardwareProfile) -> V
     let MissionDecl::MissionDecl {
         duration_hours,
         span,
+        ..
     } = mission;
     let mut items = Vec::new();
     let line = span.start.line;
     let column = span.start.column;
+    let Some(duration_hours) = duration_hours else {
+        return items;
+    };
     let Some(battery_wh) = profile.battery_wh else {
         return vec![warn(
             "power",
@@ -1930,6 +1934,7 @@ pub fn verify_program_compatibility(
         requires_connectivity,
         geofences,
         connectivity_policies,
+        certifications,
         simulate_compatibility,
         ..
     } = program;
@@ -1941,10 +1946,38 @@ pub fn verify_program_compatibility(
     for policy in connectivity_policies {
         items.extend(validate_connectivity_policy(policy));
     }
+    for cert in certifications {
+        use crate::robotics_platform::CertifyDecl;
+        let CertifyDecl::CertifyDecl {
+            standard, level, span, ..
+        } = cert;
+        let level_suffix = level
+            .as_deref()
+            .map(|l| format!(" level {l}"))
+            .unwrap_or_default();
+        items.push(pass(
+            "certify",
+            format!(
+                "Certification metadata recorded: {}{level_suffix} (verify-only — not a runtime safety proof)",
+                standard.as_str()
+            ),
+            span.start.line,
+            span.start.column,
+        ));
+    }
 
     let program_traits = trait_names(program);
     let targets_to_check = resolve_targets(program, options, &registry);
     let run_simulation = options.simulate || simulate_compatibility.is_some();
+
+    if !targets_to_check.is_empty() && certifications.is_empty() {
+        items.push(warn(
+            "certify",
+            "Deploy targets declared without certification metadata — add certify ISO13849 (or IEC61508 / ISO26262)",
+            1,
+            1,
+        ));
+    }
 
     // Skip further work when targets to check is empty.
     if targets_to_check.is_empty() && options.target.is_none() && !options.all_targets {

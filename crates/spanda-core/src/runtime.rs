@@ -204,6 +204,15 @@ pub enum RuntimeValue {
     SensorFusion {
         sensors: Vec<String>,
     },
+    MissionControl {
+        runtime: crate::robotics_platform::MissionRuntime,
+    },
+    NavigationControl {
+        goal: Option<String>,
+    },
+    FleetControl {
+        registry: crate::robotics_platform::FleetRegistry,
+    },
     Completion {
         text: String,
         model: Option<String>,
@@ -925,6 +934,9 @@ pub struct Interpreter<B: RobotBackend> {
     active_connectivity_link: String,
     connectivity_events_seen: std::collections::HashSet<String>,
     gps_available: bool,
+    fleets: crate::robotics_platform::FleetRegistry,
+    program_safety_zones: crate::robotics_platform::ProgramSafetyZoneRegistry,
+    nav2_enabled: bool,
 }
 
 impl<B: RobotBackend> Interpreter<B> {
@@ -1006,6 +1018,9 @@ impl<B: RobotBackend> Interpreter<B> {
             active_connectivity_link: "wifi".into(),
             connectivity_events_seen: std::collections::HashSet::new(),
             gps_available: true,
+            fleets: crate::robotics_platform::FleetRegistry::default(),
+            program_safety_zones: crate::robotics_platform::ProgramSafetyZoneRegistry::default(),
+            nav2_enabled: false,
         }
     }
 
@@ -1428,6 +1443,9 @@ impl<B: RobotBackend> Interpreter<B> {
         let Program::Program {
             robots,
             geofences,
+            fleets,
+            program_safety_zones,
+            certifications,
             connectivity_policies,
             simulate_compatibility,
             ..
@@ -1442,6 +1460,7 @@ impl<B: RobotBackend> Interpreter<B> {
         }
         self.load_program_metadata(program);
         self.load_connectivity_metadata(geofences, connectivity_policies);
+        self.load_robotics_platform_metadata(fleets, program_safety_zones, certifications);
 
         if self.options.secure_mode {
             self.security.enable_strict_permissions();
@@ -1686,6 +1705,7 @@ impl<B: RobotBackend> Interpreter<B> {
             let TraitDecl::TraitDecl { name, .. } = trait_decl;
             let _ = name;
         }
+        self.nav2_enabled = crate::nav2_adapter::program_uses_nav2(imports);
     }
 
     fn load_connectivity_metadata(
@@ -1702,6 +1722,62 @@ impl<B: RobotBackend> Interpreter<B> {
                 crate::connectivity_positioning::connectivity_link_to_transport(
                     &self.active_connectivity_link,
                 );
+        }
+    }
+
+    fn load_robotics_platform_metadata(
+        &mut self,
+        fleets: &[crate::robotics_platform::FleetDecl],
+        program_safety_zones: &[crate::robotics_platform::ProgramSafetyZoneDecl],
+        certifications: &[crate::robotics_platform::CertifyDecl],
+    ) {
+        // Load fleet groupings, safety zone policies, and certification metadata.
+        use crate::robotics_platform::{CertifyDecl, FleetDecl, ProgramSafetyZoneDecl};
+        self.fleets = crate::robotics_platform::FleetRegistry::default();
+        self.program_safety_zones = crate::robotics_platform::ProgramSafetyZoneRegistry::default();
+
+        // Register each declared fleet and expose it through the fleet runtime object.
+        for fleet in fleets {
+            let FleetDecl::FleetDecl { name, members, .. } = fleet;
+            self.fleets.register(name, members.clone());
+            self.log(format!("fleet '{name}': {} member(s)", members.len()));
+        }
+        self.env.define(
+            "fleet",
+            RuntimeValue::FleetControl {
+                registry: self.fleets.clone(),
+            },
+        );
+
+        // Register program-level safety zone speed caps.
+        for zone in program_safety_zones {
+            let ProgramSafetyZoneDecl::ProgramSafetyZoneDecl {
+                name,
+                max_speed_mps,
+                ..
+            } = zone;
+            if let Some(max_speed) = max_speed_mps {
+                self.program_safety_zones.register(name, *max_speed);
+                self.log(format!(
+                    "safety_zone '{name}': max_speed {:.2} m/s",
+                    max_speed
+                ));
+            }
+        }
+
+        // Log declared certification standards (metadata only).
+        for cert in certifications {
+            let CertifyDecl::CertifyDecl {
+                standard, level, ..
+            } = cert;
+            let level_suffix = level
+                .as_deref()
+                .map(|l| format!(" level {l}"))
+                .unwrap_or_default();
+            self.log(format!(
+                "certify {}{level_suffix}: metadata recorded (verify-only)",
+                standard.as_str()
+            ));
         }
     }
 
@@ -1756,9 +1832,18 @@ impl<B: RobotBackend> Interpreter<B> {
             agent_channels,
             secure_comm,
             trust_boundaries,
+            mission,
             ..
         } = robot;
         self.env = Environment::new();
+        if self.fleets.names().next().is_some() {
+            self.env.define(
+                "fleet",
+                RuntimeValue::FleetControl {
+                    registry: self.fleets.clone(),
+                },
+            );
+        }
         self.comm_bus = RoutingCommBus::new();
         self.zones.clear();
         self.stop_if_conditions.clear();
@@ -1910,7 +1995,9 @@ impl<B: RobotBackend> Interpreter<B> {
                     broker_url: resolved_broker,
                     ..Default::default()
                 })
-                .map_err(|e| RuntimeError::new(format!("transport configure: {e}"), 1).into_spanda())?;
+                .map_err(|e| {
+                    RuntimeError::new(format!("transport configure: {e}"), 1).into_spanda()
+                })?;
             self.log(format!(
                 "bus transport: {} (encryption: {:?})",
                 transport.as_str(),
@@ -2147,6 +2234,32 @@ impl<B: RobotBackend> Interpreter<B> {
             ));
         }
 
+        // Initialize mission controller and navigation helpers when declared.
+        if let Some(mission_decl) = mission {
+            use crate::foundations::MissionDecl;
+            let MissionDecl::MissionDecl {
+                name,
+                duration_hours,
+                steps,
+                ..
+            } = mission_decl;
+            let runtime = crate::robotics_platform::MissionRuntime::new(
+                name.clone(),
+                steps.clone(),
+                *duration_hours,
+            );
+            self.env
+                .define("mission", RuntimeValue::MissionControl { runtime });
+            self.env
+                .define("navigation", RuntimeValue::NavigationControl { goal: None });
+            let label = name.as_deref().unwrap_or("mission");
+            self.log(format!(
+                "mission '{label}': {} step(s), duration={:?} h",
+                steps.len(),
+                duration_hours
+            ));
+        }
+
         // Emit output when permissions provides a perm decl.
         if let Some(perm_decl) = permissions {
             let crate::foundations::PermissionsDecl::PermissionsDecl { capabilities, .. } =
@@ -2351,6 +2464,7 @@ impl<B: RobotBackend> Interpreter<B> {
             max_speed,
             vec![],
             self.zones.clone(),
+            self.program_safety_zones.speed_caps().clone(),
         )));
         self.load_reliability_config(robot)?;
         Ok(())
@@ -5080,10 +5194,12 @@ impl<B: RobotBackend> Interpreter<B> {
                     let payload = Self::runtime_value_payload(&val);
                     let source_id = self.publish_source_id();
 
-                    if let Err(e) = self
-                        .security
-                        .prepare_publish(&topic_path, &payload, &source_id, &message_type)
-                    {
+                    if let Err(e) = self.security.prepare_publish(
+                        &topic_path,
+                        &payload,
+                        &source_id,
+                        &message_type,
+                    ) {
                         if let Some(rt) = self.audit_runtime.as_mut() {
                             let _ = self.security.audit_security_event(
                                 rt,
@@ -6394,6 +6510,29 @@ impl<B: RobotBackend> Interpreter<B> {
             return self.read_fused_observation();
         }
 
+        if let RuntimeValue::MissionControl { mut runtime } = target {
+            let result = self.eval_mission_method(&mut runtime, property, line)?;
+            self.env.define(
+                target_name.clone(),
+                RuntimeValue::MissionControl { runtime },
+            );
+            return Ok(result);
+        }
+
+        if let RuntimeValue::NavigationControl { mut goal } = target {
+            let result =
+                self.eval_navigation_method(&mut goal, property, args, named_args, line)?;
+            self.env.define(
+                target_name.clone(),
+                RuntimeValue::NavigationControl { goal },
+            );
+            return Ok(result);
+        }
+
+        if let RuntimeValue::FleetControl { registry } = target {
+            return self.eval_fleet_method(&registry, property, args, line);
+        }
+
         if let RuntimeValue::Sensor { sensor_type, .. } = &target {
             if property == "read" {
                 if let Some(agent) = self.current_agent.as_deref() {
@@ -6707,6 +6846,201 @@ impl<B: RobotBackend> Interpreter<B> {
         Ok(reading)
     }
 
+    fn eval_mission_method(
+        &self,
+        runtime: &mut crate::robotics_platform::MissionRuntime,
+        property: &str,
+        line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        // Dispatch mission lifecycle methods on the active mission controller.
+        match property {
+            "start" => {
+                runtime.start();
+                Ok(RuntimeValue::String {
+                    value: runtime.state.as_str().into(),
+                })
+            }
+            "pause" => {
+                runtime.pause();
+                Ok(RuntimeValue::String {
+                    value: runtime.state.as_str().into(),
+                })
+            }
+            "resume" => {
+                runtime.resume();
+                Ok(RuntimeValue::String {
+                    value: runtime.state.as_str().into(),
+                })
+            }
+            "advance" => {
+                let step = runtime.advance().unwrap_or_default();
+                Ok(RuntimeValue::String { value: step })
+            }
+            "complete" => {
+                runtime.complete();
+                Ok(RuntimeValue::String {
+                    value: runtime.state.as_str().into(),
+                })
+            }
+            "fail" => {
+                runtime.fail();
+                Ok(RuntimeValue::String {
+                    value: runtime.state.as_str().into(),
+                })
+            }
+            "state" => Ok(RuntimeValue::String {
+                value: runtime.state.as_str().into(),
+            }),
+            "step" => Ok(RuntimeValue::String {
+                value: runtime.current_step().unwrap_or("").into(),
+            }),
+            _ => Err(
+                RuntimeError::new(format!("Unknown mission method '{property}'"), line)
+                    .into_spanda(),
+            ),
+        }
+    }
+
+    fn eval_navigation_method(
+        &mut self,
+        goal: &mut Option<String>,
+        property: &str,
+        args: &[Expr],
+        named_args: &[crate::ast::NamedArg],
+        line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        // Dispatch navigation helpers for goals, paths, and cost maps.
+        match property {
+            "goal" => {
+                let text = if !args.is_empty() {
+                    match self.eval_expr(&args[0])? {
+                        RuntimeValue::String { value } => value,
+                        RuntimeValue::Number { value, .. } => value.to_string(),
+                        _ => String::new(),
+                    }
+                } else if let Ok(RuntimeValue::String { value }) =
+                    self.get_named_arg_value(named_args, "text")
+                {
+                    value
+                } else {
+                    return Err(RuntimeError::new(
+                        "navigation.goal() requires a text argument",
+                        line,
+                    )
+                    .into_spanda());
+                };
+                *goal = Some(text.clone());
+                Ok(RuntimeValue::Object {
+                    type_name: "NavigationGoal".into(),
+                    fields: HashMap::from([("text".into(), RuntimeValue::String { value: text })]),
+                })
+            }
+            "path" => {
+                let state = self.backend.get_state();
+                let _waypoints = [
+                    pose_from_state(&state.pose),
+                    runtime_pose(state.pose.x + 1.0, state.pose.y, state.pose.theta, 0.0),
+                ];
+                Ok(RuntimeValue::Object {
+                    type_name: "Path".into(),
+                    fields: HashMap::from([(
+                        "waypoints".into(),
+                        RuntimeValue::Number {
+                            value: 2.0,
+                            unit: UnitKind::None,
+                        },
+                    )]),
+                })
+            }
+            "cost_map" => Ok(RuntimeValue::Object {
+                type_name: "CostMap".into(),
+                fields: HashMap::from([(
+                    "resolution".into(),
+                    RuntimeValue::Number {
+                        value: 0.05,
+                        unit: UnitKind::M,
+                    },
+                )]),
+            }),
+            "navigate" => {
+                self.log(format!(
+                    "navigation: executing goal '{}'",
+                    goal.as_deref().unwrap_or("none")
+                ));
+                if self.nav2_enabled || self.topic_path_to_message_type.contains_key("/cmd_vel")
+                {
+                    if let Some(message_type) =
+                        self.topic_path_to_message_type.get("/cmd_vel").cloned()
+                    {
+                        let velocity = runtime_velocity(0.2, 0.0);
+                        self.backend
+                            .publish_topic("/cmd_vel", &message_type, velocity);
+                        let prefix = if self.nav2_enabled {
+                            "Nav2Adapter"
+                        } else {
+                            "Nav2 bridge"
+                        };
+                        self.log(format!(
+                            "navigation: {prefix} publish /cmd_vel goal='{}'",
+                            goal.as_deref().unwrap_or("none")
+                        ));
+                    }
+                }
+                Ok(RuntimeValue::Object {
+                    type_name: "Trajectory".into(),
+                    fields: HashMap::from([(
+                        "status".into(),
+                        RuntimeValue::String {
+                            value: "executing".into(),
+                        },
+                    )]),
+                })
+            }
+            _ => Err(
+                RuntimeError::new(format!("Unknown navigation method '{property}'"), line)
+                    .into_spanda(),
+            ),
+        }
+    }
+
+    fn eval_fleet_method(
+        &mut self,
+        registry: &crate::robotics_platform::FleetRegistry,
+        property: &str,
+        args: &[Expr],
+        line: u32,
+    ) -> Result<RuntimeValue, SpandaError> {
+        // Dispatch fleet coordination helpers for member lookup.
+        match property {
+            "members" => {
+                let fleet_name = if !args.is_empty() {
+                    match self.eval_expr(&args[0])? {
+                        RuntimeValue::String { value } => value,
+                        RuntimeValue::Number { value, .. } => value.to_string(),
+                        _ => String::new(),
+                    }
+                } else {
+                    return Err(
+                        RuntimeError::new("fleet.members() requires a fleet name", line)
+                            .into_spanda(),
+                    );
+                };
+                let members = registry.members(&fleet_name).unwrap_or(&[]);
+                Ok(RuntimeValue::Number {
+                    value: members.len() as f64,
+                    unit: UnitKind::None,
+                })
+            }
+            "names" => Ok(RuntimeValue::Number {
+                value: registry.names().count() as f64,
+                unit: UnitKind::None,
+            }),
+            _ => Err(
+                RuntimeError::new(format!("Unknown fleet method '{property}'"), line).into_spanda(),
+            ),
+        }
+    }
+
     fn read_fused_observation(&mut self) -> Result<RuntimeValue, SpandaError> {
         // Read fused observation.
         //
@@ -6742,6 +7076,37 @@ impl<B: RobotBackend> Interpreter<B> {
             RuntimeValue::Number {
                 value: sensors.len() as f64,
                 unit: UnitKind::None,
+            },
+        );
+        let confidence = if sensors.is_empty() {
+            0.0
+        } else {
+            (sensors.len() as f64 / 4.0).min(1.0)
+        };
+        fields.insert(
+            "confidence".into(),
+            RuntimeValue::Number {
+                value: confidence,
+                unit: UnitKind::None,
+            },
+        );
+        fields.insert(
+            "state_estimate".into(),
+            RuntimeValue::Object {
+                type_name: "StateEstimate".into(),
+                fields: HashMap::from([
+                    (
+                        "pose".into(),
+                        fields.get("pose").cloned().unwrap_or(RuntimeValue::Null),
+                    ),
+                    (
+                        "confidence".into(),
+                        RuntimeValue::Number {
+                            value: confidence,
+                            unit: UnitKind::None,
+                        },
+                    ),
+                ]),
             },
         );
         Ok(RuntimeValue::Object {
@@ -8000,10 +8365,15 @@ impl<B: RobotBackend> Interpreter<B> {
             "drive" => {
                 let linear = get_number(&self.get_named_arg_value(named_args, "linear")?, 0.0);
                 let angular = get_number(&self.get_named_arg_value(named_args, "angular")?, 0.0);
+                let pose = self.backend.get_state().pose;
+                let pose2d = Pose2d {
+                    x: pose.x,
+                    y: pose.y,
+                };
                 let max_speed = self
                     .safety_monitor
                     .as_ref()
-                    .map(|m| m.clamp_speed(linear))
+                    .map(|m| m.clamp_speed_at_pose(linear, &pose2d))
                     .unwrap_or(linear);
                 self.backend.execute_motion(MotionCommand::Drive {
                     linear: max_speed,

@@ -10,11 +10,13 @@ pub mod concurrency;
 pub mod connectivity_positioning;
 pub mod debug;
 pub mod debug_session;
+pub mod deploy_service;
 pub mod docs;
 mod error;
 pub mod events;
 pub mod ffi;
 pub mod ffi_registry;
+pub mod fleet_orchestrator;
 pub mod format;
 pub mod foundations;
 pub mod hal;
@@ -25,12 +27,14 @@ pub mod lexer;
 pub mod lib_registry;
 pub mod lint;
 pub mod modules;
+pub mod nav2_adapter;
 pub mod parser;
 pub mod pretty;
 pub mod regex_lang;
 pub mod reliability;
 pub mod reliability_runtime;
 pub mod replay;
+pub mod robotics_platform;
 pub mod runtime;
 pub mod safety;
 pub mod scheduler;
@@ -44,11 +48,9 @@ pub mod state_machine;
 pub mod stdlib;
 pub mod telemetry;
 pub mod transport;
-pub mod transport_live;
-mod transport_tls;
-pub mod transport_mqtt;
-pub mod transport_websocket;
 pub mod transport_dds;
+pub mod transport_live;
+pub mod transport_mqtt;
 pub mod transport_rclrs;
 mod transport_rclrs_daemon;
 #[cfg(not(target_arch = "wasm32"))]
@@ -57,6 +59,8 @@ mod transport_rclrs_native;
 #[path = "transport_rclrs_native_stub.rs"]
 mod transport_rclrs_native;
 pub mod transport_security;
+mod transport_tls;
+pub mod transport_websocket;
 pub mod transport_wire;
 pub mod triggers;
 pub mod twin;
@@ -67,6 +71,15 @@ pub mod units;
 pub use ast::*;
 pub use codegen::{generate as codegen, wasm_deploy_manifest, CodegenTarget};
 pub use debug::{DebugCommand, DebugController, DebugOptions, DebugPause, DebugSession};
+pub use deploy_service::{
+    apply_rollout, build_deploy_plan, default_state_path, load_deploy_state, plan_rollout,
+    rollback_targets, save_deploy_state, DeployAssignment, DeployPlan, DeployState, RolloutOptions,
+    RolloutResult, RolloutStep, RolloutStepStatus, RolloutStrategy,
+};
+pub use fleet_orchestrator::{
+    fleet_registry_from_program, orchestrate_fleets, FleetMemberState, FleetOrchestrationReport,
+    FleetOrchestrationResult,
+};
 pub use debug_session::{DebugMachine, DebugStackFrame, DebugStepKind};
 pub use docs::generate_markdown;
 pub use error::*;

@@ -2,6 +2,7 @@
 //!
 use crate::error::RobotState;
 use crate::runtime::Environment;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SafetyZoneRuntime {
@@ -33,6 +34,7 @@ pub struct SafetyConfig {
     pub max_speed: f64,
     pub stop_if_rules: Vec<StopIfRule>,
     pub zones: Vec<SafetyZoneRuntime>,
+    pub zone_speed_caps: HashMap<String, f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -144,6 +146,10 @@ impl SafetyMonitor {
         for zone in &self.config.zones {
             // Take this path when Self::is point in zone(pose.x, pose.y, zone).
             if Self::is_point_in_zone(pose.x, pose.y, zone) {
+                // Allow motion inside zones that only declare a program speed cap.
+                if self.config.zone_speed_caps.contains_key(&zone.name) {
+                    continue;
+                }
                 return SafetyEvaluation {
                     allowed: false,
                     reason: Some(format!("Robot entered safety zone '{}'", zone.name)),
@@ -195,9 +201,32 @@ impl SafetyMonitor {
             };
         }
         ValidateActionResult::Ok(ValidatedMotion {
-            linear: self.clamp_speed(linear),
+            linear: self.clamp_speed_at_pose(linear, pose),
             angular,
         })
+    }
+
+    pub fn effective_max_speed(&self, pose: &Pose2d) -> f64 {
+        // Compute the active speed cap from global max and program zone policies.
+        let mut cap = self.config.max_speed;
+        for zone in &self.config.zones {
+            if Self::is_point_in_zone(pose.x, pose.y, zone) {
+                if let Some(zone_cap) = self.config.zone_speed_caps.get(&zone.name) {
+                    cap = cap.min(*zone_cap);
+                }
+            }
+        }
+        cap
+    }
+
+    pub fn clamp_speed_at_pose(&self, requested: f64, pose: &Pose2d) -> f64 {
+        // Clamp requested linear speed to the effective cap at the current pose.
+        let sign = if requested == 0.0 {
+            1.0
+        } else {
+            requested.signum()
+        };
+        requested.abs().min(self.effective_max_speed(pose)) * sign
     }
 
     pub fn is_in_zone(&self, zone_name: &str, pose: &Pose2d) -> bool {
@@ -224,28 +253,8 @@ impl SafetyMonitor {
     }
 
     pub fn clamp_speed(&self, requested: f64) -> f64 {
-        // Clamp speed.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        // - `requested` — input value
-        //
-        // Returns:
-        // Numeric result.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.clamp_speed(requested);
-
-        // Compute sign for the following logic.
-        let sign = if requested == 0.0 {
-            1.0
-        } else {
-            requested.signum()
-        };
-        requested.abs().min(self.config.max_speed) * sign
+        // Clamp speed using the global max when pose is unavailable.
+        self.clamp_speed_at_pose(requested, &Pose2d { x: 0.0, y: 0.0 })
     }
 
     pub fn is_emergency_stop(&self) -> bool {
@@ -363,6 +372,7 @@ pub fn create_safety_config_from_robot(
     max_speed: f64,
     stop_if_rules: Vec<StopIfRule>,
     zones: Vec<SafetyZoneRuntime>,
+    zone_speed_caps: HashMap<String, f64>,
 ) -> SafetyConfig {
     // Create safety config from robot.
     //
@@ -370,6 +380,7 @@ pub fn create_safety_config_from_robot(
     // - `max_speed` — input value
     // - `stop_if_rules` — input value
     // - `zones` — input value
+    // - `zone_speed_caps` — program-level caps keyed by zone name
     //
     // Returns:
     // SafetyConfig.
@@ -378,13 +389,14 @@ pub fn create_safety_config_from_robot(
     // None.
     //
     // Example:
-    // let result = spanda_core::safety::create_safety_config_from_robot(max_speed, stop_if_rules, zones);
+    // let result = spanda_core::safety::create_safety_config_from_robot(max_speed, stop_if_rules, zones, zone_speed_caps);
 
     // Produce SafetyConfig as the result.
     SafetyConfig {
         max_speed,
         stop_if_rules,
         zones,
+        zone_speed_caps,
     }
 }
 
@@ -488,6 +500,7 @@ mod tests {
                 )
             })],
             vec![],
+            HashMap::new(),
         ));
 
         let result = monitor.evaluate_before_motion(&env, &Pose2d { x: 0.0, y: 0.0 });
@@ -523,6 +536,7 @@ mod tests {
                 )
             })],
             vec![],
+            HashMap::new(),
         ));
 
         let result = monitor.evaluate_before_motion(&env, &Pose2d { x: 0.0, y: 0.0 });
@@ -557,6 +571,7 @@ mod tests {
                 width: None,
                 height: None,
             }],
+            HashMap::new(),
         ));
         assert!(monitor.is_in_zone("keepout", &Pose2d { x: 0.5, y: 0.0 }));
         assert!(!monitor.is_in_zone("keepout", &Pose2d { x: 5.0, y: 5.0 }));
@@ -578,8 +593,62 @@ mod tests {
         // Example:
         // let result = spanda_core::safety::clamps_speed_to_max();
 
-        let monitor = SafetyMonitor::new(create_safety_config_from_robot(1.0, vec![], vec![]));
+        let monitor = SafetyMonitor::new(create_safety_config_from_robot(
+            1.0,
+            vec![],
+            vec![],
+            HashMap::new(),
+        ));
         assert_eq!(monitor.clamp_speed(2.0), 1.0);
         assert_eq!(monitor.clamp_speed(-3.0), -1.0);
+    }
+
+    #[test]
+    fn clamps_speed_to_program_zone_cap() {
+        // Clamps speed to program zone cap when robot is inside the zone.
+        let mut caps = HashMap::new();
+        caps.insert("HumanArea".into(), 0.5);
+        let monitor = SafetyMonitor::new(create_safety_config_from_robot(
+            1.0,
+            vec![],
+            vec![SafetyZoneRuntime {
+                name: "HumanArea".into(),
+                shape: SafetyZoneShape::Circle,
+                x: 0.0,
+                y: 0.0,
+                radius: Some(2.0),
+                width: None,
+                height: None,
+            }],
+            caps,
+        ));
+        let inside = Pose2d { x: 0.0, y: 0.0 };
+        let outside = Pose2d { x: 10.0, y: 10.0 };
+        assert_eq!(monitor.clamp_speed_at_pose(0.8, &inside), 0.5);
+        assert_eq!(monitor.clamp_speed_at_pose(0.8, &outside), 0.8);
+    }
+
+    #[test]
+    fn allows_motion_inside_speed_cap_zone() {
+        // Speed-cap zones permit motion; clamping applies instead of hard stop.
+        let mut caps = HashMap::new();
+        caps.insert("HumanArea".into(), 0.5);
+        let mut monitor = SafetyMonitor::new(create_safety_config_from_robot(
+            1.0,
+            vec![],
+            vec![SafetyZoneRuntime {
+                name: "HumanArea".into(),
+                shape: SafetyZoneShape::Circle,
+                x: 0.0,
+                y: 0.0,
+                radius: Some(2.0),
+                width: None,
+                height: None,
+            }],
+            caps,
+        ));
+        let inside = Pose2d { x: 0.0, y: 0.0 };
+        let result = monitor.evaluate_before_motion(&Environment::new(), &inside);
+        assert!(result.allowed);
     }
 }

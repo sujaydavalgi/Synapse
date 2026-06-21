@@ -401,6 +401,7 @@ pub struct TypeChecker {
     type_param_scope: HashMap<String, SpandaType>,
     channel_payload_types: HashMap<String, SpandaType>,
     active_agent: Option<String>,
+    program_fleets: bool,
 }
 
 impl Default for TypeChecker {
@@ -463,6 +464,7 @@ impl TypeChecker {
             type_param_scope: HashMap::new(),
             channel_payload_types: HashMap::new(),
             active_agent: None,
+            program_fleets: false,
         }
     }
 
@@ -493,6 +495,9 @@ impl TypeChecker {
             traits,
             messages,
             robots,
+            fleets,
+            program_safety_zones,
+            certifications,
             ..
         } = program;
         let mut imported = std::collections::HashSet::new();
@@ -562,6 +567,58 @@ impl TypeChecker {
         // Process each message.
         for msg in messages {
             self.check_message(msg);
+        }
+
+        let robot_names: Vec<String> = robots
+            .iter()
+            .map(|r| {
+                let RobotDecl::RobotDecl { name, .. } = r;
+                name.clone()
+            })
+            .collect();
+
+        self.program_fleets = !fleets.is_empty();
+
+        // Validate program-level fleet groupings against declared robots.
+        for fleet in fleets {
+            use crate::robotics_platform::{validate_fleet_members, FleetDecl};
+            let FleetDecl::FleetDecl {
+                name,
+                members,
+                span,
+            } = fleet;
+            if let Some(message) = validate_fleet_members(name, members, &robot_names) {
+                self.error(message, span.start.line, span.start.column);
+            }
+        }
+
+        // Register program-level safety zone policies for name uniqueness.
+        let mut zone_names = std::collections::HashSet::new();
+        for zone in program_safety_zones {
+            use crate::robotics_platform::ProgramSafetyZoneDecl;
+            let ProgramSafetyZoneDecl::ProgramSafetyZoneDecl { name, span, .. } = zone;
+            if !zone_names.insert(name.clone()) {
+                self.error(
+                    format!("Duplicate safety_zone '{name}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
+        }
+
+        // Register program-level certification metadata for duplicate detection.
+        let mut cert_standards = std::collections::HashSet::new();
+        for cert in certifications {
+            use crate::robotics_platform::CertifyDecl;
+            let CertifyDecl::CertifyDecl { standard, span, .. } = cert;
+            let label = standard.as_str();
+            if !cert_standards.insert(label) {
+                self.error(
+                    format!("Duplicate certify '{label}'"),
+                    span.start.line,
+                    span.start.column,
+                );
+            }
         }
 
         // Handle each robot declared in the program.
@@ -1110,6 +1167,7 @@ impl TypeChecker {
             devices,
             agent_channels,
             twin_sync,
+            mission,
             ..
         } = robot;
         self.subscribed_topics.clear();
@@ -1119,6 +1177,20 @@ impl TypeChecker {
         self.symbols.clear();
         self.state_machine_states.clear();
         self.agent_trait_methods.clear();
+
+        if self.program_fleets {
+            self.symbols.insert(
+                "fleet".into(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: "FleetCoordinator".into(),
+                    },
+                    kind: SymbolKind::Variable,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+        }
 
         // Process each key.
         for enum_name in self.enum_variants.keys() {
@@ -1582,6 +1654,43 @@ impl TypeChecker {
                 SymbolEntry {
                     robo_type: SpandaType::Named {
                         name: "SensorFusion".into(),
+                    },
+                    kind: SymbolKind::Variable,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+        }
+
+        // Validate mission declarations for duration or step sequences.
+        if let Some(mission_decl) = mission {
+            use crate::foundations::MissionDecl;
+            use crate::robotics_platform::validate_mission_decl;
+            let MissionDecl::MissionDecl {
+                name,
+                duration_hours,
+                steps,
+                span,
+            } = mission_decl;
+            if let Some(message) = validate_mission_decl(name, *duration_hours, steps) {
+                self.error(message, span.start.line, span.start.column);
+            }
+            self.symbols.insert(
+                "mission".into(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: "Mission".into(),
+                    },
+                    kind: SymbolKind::Variable,
+                    sensor_type: None,
+                    actuator_type: None,
+                },
+            );
+            self.symbols.insert(
+                "navigation".into(),
+                SymbolEntry {
+                    robo_type: SpandaType::Named {
+                        name: "Navigation".into(),
                     },
                     kind: SymbolKind::Variable,
                     sensor_type: None,
@@ -6316,6 +6425,80 @@ fn builtin_methods(type_name: &str) -> Option<HashMap<&'static str, MethodSig>> 
                 },
             ),
         )])),
+        "FusedObservation" => Some(HashMap::from([
+            ("pose", m(vec![], HashMap::new(), SpandaType::Pose)),
+            ("count", m(vec![], HashMap::new(), SpandaType::Int)),
+            ("confidence", m(vec![], HashMap::new(), SpandaType::Float)),
+            (
+                "state_estimate",
+                m(
+                    vec![],
+                    HashMap::new(),
+                    SpandaType::Named {
+                        name: "StateEstimate".into(),
+                    },
+                ),
+            ),
+        ])),
+        "FleetCoordinator" => Some(HashMap::from([
+            (
+                "members",
+                m(vec![SpandaType::String], HashMap::new(), SpandaType::Int),
+            ),
+            ("names", m(vec![], HashMap::new(), SpandaType::Int)),
+        ])),
+        "Mission" => Some(HashMap::from([
+            ("start", m(vec![], HashMap::new(), SpandaType::String)),
+            ("pause", m(vec![], HashMap::new(), SpandaType::String)),
+            ("resume", m(vec![], HashMap::new(), SpandaType::String)),
+            ("advance", m(vec![], HashMap::new(), SpandaType::String)),
+            ("complete", m(vec![], HashMap::new(), SpandaType::String)),
+            ("fail", m(vec![], HashMap::new(), SpandaType::String)),
+            ("state", m(vec![], HashMap::new(), SpandaType::String)),
+            ("step", m(vec![], HashMap::new(), SpandaType::String)),
+        ])),
+        "Navigation" => Some(HashMap::from([
+            (
+                "goal",
+                m(
+                    vec![SpandaType::String],
+                    HashMap::new(),
+                    SpandaType::Named {
+                        name: "NavigationGoal".into(),
+                    },
+                ),
+            ),
+            (
+                "path",
+                m(
+                    vec![],
+                    HashMap::new(),
+                    SpandaType::Named {
+                        name: "Path".into(),
+                    },
+                ),
+            ),
+            (
+                "navigate",
+                m(
+                    vec![],
+                    HashMap::new(),
+                    SpandaType::Named {
+                        name: "Trajectory".into(),
+                    },
+                ),
+            ),
+            (
+                "cost_map",
+                m(
+                    vec![],
+                    HashMap::new(),
+                    SpandaType::Named {
+                        name: "CostMap".into(),
+                    },
+                ),
+            ),
+        ])),
         other if all_library_sensor_types().contains_key(other) => {
             Some(library_sensor_methods(other))
         }

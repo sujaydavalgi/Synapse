@@ -508,6 +508,12 @@ pub enum Program {
         #[serde(default)]
         geofences: Vec<crate::foundations::GeofenceDecl>,
         #[serde(default)]
+        fleets: Vec<crate::robotics_platform::FleetDecl>,
+        #[serde(default)]
+        program_safety_zones: Vec<crate::robotics_platform::ProgramSafetyZoneDecl>,
+        #[serde(default)]
+        certifications: Vec<crate::robotics_platform::CertifyDecl>,
+        #[serde(default)]
         connectivity_policies: Vec<crate::foundations::ConnectivityPolicyDecl>,
         #[serde(default)]
         ble_services: Vec<crate::foundations::BleServiceDecl>,

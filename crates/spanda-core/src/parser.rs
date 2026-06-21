@@ -593,6 +593,9 @@ impl Parser {
         let mut requires_network = None;
         let mut requires_connectivity = None;
         let mut geofences = Vec::new();
+        let mut fleets = Vec::new();
+        let mut program_safety_zones = Vec::new();
+        let mut certifications = Vec::new();
         let mut connectivity_policies = Vec::new();
         let mut ble_services = Vec::new();
         let mut simulate_compatibility = None;
@@ -632,6 +635,12 @@ impl Parser {
                 requires_connectivity = Some(self.parse_requires_connectivity()?);
             } else if self.check(TokenType::Geofence) {
                 geofences.push(self.parse_geofence()?);
+            } else if self.check(TokenType::Fleet) {
+                fleets.push(self.parse_fleet()?);
+            } else if self.check(TokenType::SafetyZone) {
+                program_safety_zones.push(self.parse_program_safety_zone()?);
+            } else if self.check(TokenType::Certify) {
+                certifications.push(self.parse_certify()?);
             } else if self.check(TokenType::ConnectivityPolicy) {
                 connectivity_policies.push(self.parse_connectivity_policy()?);
             } else if self.check(TokenType::BleService) {
@@ -669,6 +678,9 @@ impl Parser {
             requires_network,
             requires_connectivity,
             geofences,
+            fleets,
+            program_safety_zones,
+            certifications,
             connectivity_policies,
             ble_services,
             simulate_compatibility,
@@ -1636,8 +1648,14 @@ impl Parser {
         // Import the items needed by the logic below.
         use crate::foundations::MissionDecl;
         let start = self.advance();
+        let name = if self.check(TokenType::Ident) {
+            Some(self.advance().lexeme)
+        } else {
+            None
+        };
         self.expect(TokenType::Lbrace, "Expected '{' after mission")?;
         let mut duration_hours = None;
+        let mut steps = Vec::new();
 
         // Repeat while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof).
         while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
@@ -1647,27 +1665,203 @@ impl Parser {
                 duration_hours = Some(self.parse_duration_hours()?);
                 self.expect(TokenType::Semicolon, "Expected ';' after duration")?;
             } else {
+                let step = self.parse_label("Expected mission step name")?;
+                self.expect(TokenType::Semicolon, "Expected ';' after mission step")?;
+                steps.push(step);
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close mission")?;
+        if duration_hours.is_none() && steps.is_empty() {
+            let t = self.peek();
+            return Err(SpandaError::Parse {
+                message: "mission block requires duration or at least one step".into(),
+                line: t.line,
+                column: t.column,
+            });
+        }
+        Ok(MissionDecl::MissionDecl {
+            name,
+            duration_hours,
+            steps,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_fleet(&mut self) -> Result<crate::robotics_platform::FleetDecl, SpandaError> {
+        // Parse fleet.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Success value on completion, or an error.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let result = instance.parse_fleet();
+
+        use crate::robotics_platform::FleetDecl;
+        let start = self.advance();
+        let name = self.expect(TokenType::Ident, "Expected fleet name")?.lexeme;
+        self.expect(TokenType::Lbrace, "Expected '{' after fleet name")?;
+        let mut members = Vec::new();
+
+        // Collect robot member identifiers until the closing brace.
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            let member = self
+                .expect(TokenType::Ident, "Expected robot name in fleet block")?
+                .lexeme;
+            self.expect(TokenType::Semicolon, "Expected ';' after fleet member")?;
+            members.push(member);
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close fleet")?;
+        Ok(FleetDecl::FleetDecl {
+            name,
+            members,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_program_safety_zone(
+        &mut self,
+    ) -> Result<crate::robotics_platform::ProgramSafetyZoneDecl, SpandaError> {
+        // Parse program safety zone.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Success value on completion, or an error.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let result = instance.parse_program_safety_zone();
+
+        use crate::robotics_platform::ProgramSafetyZoneDecl;
+        let start = self.advance();
+        let name = self
+            .expect(TokenType::Ident, "Expected safety zone name")?
+            .lexeme;
+        self.expect(TokenType::Lbrace, "Expected '{' after safety zone name")?;
+        let mut max_speed_mps = None;
+
+        // Parse optional max_speed policy entries inside the zone block.
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.match_types(&[TokenType::Ident]) && self.previous().lexeme == "max_speed" {
+                let value = self.parse_expr()?;
+                self.expect(TokenType::Semicolon, "Expected ';' after max_speed")?;
+                max_speed_mps = Some(self.expr_to_mps(&value)?);
+            } else {
                 let t = self.peek();
                 return Err(SpandaError::Parse {
-                    message: "Expected duration in mission block".into(),
+                    message: "Expected max_speed in safety_zone block".into(),
                     line: t.line,
                     column: t.column,
                 });
             }
         }
-        let end = self.expect(TokenType::Rbrace, "Expected '}' to close mission")?;
-        let duration_hours = duration_hours.ok_or_else(|| {
-            let t = self.peek();
-            SpandaError::Parse {
-                message: "mission block requires duration".into(),
-                line: t.line,
-                column: t.column,
-            }
-        })?;
-        Ok(MissionDecl::MissionDecl {
-            duration_hours,
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close safety_zone")?;
+        Ok(ProgramSafetyZoneDecl::ProgramSafetyZoneDecl {
+            name,
+            max_speed_mps,
             span: self.span_from(&start, &end),
         })
+    }
+
+    fn parse_certify(&mut self) -> Result<crate::robotics_platform::CertifyDecl, SpandaError> {
+        // Parse program-level certification metadata.
+        use crate::robotics_platform::{CertificationStandard, CertifyDecl};
+        let start = self.advance();
+        let standard_name = self
+            .expect(TokenType::Ident, "Expected certification standard after 'certify'")?
+            .lexeme;
+        let standard = CertificationStandard::parse_ident(&standard_name).ok_or_else(|| {
+            SpandaError::Parse {
+                message: format!(
+                    "Unknown certification standard '{standard_name}' (expected ISO13849, IEC61508, or ISO26262)"
+                ),
+                line: start.line,
+                column: start.column,
+            }
+        })?;
+        let mut level = None;
+        if self.check(TokenType::Lbrace) {
+            self.advance();
+            while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                if self.check(TokenType::Ident) && self.peek().lexeme == "level" {
+                    self.advance();
+                    level = Some(
+                        self.expect(TokenType::Ident, "Expected certification level after 'level'")?
+                            .lexeme,
+                    );
+                    self.expect(TokenType::Semicolon, "Expected ';' after certification level")?;
+                } else {
+                    let t = self.peek();
+                    return Err(SpandaError::Parse {
+                        message: "Expected 'level <Level>;' in certify block".into(),
+                        line: t.line,
+                        column: t.column,
+                    });
+                }
+            }
+            self.expect(TokenType::Rbrace, "Expected '}' to close certify block")?;
+        } else {
+            self.expect(
+                TokenType::Semicolon,
+                "Expected ';' after certification standard",
+            )?;
+        }
+        let end = self.previous();
+        Ok(CertifyDecl::CertifyDecl {
+            standard,
+            level,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn expr_to_mps(&self, expr: &Expr) -> Result<f64, SpandaError> {
+        // Convert a max_speed expression to meters per second.
+        if let Expr::UnitLiteralExpr { value, unit, span } = expr {
+            let mps = match unit {
+                UnitKind::MPerS => *value,
+                UnitKind::KmPerH => *value / 3.6,
+                UnitKind::Mph => *value * 0.44704,
+                _ => {
+                    return Err(SpandaError::Parse {
+                        message: "max_speed requires a velocity unit (m/s, km/h, mph)".into(),
+                        line: span.start.line,
+                        column: span.start.column,
+                    });
+                }
+            };
+            Ok(mps)
+        } else {
+            let span = match expr {
+                Expr::LiteralExpr { span, .. }
+                | Expr::UnitLiteralExpr { span, .. }
+                | Expr::IdentExpr { span, .. }
+                | Expr::BinaryExpr { span, .. }
+                | Expr::UnaryExpr { span, .. }
+                | Expr::CallExpr { span, .. }
+                | Expr::MemberExpr { span, .. }
+                | Expr::MatchExpr { span, .. }
+                | Expr::StructLiteralExpr { span, .. }
+                | Expr::ServiceCallExpr { span, .. }
+                | Expr::ExecuteExpr { span, .. }
+                | Expr::DiscoverExpr { span, .. }
+                | Expr::AwaitExpr { span, .. }
+                | Expr::SpawnExpr { span, .. } => span,
+            };
+            Err(SpandaError::Parse {
+                message: "max_speed requires a numeric velocity literal".into(),
+                line: span.start.line,
+                column: span.start.column,
+            })
+        }
     }
 
     fn parse_duration_hours(&mut self) -> Result<f64, SpandaError> {
@@ -7138,6 +7332,20 @@ impl Parser {
         if self.match_types(&[TokenType::Robot]) {
             return Ok(Expr::IdentExpr {
                 name: "robot".into(),
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+
+        // Treat program-level fleet/mission keywords as runtime object references.
+        if self.match_types(&[TokenType::Fleet]) {
+            return Ok(Expr::IdentExpr {
+                name: "fleet".into(),
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        if self.match_types(&[TokenType::Mission]) {
+            return Ok(Expr::IdentExpr {
+                name: "mission".into(),
                 span: self.span_from(&start, self.previous()),
             });
         }

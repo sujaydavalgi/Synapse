@@ -77,6 +77,30 @@ pub fn framework_packages() -> &'static [FrameworkPackage] {
             import_paths: &["navigation.path_planning"],
         },
         FrameworkPackage {
+            name: "spanda-nav2",
+            description: "Nav2 stack adapter for ROS 2 navigation",
+            category: super::category::PackageCategory::Navigation,
+            import_paths: &["navigation.nav2"],
+        },
+        FrameworkPackage {
+            name: "spanda-cartographer",
+            description: "Google Cartographer SLAM adapter",
+            category: super::category::PackageCategory::Navigation,
+            import_paths: &["navigation.cartographer"],
+        },
+        FrameworkPackage {
+            name: "spanda-rtabmap",
+            description: "RTAB-Map SLAM adapter",
+            category: super::category::PackageCategory::Navigation,
+            import_paths: &["navigation.rtabmap"],
+        },
+        FrameworkPackage {
+            name: "spanda-detectron",
+            description: "Detectron2 object detection",
+            category: super::category::PackageCategory::Vision,
+            import_paths: &["vision.detectron"],
+        },
+        FrameworkPackage {
             name: "spanda-manipulation",
             description: "Arm manipulation and grasping",
             category: super::category::PackageCategory::Manipulation,
@@ -106,6 +130,24 @@ pub fn framework_packages() -> &'static [FrameworkPackage] {
             category: super::category::PackageCategory::Simulation,
             import_paths: &["sim.webots"],
         },
+        FrameworkPackage {
+            name: "spanda-ble",
+            description: "Bluetooth Low Energy sensor/actuator bridge",
+            category: super::category::PackageCategory::Hardware,
+            import_paths: &["connectivity.ble"],
+        },
+        FrameworkPackage {
+            name: "spanda-gps",
+            description: "GPS/GNSS receiver adapters",
+            category: super::category::PackageCategory::Sensors,
+            import_paths: &["positioning.gps"],
+        },
+        FrameworkPackage {
+            name: "spanda-lte",
+            description: "LTE/cellular connectivity adapters",
+            category: super::category::PackageCategory::Hardware,
+            import_paths: &["connectivity.lte"],
+        },
     ]
 }
 
@@ -129,4 +171,21 @@ pub fn framework_import_paths() -> Vec<&'static str> {
         .iter()
         .flat_map(|p| p.import_paths.iter().copied())
         .collect()
+}
+
+/// Nav2 adapter package metadata for registry stubs and verify.
+pub fn nav2_adapter_metadata() -> AdapterMetadata {
+    AdapterMetadata {
+        provides: vec![
+            "Nav2Adapter".into(),
+            "NavigationGoal".into(),
+            "CostMap".into(),
+            "navigate".into(),
+        ],
+        requires: vec![
+            "topic.publish".into(),
+            "ros2.bridge".into(),
+            "actuator.drive".into(),
+        ],
+    }
 }

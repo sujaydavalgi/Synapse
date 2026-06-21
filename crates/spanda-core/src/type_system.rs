@@ -75,6 +75,40 @@ pub fn resolve_type_name(name: &str) -> Result<SpandaType, String> {
         }
         "Transform" => Ok(SpandaType::Transform),
         "Trajectory" | "Path" => Ok(SpandaType::Trajectory),
+        "NavigationGoal"
+        | "CostMap"
+        | "MotionPlan"
+        | "JointState"
+        | "KinematicModel"
+        | "CollisionModel"
+        | "Map"
+        | "OccupancyGrid"
+        | "Landmark"
+        | "LocalizationEstimate"
+        | "MapLayer"
+        | "Fleet"
+        | "FleetTask"
+        | "FleetCoordinator"
+        | "Mission"
+        | "Navigation"
+        | "BatteryState"
+        | "EnergyBudget"
+        | "ChargingStation"
+        | "HealthScore"
+        | "MaintenanceAlert"
+        | "FailurePrediction"
+        | "Detection"
+        | "Classification"
+        | "Tracking"
+        | "Segmentation"
+        | "Arm"
+        | "Gripper"
+        | "EndEffector"
+        | "Grasp"
+        | "SwarmCoordinator"
+        | "SwarmPolicy" => Ok(SpandaType::Named {
+            name: name.to_string(),
+        }),
         "Waypoint" | "MotionCommand" | "ControlSignal" | "PIDConfig" => Ok(SpandaType::Named {
             name: name.to_string(),
         }),
@@ -959,6 +993,53 @@ pub fn std_namespaces() -> HashMap<&'static str, &'static [&'static str]> {
             "Feedback",
             "Intent",
             "Approval",
+        ][..],
+    );
+    m.insert(
+        "std.navigation",
+        &[
+            "NavigationGoal",
+            "Path",
+            "Waypoint",
+            "Trajectory",
+            "CostMap",
+        ][..],
+    );
+    m.insert(
+        "std.fusion",
+        &[
+            "FusedObservation",
+            "StateEstimate",
+            "Confidence",
+            "SensorFusion",
+        ][..],
+    );
+    m.insert(
+        "std.slam",
+        &[
+            "Map",
+            "OccupancyGrid",
+            "Landmark",
+            "LocalizationEstimate",
+            "MapLayer",
+        ][..],
+    );
+    m.insert(
+        "std.manipulation",
+        &["Arm", "Gripper", "EndEffector", "Grasp", "Pick", "Place"][..],
+    );
+    m.insert(
+        "std.maintenance",
+        &["HealthScore", "MaintenanceAlert", "FailurePrediction"][..],
+    );
+    m.insert(
+        "std.environment",
+        &[
+            "Weather",
+            "Temperature",
+            "Humidity",
+            "AirQuality",
+            "LightLevel",
         ][..],
     );
     m
