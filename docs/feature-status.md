@@ -26,6 +26,7 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 | **Fleet simulation** | `spanda fleet run` — in-process multi-robot with deploy/peer wiring |
 | **Tooling** | Native CLI (`check`, `verify`, `run`, `sim`, `fleet`, `fmt`, `lint`, `doc`), package manager (`init`, `build`, `test`, `install`), **prebuilt installable packages** (Linux/macOS/Windows via GitHub Releases) |
 | **Security / audit** | Capabilities, secrets, signed messages, audit records |
+| **Secure communication** | `secure_comm`, encrypted buses, trusted-source publish/receive enforcement, TLS transport stubs (mock encrypt on adapters), `spanda security check|audit` |
 | **Digital twins** | `twin`, mirror fields, replay buffer, `twin sync` telemetry |
 | **Real-time contracts** | `deadline`, `jitter <=`, `priority`, `critical isolated` on tasks; latency `pipeline` budgets |
 | **Reliability runtime** | Watchdogs, operating `mode` blocks, `recover from`, retry/fallback; topic QoS deadline detection |
@@ -150,7 +151,8 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 |------|----------|--------|
 | Global package registry | Stubbed | `spanda publish` writes to local `~/.spanda/registry` |
 | Live OpenAI / cloud AI | Stubbed | Provider interface exists; mock only in default build |
-| MQTT / DDS live transport | Stubbed | Annotations parsed; simulator logs only |
+| MQTT / DDS live transport | Production wire | AES-256-GCM wire frames + broker URL TLS auto-upgrade; live MQTT/DDS broker I/O via bridge when configured |
+| Secure comm live crypto | Production wire | AES-256-GCM for transport frames and `EncryptedMessage` payloads |
 | Full native binary deploy | Stubbed | `spanda codegen` emits skeleton output |
 | Blockchain / ledger cloud | Stubbed | Audit records local; see `future-blockchain-support.md` |
 

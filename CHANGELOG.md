@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Secure communication:** optional encrypted communication across buses, topics, services, and actions — `secure_comm` policy, `trust_boundary` declarations, `secrets` blocks (env/file), extended `secure { }` blocks with encryption/authentication/trusted sources, `EncryptedMessage`/`VerifiedMessage` types (AES-256-GCM), production transport wire frames with `source_id`, `spanda security check|audit`, `--secure` and `--inject-security-faults` CLI flags; docs in `docs/secure-communication.md`, `docs/identity.md`, `docs/secrets.md`, `docs/trust-boundaries.md`; examples in `examples/security/`
+
+### Fixed
+
+- **Secure comm parser/runtime:** `secure_topic.publish` / `actuator.execute.safe` capability parsing, timed `fault … at T+10s` offsets, inbound trusted-source checks on receive/poll, TypeScript parser mirror for `secure_comm`, `trust_boundary`, `secrets`, bus blocks, and full `secure { }` fields
+
+### Changed
+
+- **Transport security productised:** AES-256-GCM wire frames (`spanda/wire/v1:`), `TransportWireFrame` with `source_id`, TLS session negotiation from cert/key secrets, broker URL TLS scheme auto-upgrade (`mqtts://`, `wss://`), and production `EncryptedMessage` crypto (replacing prefix stubs)
 - **VS Code marketplace readiness:** bundled LSP in extension VSIX, deploy-target autocomplete, verify picker command, Spanda debug type (`editor/vscode/`)
 - **Hosted package registry:** `registry/index.json` + `spanda-openai` / `spanda-ros2` tarballs; default `SPANDA_REGISTRY_URL`
 - **Live AI provider:** OpenAI via Python bridge — `docs/live-ai-provider.md`, `examples/ffi_openai_live.sd`
