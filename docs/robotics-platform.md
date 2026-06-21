@@ -216,9 +216,14 @@ Recorded during `spanda verify` as pass items under category `certify`. Programs
 ```bash
 spanda deploy plan examples/robotics/ota_deployment.sd
 spanda deploy rollout examples/robotics/ota_deployment.sd --strategy canary --canary-percent 10 --version 1.2.0
+spanda deploy rollout examples/robotics/certified_deployment.sd --require-certify --version 1.0.0
 spanda deploy rollback examples/robotics/ota_deployment.sd
 spanda deploy status
 ```
+
+Deploy plans include a `certification_proof` summary (relaxed and strict pass flags). Use `--require-certify` on rollout to block OTA updates when strict certification proof fails (same checklist as `spanda verify --strict-certify` / `spanda certify prove --strict`).
+
+Golden-path script: `examples/robotics/golden_path_deploy.sh`.
 
 State persists to `.spanda/deploy-state.json` (override with `SPANDA_DEPLOY_STATE`).
 
@@ -232,7 +237,7 @@ spanda deploy agent start --target RoverProgram@JetsonOrin --bind 0.0.0.0:8765
 
 # On CI / operator workstation
 spanda deploy agent register RoverProgram@JetsonOrin http://192.168.1.50:8765
-spanda deploy rollout examples/robotics/remote_ota_deployment.sd --remote --version 1.3.0
+spanda deploy rollout examples/robotics/remote_ota_deployment.sd --remote --require-certify --version 1.3.0
 spanda deploy rollback examples/robotics/remote_ota_deployment.sd --remote
 spanda deploy agent list
 ```
@@ -355,8 +360,8 @@ Runnable programs under `examples/robotics/`:
 | Distributed fleet orchestrator | **Partial** — `spanda fleet orchestrate` with peer mesh delivery (`peer_mesh_mission`) and remote HTTP relay (`distributed_peer_mesh`) |
 | `navigate { … }` statement sugar | **Done** — parser sugar over `navigation.goal()` + Nav2 `/cmd_vel` publish |
 | Safety zone speed enforcement at runtime | **Done** — `SafetyMonitor.clamp_speed_at_pose()` (Rust + TS) |
-| `certify ISO13849` / IEC 61508 / ISO 26262 | **Partial** — program `certify` metadata (+ optional `level`) + verify reporting; `--strict-certify` for CI gates |
-| OTA rollout/canary/rollback | **Partial** — local deploy CLI + remote HTTP(S) agents with `program_hash` and optional Ed25519 signed bundles |
+| `certify ISO13849` / IEC 61508 / ISO 26262 | **Partial** — program `certify` metadata (+ optional `level`) + verify reporting; `--strict-certify` / `--enforce-certify`; `spanda certify prove`; deploy `--require-certify` gate |
+| OTA rollout/canary/rollback | **Partial** — local deploy CLI + remote HTTP(S) agents with `program_hash`, optional Ed25519 signed bundles, and certification proof summary on deploy plans |
 | Swarm coordinator runtime | Experimental; build on fleet + peer robots |
 | World model runtime | Explicitly deferred in product strategy |
 | Production SLAM/nav package implementations | **Partial** — `slam.localize()` / `slam.map()` stub hooks; `SPANDA_NAV2_CMD` / `SPANDA_SLAM_CMD` subprocess bridges; `spanda verify-adapter` |
