@@ -498,6 +498,24 @@ export class InMemoryCommBus {
 
     return [...this.faults];
   }
+
+  subscriptionPaths(): string[] {
+    // List topic paths with active in-memory subscriptions.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Topic path strings.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const paths = subscriptionPaths();
+
+    return [...this.subscriptions.keys()];
+  }
 }
 
 export const COMM_CAPABILITIES = ["subscribe", "publish", "call", "execute", "discover"] as const;

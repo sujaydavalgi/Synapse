@@ -282,6 +282,11 @@ export function applyFault(profile: HardwareProfile, faultType: string): Hardwar
         (c) => !["LTE", "FourG", "4G", "FiveG", "5G"].includes(c),
       );
       break;
+    case "SatelliteOutage":
+      next.networkBandwidthMbps = 0;
+      next.networkLatencyMs = 10_000;
+      next.connectivity = next.connectivity.filter((c) => c !== "Satellite");
+      break;
     case "NetworkLatencySpike":
     case "LatencySpike":
       next.networkLatencyMs = 2000;

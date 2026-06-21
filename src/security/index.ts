@@ -530,6 +530,7 @@ export class SecurityContext {
       "identity.sign": "identity.sign",
       "identity.verify": "identity.verify",
       "ledger.anchor": "ledger.anchor",
+      "cellular.sim_identity": "cellular.connect",
     };
     const cap = map[operation];
     if (cap) this.capabilities.require(cap);

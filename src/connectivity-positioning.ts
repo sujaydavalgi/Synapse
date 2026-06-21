@@ -217,6 +217,7 @@ export function connectivityFaultNames(): string[] {
     "NetworkLatencySpike",
     "WeakWifi",
     "LteOutage",
+    "SatelliteOutage",
     "FiveGHandoff",
     "BluetoothDisconnect",
     "PacketLoss",
@@ -281,6 +282,7 @@ export function faultToConnectivity(
   switch (fault) {
     case "NetworkOutage":
     case "LteOutage":
+    case "SatelliteOutage":
     case "WeakWifi":
       return { domain: "network", event: "disconnected" };
     case "BluetoothDisconnect":
@@ -289,6 +291,8 @@ export function faultToConnectivity(
       return { domain: "cellular", event: "roaming" };
     case "GpsSpoofing":
       return { domain: "gps", event: "spoofed" };
+    case "GpsDrift":
+      return { domain: "gps", event: "drift" };
     default:
       return null;
   }
@@ -323,6 +327,8 @@ export function connectivityLinkToTransport(link: string): TransportKind {
       return "websocket";
     case "ethernet":
       return "ros2";
+    case "satellite":
+      return "websocket";
     case "network":
       return "sim";
     default:
@@ -361,6 +367,161 @@ export function applyGpsPositionFaults(
     return { lat: trueLat + dDeg, lon: trueLon + dDeg * 0.5, fixQuality: 0.8 };
   }
   return { lat: trueLat, lon: trueLon, fixQuality: 1.0 };
+}
+
+export function isCellularLink(link: string): boolean {
+  // Return true when the link name refers to a cellular bearer (not satellite).
+  //
+  // Parameters:
+  // - `link` — active connectivity link name
+  //
+  // Returns:
+  // Whether the link is cellular-class.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // const cellular = isCellularLink("lte");
+
+  const lower = link.toLowerCase();
+  return ["cellular", "lte", "4g", "fourg", "fiveg", "5g"].includes(lower);
+}
+
+export function isSatelliteLink(link: string): boolean {
+  // Return true when the active link is a satellite backhaul bearer.
+  //
+  // Parameters:
+  // - `link` — active connectivity link name
+  //
+  // Returns:
+  // Whether the link is satellite-class.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // const sat = isSatelliteLink("satellite");
+
+  return link.toLowerCase() === "satellite";
+}
+
+export function isModemBearer(link: string): boolean {
+  // Return true when the link supports SIM/modem attestation simulation.
+  //
+  // Parameters:
+  // - `link` — active connectivity link name
+  //
+  // Returns:
+  // Whether sim_identity attestation applies.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // const modem = isModemBearer("cellular");
+
+  return isCellularLink(link) || isSatelliteLink(link);
+}
+
+export function isWifiLink(link: string): boolean {
+  // Return true when the link name refers to Wi-Fi.
+  //
+  // Parameters:
+  // - `link` — active connectivity link name
+  //
+  // Returns:
+  // Whether the link is Wi-Fi-class.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // const wifi = isWifiLink("wifi");
+
+  const lower = link.toLowerCase();
+  return lower === "wifi" || lower === "wi-fi" || lower === "wifi6";
+}
+
+export function isLinkImpaired(link: string, faults: Set<string> | Iterable<string>): boolean {
+  // Return true when simulation faults disable the given connectivity link.
+  //
+  // Parameters:
+  // - `link` — active connectivity link name
+  // - `faults` — active injected fault names
+  //
+  // Returns:
+  // Whether the link should be treated as unavailable.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // const impaired = isLinkImpaired("cellular", new Set(["LteOutage"]));
+
+  const lower = link.toLowerCase();
+  for (const fault of faults) {
+    switch (fault) {
+      case "NetworkOutage":
+        if (isSatelliteLink(link) || lower === "bluetooth" || lower === "ble") continue;
+        if (isWifiLink(link) || isCellularLink(link) || lower === "network" || lower === "ethernet") {
+          return true;
+        }
+        break;
+      case "WeakWifi":
+        if (isWifiLink(link) || lower === "network") return true;
+        break;
+      case "LteOutage":
+        if (isCellularLink(link)) return true;
+        break;
+      case "SatelliteOutage":
+        if (isSatelliteLink(link)) return true;
+        break;
+    }
+  }
+  return false;
+}
+
+export function runtimeSimIdentity(link: string, attested: boolean) {
+  // Build a SimIdentity object for SIM/eSIM attestation simulation.
+  //
+  // Parameters:
+  // - `link` — active connectivity link name
+  // - `attested` — whether the modem attestation succeeded
+  //
+  // Returns:
+  // SimIdentity runtime object.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // const sim = runtimeSimIdentity("cellular", true);
+
+  const lower = link.toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < lower.length; i++) {
+    hash = (hash * 31 + lower.charCodeAt(i)) >>> 0;
+  }
+  const iccid = `89${String(hash % 10_000_000_000).padStart(10, "0")}00000000000`;
+  const carrier = isSatelliteLink(link)
+    ? "sim-satellite"
+    : lower.includes("5g") || lower.includes("fiveg")
+      ? "sim-5g"
+      : isCellularLink(link)
+        ? "sim-lte"
+        : "sim-unknown";
+  const esim = lower.includes("5g") || lower.includes("fiveg");
+  return {
+    kind: "object",
+    typeName: "SimIdentity",
+    fields: {
+      iccid: { kind: "string", value: iccid },
+      carrier: { kind: "string", value: carrier },
+      esim: { kind: "bool", value: esim },
+      attested: { kind: "bool", value: attested },
+    },
+  };
 }
 
 function compatItem(

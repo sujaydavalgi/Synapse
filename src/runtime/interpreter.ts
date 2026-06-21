@@ -59,6 +59,9 @@ import {
   faultToConnectivity,
   geofenceContains,
   geofenceFromDecl,
+  isModemBearer,
+  isLinkImpaired,
+  runtimeSimIdentity,
   type ConnectivityPolicyRuntime,
   type GeofenceRuntime,
 } from "../connectivity-positioning.js";
@@ -603,14 +606,6 @@ export class Interpreter {
       this.dispatchEvent(`${mapped.domain}.${mapped.event}`);
     }
 
-    if (this.injectedFaults.has("GpsSpoofing")) {
-      const key = "fault:gps.spoofed";
-      if (!this.connectivityEventsSeen.has(key)) {
-        this.connectivityEventsSeen.add(key);
-        this.dispatchEvent("gps.spoofed");
-      }
-    }
-
     const gpsOk = ![...this.injectedFaults].some((f) => f === "GpsFailure" || f === "GPSLost");
     if (this.gpsAvailable && !gpsOk) {
       this.gpsAvailable = false;
@@ -621,6 +616,23 @@ export class Interpreter {
       this.dispatchEvent("gps.acquired");
       this.dispatchEvent("gps.fix");
     }
+  }
+
+  private activeConnectivityFaults(): Set<string> {
+    const faults = new Set(this.injectedFaults);
+    for (const fault of this.commBus.activeFaults()) {
+      faults.add(fault);
+    }
+    return faults;
+  }
+
+  private activateConnectivityLink(policyName: string, link: string, reason: string): void {
+    this.activeConnectivityLink = link;
+    this.defaultTransport = connectivityLinkToTransport(link);
+    this.commBus.reconnectTransport(this.defaultTransport);
+    this.options.onLog?.(
+      `connectivity_policy '${policyName}': ${reason} (transport ${this.defaultTransport})`,
+    );
   }
 
   private applyConnectivityFailover(domain: string, event: string): void {
@@ -639,21 +651,26 @@ export class Interpreter {
     // Example:
     // applyConnectivityFailover("network", "disconnected");
 
+    if (domain !== "network" || event !== "disconnected") return;
+
+    const faults = this.activeConnectivityFaults();
     for (const policy of this.connectivityPolicies) {
-      if (domain === "network" && event === "disconnected") {
-        if (this.activeConnectivityLink === policy.preferred) {
-          this.activeConnectivityLink = policy.fallback;
-          this.defaultTransport = connectivityLinkToTransport(this.activeConnectivityLink);
-          this.options.onLog?.(
-            `connectivity_policy '${policy.name}': failover ${policy.preferred} -> ${policy.fallback} (transport ${this.defaultTransport})`,
-          );
-        } else if (policy.emergency && this.activeConnectivityLink !== policy.emergency) {
-          this.activeConnectivityLink = policy.emergency;
-          this.defaultTransport = connectivityLinkToTransport(this.activeConnectivityLink);
-          this.options.onLog?.(
-            `connectivity_policy '${policy.name}': emergency link ${policy.emergency} (transport ${this.defaultTransport})`,
-          );
-        }
+      const { preferred, fallback, emergency } = policy;
+
+      if (this.activeConnectivityLink === preferred) {
+        this.activateConnectivityLink(
+          policy.name,
+          fallback,
+          `failover ${preferred} -> ${fallback}`,
+        );
+      }
+
+      if (
+        emergency &&
+        this.activeConnectivityLink !== emergency &&
+        isLinkImpaired(this.activeConnectivityLink, faults)
+      ) {
+        this.activateConnectivityLink(policy.name, emergency, `emergency link ${emergency}`);
       }
     }
   }
@@ -3267,6 +3284,14 @@ export class Interpreter {
       }
       case "connectivity_link": {
         return { kind: "string", value: this.activeConnectivityLink };
+      }
+      case "sim_identity": {
+        this.security.requireOperation("cellular.sim_identity");
+        const modemActive = isModemBearer(this.activeConnectivityLink);
+        const outage = this.commBus
+          .activeFaults()
+          .some((f) => f === "LteOutage" || f === "SatelliteOutage" || f === "NetworkOutage");
+        return runtimeSimIdentity(this.activeConnectivityLink, modemActive && !outage);
       }
       default:
         return { kind: "void" };

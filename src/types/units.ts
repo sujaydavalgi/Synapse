@@ -514,6 +514,7 @@ export const ROBOT_METHODS: Record<string, { params: SpandaType[]; returns: Span
   in_zone: { params: [{ kind: "string" }], returns: { kind: "bool" } },
   in_geofence: { params: [{ kind: "string" }], returns: { kind: "bool" } },
   connectivity_link: { params: [], returns: { kind: "string" } },
+  sim_identity: { params: [], returns: { kind: "named", name: "SimIdentity" } },
 };
 
 export const BUILTIN_METHODS: Record<
@@ -723,6 +724,12 @@ export const OBJECT_PROPERTIES: Record<string, Record<string, SpandaType>> = {
     lon: { kind: "number", unit: "none" },
     altitude: { kind: "number", unit: "m" },
     fix_quality: { kind: "number", unit: "none" },
+  },
+  SimIdentity: {
+    iccid: { kind: "string" },
+    carrier: { kind: "string" },
+    esim: { kind: "bool" },
+    attested: { kind: "bool" },
   },
   NavigationPolicy: {
     linear: { kind: "number", unit: "m/s" },

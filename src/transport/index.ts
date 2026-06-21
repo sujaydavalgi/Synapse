@@ -528,6 +528,47 @@ export class RoutingCommBus {
     return this.memory.activeFaults();
   }
 
+  reconnectTransport(transport: TransportKind): void {
+    // Connect the active transport adapter and resubscribe all topic paths.
+    //
+    // Parameters:
+    // - `transport` — transport kind to activate after connectivity failover
+    //
+    // Returns:
+    // Nothing.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // reconnectTransport("dds");
+
+    const adapter = this.adapter(transport);
+    if (!adapter) return;
+
+    // Tear down stub adapters that are no longer the active transport.
+    for (const kind of ["ros2", "mqtt", "dds", "websocket"] as TransportKind[]) {
+      if (kind !== transport) {
+        this.adapter(kind)?.disconnect();
+      }
+    }
+
+    // Connect the target adapter when it is not already live.
+    if (!adapter.isConnected()) {
+      adapter.connect({
+        nodeName: "spanda",
+        brokerUrl: "mqtt://localhost:1883",
+        clientId: "spanda",
+        domainId: 0,
+      });
+    }
+
+    // Resubscribe every topic path on the newly active adapter.
+    for (const path of this.memory.subscriptionPaths()) {
+      adapter.subscribe(path);
+    }
+  }
+
   adapterPublished(transport: TransportKind): AdapterMessage[] {
     // AdapterPublished.
     //
