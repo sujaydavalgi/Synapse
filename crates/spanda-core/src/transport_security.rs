@@ -133,8 +133,7 @@ impl TlsTransportSession {
                         let client_cfg = crate::transport_tls::build_client_config(cert, key)?;
                         match crate::transport_tls::perform_mtls_handshake(&endpoint, client_cfg) {
                             Ok(hs) => {
-                                let crypto =
-                                    WireCryptoSession::from_material(&hs.session_material);
+                                let crypto = WireCryptoSession::from_material(&hs.session_material);
                                 self.cipher_suite = hs.cipher_suite;
                                 self.peer_verified = hs.peer_verified;
                                 self.session = Some(crypto);
@@ -142,9 +141,7 @@ impl TlsTransportSession {
                                 return Ok(());
                             }
                             Err(err)
-                                if std::env::var("SPANDA_MTLS_REQUIRED")
-                                    .ok()
-                                    .as_deref()
+                                if std::env::var("SPANDA_MTLS_REQUIRED").ok().as_deref()
                                     == Some("1") =>
                             {
                                 return Err(format!("mTLS handshake failed: {err}"));
@@ -278,6 +275,7 @@ mod tests {
             integrity: IntegrityMode::Required,
             cert_path: Some("certs/rover.pem".into()),
             key_secret: Some("motion_key".into()),
+            key_path: None,
         };
         tls.connect(&cfg, None).unwrap();
         assert!(tls.negotiated);

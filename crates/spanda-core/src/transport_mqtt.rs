@@ -25,24 +25,22 @@ mod live {
             let inbound: Arc<Mutex<HashMap<String, VecDeque<RuntimeValue>>>> =
                 Arc::new(Mutex::new(HashMap::new()));
             let inbound_poll = Arc::clone(&inbound);
-            thread::spawn(move || {
-                loop {
-                    match connection.iter().next() {
-                        Some(Ok(Event::Incoming(Incoming::Publish(packet)))) => {
-                            let payload = String::from_utf8_lossy(&packet.payload).to_string();
-                            if let Ok(mut map) = inbound_poll.lock() {
-                                map.entry(packet.topic)
-                                    .or_default()
-                                    .push_back(RuntimeValue::String { value: payload });
-                            }
+            thread::spawn(move || loop {
+                match connection.iter().next() {
+                    Some(Ok(Event::Incoming(Incoming::Publish(packet)))) => {
+                        let payload = String::from_utf8_lossy(&packet.payload).to_string();
+                        if let Ok(mut map) = inbound_poll.lock() {
+                            map.entry(packet.topic)
+                                .or_default()
+                                .push_back(RuntimeValue::String { value: payload });
                         }
-                        Some(Ok(_)) => {}
-                        Some(Err(e)) => {
-                            eprintln!("live mqtt connection error: {e}");
-                            break;
-                        }
-                        None => break,
                     }
+                    Some(Ok(_)) => {}
+                    Some(Err(e)) => {
+                        eprintln!("live mqtt connection error: {e}");
+                        break;
+                    }
+                    None => break,
                 }
             });
             Ok(Self { client, inbound })

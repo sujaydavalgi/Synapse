@@ -111,10 +111,12 @@ fn wire_encrypt_string(plaintext: &str, session_material: &str) -> String {
 
 fn wire_decrypt_string(ciphertext: &str, session_material: &str) -> SecurityResult<String> {
     let prefix = format!("enc:{session_material}:");
-    let hex_payload = ciphertext.strip_prefix(&prefix).ok_or(SecurityError::SecureEndpoint {
-        endpoint: "decrypt".into(),
-        reason: "invalid ciphertext prefix".into(),
-    })?;
+    let hex_payload = ciphertext
+        .strip_prefix(&prefix)
+        .ok_or(SecurityError::SecureEndpoint {
+            endpoint: "decrypt".into(),
+            reason: "invalid ciphertext prefix".into(),
+        })?;
     let bytes = hex::decode(hex_payload).map_err(|e| SecurityError::Other(format!("hex: {e}")))?;
     let session = WireCryptoSession::from_material(session_material);
     let plain = session
@@ -133,7 +135,8 @@ mod tests {
     #[test]
     fn encrypted_message_requires_decrypt() {
         let session_material = "sess-1";
-        let mut msg = EncryptedMessage::<String>::encrypt(&"hello".to_string(), session_material).unwrap();
+        let mut msg =
+            EncryptedMessage::<String>::encrypt(&"hello".to_string(), session_material).unwrap();
         assert!(msg.decrypted.is_none());
         assert_eq!(msg.decrypt().unwrap(), "hello");
     }

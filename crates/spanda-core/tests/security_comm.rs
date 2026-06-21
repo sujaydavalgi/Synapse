@@ -1,11 +1,10 @@
 //! Secure communication language and validation tests.
 
-use spanda_core::{check, lexer::tokenize, parser::parse, security_check};
 use spanda_core::ast::RobotDecl;
 use spanda_core::comm::BusDecl;
+use spanda_core::{check, lexer::tokenize, parser::parse, security_check};
 use spanda_security::{
-    EncryptedMessage, EncryptionMode, SecurePolicy, TrustBoundaryKind,
-    TrustBoundaryRegistry,
+    EncryptedMessage, EncryptionMode, SecurePolicy, TrustBoundaryKind, TrustBoundaryRegistry,
 };
 
 #[test]
@@ -268,7 +267,7 @@ fn transport_wire_frame_with_source_id() {
         key_secret: Some("test_key".into()),
         key_path: None,
     };
-        tls.connect(&security, None).unwrap();
+    tls.connect(&security, None).unwrap();
     let mut bus = RoutingCommBus::new();
     bus.configure(TransportConfig {
         security,

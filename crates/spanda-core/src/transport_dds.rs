@@ -43,7 +43,9 @@ impl LiveDdsInner {
         let inbound: Arc<Mutex<HashMap<String, VecDeque<RuntimeValue>>>> =
             Arc::new(Mutex::new(HashMap::new()));
         let inbound_poll = Arc::clone(&inbound);
-        let reader = socket.try_clone().map_err(|e| format!("dds clone socket: {e}"))?;
+        let reader = socket
+            .try_clone()
+            .map_err(|e| format!("dds clone socket: {e}"))?;
         thread::spawn(move || {
             let mut buf = [0_u8; 65507];
             loop {
@@ -81,8 +83,8 @@ impl LiveDdsInner {
             topic: topic.to_string(),
             payload: payload.to_string(),
         };
-        let bytes = serde_json::to_vec(&envelope)
-            .map_err(|e| format!("dds serialize failed: {e}"))?;
+        let bytes =
+            serde_json::to_vec(&envelope).map_err(|e| format!("dds serialize failed: {e}"))?;
         let dest = SocketAddr::from((self.group, self.port));
         self.socket
             .send_to(&bytes, dest)

@@ -1,8 +1,8 @@
 //! Canonical JSON wire frames for Spanda transport adapters.
 
+use crate::comm::TransportKind;
 use crate::runtime::RuntimeValue;
 use crate::serialize::{runtime_from_json_string, runtime_to_json_string};
-use crate::comm::TransportKind;
 use crate::transport::TransportConfig;
 use serde::{Deserialize, Serialize};
 use spanda_security::policy::EncryptionMode;

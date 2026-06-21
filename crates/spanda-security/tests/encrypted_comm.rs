@@ -23,7 +23,8 @@ fn secure_comm_policy_merge_bus() {
 
 #[test]
 fn encrypted_message_roundtrip() {
-    let mut msg = EncryptedMessage::<String>::encrypt(&"data".to_string(), "sess-material").unwrap();
+    let mut msg =
+        EncryptedMessage::<String>::encrypt(&"data".to_string(), "sess-material").unwrap();
     assert_eq!(msg.decrypt().unwrap(), "data");
 }
 

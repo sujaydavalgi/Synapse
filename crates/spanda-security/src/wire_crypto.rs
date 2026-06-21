@@ -24,8 +24,8 @@ impl WireCryptoSession {
     }
 
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, String> {
-        let cipher = Aes256Gcm::new_from_slice(&self.key)
-            .map_err(|e| format!("cipher init failed: {e}"))?;
+        let cipher =
+            Aes256Gcm::new_from_slice(&self.key).map_err(|e| format!("cipher init failed: {e}"))?;
         let mut nonce_bytes = [0u8; 12];
         rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
@@ -42,8 +42,8 @@ impl WireCryptoSession {
         if data.len() < 13 {
             return Err("ciphertext too short".into());
         }
-        let cipher = Aes256Gcm::new_from_slice(&self.key)
-            .map_err(|e| format!("cipher init failed: {e}"))?;
+        let cipher =
+            Aes256Gcm::new_from_slice(&self.key).map_err(|e| format!("cipher init failed: {e}"))?;
         let (nonce_bytes, ciphertext) = data.split_at(12);
         let nonce = Nonce::from_slice(nonce_bytes);
         cipher

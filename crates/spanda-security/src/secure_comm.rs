@@ -235,8 +235,8 @@ impl SecurePolicy {
         // let result = instance.verify_inbound(signed, identity, caps, endpoint);
 
         if !self.trusted_sources.is_empty() {
-            let sid = source_id
-                .ok_or_else(|| SecurityError::UntrustedSource("unknown".to_string()))?;
+            let sid =
+                source_id.ok_or_else(|| SecurityError::UntrustedSource("unknown".to_string()))?;
             self.check_trusted_source(sid)?;
         }
 

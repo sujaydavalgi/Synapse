@@ -778,7 +778,12 @@ impl TransportAdapter for DdsTransportAdapterLive {
         StubTransportState::service_result(service_type)
     }
 
-    fn send_action(&mut self, _action: &str, action_type: &str, _goal: RuntimeValue) -> RuntimeValue {
+    fn send_action(
+        &mut self,
+        _action: &str,
+        action_type: &str,
+        _goal: RuntimeValue,
+    ) -> RuntimeValue {
         StubTransportState::action_result(action_type)
     }
 
@@ -864,7 +869,12 @@ impl TransportAdapter for WebsocketTransportAdapterLive {
         StubTransportState::service_result(service_type)
     }
 
-    fn send_action(&mut self, _action: &str, action_type: &str, _goal: RuntimeValue) -> RuntimeValue {
+    fn send_action(
+        &mut self,
+        _action: &str,
+        action_type: &str,
+        _goal: RuntimeValue,
+    ) -> RuntimeValue {
         StubTransportState::action_result(action_type)
     }
 
@@ -954,7 +964,12 @@ impl TransportAdapter for MqttTransportAdapter {
         StubTransportState::service_result(service_type)
     }
 
-    fn send_action(&mut self, _action: &str, action_type: &str, _goal: RuntimeValue) -> RuntimeValue {
+    fn send_action(
+        &mut self,
+        _action: &str,
+        action_type: &str,
+        _goal: RuntimeValue,
+    ) -> RuntimeValue {
         StubTransportState::action_result(action_type)
     }
 
@@ -1047,7 +1062,9 @@ impl RoutingCommBus {
             config.security.encryption = EncryptionMode::Required;
         }
         config.security.validate("transport")?;
-        config.tls.connect(&config.security, config.broker_url.as_deref())?;
+        config
+            .tls
+            .connect(&config.security, config.broker_url.as_deref())?;
         self.config = config.clone();
         self.ros2.connect(&config)?;
         self.mqtt.connect(&TransportConfig {
@@ -1292,8 +1309,8 @@ impl RoutingCommBus {
                     if adapter.is_connected() {
                         // Emit output when receive provides a value.
                         if let Some(value) = adapter.receive(&path) {
-                            let (value, source_id) =
-                                decode_wire_value(&self.config, value).unwrap_or_else(|_| {
+                            let (value, source_id) = decode_wire_value(&self.config, value)
+                                .unwrap_or_else(|_| {
                                     (
                                         RuntimeValue::String {
                                             value: "<wire-decode-failed>".into(),
@@ -1305,11 +1322,8 @@ impl RoutingCommBus {
                                 value: value.clone(),
                                 source_id,
                             };
-                            self.memory.push_inbound(
-                                &path,
-                                value,
-                                envelope.source_id.as_deref(),
-                            );
+                            self.memory
+                                .push_inbound(&path, value, envelope.source_id.as_deref());
                             inbound.push((path.clone(), envelope));
                         }
                     }

@@ -112,20 +112,14 @@ pub fn build_client_config(cert_path: &str, key_path: &str) -> Result<Arc<Client
     Ok(Arc::new(config))
 }
 
-fn complete_handshake(
-    conn: &mut ClientConnection,
-    tcp: &mut TcpStream,
-) -> Result<(), String> {
+fn complete_handshake(conn: &mut ClientConnection, tcp: &mut TcpStream) -> Result<(), String> {
     // Drive the TLS handshake until connected or an error occurs.
     while conn.is_handshaking() {
         if conn.wants_write() {
-            conn.write_tls(tcp)
-                .map_err(|e| format!("tls write: {e}"))?;
+            conn.write_tls(tcp).map_err(|e| format!("tls write: {e}"))?;
         }
-        if conn.wants_read() {
-            if conn.read_tls(tcp).is_err() {
-                break;
-            }
+        if conn.wants_read() && conn.read_tls(tcp).is_err() {
+            break;
         }
         conn.process_new_packets()
             .map_err(|e| format!("tls process: {e}"))?;
