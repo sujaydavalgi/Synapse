@@ -12,6 +12,7 @@ pub mod hardware_req;
 pub mod import;
 pub mod lockfile;
 pub mod manifest;
+pub mod official;
 pub mod project;
 pub mod publish;
 pub mod registry;
@@ -43,6 +44,7 @@ pub use hardware_req::{
 pub use import::{all_registered_import_paths, resolve_package_import};
 pub use lockfile::{Lockfile, LOCKFILE_FILENAME};
 pub use manifest::{find_project_root, PackageManifest, PackageSection, MANIFEST_FILENAME};
+pub use official::{installed_official_packages, is_official_package};
 pub use project::{add_dependency, collect_source_files, init_package, remove_dependency};
 pub use publish::{bundle_package, publish_package, PublishReport};
 pub use registry::{

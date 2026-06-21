@@ -833,6 +833,9 @@ pub struct InterpreterOptions {
 
     /// Inject default security fault scenarios during simulation.
     pub inject_security_faults: bool,
+
+    /// Optional domain provider registry; defaults to bootstrap shims when unset.
+    pub provider_registry: Option<crate::providers::ProviderRegistry>,
 }
 
 impl Default for InterpreterOptions {
@@ -870,6 +873,7 @@ impl Default for InterpreterOptions {
             max_triggers_per_tick: MAX_TRIGGERS_PER_TICK,
             secure_mode: false,
             inject_security_faults: false,
+            provider_registry: None,
         }
     }
 }
@@ -939,10 +943,11 @@ pub struct Interpreter<B: RobotBackend> {
     program_safety_zones: crate::robotics_platform::ProgramSafetyZoneRegistry,
     nav2_enabled: bool,
     slam_enabled: bool,
+    provider_registry: crate::providers::ProviderRegistry,
 }
 
 impl<B: RobotBackend> Interpreter<B> {
-    pub fn new(backend: B, options: InterpreterOptions) -> Self {
+    pub fn new(backend: B, mut options: InterpreterOptions) -> Self {
         // Create a new instance.
         //
         // Parameters:
@@ -959,9 +964,14 @@ impl<B: RobotBackend> Interpreter<B> {
         // let value = spanda_core::runtime::new(backend, options);
 
         // Assemble the struct fields and return it.
+        let provider_registry = options
+            .provider_registry
+            .take()
+            .unwrap_or_else(crate::providers::bootstrap_default_providers);
         Self {
             backend,
             options,
+            provider_registry,
             env: Environment::new(),
             safety_monitor: None,
             zones: Vec::new(),
@@ -1044,6 +1054,24 @@ impl<B: RobotBackend> Interpreter<B> {
 
         // Return telemetry from this handle.
         &self.telemetry
+    }
+
+    pub fn provider_registry(&self) -> &crate::providers::ProviderRegistry {
+        // Return the domain provider registry active for this interpreter session.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Reference to the installed provider registry (includes bootstrap shims).
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let count = interp.provider_registry().transport_count();
+
+        &self.provider_registry
     }
 
     pub fn take_telemetry(&mut self) -> crate::telemetry::RuntimeTelemetry {

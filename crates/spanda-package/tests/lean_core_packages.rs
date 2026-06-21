@@ -1,6 +1,7 @@
 //! Lean-core framework package registry tests.
 //!
 use spanda_package::adapter::{adapter_metadata_for_package, framework_packages};
+use spanda_package::{installed_official_packages, is_official_package};
 
 #[test]
 fn official_packages_registered_in_framework_list() {
@@ -18,6 +19,14 @@ fn official_packages_registered_in_framework_list() {
     ] {
         assert!(names.contains(&pkg), "missing framework entry for {pkg}");
     }
+}
+
+#[test]
+fn installed_official_packages_filters_dependencies() {
+    let found = installed_official_packages(["spanda-ros2", "my-local-lib", "spanda-gps"]);
+    assert_eq!(found, vec!["spanda-gps", "spanda-ros2"]);
+    assert!(is_official_package("spanda-mqtt"));
+    assert!(!is_official_package("my-local-lib"));
 }
 
 #[test]
