@@ -1,0 +1,21 @@
+module rtabmap_adapter;
+
+import navigation.rtabmap;
+import std.navigation;
+
+robot VisualMapper {
+  sensor lidar: Lidar on "/scan";
+  topic map: String publish on "/slam/map";
+
+  safety {
+    max_speed = 0.6 m/s;
+  }
+
+  behavior localize() {
+    let pose = slam.localize();
+    let grid = slam.map();
+    let _ = pose;
+    let _ = grid;
+    publish map with "rtabmap_map";
+  }
+}

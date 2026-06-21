@@ -4,6 +4,7 @@
 //! then executes a round-robin mission coordination pass across fleet members.
 
 use crate::ast::{Program, RobotDecl};
+use crate::comm::PeerRobotDecl;
 use crate::foundations::MissionDecl;
 use crate::robotics_platform::{FleetDecl, FleetRegistry, MissionRuntime};
 use serde::{Deserialize, Serialize};
@@ -16,6 +17,8 @@ pub struct FleetMemberState {
     pub mission_state: String,
     pub current_step: String,
     pub has_peer_link: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub peer_handoffs: Vec<String>,
 }
 
 /// Orchestration report for one fleet group.
@@ -25,6 +28,8 @@ pub struct FleetOrchestrationReport {
     pub members: Vec<FleetMemberState>,
     pub coordination_mode: String,
     pub steps_advanced: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub peer_messages: Vec<String>,
 }
 
 /// Full orchestration result for a program.
@@ -53,6 +58,19 @@ fn mission_for_robot(robot: &RobotDecl) -> Option<MissionRuntime> {
         steps.clone(),
         *duration_hours,
     ))
+}
+
+fn peer_handoffs(member_name: &str, step: &str, peer_robots: &[PeerRobotDecl]) -> Vec<String> {
+    if step.is_empty() || peer_robots.is_empty() {
+        return Vec::new();
+    }
+    peer_robots
+        .iter()
+        .map(|peer| {
+            let PeerRobotDecl::PeerRobotDecl { name, .. } = peer;
+            format!("{member_name}->{name}:step={step}")
+        })
+        .collect()
 }
 
 /// Build fleet registry from program declarations.
@@ -90,6 +108,7 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
         let FleetDecl::FleetDecl { name, members, .. } = fleet;
         let mut member_states = Vec::new();
         let mut steps_advanced = 0u32;
+        let mut peer_messages = Vec::new();
 
         for member_name in members {
             let Some(robot) = robot_by_name(robots, member_name) else {
@@ -99,6 +118,7 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
                     mission_state: "MissingRobot".into(),
                     current_step: String::new(),
                     has_peer_link: false,
+                    peer_handoffs: Vec::new(),
                 });
                 continue;
             };
@@ -120,6 +140,8 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
             } else {
                 (None, "NoMission".into(), String::new())
             };
+            let handoffs = peer_handoffs(member_name, &current_step, peer_robots);
+            peer_messages.extend(handoffs.clone());
             let _ = mission;
             member_states.push(FleetMemberState {
                 robot_name: member_name.clone(),
@@ -127,6 +149,7 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
                 mission_state,
                 current_step,
                 has_peer_link: !peer_robots.is_empty(),
+                peer_handoffs: handoffs,
             });
         }
 
@@ -140,6 +163,7 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
             members: member_states,
             coordination_mode,
             steps_advanced,
+            peer_messages,
         });
     }
 

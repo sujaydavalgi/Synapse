@@ -1,0 +1,12 @@
+[package]
+name = "cartographer_adapter_package"
+version = "0.1.0"
+description = "Cartographer SLAM adapter example for Spanda robotics platform"
+authors = ["Spanda Contributors"]
+license = "Apache-2.0"
+
+[dependencies]
+
+[adapter]
+provides = ["CartographerSlam", "OccupancyGrid", "PoseGraph"]
+requires = ["topic.publish", "sensor.read"]

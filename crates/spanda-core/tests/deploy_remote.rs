@@ -19,7 +19,12 @@ fn remote_rollout_updates_agent_state() {
     assert!(agent_health(&entry).expect("health check"));
     let source = include_str!("../../../examples/robotics/ota_deployment.sd");
     let program = compile(source).expect("compile").program;
-    let plan = build_deploy_plan(&program, "ota_deployment.sd", "2.0.0");
+    let program_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../examples/robotics/ota_deployment.sd"
+    );
+    let plan = build_deploy_plan(&program, program_path, "2.0.0");
+    assert!(plan.program_hash.is_some(), "deploy plan should include program hash");
     let mut registry = DeployAgentRegistry::default();
     register_agent(
         &mut registry,
@@ -43,7 +48,13 @@ fn remote_rollout_updates_agent_state() {
     let status = agent_status(&entry).expect("agent status");
     assert_eq!(status.current_version, "2.0.0");
 
-    let rollout = agent_rollout(&entry, "2.1.0", Some("ota_deployment.sd")).expect("agent rollout");
+    let rollout = agent_rollout(
+        &entry,
+        "2.1.0",
+        Some("ota_deployment.sd"),
+        plan.program_hash.as_deref(),
+    )
+    .expect("agent rollout");
     assert!(rollout.ok);
     assert_eq!(rollout.version, "2.1.0");
 }

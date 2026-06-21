@@ -1,0 +1,12 @@
+[package]
+name = "rtabmap_adapter_package"
+version = "0.1.0"
+description = "RTAB-Map SLAM adapter example for Spanda robotics platform"
+authors = ["Spanda Contributors"]
+license = "Apache-2.0"
+
+[dependencies]
+
+[adapter]
+provides = ["RtabmapSlam", "LoopClosure", "VisualOdometry"]
+requires = ["topic.publish", "sensor.read"]

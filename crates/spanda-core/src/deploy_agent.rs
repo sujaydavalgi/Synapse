@@ -1,10 +1,13 @@
 //! On-device Spanda deploy agent HTTP server.
 
-use crate::deploy_http::{http_response, parse_http_request, HttpRequest, HttpResponse};
+use crate::deploy_http::{
+    http_response, parse_http_request, read_plain_request, serve_tls_connection,
+    write_plain_response, DeployAgentTls, HttpRequest, HttpResponse,
+};
 use crate::deploy_remote::DeployAgentEntry;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -17,6 +20,12 @@ pub struct AgentState {
     pub previous_version: Option<String>,
     #[serde(default)]
     pub token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_hash: Option<String>,
+    #[serde(default)]
+    pub require_hash: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,6 +33,7 @@ struct RolloutRequest {
     target: String,
     version: String,
     program: Option<String>,
+    program_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -87,6 +97,8 @@ pub fn handle_agent_request(state: &mut AgentState, request: HttpRequest) -> Htt
                 "target": state.target,
                 "current_version": state.current_version,
                 "previous_version": state.previous_version,
+                "program": state.program,
+                "program_hash": state.program_hash,
                 "healthy": true,
             }))
             .unwrap_or_else(|_| "{}".into()),
@@ -104,6 +116,12 @@ pub fn handle_agent_request(state: &mut AgentState, request: HttpRequest) -> Htt
                     body: r#"{"ok":false,"error":"target mismatch"}"#.into(),
                 };
             }
+            if state.require_hash && payload.program_hash.is_none() {
+                return HttpResponse {
+                    status: 400,
+                    body: r#"{"ok":false,"error":"program_hash required"}"#.into(),
+                };
+            }
             if state.target.is_empty() {
                 state.target = payload.target.clone();
             }
@@ -111,6 +129,8 @@ pub fn handle_agent_request(state: &mut AgentState, request: HttpRequest) -> Htt
                 state.previous_version = Some(state.current_version.clone());
             }
             state.current_version = payload.version.clone();
+            state.program = payload.program.clone();
+            state.program_hash = payload.program_hash.clone();
             HttpResponse {
                 status: 200,
                 body: serde_json::to_string(&RolloutResponse {
@@ -152,22 +172,50 @@ pub fn handle_agent_request(state: &mut AgentState, request: HttpRequest) -> Htt
     }
 }
 
-fn handle_connection(state: Arc<Mutex<AgentState>>, state_path: PathBuf, mut stream: TcpStream) {
-    let mut raw = String::new();
-    if stream.read_to_string(&mut raw).is_err() {
+fn handle_connection(
+    state: Arc<Mutex<AgentState>>,
+    state_path: PathBuf,
+    mut stream: TcpStream,
+    tls: Option<Arc<rustls::ServerConfig>>,
+) {
+    let respond = |locked: &mut AgentState, request: HttpRequest| -> HttpResponse {
+        let response = handle_agent_request(locked, request);
+        let _ = save_agent_state(&state_path, locked);
+        response
+    };
+
+    if let Some(server_config) = tls {
+        let shared = Arc::clone(&state);
+        let path = state_path.clone();
+        let _ = serve_tls_connection(&server_config, stream, move |request| {
+            let mut locked = shared.lock().expect("agent state lock");
+            let response = handle_agent_request(&mut locked, request);
+            let _ = save_agent_state(&path, &locked);
+            response
+        });
         return;
     }
+
+    let raw = match read_plain_request(&mut stream) {
+        Ok(raw) => raw,
+        Err(_) => {
+            let _ = stream.write_all(
+                http_response(400, r#"{"ok":false,"error":"bad request"}"#).as_bytes(),
+            );
+            return;
+        }
+    };
     let Ok(request) = parse_http_request(&raw) else {
-        let _ = stream.write_all(http_response(400, r#"{"ok":false,"error":"bad request"}"#).as_bytes());
+        let _ = stream.write_all(
+            http_response(400, r#"{"ok":false,"error":"bad request"}"#).as_bytes(),
+        );
         return;
     };
     let response = {
         let mut locked = state.lock().expect("agent state lock");
-        let response = handle_agent_request(&mut locked, request);
-        let _ = save_agent_state(&state_path, &locked);
-        response
+        respond(&mut locked, request)
     };
-    let _ = stream.write_all(http_response(response.status, &response.body).as_bytes());
+    let _ = write_plain_response(&mut stream, &response);
 }
 
 pub fn run_deploy_agent_server(
@@ -175,6 +223,8 @@ pub fn run_deploy_agent_server(
     target: &str,
     token: Option<String>,
     state_path: &Path,
+    tls: Option<DeployAgentTls>,
+    require_hash: bool,
 ) -> Result<(), String> {
     // Run the deploy agent until the listener is interrupted.
     let mut state = load_agent_state(state_path);
@@ -182,15 +232,22 @@ pub fn run_deploy_agent_server(
         state.target = target.to_string();
     }
     state.token = token.or(state.token);
+    state.require_hash = require_hash || state.require_hash;
     save_agent_state(state_path, &state)?;
     let listener = TcpListener::bind(bind).map_err(|e| format!("bind {bind} failed: {e}"))?;
     let shared = Arc::new(Mutex::new(state));
-    eprintln!("Spanda deploy agent listening on {bind} for target {target}");
+    let server_config = tls
+        .as_ref()
+        .map(crate::deploy_http::build_deploy_server_config)
+        .transpose()?;
+    let scheme = if server_config.is_some() { "https" } else { "http" };
+    eprintln!("Spanda deploy agent listening on {scheme}://{bind} for target {target}");
     for connection in listener.incoming() {
         let Ok(stream) = connection else { continue };
         let shared_clone = Arc::clone(&shared);
         let path_clone = state_path.to_path_buf();
-        thread::spawn(move || handle_connection(shared_clone, path_clone, stream));
+        let tls_clone = server_config.clone();
+        thread::spawn(move || handle_connection(shared_clone, path_clone, stream, tls_clone));
     }
     Ok(())
 }
@@ -207,12 +264,18 @@ pub fn spawn_test_agent(
         current_version: "0.0.0".into(),
         previous_version: None,
         token,
+        ..AgentState::default()
     };
     let shared = Arc::new(Mutex::new(state));
     let handle = thread::spawn(move || {
         for connection in listener.incoming() {
             let Ok(stream) = connection else { continue };
-            handle_connection(Arc::clone(&shared), PathBuf::from(".spanda/test-agent-state.json"), stream);
+            handle_connection(
+                Arc::clone(&shared),
+                PathBuf::from(".spanda/test-agent-state.json"),
+                stream,
+                None,
+            );
         }
     });
     Ok((port, handle))

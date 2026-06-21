@@ -32,6 +32,8 @@ pub struct DeployAssignment {
 pub struct DeployPlan {
     pub program: String,
     pub version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_hash: Option<String>,
     pub assignments: Vec<DeployAssignment>,
     pub certifications: Vec<String>,
 }
@@ -106,6 +108,31 @@ pub fn deploy_target_key(robot: &str, hardware: &str) -> String {
     assignment_key(robot, hardware)
 }
 
+/// Compute a SHA-256 hex digest of a program artifact on disk.
+pub fn hash_program_artifact(program_path: &str) -> Option<String> {
+    // Hash the deployment source file when it exists locally.
+    //
+    // Parameters:
+    // - `program_path` — path to the Spanda program file
+    //
+    // Returns:
+    // Lowercase hex SHA-256 digest, or none when the file is unreadable.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let hash = hash_program_artifact("rover.sd");
+
+    let path = Path::new(program_path);
+    if !path.exists() {
+        return None;
+    }
+    let bytes = fs::read(path).ok()?;
+    use sha2::{Digest, Sha256};
+    Some(hex::encode(Sha256::digest(bytes)))
+}
+
 /// Build a deployment plan from a parsed program.
 pub fn build_deploy_plan(program: &Program, program_path: &str, version: &str) -> DeployPlan {
     // Extract deploy targets and certification metadata from the program AST.
@@ -163,6 +190,7 @@ pub fn build_deploy_plan(program: &Program, program_path: &str, version: &str) -
     DeployPlan {
         program: program_path.to_string(),
         version: version.to_string(),
+        program_hash: hash_program_artifact(program_path),
         assignments,
         certifications: certs,
     }

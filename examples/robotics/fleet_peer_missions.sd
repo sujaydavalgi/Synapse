@@ -1,0 +1,27 @@
+// Robotics — fleet peer handoffs during mission orchestration
+//
+//   spanda check examples/robotics/fleet_peer_missions.sd
+//   spanda fleet orchestrate examples/robotics/fleet_peer_missions.sd
+
+robot ScoutA {
+  robot ScoutB;
+
+  mission Patrol {
+    navigate;
+    inspect;
+    return_home;
+  }
+}
+
+robot ScoutB {
+  mission Patrol {
+    navigate;
+    inspect;
+    return_home;
+  }
+}
+
+fleet Recon {
+  ScoutA;
+  ScoutB;
+}

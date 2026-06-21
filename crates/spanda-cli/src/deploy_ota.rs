@@ -5,7 +5,7 @@ use spanda_core::{
     default_agents_path, default_state_path, execute_remote_rollout, execute_remote_rollback,
     load_agent_registry, load_deploy_state, orchestrate_fleets, plan_rollout, register_agent,
     rollback_targets, run_deploy_agent_server, save_agent_registry, save_deploy_state,
-    DeployState, RolloutOptions, RolloutStrategy,
+    DeployAgentTls, DeployState, RolloutOptions, RolloutStrategy,
 };
 use std::env;
 use std::fs;
@@ -66,8 +66,8 @@ pub fn deploy_usage_lines() -> &'static str {
      spanda deploy rollout [--json] [--remote] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>\n\
      spanda deploy rollback [--json] [--remote] <file.sd>\n\
      spanda deploy status [--json]\n\
-     spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>]\n\
-     spanda deploy agent register <Robot@Hardware> <http://host:port> [--token <t>]\n\
+     spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>] [--require-hash]\n\
+     spanda deploy agent register <Robot@Hardware> <http(s)://host:port> [--token <t>]\n\
      spanda deploy agent list [--json]\n\
      spanda deploy --target wasm [--out <file.json>] <file.sd>"
 }
@@ -112,6 +112,9 @@ fn cmd_plan(args: &[String]) {
         }
         if !plan.certifications.is_empty() {
             println!("  certifications: {}", plan.certifications.join(", "));
+        }
+        if let Some(hash) = &plan.program_hash {
+            println!("  program_hash: {hash}");
         }
     }
 }
@@ -247,6 +250,9 @@ fn cmd_agent_start(args: &[String]) {
     let mut bind = "127.0.0.1:8765".to_string();
     let mut target = String::new();
     let mut token = None;
+    let mut tls_cert = None;
+    let mut tls_key = None;
+    let mut require_hash = false;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -262,6 +268,15 @@ fn cmd_agent_start(args: &[String]) {
                 token = Some(args[i + 1].clone());
                 i += 1;
             }
+            "--tls-cert" if i + 1 < args.len() => {
+                tls_cert = Some(args[i + 1].clone());
+                i += 1;
+            }
+            "--tls-key" if i + 1 < args.len() => {
+                tls_key = Some(args[i + 1].clone());
+                i += 1;
+            }
+            "--require-hash" => require_hash = true,
             other => {
                 eprintln!("Unknown argument: {other}");
                 process::exit(1);
@@ -273,7 +288,25 @@ fn cmd_agent_start(args: &[String]) {
         eprintln!("Missing --target Robot@Hardware");
         process::exit(1);
     }
-    if let Err(err) = run_deploy_agent_server(&bind, &target, token, &default_agent_state_path()) {
+    let tls = match (tls_cert, tls_key) {
+        (Some(cert_path), Some(key_path)) => Some(DeployAgentTls {
+            cert_path,
+            key_path,
+        }),
+        (None, None) => None,
+        _ => {
+            eprintln!("Both --tls-cert and --tls-key are required for HTTPS agents");
+            process::exit(1);
+        }
+    };
+    if let Err(err) = run_deploy_agent_server(
+        &bind,
+        &target,
+        token,
+        &default_agent_state_path(),
+        tls,
+        require_hash,
+    ) {
         eprintln!("Deploy agent failed: {err}");
         process::exit(1);
     }
@@ -302,7 +335,7 @@ fn cmd_agent_register(args: &[String]) {
         process::exit(1);
     });
     let url = url.unwrap_or_else(|| {
-        eprintln!("Missing agent URL (http://host:port)");
+        eprintln!("Missing agent URL (http(s)://host:port)");
         process::exit(1);
     });
     let path = agents_path();
@@ -413,6 +446,12 @@ pub fn fleet_orchestrate_dispatch(args: &[String]) {
                     member.current_step,
                     member.has_peer_link
                 );
+                for handoff in &member.peer_handoffs {
+                    println!("      handoff: {handoff}");
+                }
+            }
+            for message in &fleet.peer_messages {
+                println!("    peer: {message}");
             }
         }
     }

@@ -1,0 +1,21 @@
+module cartographer_adapter;
+
+import navigation.cartographer;
+import std.navigation;
+
+robot MappingBot {
+  sensor lidar: Lidar on "/scan";
+  topic map: String publish on "/slam/map";
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  behavior map_build() {
+    let pose = slam.localize();
+    let grid = slam.map();
+    let _ = pose;
+    let _ = grid;
+    publish map with "cartographer_map";
+  }
+}

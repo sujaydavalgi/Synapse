@@ -37,6 +37,7 @@ struct RolloutRequest {
     target: String,
     version: String,
     program: Option<String>,
+    program_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,7 +95,10 @@ pub fn lookup_agent<'a>(
 
 fn agent_endpoint(base_url: &str, path: &str) -> Result<String, String> {
     let parsed = parse_http_url(base_url)?;
-    Ok(format!("http://{}:{}{}", parsed.host, parsed.port, path))
+    Ok(format!(
+        "{}://{}:{}{}",
+        parsed.scheme, parsed.host, parsed.port, path
+    ))
 }
 
 fn decode_response<T: for<'de> Deserialize<'de>>(response: HttpResponse) -> Result<T, String> {
@@ -121,12 +125,14 @@ pub fn agent_rollout(
     entry: &DeployAgentEntry,
     version: &str,
     program: Option<&str>,
+    program_hash: Option<&str>,
 ) -> Result<AgentRolloutResponse, String> {
     let url = agent_endpoint(&entry.url, "/v1/rollout")?;
     let payload = serde_json::to_string(&RolloutRequest {
         target: entry.target.clone(),
         version: version.to_string(),
         program: program.map(str::to_string),
+        program_hash: program_hash.map(str::to_string),
     })
     .map_err(|e| e.to_string())?;
     let response = http_request("POST", &url, Some(&payload), entry.token.as_deref())?;
@@ -170,7 +176,12 @@ pub fn execute_remote_rollout(
             success = false;
             continue;
         };
-        match agent_rollout(agent, &step.version, Some(&plan.program)) {
+        match agent_rollout(
+            agent,
+            &step.version,
+            Some(&plan.program),
+            plan.program_hash.as_deref(),
+        ) {
             Ok(resp) if resp.ok => steps.push(RolloutStep {
                 status: RolloutStepStatus::Deployed,
                 ..step.clone()
