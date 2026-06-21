@@ -171,6 +171,12 @@ Validate adapter package manifests:
 cd examples/packages/nav2_adapter_package && spanda verify-adapter --import navigation.nav2
 ```
 
+Export a certification proof artifact for CI/audit:
+
+```bash
+spanda certify prove examples/robotics/certified_deployment.sd --strict --out proof.json
+```
+
 ### Safety zones
 
 Program-level speed policies complement robot-local geometry in `safety { zone … }`:
@@ -376,7 +382,7 @@ Runnable programs under `examples/robotics/`:
 | Fleet orchestrator | `crates/spanda-core/src/fleet_orchestrator.rs` |
 | Fleet remote agents | `crates/spanda-core/src/fleet_remote.rs`, `fleet_agent.rs` |
 | Fleet mesh coordinator | `crates/spanda-core/src/fleet_mesh.rs` |
-| Certification verify/runtime | `crates/spanda-core/src/certify_verify.rs`, `certify_runtime.rs` |
+| Certification verify/runtime | `crates/spanda-core/src/certify_verify.rs`, `certify_runtime.rs`, `certify_prover.rs` |
 | Adapter bridges | `crates/spanda-core/src/adapter_bridge.rs` |
 | Nav2 adapter hooks | `crates/spanda-core/src/nav2_adapter.rs` |
 | Type checker | `crates/spanda-core/src/types.rs` (`builtin_methods`) |
