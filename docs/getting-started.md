@@ -74,6 +74,26 @@ robot MyRover {
 
 ---
 
+## Learn by example (basics → end-to-end)
+
+Progressive tutorials live under [`examples/basics/`](examples/basics/README.md):
+
+```bash
+spanda check examples/basics/01_minimal_robot.sd
+spanda run examples/basics/02_sensors_and_safety.sd
+spanda test examples/basics/07_in_language_tests.sd
+```
+
+| Tier | Directory | Topics |
+|------|-----------|--------|
+| Basics | `examples/basics/` | Robot syntax, safety, control flow, Result/Option, traits, async, contracts |
+| Integration | `examples/integration/` | Triggers, concurrency, hardware verify |
+| End-to-end | `examples/end_to_end/` | Full patrol package, record/replay mission |
+
+After the ladder, try [`examples/showcase/killer_demo.sd`](examples/showcase/killer_demo.sd) and [killer-demo.md](./killer-demo.md).
+
+---
+
 ## Core commands
 
 ### Type-check

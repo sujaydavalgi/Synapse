@@ -155,6 +155,17 @@ deploy RoverProgram to RoverV1;
 spanda verify rover.sd --json
 ```
 
+### Examples library
+
+Start with the progressive ladder in [`examples/basics/`](examples/basics/README.md), then integration slices and end-to-end packages:
+
+| Tier | Path | Highlights |
+|------|------|------------|
+| Basics | `examples/basics/01_minimal_robot.sd` → `11_observe_and_fusion.sd` | Language core from robot blocks to fusion |
+| Integration | `examples/integration/` | Triggers, concurrency, verify walkthrough |
+| End-to-end | `examples/end_to_end/safe_patrol/` | AI safety gate + deploy package |
+| End-to-end | `examples/end_to_end/replay_mission.sd` | Record and replay workflow |
+
 ### Showcase examples
 
 Curated demos in [`examples/showcase/`](examples/showcase/):

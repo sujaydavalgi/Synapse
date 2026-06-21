@@ -60,7 +60,7 @@ packages/
 src/                        TypeScript interpreter, CLI wrapper, rust-bridge, and tests
 editor/vscode/              First-party VS Code extension scaffold
 scripts/                    Inline doc tooling, ROS2 daemon, Python bridge helpers
-examples/                   Sample `.sd` programs (showcase/, realtime/, regex/, hardware/, communication/)
+examples/                   Sample `.sd` programs (basics/, integration/, end_to_end/, showcase/, realtime/, regex/, …)
 tests/                      Vitest suite and golden fixtures
 ```
 

@@ -100,6 +100,30 @@
       "file": "examples/showcase/ai_safety_violation.sd",
       "check": "fail",
       "errorContains": "ActionProposal"
+    },
+    {
+      "file": "examples/basics/01_minimal_robot.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/basics/04_result_and_option.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/basics/07_in_language_tests.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/integration/verify_walkthrough.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/end_to_end/safe_patrol/src/main.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/end_to_end/replay_mission.sd",
+      "check": "pass"
     }
   ]
 }
