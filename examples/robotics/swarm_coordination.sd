@@ -45,3 +45,8 @@ swarm ReconBroadcast {
   fleet Recon;
   policy broadcast;
 }
+
+swarm ReconLeader {
+  fleet Recon;
+  policy leader_follow;
+}

@@ -107,8 +107,8 @@ pub use deploy_agent::{
 pub use deploy_http::{parse_http_url, DeployAgentTls};
 pub use robotics_platform::SwarmPolicy;
 pub use swarm_coordinator::{
-    coordinate_swarms, default_swarm_state_path, load_swarm_state, save_swarm_state,
-    SwarmCoordinationReport, SwarmCoordinationResult, SwarmState,
+    coordinate_swarms, coordinate_swarms_mesh, default_swarm_state_path, load_swarm_state,
+    save_swarm_state, SwarmCoordinationReport, SwarmCoordinationResult, SwarmState,
 };
 pub use fleet_orchestrator::{
     fleet_registry_from_program, orchestrate_fleets, orchestrate_fleets_mesh,

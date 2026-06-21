@@ -101,7 +101,7 @@ fn usage() {
            spanda twin export <file.sd> --out <replay.json>\n\
            spanda fleet run [--json] [--trace-scheduler] [--trace-tasks] [--trace-triggers] [--trace-events] <file.sd>\n\
            spanda fleet orchestrate [--json] [--remote] [--mesh-url <http(s)://host:port>] [--mesh-token <t>] <file.sd>\n\
-           spanda swarm coordinate [--json] <file.sd>\n\
+           spanda swarm coordinate [--json] [--mesh-url <http(s)://host:port>] [--mesh-token <t>] <file.sd>\n\
            spanda fleet mesh start [--bind <addr>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>]\n\
            spanda fleet agent start [--bind <addr>] [--robot <name>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>]\n\
            spanda fleet agent register <RobotName> <http(s)://host:port> [--token <t>]\n\

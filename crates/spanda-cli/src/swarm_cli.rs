@@ -1,7 +1,8 @@
 //! Swarm coordinator CLI (`spanda swarm coordinate`).
 
 use spanda_core::{
-    compile, coordinate_swarms, default_swarm_state_path, load_swarm_state, save_swarm_state,
+    compile, coordinate_swarms, coordinate_swarms_mesh, default_swarm_state_path,
+    load_swarm_state, save_swarm_state,
 };
 use std::env;
 use std::fs;
@@ -48,7 +49,7 @@ pub fn swarm_dispatch(args: &[String]) {
 }
 
 pub fn swarm_usage_lines() -> &'static str {
-    "           spanda swarm coordinate [--json] <file.sd>"
+    "           spanda swarm coordinate [--json] [--mesh-url <http(s)://host:port>] [--mesh-token <t>] <file.sd>"
 }
 
 fn usage() {
@@ -57,16 +58,28 @@ fn usage() {
 
 fn cmd_coordinate(args: &[String]) {
     let mut json = false;
+    let mut mesh_url: Option<String> = None;
+    let mut mesh_token: Option<String> = None;
     let mut file: Option<String> = None;
-    for arg in args {
-        match arg.as_str() {
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
             "--json" => json = true,
+            "--mesh-url" if i + 1 < args.len() => {
+                mesh_url = Some(args[i + 1].clone());
+                i += 1;
+            }
+            "--mesh-token" if i + 1 < args.len() => {
+                mesh_token = Some(args[i + 1].clone());
+                i += 1;
+            }
             other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
             other => {
                 eprintln!("Unknown argument: {other}");
                 process::exit(1);
             }
         }
+        i += 1;
     }
     let file = file.unwrap_or_else(|| {
         eprintln!("Missing file path");
@@ -76,7 +89,17 @@ fn cmd_coordinate(args: &[String]) {
     let program = parse_program(&source, &file);
     let path = swarm_state_path();
     let mut state = load_swarm_state(&path);
-    let result = coordinate_swarms(&program, &file, &mut state);
+    let result = if let Some(ref url) = mesh_url {
+        coordinate_swarms_mesh(
+            &program,
+            &file,
+            &mut state,
+            url,
+            mesh_token.as_deref(),
+        )
+    } else {
+        coordinate_swarms(&program, &file, &mut state)
+    };
     if let Err(err) = save_swarm_state(&path, &state) {
         eprintln!("Warning: could not save swarm state: {err}");
     }
@@ -102,6 +125,12 @@ fn cmd_coordinate(args: &[String]) {
                 println!(
                     "    follow: {} -> {} step={}",
                     delivery.from_robot, delivery.to_robot, delivery.step
+                );
+            }
+            if mesh_url.is_some() {
+                println!(
+                    "    mesh: relayed={} failed={}",
+                    swarm.remote_relayed, swarm.remote_failed
                 );
             }
         }

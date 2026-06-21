@@ -31,6 +31,10 @@ pub struct SwarmCoordinationReport {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub peer_deliveries: Vec<PeerDelivery>,
     pub round_robin_cursor: usize,
+    #[serde(default)]
+    pub remote_relayed: u32,
+    #[serde(default)]
+    pub remote_failed: u32,
 }
 
 /// Full swarm coordination result for a program.
@@ -229,9 +233,65 @@ fn coordinate_swarm_group(
             coordination_mode: coordination_mode.into(),
             peer_deliveries,
             round_robin_cursor: next_cursor,
+            remote_relayed: 0,
+            remote_failed: 0,
         },
         next_cursor,
     )
+}
+
+/// Coordinate swarms and relay leader-follow deliveries through a fleet mesh coordinator.
+pub fn coordinate_swarms_mesh(
+    program: &Program,
+    program_path: &str,
+    state: &mut SwarmState,
+    mesh_url: &str,
+    token: Option<&str>,
+) -> SwarmCoordinationResult {
+    // Execute swarm coordination locally, then push peer deliveries to the mesh coordinator.
+    //
+    // Parameters:
+    // - `program` — parsed Spanda program
+    // - `program_path` — source path for reporting
+    // - `state` — persistent swarm cursor state updated in place
+    // - `mesh_url` — fleet mesh coordinator base URL
+    // - `token` — optional bearer token for the mesh coordinator
+    //
+    // Returns:
+    // Swarm coordination report with remote relay counters.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let result = coordinate_swarms_mesh(&program, "swarm.sd", &mut state, "http://mesh:8767", None);
+
+    let mut result = coordinate_swarms(program, program_path, state);
+    let mut success = result.success;
+    for swarm in &mut result.swarms {
+        if swarm.peer_deliveries.is_empty() {
+            continue;
+        }
+        match crate::fleet_mesh::relay_deliveries_via_mesh(mesh_url, &swarm.peer_deliveries, token)
+        {
+            Ok(resp) => {
+                swarm.remote_relayed = resp.relayed;
+                swarm.remote_failed = resp.failed;
+                if resp.relayed > 0 {
+                    swarm.coordination_mode = format!("{}_mesh", swarm.coordination_mode);
+                }
+                if resp.failed > 0 {
+                    success = false;
+                }
+            }
+            Err(_) => {
+                swarm.remote_failed = swarm.peer_deliveries.len() as u32;
+                success = false;
+            }
+        }
+    }
+    result.success = success;
+    result
 }
 
 /// Coordinate declared swarm groups using fleet-backed mission controllers.
@@ -280,6 +340,8 @@ pub fn coordinate_swarms(
                 coordination_mode: "missing_fleet".into(),
                 peer_deliveries: Vec::new(),
                 round_robin_cursor: 0,
+                remote_relayed: 0,
+                remote_failed: 0,
             });
             continue;
         }
