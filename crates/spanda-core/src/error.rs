@@ -196,6 +196,10 @@ pub struct RunOptions {
     /// Inject security fault scenarios during simulation.
     #[serde(default)]
     pub inject_security_faults: bool,
+
+    /// Enforce certification metadata before run/sim (also via SPANDA_ENFORCE_CERTIFY=1).
+    #[serde(default)]
+    pub enforce_certify: bool,
 }
 
 fn default_max_loop_iterations() -> usize {

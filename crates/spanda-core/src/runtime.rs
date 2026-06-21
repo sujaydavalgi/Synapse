@@ -7059,10 +7059,11 @@ impl<B: RobotBackend> Interpreter<B> {
                 )]),
             }),
             "navigate" => {
-                self.log(format!(
-                    "navigation: executing goal '{}'",
-                    goal.as_deref().unwrap_or("none")
-                ));
+                let goal_label = goal.as_deref().unwrap_or("none");
+                self.log(format!("navigation: executing goal '{goal_label}'"));
+                if let Some(output) = crate::adapter_bridge::invoke_nav2_bridge(goal_label) {
+                    self.log(format!("navigation: Nav2 bridge output: {output}"));
+                }
                 if self.nav2_enabled || self.topic_path_to_message_type.contains_key("/cmd_vel")
                 {
                     if let Some(message_type) =
@@ -7108,7 +7109,11 @@ impl<B: RobotBackend> Interpreter<B> {
         match property {
             "localize" => {
                 let state = self.backend.get_state();
-                self.log("slam: localize (stub adapter)".into());
+                if let Some(output) = crate::adapter_bridge::invoke_slam_bridge("localize") {
+                    self.log(format!("slam: bridge localize output: {output}"));
+                } else {
+                    self.log("slam: localize (stub adapter)".into());
+                }
                 Ok(RuntimeValue::Object {
                     type_name: "LocalizationEstimate".into(),
                     fields: HashMap::from([
@@ -7127,7 +7132,11 @@ impl<B: RobotBackend> Interpreter<B> {
                 })
             }
             "map" => {
-                self.log("slam: map snapshot (stub adapter)".into());
+                if let Some(output) = crate::adapter_bridge::invoke_slam_bridge("map") {
+                    self.log(format!("slam: bridge map output: {output}"));
+                } else {
+                    self.log("slam: map snapshot (stub adapter)".into());
+                }
                 Ok(RuntimeValue::Object {
                     type_name: "OccupancyGrid".into(),
                     fields: HashMap::from([
