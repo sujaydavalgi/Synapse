@@ -1,0 +1,25 @@
+// Feature: circular safety zones and in_zone checks
+//
+//   spanda check examples/features/safety_zones.sd
+//   spanda run examples/features/safety_zones.sd
+
+robot ZoneRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+    zone keepout circle at (1.0 m, 0.0 m) radius 0.5 m;
+    stop_if robot.in_zone("keepout");
+  }
+
+  behavior patrol() {
+    loop every 100ms {
+      if robot.in_zone("keepout") {
+        wheels.stop();
+      } else {
+        wheels.drive(linear: 0.3 m/s, angular: 0.0 rad/s);
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+// Feature: while-level trigger (continuous condition handler)
+//
+//   spanda run examples/features/while_trigger.sd --trace-triggers
+
+robot WhileRover {
+  topic status: String publish on "/status";
+  actuator wheels: DifferentialDrive;
+
+  while true {
+    publish status with "heartbeat";
+    wheels.stop();
+  }
+}

@@ -202,7 +202,7 @@ spanda verify examples/your_example.sd     # if it has deploy targets
 ```
 
 3. Add to golden fixtures if it should stay runnable in CI (`tests/golden/manifest.json`). Mission trace files (`.trace`) may live under `examples/` or `tests/golden/`; other runtime traces stay gitignored.
-4. For tutorial-style programs, prefer numbered files under `examples/basics/` or topic dirs (`integration/`, `end_to_end/`); see [examples/basics/README.md](../examples/basics/README.md).
+4. For tutorial-style programs, prefer numbered files under `examples/basics/` or topic dirs (`integration/`, `end_to_end/`, `features/`); see [examples/features/README.md](../examples/features/README.md) and [examples/basics/README.md](../examples/basics/README.md).
 5. Reference it in README or `docs/getting-started.md` if it is a key demo
 
 ---

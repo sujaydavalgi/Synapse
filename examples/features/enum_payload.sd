@@ -1,0 +1,21 @@
+// Feature: enum variants with payloads
+//
+//   spanda check examples/features/enum_payload.sd
+//   spanda run examples/features/enum_payload.sd
+
+enum DriveCommand {
+  Stop,
+  Drive(Float, Float)
+}
+
+robot EnumRover {
+  actuator wheels: DifferentialDrive;
+
+  behavior run() {
+    let cmd = Drive(0.3, 0.0);
+    match cmd {
+      Stop => wheels.stop();
+      Drive(_speed, _turn) => wheels.drive(linear: 0.3 m/s, angular: 0.0 rad/s);
+    };
+  }
+}

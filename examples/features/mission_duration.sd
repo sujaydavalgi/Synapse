@@ -1,0 +1,23 @@
+// Feature: mission duration declaration
+//
+//   spanda check examples/features/mission_duration.sd
+//   spanda run examples/features/mission_duration.sd
+
+robot MissionRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 0.8 m/s;
+  }
+
+  mission { duration: 30 min; }
+
+  behavior patrol() {
+    loop every 100ms {
+      let scan = lidar.read();
+      let _ = scan;
+      wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+    }
+  }
+}

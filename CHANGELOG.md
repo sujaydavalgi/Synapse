@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Feature examples:** `examples/features/` (16 focused demos) plus coverage index mapping every capability to a runnable file
 - **Tutorials index:** master catalog at `docs/tutorials/README.md` (all learning paths, topic guides, examples)
 - **Spanda for Dummies:** plain-English guide in `docs/spanda-for-dummies/` (cheat sheet, glossary, common mistakes)
 - **Spanda 101:** ten-lesson tutorial series in `docs/spanda-101/` (hello robot through end-to-end patrol)

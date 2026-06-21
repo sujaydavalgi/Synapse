@@ -1,0 +1,25 @@
+// Feature: topic QoS reliable + deadline
+//
+//   spanda check examples/features/topic_qos.sd
+//   spanda run examples/features/topic_qos.sd
+
+robot QosRover {
+  bus sim;
+
+  topic scans: Scan {
+    qos reliable;
+    rate 20Hz;
+    deadline 50ms;
+  } on sim;
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  behavior stream() {
+    loop every 50ms {
+      let reading = lidar.read();
+      publish scans(reading);
+      wheels.stop();
+    }
+  }
+}

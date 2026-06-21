@@ -1,0 +1,42 @@
+// Feature: agent skills, capabilities, and memory
+//
+//   spanda check examples/features/agent_capabilities.sd
+//   spanda run examples/features/agent_capabilities.sd
+
+import std.ai;
+
+robot CapableRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  ai_model planner: LLM {
+    provider: "mock";
+    model: "capable-planner";
+    temperature: 0.1;
+  }
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  agent Navigator {
+    uses planner;
+    tools [lidar, wheels];
+    memory short_term;
+    skill path_planning;
+    goal "Navigate with declared capabilities";
+    can [ read(lidar), propose_motion, plan ];
+
+    plan {
+      let scan = lidar.read();
+      remember "last_scan", scan;
+      let proposal = planner.reason(prompt: "Plan safe motion", input: scan);
+      let action = safety.validate(proposal);
+      wheels.execute(action);
+    }
+  }
+
+  behavior run() {
+    Navigator.plan();
+  }
+}

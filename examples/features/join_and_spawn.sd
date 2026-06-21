@@ -1,0 +1,28 @@
+// Feature: spawn handles and join()
+//
+//   spanda check examples/features/join_and_spawn.sd
+//   spanda run examples/features/join_and_spawn.sd
+
+module features.ping;
+
+export fn tick() -> Int {
+  return 1;
+}
+
+export async fn async_tick() -> Int {
+  return 2;
+}
+
+robot JoinRover {
+  actuator wheels: DifferentialDrive;
+
+  behavior run() {
+    let handle = spawn tick();
+    let async_future = async_tick();
+    let a = join(handle);
+    let b = join(async_future);
+    let _ = a;
+    let _ = b;
+    wheels.stop();
+  }
+}

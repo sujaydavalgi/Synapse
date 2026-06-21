@@ -1,0 +1,18 @@
+// Feature: generic struct type parameters and literals
+//
+//   spanda check examples/features/generic_struct.sd
+//   spanda run examples/features/generic_struct.sd
+
+struct Sample<T> {
+  value: T;
+}
+
+robot GenericRover {
+  actuator wheels: DifferentialDrive;
+
+  behavior run() {
+    let reading = Sample<Float> { value: 1.5 };
+    let _ = reading.value;
+    wheels.stop();
+  }
+}

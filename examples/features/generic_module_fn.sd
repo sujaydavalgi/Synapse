@@ -1,0 +1,20 @@
+// Feature: generic module functions
+//
+//   spanda check examples/features/generic_module_fn.sd
+//   spanda run examples/features/generic_module_fn.sd
+
+module features.identity;
+
+export fn identity<T>(value: T) -> T {
+  return value;
+}
+
+robot GenericFnRover {
+  actuator wheels: DifferentialDrive;
+
+  behavior run() {
+    let speed = identity(0.5);
+    let _ = speed;
+    wheels.stop();
+  }
+}

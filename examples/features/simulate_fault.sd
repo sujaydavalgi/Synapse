@@ -1,0 +1,30 @@
+// Feature: simulate_compatibility fault injection
+//
+//   spanda check examples/features/simulate_fault.sd
+//   spanda verify examples/features/simulate_fault.sd --simulate --target RoverV1
+
+hardware RoverV1 {
+  memory: 4 GB;
+  sensors [ Lidar ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+}
+
+robot FaultRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior patrol() {
+    wheels.stop();
+  }
+}
+
+simulate_compatibility {
+  fault BatteryDegradation;
+}
+
+deploy FaultRover to RoverV1;

@@ -1,0 +1,29 @@
+// Feature: dyn Trait trait objects
+//
+//   spanda check examples/features/dyn_trait_object.sd
+//   spanda run examples/features/dyn_trait_object.sd
+
+trait Greeter {
+  fn greet() -> Void;
+}
+
+robot TraitObjectRover {
+  actuator wheels: DifferentialDrive;
+
+  agent Nav {
+    tools [wheels];
+    goal "Greet safely";
+    plan { wheels.stop(); }
+  }
+
+  impl Greeter for Nav {
+    fn greet() -> Void {
+      wheels.stop();
+    }
+  }
+
+  behavior run() {
+    let handler: dyn Greeter = Nav;
+    handler.greet();
+  }
+}

@@ -1,0 +1,17 @@
+// Feature: task requires precondition
+//
+//   spanda check examples/features/task_requires.sd
+//   spanda run examples/features/task_requires.sd
+
+robot RequiresRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  task control every 20ms requires lidar.nearest_distance > 0.3 m {
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+}

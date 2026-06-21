@@ -1,0 +1,28 @@
+// Feature: parallel { } cooperative block
+//
+//   spanda check examples/features/parallel_block.sd
+//   spanda run examples/features/parallel_block.sd --trace-scheduler
+
+module features.work;
+
+export fn left() -> Int {
+  return 1;
+}
+
+export fn right() -> Int {
+  return 2;
+}
+
+robot ParallelRover {
+  actuator wheels: DifferentialDrive;
+
+  behavior run() {
+    parallel {
+      spawn left();
+      spawn right();
+    };
+    let results = _parallel;
+    let _ = results;
+    wheels.stop();
+  }
+}

@@ -124,6 +124,31 @@
     {
       "file": "examples/end_to_end/replay_mission.sd",
       "check": "pass"
+    },
+    {
+      "file": "examples/features/dyn_trait_object.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/features/enum_payload.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/features/join_and_spawn.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/features/agent_capabilities.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/features/requires_hardware.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/features/safety_zones.sd",
+      "check": "pass",
+      "run": { "maxLoopIterations": 5 }
     }
   ]
 }

@@ -1,0 +1,31 @@
+// Feature: requires_network bandwidth and latency
+//
+//   spanda check examples/features/requires_network.sd
+//   spanda verify examples/features/requires_network.sd --target RoverV1
+
+requires_network {
+  bandwidth >= 10 Mbps;
+  latency <= 50 ms;
+}
+
+hardware RoverV1 {
+  memory: 4 GB;
+  sensors [ Lidar ];
+  actuators [ DifferentialDrive ];
+  network {
+    bandwidth: 100 Mbps;
+    latency: 20 ms;
+  }
+}
+
+robot NetworkRover {
+  topic telemetry: String publish on "/telemetry";
+  actuator wheels: DifferentialDrive;
+
+  behavior send() {
+    publish telemetry with "online";
+    wheels.stop();
+  }
+}
+
+deploy NetworkRover to RoverV1;

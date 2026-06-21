@@ -1,0 +1,30 @@
+// Feature: requires_hardware program-wide constraints
+//
+//   spanda check examples/features/requires_hardware.sd
+//   spanda verify examples/features/requires_hardware.sd --target RoverV1
+
+requires_hardware {
+  memory >= 2 GB;
+  sensors [ Lidar ];
+}
+
+hardware RoverV1 {
+  memory: 4 GB;
+  sensors [ Lidar, IMU ];
+  actuators [ DifferentialDrive ];
+}
+
+robot HardwareRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior patrol() {
+    wheels.stop();
+  }
+}
+
+deploy HardwareRover to RoverV1;
