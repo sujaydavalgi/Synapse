@@ -46,20 +46,20 @@ pub struct EncryptedMessage<T> {
 }
 
 impl<T: Clone + Serialize + for<'de> Deserialize<'de>> EncryptedMessage<T> {
-    pub fn encrypt(payload: &T, session: &SessionKey) -> SecurityResult<Self> {
+    pub fn encrypt(payload: &T, session_material: &str) -> SecurityResult<Self> {
         let plaintext = serde_json::to_string(payload)
             .map_err(|e| SecurityError::Other(format!("serialize failed: {e}")))?;
-        let ciphertext = mock_encrypt(&plaintext, &session.id);
+        let ciphertext = wire_encrypt_string(&plaintext, session_material);
         Ok(Self {
             ciphertext,
-            session_key_id: session.id.clone(),
+            session_key_id: session_material.to_string(),
             decrypted: None,
         })
     }
 
     pub fn decrypt(&mut self) -> SecurityResult<&T> {
         if self.decrypted.is_none() {
-            let plaintext = mock_decrypt(&self.ciphertext, &self.session_key_id)?;
+            let plaintext = wire_decrypt_string(&self.ciphertext, &self.session_key_id)?;
             let value: T = serde_json::from_str(&plaintext)
                 .map_err(|e| SecurityError::Other(format!("deserialize failed: {e}")))?;
             self.decrypted = Some(value);
@@ -101,22 +101,22 @@ impl<T: Clone + for<'de> Deserialize<'de>> VerifiedMessage<T> {
     }
 }
 
-fn mock_encrypt(plaintext: &str, key_id: &str) -> String {
-    let session = WireCryptoSession::from_material(key_id);
+fn wire_encrypt_string(plaintext: &str, session_material: &str) -> String {
+    let session = WireCryptoSession::from_material(session_material);
     let encrypted = session
         .encrypt(plaintext.as_bytes())
         .expect("encrypt message payload");
-    format!("enc:{key_id}:{}", hex::encode(encrypted))
+    format!("enc:{session_material}:{}", hex::encode(encrypted))
 }
 
-fn mock_decrypt(ciphertext: &str, key_id: &str) -> SecurityResult<String> {
-    let prefix = format!("enc:{key_id}:");
+fn wire_decrypt_string(ciphertext: &str, session_material: &str) -> SecurityResult<String> {
+    let prefix = format!("enc:{session_material}:");
     let hex_payload = ciphertext.strip_prefix(&prefix).ok_or(SecurityError::SecureEndpoint {
         endpoint: "decrypt".into(),
         reason: "invalid ciphertext prefix".into(),
     })?;
     let bytes = hex::decode(hex_payload).map_err(|e| SecurityError::Other(format!("hex: {e}")))?;
-    let session = WireCryptoSession::from_material(key_id);
+    let session = WireCryptoSession::from_material(session_material);
     let plain = session
         .decrypt(&bytes)
         .map_err(|e| SecurityError::SecureEndpoint {
@@ -132,10 +132,8 @@ mod tests {
 
     #[test]
     fn encrypted_message_requires_decrypt() {
-        let session = SessionKey {
-            id: "sess-1".into(),
-        };
-        let mut msg = EncryptedMessage::<String>::encrypt(&"hello".to_string(), &session).unwrap();
+        let session_material = "sess-1";
+        let mut msg = EncryptedMessage::<String>::encrypt(&"hello".to_string(), session_material).unwrap();
         assert!(msg.decrypted.is_none());
         assert_eq!(msg.decrypt().unwrap(), "hello");
     }

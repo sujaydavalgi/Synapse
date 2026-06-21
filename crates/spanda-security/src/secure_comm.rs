@@ -1,7 +1,7 @@
 //! secure comm support for Spanda.
 //!
 use crate::capability::CapabilitySet;
-use crate::encrypted::{EncryptedMessage, SessionKey};
+use crate::encrypted::EncryptedMessage;
 use crate::error::{SecurityError, SecurityResult};
 use crate::identity::RobotIdentity;
 use crate::policy::{AuthenticationMode, EncryptionMode, IntegrityMode};
@@ -192,17 +192,19 @@ impl SecurePolicy {
         Ok(None)
     }
 
-    pub fn encrypt_payload(&self, payload: &str, caps: &CapabilitySet) -> SecurityResult<String> {
+    pub fn encrypt_payload(
+        &self,
+        payload: &str,
+        caps: &CapabilitySet,
+        session_material: &str,
+    ) -> SecurityResult<String> {
         if self.encryption == EncryptionMode::None {
             return Ok(payload.to_string());
         }
         if self.encryption == EncryptionMode::Required {
             caps.require("crypto.encrypt")?;
         }
-        let session = SessionKey {
-            id: "mock-session".into(),
-        };
-        let enc = EncryptedMessage::<String>::encrypt(&payload.to_string(), &session)?;
+        let enc = EncryptedMessage::<String>::encrypt(&payload.to_string(), session_material)?;
         Ok(enc.ciphertext().to_string())
     }
 

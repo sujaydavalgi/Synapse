@@ -23,6 +23,8 @@ pub struct SecurityContext {
     pub audit_security_events: bool,
     pub strict_permissions: bool,
     pub security_faults_active: HashSet<String>,
+    pub wire_cert_path: Option<String>,
+    pub wire_key_secret: Option<String>,
     recent_payload_hashes: HashMap<String, HashSet<String>>,
 }
 
@@ -72,6 +74,8 @@ impl SecurityContext {
             audit_security_events: true,
             strict_permissions: false,
             security_faults_active: HashSet::new(),
+            wire_cert_path: None,
+            wire_key_secret: None,
             recent_payload_hashes: HashMap::new(),
         }
     }
@@ -350,6 +354,30 @@ impl SecurityContext {
         Ok(())
     }
 
+    pub fn configure_wire_session(
+        &mut self,
+        cert_path: Option<String>,
+        key_secret: Option<String>,
+    ) {
+        // Store cert path and key secret name for wire encryption session derivation.
+        self.wire_cert_path = cert_path;
+        self.wire_key_secret = key_secret;
+    }
+
+    pub fn wire_session_material(&self) -> String {
+        // Derive session key material from configured cert path and resolved key secret.
+        let key = self
+            .wire_key_secret
+            .as_ref()
+            .and_then(|name| self.secrets.resolve(name).ok())
+            .unwrap_or_else(|| "spanda-local-key".into());
+        format!(
+            "{}:{}",
+            self.wire_cert_path.as_deref().unwrap_or("spanda-local"),
+            key
+        )
+    }
+
     pub fn prepare_publish(
         &mut self,
         path: &str,
@@ -361,7 +389,8 @@ impl SecurityContext {
         let policy = self.secure_endpoints.policy_or_open(path);
         if policy.encryption != crate::policy::EncryptionMode::None {
             self.capabilities.require("crypto.encrypt")?;
-            let _ = policy.encrypt_payload(payload, &self.capabilities)?;
+            let material = self.wire_session_material();
+            let _ = policy.encrypt_payload(payload, &self.capabilities, &material)?;
         }
         self.sign_outbound(path, payload)
     }
