@@ -1,0 +1,5 @@
+module manipulation.moveit;
+
+export fn plan() -> Int {
+  return 1;
+}

@@ -1,0 +1,5 @@
+import communication.dds;
+
+test smoke_dds() {
+  assert publish() == 1;
+}

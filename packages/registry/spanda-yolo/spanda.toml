@@ -1,0 +1,16 @@
+[package]
+name = "spanda-yolo"
+version = "0.1.0"
+description = "YOLO object detection"
+license = "Apache-2.0"
+
+[safety]
+level = "vision"
+
+[capabilities]
+required = [
+  "vision.detect",
+]
+
+[hardware]
+requirements = []

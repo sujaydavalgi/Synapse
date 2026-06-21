@@ -3,5 +3,5 @@ module robotics.ros2;
 export fn publish_string(topic: String, data: String) -> Int {
   let _ = topic;
   let _ = data;
-  1
+  return 1;
 }

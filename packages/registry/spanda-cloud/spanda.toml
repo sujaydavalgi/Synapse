@@ -1,0 +1,16 @@
+[package]
+name = "spanda-cloud"
+version = "0.1.0"
+description = "Cloud telemetry and remote commands"
+license = "Apache-2.0"
+
+[safety]
+level = "robotics"
+
+[capabilities]
+required = [
+  "cloud.invoke",
+]
+
+[hardware]
+requirements = []

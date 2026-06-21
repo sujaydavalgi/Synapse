@@ -1,0 +1,5 @@
+import maintenance.health;
+
+test smoke_health() {
+  assert record() == 1;
+}

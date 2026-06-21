@@ -1,0 +1,16 @@
+[package]
+name = "spanda-nav"
+version = "0.1.0"
+description = "Path planning and navigation"
+license = "Apache-2.0"
+
+[safety]
+level = "navigation"
+
+[capabilities]
+required = [
+  "navigation.plan",
+]
+
+[hardware]
+requirements = []

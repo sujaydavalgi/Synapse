@@ -1,0 +1,5 @@
+import sim.gazebo;
+
+test smoke_gazebo() {
+  assert step() == 1;
+}

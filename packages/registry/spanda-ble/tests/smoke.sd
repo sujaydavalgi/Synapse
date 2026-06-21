@@ -1,0 +1,5 @@
+import connectivity.ble;
+
+test smoke_ble() {
+  assert scan() == 1;
+}

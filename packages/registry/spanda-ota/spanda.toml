@@ -1,0 +1,16 @@
+[package]
+name = "spanda-ota"
+version = "0.1.0"
+description = "Over-the-air deploy and rollout"
+license = "Apache-2.0"
+
+[safety]
+level = "development"
+
+[capabilities]
+required = [
+  "deploy.rollout",
+]
+
+[hardware]
+requirements = []

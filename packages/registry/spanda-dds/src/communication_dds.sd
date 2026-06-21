@@ -1,0 +1,5 @@
+module communication.dds;
+
+export fn publish() -> Int {
+  return 1;
+}

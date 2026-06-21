@@ -1,0 +1,5 @@
+module connectivity.ble;
+
+export fn scan() -> Int {
+  return 1;
+}

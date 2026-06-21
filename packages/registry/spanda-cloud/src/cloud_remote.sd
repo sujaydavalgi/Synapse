@@ -1,0 +1,5 @@
+module cloud.remote;
+
+export fn upload() -> Int {
+  return 1;
+}

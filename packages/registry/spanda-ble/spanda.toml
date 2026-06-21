@@ -1,0 +1,16 @@
+[package]
+name = "spanda-ble"
+version = "0.1.0"
+description = "Bluetooth Low Energy bridge"
+license = "Apache-2.0"
+
+[safety]
+level = "hardware"
+
+[capabilities]
+required = [
+  "connectivity.ble",
+]
+
+[hardware]
+requirements = []

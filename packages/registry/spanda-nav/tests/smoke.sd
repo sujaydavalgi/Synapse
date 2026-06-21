@@ -1,0 +1,5 @@
+import navigation.path_planning;
+
+test smoke_path_planning() {
+  assert navigate() == 1;
+}

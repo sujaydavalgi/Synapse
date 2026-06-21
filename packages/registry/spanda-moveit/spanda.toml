@@ -1,0 +1,16 @@
+[package]
+name = "spanda-moveit"
+version = "0.1.0"
+description = "MoveIt motion planning"
+license = "Apache-2.0"
+
+[safety]
+level = "manipulation"
+
+[capabilities]
+required = [
+  "manipulation.plan",
+]
+
+[hardware]
+requirements = []

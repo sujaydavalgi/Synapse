@@ -1,0 +1,5 @@
+module connectivity.cellular;
+
+export fn connect() -> Int {
+  return 1;
+}

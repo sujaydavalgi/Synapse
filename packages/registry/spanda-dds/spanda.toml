@@ -1,0 +1,17 @@
+[package]
+name = "spanda-dds"
+version = "0.1.0"
+description = "DDS pub/sub transport"
+license = "Apache-2.0"
+
+[safety]
+level = "mqtt"
+
+[capabilities]
+required = [
+  "dds.publish",
+  "dds.subscribe",
+]
+
+[hardware]
+requirements = []

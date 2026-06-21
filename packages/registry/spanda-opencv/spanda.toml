@@ -1,0 +1,16 @@
+[package]
+name = "spanda-opencv"
+version = "0.1.0"
+description = "OpenCV vision bindings"
+license = "Apache-2.0"
+
+[safety]
+level = "vision"
+
+[capabilities]
+required = [
+  "vision.process",
+]
+
+[hardware]
+requirements = []

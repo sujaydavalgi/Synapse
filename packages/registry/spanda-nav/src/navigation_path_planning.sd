@@ -1,0 +1,5 @@
+module navigation.path_planning;
+
+export fn navigate() -> Int {
+  return 1;
+}

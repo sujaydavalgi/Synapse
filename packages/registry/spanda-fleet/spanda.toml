@@ -1,0 +1,16 @@
+[package]
+name = "spanda-fleet"
+version = "0.1.0"
+description = "Multi-robot fleet orchestration"
+license = "Apache-2.0"
+
+[safety]
+level = "robotics"
+
+[capabilities]
+required = [
+  "fleet.orchestrate",
+]
+
+[hardware]
+requirements = []

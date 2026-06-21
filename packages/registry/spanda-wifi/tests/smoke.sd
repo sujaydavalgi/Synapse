@@ -1,0 +1,5 @@
+import connectivity.wifi;
+
+test smoke_wifi() {
+  assert connect() == 1;
+}

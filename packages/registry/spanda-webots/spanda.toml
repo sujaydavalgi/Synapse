@@ -1,0 +1,16 @@
+[package]
+name = "spanda-webots"
+version = "0.1.0"
+description = "Webots simulation backend"
+license = "Apache-2.0"
+
+[safety]
+level = "simulation"
+
+[capabilities]
+required = [
+  "sim.physics",
+]
+
+[hardware]
+requirements = []

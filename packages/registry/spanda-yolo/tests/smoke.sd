@@ -1,0 +1,5 @@
+import vision.yolo;
+
+test smoke_yolo() {
+  assert detect() == 1;
+}

@@ -1,0 +1,5 @@
+import connectivity.cellular;
+
+test smoke_cellular() {
+  assert connect() == 1;
+}

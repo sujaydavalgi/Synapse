@@ -1,0 +1,16 @@
+[package]
+name = "spanda-cellular"
+version = "0.1.0"
+description = "LTE/4G/5G cellular adapters"
+license = "Apache-2.0"
+
+[safety]
+level = "hardware"
+
+[capabilities]
+required = [
+  "connectivity.cellular",
+]
+
+[hardware]
+requirements = []

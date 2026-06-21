@@ -1,0 +1,16 @@
+[package]
+name = "spanda-gazebo"
+version = "0.1.0"
+description = "Gazebo simulation backend"
+license = "Apache-2.0"
+
+[safety]
+level = "simulation"
+
+[capabilities]
+required = [
+  "sim.physics",
+]
+
+[hardware]
+requirements = []

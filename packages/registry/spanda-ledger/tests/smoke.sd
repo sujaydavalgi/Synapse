@@ -1,0 +1,5 @@
+import provenance.ledger;
+
+test smoke_ledger() {
+  assert append() == 1;
+}

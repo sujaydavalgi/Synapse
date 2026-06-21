@@ -1,0 +1,16 @@
+[package]
+name = "spanda-gps"
+version = "0.1.0"
+description = "GPS/GNSS receiver adapters"
+license = "Apache-2.0"
+
+[safety]
+level = "sensors"
+
+[capabilities]
+required = [
+  "positioning.read",
+]
+
+[hardware]
+requirements = []

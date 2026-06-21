@@ -1,0 +1,5 @@
+import manipulation.moveit;
+
+test smoke_moveit() {
+  assert plan() == 1;
+}

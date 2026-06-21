@@ -1,0 +1,5 @@
+import deploy.ota;
+
+test smoke_ota() {
+  assert rollout() == 1;
+}

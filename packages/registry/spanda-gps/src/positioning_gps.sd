@@ -1,0 +1,5 @@
+module positioning.gps;
+
+export fn read() -> Int {
+  return 1;
+}

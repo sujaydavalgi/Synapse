@@ -1,0 +1,5 @@
+module vision.opencv;
+
+export fn detect() -> Int {
+  return 1;
+}

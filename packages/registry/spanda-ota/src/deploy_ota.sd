@@ -1,0 +1,5 @@
+module deploy.ota;
+
+export fn rollout() -> Int {
+  return 1;
+}

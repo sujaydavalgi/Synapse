@@ -3,5 +3,5 @@ module communication.mqtt;
 export fn publish_topic(topic: String, payload: String) -> Int {
   let _ = topic;
   let _ = payload;
-  1
+  return 1;
 }

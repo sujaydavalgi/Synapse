@@ -1,0 +1,5 @@
+module maintenance.health;
+
+export fn record() -> Int {
+  return 1;
+}

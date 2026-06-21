@@ -1,0 +1,5 @@
+import robotics.fleet;
+
+test smoke_fleet() {
+  assert dispatch() == 1;
+}

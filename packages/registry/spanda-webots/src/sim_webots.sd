@@ -1,0 +1,5 @@
+module sim.webots;
+
+export fn step() -> Int {
+  return 1;
+}

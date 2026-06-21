@@ -1,0 +1,17 @@
+[package]
+name = "spanda-slam"
+version = "0.1.0"
+description = "SLAM localization and mapping"
+license = "Apache-2.0"
+
+[safety]
+level = "navigation"
+
+[capabilities]
+required = [
+  "slam.localize",
+  "slam.map",
+]
+
+[hardware]
+requirements = []

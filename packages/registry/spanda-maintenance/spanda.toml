@@ -1,0 +1,16 @@
+[package]
+name = "spanda-maintenance"
+version = "0.1.0"
+description = "Predictive maintenance and health"
+license = "Apache-2.0"
+
+[safety]
+level = "robotics"
+
+[capabilities]
+required = [
+  "maintenance.metrics",
+]
+
+[hardware]
+requirements = []

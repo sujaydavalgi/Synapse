@@ -1,0 +1,5 @@
+module robotics.fleet;
+
+export fn dispatch() -> Int {
+  return 1;
+}

@@ -1,0 +1,16 @@
+[package]
+name = "spanda-wifi"
+version = "0.1.0"
+description = "Wi-Fi connectivity adapters"
+license = "Apache-2.0"
+
+[safety]
+level = "hardware"
+
+[capabilities]
+required = [
+  "connectivity.wifi",
+]
+
+[hardware]
+requirements = []

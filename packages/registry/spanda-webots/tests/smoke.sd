@@ -1,0 +1,5 @@
+import sim.webots;
+
+test smoke_webots() {
+  assert step() == 1;
+}

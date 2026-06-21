@@ -1,0 +1,5 @@
+import cloud.remote;
+
+test smoke_remote() {
+  assert upload() == 1;
+}

@@ -1,0 +1,5 @@
+import navigation.slam;
+
+test smoke_slam() {
+  assert localize() == 1;
+}

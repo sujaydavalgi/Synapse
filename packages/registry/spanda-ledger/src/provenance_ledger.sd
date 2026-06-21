@@ -1,0 +1,5 @@
+module provenance.ledger;
+
+export fn append() -> Int {
+  return 1;
+}
