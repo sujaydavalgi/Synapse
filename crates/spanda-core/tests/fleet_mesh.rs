@@ -73,6 +73,10 @@ fleet Recon { ScoutA; ScoutB; }
 
 #[test]
 fn fleet_agent_forwards_to_downstream_peer() {
+    // Isolate registry lookup from any SPANDA_FLEET_AGENTS left in the shell environment.
+    unsafe {
+        std::env::remove_var("SPANDA_FLEET_AGENTS");
+    }
     let (port_b, _agent_b) = spawn_test_fleet_agent("ScoutB", None).expect("spawn B");
     let (port_a, _agent_a) = spawn_test_fleet_agent("ScoutA", None).expect("spawn A");
     let path = default_fleet_agents_path();
