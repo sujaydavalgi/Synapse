@@ -1,0 +1,57 @@
+// End-to-end — concurrent sensor fusion and inspection
+//
+//   spanda check examples/end_to_end/concurrent_inspection.sd
+//   spanda run examples/end_to_end/concurrent_inspection.sd --trace-scheduler --trace-tasks
+
+module inspection.work;
+
+export fn read_distance() -> Float {
+  return 2.0;
+}
+
+export async fn capture_pose() -> Pose {
+  return pose(x: 0.0 m, y: 0.0 m, theta: 0.0 rad);
+}
+
+robot InspectorRover {
+  sensor lidar: Lidar on "/scan";
+  sensor camera: Camera on "/camera";
+  sensor imu: IMU;
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 0.8 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  observe {
+    lidar;
+    camera;
+    imu;
+  }
+
+  task fuse every 30ms {
+    let fused = fusion.read();
+    let _ = fused.count;
+  }
+
+  behavior inspect() {
+    parallel {
+      let pose_handle = spawn capture_pose();
+      let dist_handle = spawn read_distance();
+    };
+
+    let results = _parallel;
+    let _ = results;
+
+    let ch = channel();
+    send(ch, 1);
+    select {
+      recv(ch) => wheels.stop();
+    };
+
+    let fused = fusion.read();
+    let _ = fused.pose;
+    wheels.stop();
+  }
+}

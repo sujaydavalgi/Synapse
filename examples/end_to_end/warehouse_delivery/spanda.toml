@@ -1,0 +1,14 @@
+[package]
+name = "warehouse_delivery"
+version = "0.1.0"
+description = "End-to-end warehouse delivery with zones, comms, and deploy"
+license = "Apache-2.0"
+
+[hardware]
+targets = ["RoverV1"]
+
+[capabilities]
+required = ["lidar.read", "motion.propose", "map.clear"]
+
+[safety]
+level = "experimental"

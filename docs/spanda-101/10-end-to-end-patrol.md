@@ -97,6 +97,20 @@ You have completed Spanda 101 when you can:
 
 ---
 
+## More end-to-end scenarios
+
+Full catalog: [examples/end_to_end/README.md](../../examples/end_to_end/README.md)
+
+| Scenario | Command |
+|----------|---------|
+| Warehouse delivery | `spanda verify examples/end_to_end/warehouse_delivery/src/main.sd --target RoverV1` |
+| Pick-and-place cell | `spanda run examples/end_to_end/pick_and_place_cell/src/main.sd` |
+| Fleet coordination | `spanda fleet run examples/end_to_end/fleet_coordination.sd` |
+| Incident response | `spanda verify examples/end_to_end/incident_response.sd --simulate` |
+| Real-time patrol | `spanda run examples/end_to_end/realtime_patrol.sd --trace-realtime` |
+
+---
+
 ## Final exercise
 
 Build a **`my_patrol`** package that:

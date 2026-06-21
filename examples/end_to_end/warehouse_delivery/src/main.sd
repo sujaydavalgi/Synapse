@@ -1,0 +1,76 @@
+// End-to-end package — warehouse delivery route
+//
+//   spanda check examples/end_to_end/warehouse_delivery/src/main.sd
+//   spanda verify examples/end_to_end/warehouse_delivery/src/main.sd --target RoverV1
+//   spanda run examples/end_to_end/warehouse_delivery/src/main.sd
+
+module warehouse_delivery;
+
+hardware RoverV1 {
+  cpu: CortexA78;
+  memory: 4 GB;
+  sensors [ Lidar, IMU ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+}
+
+enum DeliveryPhase {
+  Idle,
+  Loading,
+  InTransit
+}
+
+robot DeliveryBot {
+  node logistics on "/warehouse";
+
+  topic status: String publish on "/status";
+  service clear_map: ClearCostmap;
+  action follow_route: FollowPath;
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  event LoadComplete;
+
+  on LoadComplete {
+    publish status with "loaded";
+  }
+
+  state_machine Route {
+    state Idle;
+    state Loading;
+    state InTransit;
+    transition Idle -> Loading;
+    transition Loading -> InTransit;
+  }
+
+  safety {
+    max_speed = 0.8 m/s;
+    zone dock rect at (2.0 m, 1.0 m) size (1.5 m, 1.0 m);
+    stop_if robot.in_zone("dock");
+  }
+
+  mission { duration: 45 min; }
+
+  task navigate every 100ms requires lidar.nearest_distance > 0.4 m {
+    let start = robot.pose();
+    let dock = pose(x: 2.5 m, y: 1.5 m, theta: 0.0 rad);
+    let path = trajectory(from: start, to: dock, steps: 10);
+
+    publish status with "en_route";
+    call clear_map();
+    send_goal follow_route with path;
+
+    if robot.in_zone("dock") {
+      wheels.stop();
+    } else {
+      wheels.follow(path: path);
+    }
+  }
+
+  verify {
+    robot.velocity().linear <= 0.8 m/s;
+  }
+}
+
+deploy DeliveryBot to RoverV1;

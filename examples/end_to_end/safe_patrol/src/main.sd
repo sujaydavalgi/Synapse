@@ -33,9 +33,13 @@ robot PatrolBot {
     stop_if lidar.nearest_distance < 0.5 m;
   }
 
-  task watchdog every 50ms {
+  task monitor every 50ms {
     let scan = lidar.read();
     let _ = scan;
+  }
+
+  watchdog monitor timeout 150ms {
+    stop_all_actuators();
   }
 
   behavior patrol() {

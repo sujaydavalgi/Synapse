@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **End-to-end examples:** warehouse delivery, pick-and-place cell, fleet coordination, incident response, real-time patrol, validated telemetry, concurrent inspection (`examples/end_to_end/`)
 - **Feature examples:** `examples/features/` (16 focused demos) plus coverage index mapping every capability to a runnable file
 - **Tutorials index:** master catalog at `docs/tutorials/README.md` (all learning paths, topic guides, examples)
 - **Spanda for Dummies:** plain-English guide in `docs/spanda-for-dummies/` (cheat sheet, glossary, common mistakes)

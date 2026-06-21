@@ -1,0 +1,14 @@
+[package]
+name = "pick_and_place_cell"
+version = "0.1.0"
+description = "End-to-end vision pick-and-place manipulation cell"
+license = "Apache-2.0"
+
+[hardware]
+targets = ["JetsonOrin"]
+
+[capabilities]
+required = ["camera.read", "arm.move", "gripper.actuate"]
+
+[safety]
+level = "experimental"

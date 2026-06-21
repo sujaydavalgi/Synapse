@@ -96,19 +96,25 @@ Deep dives on one capability. Read after a beginner track.
 
 Runnable `.sd` programs grouped by skill level. All paths relative to [`examples/`](../../examples/).
 
+### Feature coverage map
+
+**[examples/features/README.md](../../examples/features/README.md)** — master index mapping **every capability** to a runnable file (language core, AI, triggers, hardware, regex, FFI, and more).
+
 ### Progressive ladder
 
 | Tier | Directory | Index |
 |------|-----------|-------|
 | Basics | `examples/basics/` | [README](../../examples/basics/README.md) |
 | Integration | `examples/integration/` | triggers, concurrency, verify |
-| End-to-end | `examples/end_to_end/` | safe patrol package, replay mission |
+| Features | `examples/features/` | one file per capability |
+| End-to-end | `examples/end_to_end/` | [README](../../examples/end_to_end/README.md) — patrol, warehouse, fleet, replay, … |
 
 ### Curated & domain demos
 
 | Directory | Focus |
 |-----------|--------|
 | [`showcase/`](../../examples/showcase/) | v0.1.0-alpha flagship demos |
+| [`features/`](../../examples/features/) | One file per capability (dyn trait, join, zones, QoS, …) |
 | [`realtime/`](../../examples/realtime/) | Deadlines, pipelines, watchdogs, replay |
 | [`regex/`](../../examples/regex/) | Pattern triggers and validation |
 | [`communication/`](../../examples/communication/) | Topics, services, fleet |

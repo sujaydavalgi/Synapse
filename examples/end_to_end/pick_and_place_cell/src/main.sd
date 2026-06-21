@@ -1,0 +1,67 @@
+// End-to-end package — vision pick-and-place cell
+//
+//   spanda check examples/end_to_end/pick_and_place_cell/src/main.sd
+//   spanda verify examples/end_to_end/pick_and_place_cell/src/main.sd --target JetsonOrin
+//   spanda run examples/end_to_end/pick_and_place_cell/src/main.sd
+
+module pick_and_place_cell;
+
+hardware JetsonOrin {
+  cpu: CortexA78;
+  memory: 8 GB;
+  sensors [ Camera ];
+  actuators [ RoboticArm, Gripper ];
+  battery { capacity: 200 Wh; }
+}
+
+robot PickCell {
+  sensor camera: Camera on "/camera";
+  actuator arm: RoboticArm;
+  actuator gripper: Gripper;
+
+  ai_model vision: VisionModel {
+    provider: "mock";
+    model: "pick-detector";
+    memory_required: 512 MB;
+  }
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  agent Picker {
+    uses vision;
+    tools [camera, arm, gripper];
+    goal "Detect and pick objects safely";
+    can [ read(camera), propose_motion, plan ];
+
+    plan {
+      let frame = camera.frame();
+      let object = vision.detect(frame);
+      let _ = object;
+      arm.move_to(x: 0.4 m, y: 0.0 m, z: 0.1 m);
+      gripper.close();
+    }
+  }
+
+  task inspect every 200ms {
+    budget {
+      cpu <= 30%;
+      memory <= 512 MB;
+    }
+    let frame = camera.frame();
+    let _ = frame;
+  }
+
+  behavior production_loop() {
+    loop every 250ms {
+      Picker.plan();
+    }
+  }
+
+  verify {
+    robot.velocity().linear <= 0.5 m/s;
+  }
+}
+
+deploy PickCell to JetsonOrin;

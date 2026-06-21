@@ -1,0 +1,37 @@
+// End-to-end — regex-validated telemetry publishing
+//
+//   spanda check examples/end_to_end/validated_telemetry.sd
+//   spanda run examples/end_to_end/validated_telemetry.sd
+
+validate RobotId {
+  value matches /^robot-[0-9]{3}$/;
+}
+
+validate TopicName {
+  value matches /^\/[a-z0-9_\/]+$/;
+}
+
+robot TelemetryRover {
+  bus sim;
+
+  topic telemetry: String {
+    qos reliable;
+    rate 10Hz;
+  } on sim;
+
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior publish_telemetry() {
+    loop every 100ms {
+      let scan = lidar.read();
+      let _ = scan;
+      publish telemetry with "robot-001:ok";
+      wheels.stop();
+    }
+  }
+}

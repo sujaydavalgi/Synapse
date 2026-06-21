@@ -1,0 +1,48 @@
+// End-to-end — real-time patrol with deadlines, pipeline, and watchdog
+//
+//   spanda check examples/end_to_end/realtime_patrol.sd
+//   spanda run examples/end_to_end/realtime_patrol.sd --trace-realtime --metrics-json
+//   spanda sim examples/end_to_end/realtime_patrol.sd --record
+
+robot RealtimePatrol {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.2 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  mission { duration: 20 min; }
+
+  pipeline perception_budget budget 30ms {
+    let scan = lidar.read();
+    let _ = scan;
+    wheels.stop();
+  }
+
+  task sense critical every 25ms deadline 20ms jitter <= 5ms {
+    let scan = lidar.read();
+    let _ = scan;
+  }
+
+  task navigate high every 60ms deadline 50ms {
+    run_pipeline perception_budget;
+    let scan = lidar.read();
+    if scan.nearest_distance < 1.0 m {
+      wheels.stop();
+    } else {
+      wheels.drive(linear: 0.4 m/s, angular: 0.0 rad/s);
+    }
+  }
+
+  watchdog navigate timeout 200ms {
+    stop_all_actuators();
+  }
+
+  behavior patrol() {
+    loop every 100ms {
+      wheels.drive(linear: 0.3 m/s, angular: 0.0 rad/s);
+    }
+  }
+}

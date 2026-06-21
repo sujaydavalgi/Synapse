@@ -174,9 +174,9 @@ Start with the progressive ladder in [`examples/basics/`](examples/basics/README
 | Tier | Path | Highlights |
 |------|------|------------|
 | Basics | `examples/basics/01_minimal_robot.sd` → `11_observe_and_fusion.sd` | Language core from robot blocks to fusion |
+| Features | [`examples/features/`](examples/features/README.md) | One file per capability — full coverage index |
 | Integration | `examples/integration/` | Triggers, concurrency, verify walkthrough |
-| End-to-end | `examples/end_to_end/safe_patrol/` | AI safety gate + deploy package |
-| End-to-end | `examples/end_to_end/replay_mission.sd` | Record and replay workflow |
+| End-to-end | [`examples/end_to_end/`](examples/end_to_end/README.md) | Patrol, warehouse, fleet, replay, real-time workflows |
 
 ### Showcase examples
 

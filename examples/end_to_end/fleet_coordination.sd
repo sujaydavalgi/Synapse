@@ -1,0 +1,73 @@
+// End-to-end — multi-robot fleet coordination
+//
+//   spanda check examples/end_to_end/fleet_coordination.sd
+//   spanda fleet run examples/end_to_end/fleet_coordination.sd --trace-scheduler
+//   spanda verify examples/end_to_end/fleet_coordination.sd --all-targets
+
+module fleet_coordination;
+
+requires_network {
+  bandwidth >= 5 Mbps;
+  latency <= 50 ms;
+}
+
+hardware JetsonOrin {
+  cpu: CortexA78;
+  memory: 8 GB;
+  sensors [ Camera, Lidar ];
+  actuators [ DifferentialDrive ];
+  network {
+    bandwidth: 100 Mbps;
+    latency: 20 ms;
+  }
+}
+
+hardware RaspberryPi5 {
+  cpu: CortexA76;
+  memory: 8 GB;
+  sensors [ Camera, IMU ];
+  actuators [ DifferentialDrive ];
+  network {
+    bandwidth: 50 Mbps;
+    latency: 30 ms;
+  }
+}
+
+robot ScoutRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  behavior scout() {
+    loop every 100ms {
+      let scan = lidar.read();
+      let _ = scan;
+      wheels.drive(linear: 0.2 m/s, angular: 0.1 rad/s);
+    }
+  }
+}
+
+robot FleetManager {
+  bus dds;
+
+  topic fleet_status: String publish on "/fleet/status";
+
+  behavior coordinate() {
+    discover robots where capability includes Navigation;
+
+    loop every 500ms {
+      publish fleet_status with "coordinating";
+    }
+  }
+}
+
+deploy ScoutRover to JetsonOrin;
+deploy FleetManager to RaspberryPi5;
+
+simulate_compatibility {
+  fault NetworkOutage;
+}

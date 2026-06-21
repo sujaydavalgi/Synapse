@@ -1,0 +1,86 @@
+// End-to-end — incident response with twin, recovery, and degraded modes
+//
+//   spanda check examples/end_to_end/incident_response.sd
+//   spanda run examples/end_to_end/incident_response.sd --trace-triggers
+//   spanda verify examples/end_to_end/incident_response.sd --target RoverV1 --simulate
+
+hardware RoverV1 {
+  memory: 4 GB;
+  sensors [ Lidar, Camera ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+}
+
+robot ResponseRover {
+  sensor lidar: Lidar on "/scan";
+  sensor camera: Camera on "/camera";
+  actuator wheels: DifferentialDrive;
+
+  twin IncidentTwin {
+    mirror pose;
+    mirror velocity;
+    replay true;
+  }
+
+  safety {
+    max_speed = 1.0 m/s;
+    stop_if lidar.nearest_distance < 0.4 m;
+  }
+
+  mode normal {
+    wheels.drive(linear: 0.5 m/s, angular: 0.0 rad/s);
+  }
+
+  mode degraded {
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+
+  mode emergency {
+    stop_all_actuators();
+  }
+
+  recover from RuntimeError {
+    stop_all_actuators();
+    enter degraded_mode;
+  }
+
+  recover from SensorFailure {
+    enter degraded_mode;
+  }
+
+  on hardware LidarFailure {
+    enter degraded_mode;
+  }
+
+  on twin DivergenceDetected {
+    wheels.stop();
+  }
+
+  task monitor every 50ms {
+    let scan = lidar.read();
+    let frames = IncidentTwin.frame_count();
+    let _ = scan;
+    let _ = frames;
+  }
+
+  behavior respond() {
+    loop every 100ms {
+      let scan = lidar.read();
+      if scan.nearest_distance < 0.8 m {
+        wheels.stop();
+      } else {
+        wheels.drive(linear: 0.3 m/s, angular: 0.0 rad/s);
+      }
+    }
+  }
+
+  verify {
+    robot.velocity().linear <= 1.0 m/s;
+  }
+}
+
+deploy ResponseRover to RoverV1;
+
+simulate_compatibility {
+  fault BatteryDegradation;
+}

@@ -122,6 +122,30 @@
       "check": "pass"
     },
     {
+      "file": "examples/end_to_end/warehouse_delivery/src/main.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/end_to_end/pick_and_place_cell/src/main.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/end_to_end/fleet_coordination.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/end_to_end/incident_response.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/end_to_end/realtime_patrol.sd",
+      "check": "pass"
+    },
+    {
+      "file": "examples/end_to_end/concurrent_inspection.sd",
+      "check": "pass"
+    },
+    {
       "file": "examples/end_to_end/replay_mission.sd",
       "check": "pass"
     },

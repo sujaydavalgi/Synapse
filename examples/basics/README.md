@@ -38,10 +38,17 @@ spanda test examples/basics/07_in_language_tests.sd
 
 ## Tier 3 — End-to-end scenarios (`end_to_end/`)
 
+See [end_to_end/README.md](../end_to_end/README.md) for the full catalog.
+
 | Path | Topics |
 |------|--------|
-| [safe_patrol/](./end_to_end/safe_patrol/) | Full package: AI safety gate, hardware profile, deploy |
-| [replay_mission.sd](./end_to_end/replay_mission.sd) | Record → replay workflow with twin + trace |
+| [safe_patrol/](../end_to_end/safe_patrol/) | AI safety gate + deploy package |
+| [warehouse_delivery/](../end_to_end/warehouse_delivery/) | Zones, services, state machine, verify |
+| [pick_and_place_cell/](../end_to_end/pick_and_place_cell/) | Vision agent + arm/gripper cell |
+| [fleet_coordination.sd](../end_to_end/fleet_coordination.sd) | Multi-robot fleet + network reqs |
+| [incident_response.sd](../end_to_end/incident_response.sd) | Twin, recovery, degraded modes |
+| [realtime_patrol.sd](../end_to_end/realtime_patrol.sd) | Deadlines, pipeline, watchdog |
+| [replay_mission.sd](../end_to_end/replay_mission.sd) | Record → replay with twin |
 
 ## Existing topic directories
 
