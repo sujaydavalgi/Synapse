@@ -379,18 +379,29 @@ export async function verifyHardware(
 
   // continue when isCliAvailable is falsy.
   if (!isCliAvailable()) {
-    return {
-      ok: false,
-      items: [
-        {
-          category: "error",
-          message: "Hardware verification requires native CLI (npm run build:rust)",
-          severity: "error",
-          line: 1,
-          column: 1,
-        },
-      ],
-    };
+    try {
+      const { tokenize } = await import("./lexer/index.js");
+      const { parse } = await import("./parser/index.js");
+      const { verifyHardwareProgram } = await import("./hardware-verify.js");
+      const program = parse(tokenize(source));
+      return verifyHardwareProgram(program, { target: options.target });
+    } catch (err) {
+      return {
+        ok: false,
+        items: [
+          {
+            category: "error",
+            message:
+              err instanceof Error
+                ? err.message
+                : "Hardware verification requires native CLI (npm run build:rust)",
+            severity: "error",
+            line: 1,
+            column: 1,
+          },
+        ],
+      };
+    }
   }
   const args: string[] = [];
 

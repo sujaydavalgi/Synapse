@@ -480,6 +480,24 @@ export class InMemoryCommBus {
   injectFault(fault: string): void {
     this.faults.push(fault);
   }
+
+  activeFaults(): string[] {
+    // Return injected simulation faults currently affecting the comm bus.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Active fault names.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const faults = activeFaults();
+
+    return [...this.faults];
+  }
 }
 
 export const COMM_CAPABILITIES = ["subscribe", "publish", "call", "execute", "discover"] as const;

@@ -510,6 +510,24 @@ export class RoutingCommBus {
     this.memory.injectFault(fault);
   }
 
+  activeFaults(): string[] {
+    // Return active comm-bus simulation faults.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Fault name list.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const faults = activeFaults();
+
+    return this.memory.activeFaults();
+  }
+
   adapterPublished(transport: TransportKind): AdapterMessage[] {
     // AdapterPublished.
     //

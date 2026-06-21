@@ -53,7 +53,9 @@ import type { ModuleRegistry } from "../modules/index.js";
 import type { ExternFnDecl, ModuleFnDecl, ResourceBudgetDecl, TaskDecl, TaskPriority } from "../foundations.js";
 import type { CaptureResult, RegexPattern } from "../regex.js";
 import {
+  connectivityLinkToTransport,
   connectivityPolicyFromDecl,
+  faultToConnectivity,
   geofenceContains,
   geofenceFromDecl,
   type ConnectivityPolicyRuntime,
@@ -298,6 +300,9 @@ export class Interpreter {
   private geofenceActive = new Set<string>();
   private connectivityPolicies: ConnectivityPolicyRuntime[] = [];
   private activeConnectivityLink = "wifi";
+  private connectivityEventsSeen = new Set<string>();
+  private injectedFaults = new Set<string>();
+  private gpsAvailable = true;
 
   constructor(private options: InterpreterOptions) {}
 
@@ -465,11 +470,22 @@ export class Interpreter {
     this.geofences = program.geofences.map(geofenceFromDecl);
     this.connectivityPolicies = program.connectivityPolicies.map(connectivityPolicyFromDecl);
     this.geofenceActive.clear();
+    this.connectivityEventsSeen.clear();
+    this.injectedFaults.clear();
+    this.gpsAvailable = true;
     const policy = this.connectivityPolicies[0];
     if (policy) {
       this.activeConnectivityLink = policy.preferred || "wifi";
+      this.defaultTransport = connectivityLinkToTransport(this.activeConnectivityLink);
     } else {
       this.activeConnectivityLink = "wifi";
+    }
+
+    if (program.simulateCompatibility) {
+      for (const fault of program.simulateCompatibility.faults) {
+        this.injectedFaults.add(fault.faultType);
+        this.commBus.injectFault(fault.faultType);
+      }
     }
   }
 
@@ -552,6 +568,79 @@ export class Interpreter {
     // runConnectivityMaintenance();
 
     this.runGeofenceTriggers();
+    this.runConnectivityTriggers();
+  }
+
+  private runConnectivityTriggers(): void {
+    // Dispatch connectivity triggers from comm faults and GPS availability.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Nothing.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // runConnectivityTriggers();
+
+    for (const fault of this.commBus.activeFaults()) {
+      const mapped = faultToConnectivity(fault);
+      if (!mapped) continue;
+      const key = `fault:${mapped.domain}.${mapped.event}`;
+      if (this.connectivityEventsSeen.has(key)) continue;
+      this.connectivityEventsSeen.add(key);
+      this.applyConnectivityFailover(mapped.domain, mapped.event);
+      this.dispatchEvent(`${mapped.domain}.${mapped.event}`);
+    }
+
+    const gpsOk = ![...this.injectedFaults].some((f) => f === "GpsFailure" || f === "GPSLost");
+    if (this.gpsAvailable && !gpsOk) {
+      this.gpsAvailable = false;
+      this.applyConnectivityFailover("gps", "lost");
+      this.dispatchEvent("gps.lost");
+    } else if (!this.gpsAvailable && gpsOk) {
+      this.gpsAvailable = true;
+      this.dispatchEvent("gps.acquired");
+      this.dispatchEvent("gps.fix");
+    }
+  }
+
+  private applyConnectivityFailover(domain: string, event: string): void {
+    // Update active link and default transport when a policy failover applies.
+    //
+    // Parameters:
+    // - `domain` — connectivity domain (network, gps, …)
+    // - `event` — trigger event name
+    //
+    // Returns:
+    // Nothing.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // applyConnectivityFailover("network", "disconnected");
+
+    for (const policy of this.connectivityPolicies) {
+      if (domain === "network" && event === "disconnected") {
+        if (this.activeConnectivityLink === policy.preferred) {
+          this.activeConnectivityLink = policy.fallback;
+          this.defaultTransport = connectivityLinkToTransport(this.activeConnectivityLink);
+          this.options.onLog?.(
+            `connectivity_policy '${policy.name}': failover ${policy.preferred} -> ${policy.fallback} (transport ${this.defaultTransport})`,
+          );
+        } else if (policy.emergency && this.activeConnectivityLink !== policy.emergency) {
+          this.activeConnectivityLink = policy.emergency;
+          this.defaultTransport = connectivityLinkToTransport(this.activeConnectivityLink);
+          this.options.onLog?.(
+            `connectivity_policy '${policy.name}': emergency link ${policy.emergency} (transport ${this.defaultTransport})`,
+          );
+        }
+      }
+    }
   }
 
   private evalContract(expr: Expr): boolean {
@@ -1260,7 +1349,10 @@ export class Interpreter {
     this.security = new SecurityContext();
     this.currentAgent = null;
     this.commBus = new RoutingCommBus();
-    this.defaultTransport = "local";
+    for (const fault of this.injectedFaults) {
+      this.commBus.injectFault(fault);
+    }
+    this.defaultTransport = connectivityLinkToTransport(this.activeConnectivityLink);
 
     // continue when robot.soc.
     if (robot.soc) {
