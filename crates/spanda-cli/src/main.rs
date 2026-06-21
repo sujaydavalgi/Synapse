@@ -6,8 +6,9 @@ use serde::Serialize;
 use spanda_core::{
     check, codegen, format_source, generate_cli_man_pages, generate_language_reference,
     generate_markdown, lint, lower_to_sir, playback_mission, replay_mission, run, run_debug,
-    verify_compatibility, wasm_deploy_manifest, CodegenTarget, CompatSeverity, DebugOptions,
-    RunOptions, SchedulerClock, SpandaError, VerifyOptions,
+    security_audit, security_check, verify_compatibility, wasm_deploy_manifest, CodegenTarget,
+    CompatSeverity, DebugOptions, RunOptions, SchedulerClock, SecurityReport, SecuritySeverity,
+    SpandaError, VerifyOptions,
 };
 use spanda_llvm::{compile_native, emit_module_ir_with_options, CompileNativeOptions};
 use std::collections::HashSet;
@@ -114,7 +115,10 @@ fn usage() {
            spanda install [--project <dir>]\n\
            spanda publish [--project <dir>]\n\
            spanda registry search <query>\n\
-           spanda registry info <package>\n"
+           spanda registry info <package>\n\n\
+         Security commands:\n\
+           spanda security check [--json] <file.sd>\n\
+           spanda security audit [--json] <file.sd>\n"
     );
 }
 
@@ -1048,6 +1052,114 @@ fn print_fleet_json(
     print_run_json(run(source, opts));
 }
 
+fn security_dispatch(rest: &[String]) {
+    let sub = rest.first().map(String::as_str).unwrap_or("");
+    if sub != "check" && sub != "audit" {
+        eprintln!("Usage: spanda security check|audit [--json] <file.sd>");
+        process::exit(1);
+    }
+    let mut json = false;
+    let mut file: Option<String> = None;
+    let mut i = 1;
+    while i < rest.len() {
+        match rest[i].as_str() {
+            "--json" => json = true,
+            other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
+            other => {
+                eprintln!("Unknown argument: {other}");
+                eprintln!("Usage: spanda security check|audit [--json] <file.sd>");
+                process::exit(1);
+            }
+        }
+        i += 1;
+    }
+    let file = file.unwrap_or_else(|| {
+        eprintln!("Missing file path");
+        process::exit(1);
+    });
+    let source = read_source(&file);
+    let result = if sub == "audit" {
+        security_audit(&source)
+    } else {
+        security_check(&source)
+    };
+    match result {
+        Ok(report) => {
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string(&SecurityReportJson::from(&report)).unwrap()
+                );
+            } else {
+                human_security_report(&file, sub, &report);
+            }
+            if report.has_errors() {
+                process::exit(1);
+            }
+        }
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(1);
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct SecurityReportJson {
+    ok: bool,
+    findings: Vec<SecurityFindingJson>,
+}
+
+#[derive(Serialize)]
+struct SecurityFindingJson {
+    severity: String,
+    message: String,
+    line: u32,
+    column: u32,
+}
+
+impl From<&SecurityReport> for SecurityReportJson {
+    fn from(report: &SecurityReport) -> Self {
+        Self {
+            ok: !report.has_errors(),
+            findings: report
+                .findings
+                .iter()
+                .map(|f| SecurityFindingJson {
+                    severity: match f.severity {
+                        SecuritySeverity::Error => "error".into(),
+                        SecuritySeverity::Warning => "warning".into(),
+                        SecuritySeverity::Info => "info".into(),
+                    },
+                    message: f.message.clone(),
+                    line: f.line,
+                    column: f.column,
+                })
+                .collect(),
+        }
+    }
+}
+
+fn human_security_report(file: &str, mode: &str, report: &SecurityReport) {
+    if report.findings.is_empty() {
+        println!("✓ {file} — no security {mode} findings");
+        return;
+    }
+    for f in &report.findings {
+        let tag = match f.severity {
+            SecuritySeverity::Error => "error",
+            SecuritySeverity::Warning => "warn",
+            SecuritySeverity::Info => "info",
+        };
+        println!("  [{tag}] [{}:{}] {}", f.line, f.column, f.message);
+    }
+    if report.has_errors() {
+        eprintln!("Security {mode} failed for {file}");
+    } else {
+        println!("✓ {file} — security {mode} passed with warnings/info");
+    }
+}
+
 fn dispatch_package(command: &str, rest: &[String]) {
     //
     // Parameters:
@@ -1127,6 +1239,12 @@ fn main() {
         return;
     }
 
+    if command == "security" {
+        security_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
     // Take this path when is package command(command).
     if is_package_command(command) {
         dispatch_package(command, &args[2..]);
@@ -1160,6 +1278,8 @@ fn main() {
     let mut trace_output: Option<String> = None;
     let mut twin_export_path: Option<String> = None;
     let mut wall_clock = false;
+    let mut secure_mode = false;
+    let mut inject_security_faults = false;
     let mut i = 2;
 
     // Repeat while i < args.len().
@@ -1179,6 +1299,8 @@ fn main() {
                 json = true;
             }
             "--record" => record_trace = true,
+            "--secure" => secure_mode = true,
+            "--inject-security-faults" => inject_security_faults = true,
             "--twin-export" => {
                 i += 1;
                 if i >= args.len() {
@@ -1388,6 +1510,8 @@ fn main() {
                     SchedulerClock::Sim
                 },
                 twin_export_path,
+                secure_mode,
+                inject_security_faults,
                 ..Default::default()
             };
 
