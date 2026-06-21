@@ -127,6 +127,8 @@ export type TokenType =
   | "BUDGET"
   | "FAULT"
   | "MISSION"
+  | "FLEET"
+  | "SAFETY_ZONE"
   | "NETWORK"
   | "BANDWIDTH"
   | "LATENCY"
@@ -427,6 +429,9 @@ const KEYWORDS: Record<string, TokenType> = {
   budget: "BUDGET",
   fault: "FAULT",
   mission: "MISSION",
+  fleet: "FLEET",
+  safety_zone: "SAFETY_ZONE",
+  certify: "CERTIFY",
   network: "NETWORK",
   bandwidth: "BANDWIDTH",
   latency: "LATENCY",

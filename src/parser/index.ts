@@ -456,6 +456,9 @@ class Parser {
     let requiresNetwork: RequiresNetworkDecl | null = null;
     let requiresConnectivity: RequiresConnectivityDecl | null = null;
     const geofences: GeofenceDecl[] = [];
+    const fleets: import("../foundations.js").FleetDecl[] = [];
+    const programSafetyZones: import("../foundations.js").ProgramSafetyZoneDecl[] = [];
+    const certifications: import("../foundations.js").CertifyDecl[] = [];
     const connectivityPolicies: ConnectivityPolicyDecl[] = [];
     const bleServices: BleServiceDecl[] = [];
     let simulateCompatibility: SimulateCompatibilityDecl | null = null;
@@ -489,6 +492,12 @@ class Parser {
         requiresConnectivity = this.parseRequiresConnectivity();
       } else if (this.check("GEOFENCE")) {
         geofences.push(this.parseGeofence());
+      } else if (this.check("FLEET")) {
+        fleets.push(this.parseFleet());
+      } else if (this.check("SAFETY_ZONE")) {
+        programSafetyZones.push(this.parseProgramSafetyZone());
+      } else if (this.check("CERTIFY")) {
+        certifications.push(this.parseCertify());
       } else if (this.check("CONNECTIVITY_POLICY")) {
         connectivityPolicies.push(this.parseConnectivityPolicy());
       } else if (this.check("BLE_SERVICE")) {
@@ -528,6 +537,9 @@ class Parser {
       requiresNetwork,
       requiresConnectivity,
       geofences,
+      fleets,
+      programSafetyZones,
+      certifications,
       connectivityPolicies,
       bleServices,
       simulateCompatibility,
@@ -4875,44 +4887,116 @@ class Parser {
 }
 
   private parseMission(): MissionDecl {
-    // ParseMission.
-    //
-    // Parameters:
-    // None.
-    //
-    // Returns:
-    // MissionDecl.
-    //
-    // Options:
-    // None.
-    //
-    // Example:
-
-    // const result = parseMission();
     const start = this.advance();
+    const name = this.check("IDENT") ? this.advance().lexeme : null;
     this.expect("LBRACE", "Expected '{' after mission");
     let durationHours: number | null = null;
+    const steps: string[] = [];
 
-    // Repeat while !this.check("RBRACE") && !this.check("EOF").
     while (!this.check("RBRACE") && !this.check("EOF")) {
-      this.expect("DURATION", "Expected duration in mission block");
-      this.expect("COLON", "Expected ':' after duration");
-      durationHours = this.parseDurationHours();
-      this.expect("SEMICOLON", "Expected ';' after duration");
+      if (this.match("DURATION")) {
+        this.expect("COLON", "Expected ':' after duration");
+        durationHours = this.parseDurationHours();
+        this.expect("SEMICOLON", "Expected ';' after duration");
+      } else {
+        const step = this.parseLabel("Expected mission step name");
+        this.expect("SEMICOLON", "Expected ';' after mission step");
+        steps.push(step);
+      }
     }
     const end = this.expect("RBRACE", "Expected '}' to close mission");
-
-    // continue when durationHours equals null.
-    if (durationHours === null) {
+    if (durationHours === null && steps.length === 0) {
       const t = this.peek();
-      throw new ParseError("mission block requires duration", t.line, t.column);
+      throw new ParseError("mission block requires duration or at least one step", t.line, t.column);
     }
     return {
       kind: "MissionDecl",
+      name,
       durationHours,
+      steps,
       span: this.spanFrom(start, end),
     };
-}
+  }
+
+  private parseFleet(): import("../foundations.js").FleetDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected fleet name").lexeme;
+    this.expect("LBRACE", "Expected '{' after fleet name");
+    const members: string[] = [];
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      const member = this.expect("IDENT", "Expected robot name in fleet block").lexeme;
+      this.expect("SEMICOLON", "Expected ';' after fleet member");
+      members.push(member);
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close fleet");
+    return { kind: "FleetDecl", name, members, span: this.spanFrom(start, end) };
+  }
+
+  private parseProgramSafetyZone(): import("../foundations.js").ProgramSafetyZoneDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected safety zone name").lexeme;
+    this.expect("LBRACE", "Expected '{' after safety zone name");
+    let maxSpeedMps: number | null = null;
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.check("IDENT") && this.peek().lexeme === "max_speed") {
+        this.advance();
+        maxSpeedMps = this.exprToMps(this.parseExpr());
+        this.expect("SEMICOLON", "Expected ';' after max_speed");
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected max_speed in safety_zone block", t.line, t.column);
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close safety_zone");
+    return {
+      kind: "ProgramSafetyZoneDecl",
+      name,
+      maxSpeedMps,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseCertify(): import("../foundations.js").CertifyDecl {
+    const start = this.advance();
+    const standardName = this.expect("IDENT", "Expected certification standard after 'certify'").lexeme;
+    const standard = (["ISO13849", "IEC61508", "ISO26262"] as const).find((s) => s === standardName);
+    if (!standard) {
+      throw new ParseError(
+        `Unknown certification standard '${standardName}' (expected ISO13849, IEC61508, or ISO26262)`,
+        start.line,
+        start.column,
+      );
+    }
+    let level: string | null = null;
+    if (this.check("LBRACE")) {
+      this.advance();
+      while (!this.check("RBRACE") && !this.check("EOF")) {
+        if (this.check("IDENT") && this.peek().lexeme === "level") {
+          this.advance();
+          level = this.expect("IDENT", "Expected certification level after 'level'").lexeme;
+          this.expect("SEMICOLON", "Expected ';' after certification level");
+        } else {
+          const t = this.peek();
+          throw new ParseError("Expected 'level <Level>;' in certify block", t.line, t.column);
+        }
+      }
+      this.expect("RBRACE", "Expected '}' to close certify block");
+    } else {
+      this.expect("SEMICOLON", "Expected ';' after certification standard");
+    }
+    const end = this.previous();
+    return { kind: "CertifyDecl", standard, level, span: this.spanFrom(start, end) };
+  }
+
+  private exprToMps(expr: Expr): number {
+    if (expr.kind !== "UnitLiteralExpr") {
+      throw new ParseError("max_speed requires a numeric velocity literal", expr.span.start.line, expr.span.start.column);
+    }
+    if (expr.unit === "m/s") return expr.value;
+    if (expr.unit === "km/h") return expr.value / 3.6;
+    if (expr.unit === "mph") return expr.value * 0.44704;
+    throw new ParseError("max_speed requires a velocity unit (m/s, km/h, mph)", expr.span.start.line, expr.span.start.column);
+  }
 
   private parseDurationHours(): number {
     // ParseDurationHours.
@@ -4930,6 +5014,15 @@ class Parser {
 
     // const result = parseDurationHours();
     const tok = this.peek();
+
+    if (tok.type === "UNIT_LITERAL") {
+      this.advance();
+      const n = tok.value as number;
+      const unit = tok.unit;
+      if (unit === "h") return n;
+      if (unit === "min") return n / 60;
+      if (unit === "s") return n / 3600;
+    }
 
     // continue when type equals unit === "h".
     if (tok.type === "UNIT_LITERAL" && tok.unit === "h") {
@@ -6374,6 +6467,16 @@ class Parser {
         name: "robot",
         span: this.spanFrom(start, tok),
       };
+    }
+
+    if (this.match("FLEET")) {
+      const tok = this.previous();
+      return { kind: "IdentExpr", name: "fleet", span: this.spanFrom(start, tok) };
+    }
+
+    if (this.match("MISSION")) {
+      const tok = this.previous();
+      return { kind: "IdentExpr", name: "mission", span: this.spanFrom(start, tok) };
     }
 
     // continue when this.match("SAFETY").

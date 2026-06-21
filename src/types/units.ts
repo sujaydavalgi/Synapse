@@ -667,6 +667,26 @@ export const BUILTIN_METHODS: Record<
   SensorFusion: {
     read: { params: [], returns: { kind: "named", name: "FusedObservation" } },
   },
+  FleetCoordinator: {
+    members: { params: [{ kind: "string" }], returns: { kind: "int" } },
+    names: { params: [], returns: { kind: "int" } },
+  },
+  Mission: {
+    start: { params: [], returns: { kind: "string" } },
+    pause: { params: [], returns: { kind: "string" } },
+    resume: { params: [], returns: { kind: "string" } },
+    advance: { params: [], returns: { kind: "string" } },
+    complete: { params: [], returns: { kind: "string" } },
+    fail: { params: [], returns: { kind: "string" } },
+    state: { params: [], returns: { kind: "string" } },
+    step: { params: [], returns: { kind: "string" } },
+  },
+  Navigation: {
+    goal: { params: [{ kind: "string" }], returns: { kind: "named", name: "NavigationGoal" } },
+    path: { params: [], returns: { kind: "named", name: "Path" } },
+    navigate: { params: [], returns: { kind: "named", name: "Trajectory" } },
+    cost_map: { params: [], returns: { kind: "named", name: "CostMap" } },
+  },
   AuditLog: {
     record: {
       params: [{ kind: "string" }, { kind: "string" }],
@@ -770,6 +790,8 @@ export const OBJECT_PROPERTIES: Record<string, Record<string, SpandaType>> = {
   FusedObservation: {
     pose: { kind: "pose" },
     count: { kind: "number", unit: "none" },
+    confidence: { kind: "number", unit: "none" },
+    state_estimate: { kind: "named", name: "StateEstimate" },
   },
 };
 

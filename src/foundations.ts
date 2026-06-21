@@ -282,9 +282,40 @@ export type BleServiceDecl = {
 
 export type MissionDecl = {
   kind: "MissionDecl";
-  durationHours: number;
+  name: string | null;
+  durationHours: number | null;
+  steps: string[];
   span: Span;
 };
+
+export type FleetDecl = {
+  kind: "FleetDecl";
+  name: string;
+  members: string[];
+  span: Span;
+};
+
+export type ProgramSafetyZoneDecl = {
+  kind: "ProgramSafetyZoneDecl";
+  name: string;
+  maxSpeedMps: number | null;
+  span: Span;
+};
+
+export type CertificationStandard = "ISO13849" | "IEC61508" | "ISO26262";
+
+export type CertifyDecl = {
+  kind: "CertifyDecl";
+  standard: CertificationStandard;
+  level: string | null;
+  span: Span;
+};
+
+export const CERTIFICATION_STANDARDS: CertificationStandard[] = [
+  "ISO13849",
+  "IEC61508",
+  "ISO26262",
+];
 
 export type HardwareDecl = {
   kind: "HardwareDecl";

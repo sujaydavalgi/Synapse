@@ -175,6 +175,8 @@ class TypeChecker {
   private channelPayloadTypes = new Map<string, SpandaType>();
   private activeAgent: string | null = null;
 
+  private programFleets = false;
+
   constructor(private moduleRegistry?: ModuleRegistry) {}
 
   checkProgram(program: Program): void {
@@ -251,6 +253,43 @@ class TypeChecker {
           throw err;
         }
       }
+    }
+
+    const robotNames = program.robots.map((r) => r.name);
+    this.programFleets = program.fleets.length > 0;
+    for (const fleet of program.fleets) {
+      for (const member of fleet.members) {
+        if (!robotNames.includes(member)) {
+          this.error(
+            `fleet '${fleet.name}' references unknown robot '${member}'`,
+            fleet.span.start.line,
+            fleet.span.start.column,
+          );
+        }
+      }
+    }
+    const zoneNames = new Set<string>();
+    for (const zone of program.programSafetyZones) {
+      if (zoneNames.has(zone.name)) {
+        this.error(
+          `Duplicate safety_zone '${zone.name}'`,
+          zone.span.start.line,
+          zone.span.start.column,
+        );
+      }
+      zoneNames.add(zone.name);
+    }
+
+    const certStandards = new Set<string>();
+    for (const cert of program.certifications ?? []) {
+      if (certStandards.has(cert.standard)) {
+        this.error(
+          `Duplicate certify '${cert.standard}'`,
+          cert.span.start.line,
+          cert.span.start.column,
+        );
+      }
+      certStandards.add(cert.standard);
     }
 
     for (const robot of program.robots) {
@@ -770,6 +809,14 @@ class TypeChecker {
     this.stateMachineStates.clear();
     this.agentTraitMethods.clear();
 
+    if (this.programFleets) {
+      this.symbols.set("fleet", {
+        name: "fleet",
+        roboType: { kind: "named", name: "FleetCoordinator" },
+        kind: "variable",
+      });
+    }
+
     // Process each key.
     for (const enumName of this.enumVariants.keys()) {
       this.symbols.set(enumName, {
@@ -1118,6 +1165,26 @@ class TypeChecker {
       this.symbols.set("fusion", {
         name: "fusion",
         roboType: { kind: "named", name: "SensorFusion" },
+        kind: "variable",
+      });
+    }
+
+    if (robot.mission) {
+      if (robot.mission.durationHours == null && robot.mission.steps.length === 0) {
+        this.error(
+          "mission requires at least one of duration or mission steps",
+          robot.mission.span.start.line,
+          robot.mission.span.start.column,
+        );
+      }
+      this.symbols.set("mission", {
+        name: "mission",
+        roboType: { kind: "named", name: "Mission" },
+        kind: "variable",
+      });
+      this.symbols.set("navigation", {
+        name: "navigation",
+        roboType: { kind: "named", name: "Navigation" },
         kind: "variable",
       });
     }

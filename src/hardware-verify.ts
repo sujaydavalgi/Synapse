@@ -174,6 +174,9 @@ function verifyBatteryMission(mission: MissionDecl, profile: HardwareProfile): C
     return [compat("power", "Mission duration declared but target battery capacity unknown", "warning", line, column)];
   }
   const hours = mission.durationHours;
+  if (hours == null) {
+    return [];
+  }
   const energyWh = profile.powerDrawW * hours;
   const margin = profile.batteryWh - energyWh;
 
@@ -504,6 +507,18 @@ export function verifyHardwareProgram(
   }
   for (const policy of program.connectivityPolicies) {
     items.push(...validateConnectivityPolicy(policy));
+  }
+  for (const cert of program.certifications ?? []) {
+    const levelSuffix = cert.level ? ` level ${cert.level}` : "";
+    items.push(
+      compat(
+        "certify",
+        `Certification metadata recorded: ${cert.standard}${levelSuffix} (verify-only — not a runtime safety proof)`,
+        "pass",
+        cert.span.start.line,
+        cert.span.start.column,
+      ),
+    );
   }
 
   const targets = resolveTargets(program, options, registry);

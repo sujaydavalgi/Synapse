@@ -175,6 +175,9 @@ export type Program = {
   requiresNetwork: import("../foundations.js").RequiresNetworkDecl | null;
   requiresConnectivity: import("../foundations.js").RequiresConnectivityDecl | null;
   geofences: import("../foundations.js").GeofenceDecl[];
+  fleets: import("../foundations.js").FleetDecl[];
+  programSafetyZones: import("../foundations.js").ProgramSafetyZoneDecl[];
+  certifications: import("../foundations.js").CertifyDecl[];
   connectivityPolicies: import("../foundations.js").ConnectivityPolicyDecl[];
   bleServices: import("../foundations.js").BleServiceDecl[];
   simulateCompatibility: import("../foundations.js").SimulateCompatibilityDecl | null;

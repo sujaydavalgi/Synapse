@@ -25,6 +25,7 @@ export type SafetyConfig = {
   maxSpeed: number;
   stopIfRules: Array<(env: Environment) => boolean>;
   zones: SafetyZoneRuntime[];
+  zoneSpeedCaps: Map<string, number>;
 };
 
 export class SafetyMonitor {
@@ -89,6 +90,10 @@ export class SafetyMonitor {
 
     for (const zone of this.config.zones) {
       if (this.isPointInZone(pose.x, pose.y, zone)) {
+        // Allow motion inside zones that only declare a program speed cap.
+        if (this.config.zoneSpeedCaps.has(zone.name)) {
+          continue;
+        }
         return {
           allowed: false,
           reason: `Robot entered safety zone '${zone.name}'`,
@@ -128,7 +133,27 @@ export class SafetyMonitor {
     if (!peek.allowed) {
       return { ok: false, reason: peek.reason ?? "Safety validation failed" };
     }
-    return { ok: true, linear: this.clampSpeed(linear), angular };
+    return { ok: true, linear: this.clampSpeedAtPose(linear, pose), angular };
+  }
+
+  effectiveMaxSpeed(pose: { x: number; y: number }): number {
+    // Compute the active speed cap from global max and program zone policies.
+    let cap = this.config.maxSpeed;
+    for (const zone of this.config.zones) {
+      if (this.isPointInZone(pose.x, pose.y, zone)) {
+        const zoneCap = this.config.zoneSpeedCaps.get(zone.name);
+        if (zoneCap !== undefined) {
+          cap = Math.min(cap, zoneCap);
+        }
+      }
+    }
+    return cap;
+  }
+
+  clampSpeedAtPose(requested: number, pose: { x: number; y: number }): number {
+    // Clamp requested linear speed to the effective cap at the current pose.
+    const sign = requested === 0 ? 1 : Math.sign(requested);
+    return Math.min(Math.abs(requested), this.effectiveMaxSpeed(pose)) * sign;
   }
 
   isInZone(zoneName: string, pose: { x: number; y: number }): boolean {
@@ -248,8 +273,26 @@ export function createSafetyConfigFromRobot(
   maxSpeed: number,
   stopIfRules: Array<(env: Environment) => boolean>,
   zones: SafetyZoneRuntime[] = [],
-): SafetyConfig {  // Return { maxSpeed, stopIfRules, zones } to the caller.
-  return { maxSpeed, stopIfRules, zones };
+  zoneSpeedCaps: Map<string, number> = new Map(),
+): SafetyConfig {
+  // Build a safety monitor configuration from robot rules and program zone caps.
+  //
+  // Parameters:
+  // - `maxSpeed` — global maximum linear speed
+  // - `stopIfRules` — runtime stop-if predicates
+  // - `zones` — geometric safety zones on the robot
+  // - `zoneSpeedCaps` — program-level caps keyed by zone name
+  //
+  // Returns:
+  // Safety configuration for `SafetyMonitor`.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // createSafetyConfigFromRobot(1.0, [], zones, caps);
+
+  return { maxSpeed, stopIfRules, zones, zoneSpeedCaps };
 }
 
 export function applyEmergencyStop(state: RobotState): RobotState {

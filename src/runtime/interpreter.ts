@@ -75,6 +75,20 @@ import {
   regexSplit,
 } from "../regex.js";
 import { ReliabilityRuntime } from "./reliability-runtime.js";
+import {
+  createMissionRuntime,
+  FleetRegistry,
+  missionAdvance,
+  missionComplete,
+  missionCurrentStep,
+  missionFail,
+  missionPause,
+  missionResume,
+  missionStart,
+  ProgramSafetyZoneRegistry,
+  type MissionRuntime,
+} from "../robotics-platform.js";
+import { tryPublishNav2CmdVel } from "../navigation/index.js";
 
 export type PoseValue = { x: number; y: number; theta: number; z: number };
 
@@ -105,6 +119,9 @@ export type RuntimeValue =
   | { kind: "safe_action"; linear: number; angular: number; trusted: true }
   | { kind: "goal"; text: string }
   | { kind: "sensor_fusion"; sensors: string[] }
+  | { kind: "mission_control"; runtime: MissionRuntime }
+  | { kind: "navigation_control"; goal: string | null }
+  | { kind: "fleet_control"; registry: FleetRegistry }
   | { kind: "completion"; text: string; model?: string }
   | { kind: "embedding"; dimensions: number; vector: number[] }
   | { kind: "identity"; id: string; publicKey: string }
@@ -312,6 +329,8 @@ export class Interpreter {
   private connectivityEventsSeen = new Set<string>();
   private injectedFaults = new Set<string>();
   private gpsAvailable = true;
+  private fleets = new FleetRegistry();
+  private programSafetyZones = new ProgramSafetyZoneRegistry();
 
   constructor(private options: InterpreterOptions) {}
 
@@ -468,6 +487,48 @@ export class Interpreter {
       );
     }
     this.loadConnectivityMetadata(program);
+    this.loadRoboticsPlatformMetadata(program);
+  }
+
+  private loadRoboticsPlatformMetadata(program: Program): void {
+    // Load fleet groupings and program-level safety zone policies.
+    //
+    // Parameters:
+    // - `program` — parsed program
+    //
+    // Returns:
+    // Nothing.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // loadRoboticsPlatformMetadata(program);
+
+    this.fleets = new FleetRegistry();
+    this.programSafetyZones = new ProgramSafetyZoneRegistry();
+
+    for (const fleet of program.fleets) {
+      this.fleets.register(fleet.name, [...fleet.members]);
+      this.options.onLog?.(`fleet '${fleet.name}': ${fleet.members.length} member(s)`);
+    }
+    this.env.define("fleet", { kind: "fleet_control", registry: this.fleets });
+
+    for (const zone of program.programSafetyZones) {
+      if (zone.maxSpeedMps !== null) {
+        this.programSafetyZones.register(zone.name, zone.maxSpeedMps);
+        this.options.onLog?.(
+          `safety_zone '${zone.name}': max_speed ${zone.maxSpeedMps.toFixed(2)} m/s`,
+        );
+      }
+    }
+
+    for (const cert of program.certifications ?? []) {
+      const levelSuffix = cert.level ? ` level ${cert.level}` : "";
+      this.options.onLog?.(
+        `certify ${cert.standard}${levelSuffix}: metadata recorded (verify-only)`,
+      );
+    }
   }
 
   private loadConnectivityMetadata(program: Program): void {
@@ -1419,6 +1480,9 @@ export class Interpreter {
     // const result = setupRobot(robot);
     this.currentRobot = robot;
     this.env = new Environment();
+    if (this.fleets.names().length > 0) {
+      this.env.define("fleet", { kind: "fleet_control", registry: this.fleets.clone() });
+    }
     this.topicPathToMessageType.clear();
     this.zones = [];
     this.eventHandlers.clear();
@@ -1694,6 +1758,21 @@ export class Interpreter {
       );
     }
 
+    // Initialize mission controller and navigation helpers when declared.
+    if (robot.mission) {
+      const runtime = createMissionRuntime(
+        robot.mission.name,
+        [...robot.mission.steps],
+        robot.mission.durationHours,
+      );
+      this.env.define("mission", { kind: "mission_control", runtime });
+      this.env.define("navigation", { kind: "navigation_control", goal: null });
+      const label = robot.mission.name ?? "mission";
+      this.options.onLog?.(
+        `mission '${label}': ${robot.mission.steps.length} step(s), duration=${robot.mission.durationHours} h`,
+      );
+    }
+
     // Iterate over stateMachines ?? [].
     for (const sm of robot.stateMachines ?? []) {
       const initial = sm.states[0] ?? "unknown";
@@ -1744,7 +1823,12 @@ export class Interpreter {
       }
     }
     this.safetyMonitor = new SafetyMonitor(
-      createSafetyConfigFromRobot(maxSpeed, stopIfRules, this.zones),
+      createSafetyConfigFromRobot(
+        maxSpeed,
+        stopIfRules,
+        this.zones,
+        this.programSafetyZones.speedCaps(),
+      ),
     );
     this.reliability.loadFromRobot(
       robot,
@@ -2676,6 +2760,18 @@ export class Interpreter {
       return this.evalTwinMethod(method, expr);
     }
 
+    if (target.kind === "mission_control") {
+      return this.evalMissionMethod(target.runtime, method, expr.span.start.line);
+    }
+
+    if (target.kind === "navigation_control") {
+      return this.evalNavigationMethod(target, method, expr);
+    }
+
+    if (target.kind === "fleet_control") {
+      return this.evalFleetMethod(target.registry, method, expr);
+    }
+
     // continue when kind equals "sensor fusion".
     if (target.kind === "sensor_fusion") {
 
@@ -2955,8 +3051,147 @@ export class Interpreter {
     const state = this.options.backend.getState();
     fields.pose = poseFromState(state.pose);
     fields.count = { kind: "number", value: this.fusionSensors.length, unit: "none" };
+    const confidence = this.fusionSensors.length === 0
+      ? 0
+      : Math.min(this.fusionSensors.length / 4, 1);
+    fields.confidence = { kind: "number", value: confidence, unit: "none" };
+    fields.state_estimate = {
+      kind: "object",
+      typeName: "StateEstimate",
+      fields: {
+        pose: fields.pose,
+        confidence: fields.confidence,
+      },
+    };
     return { kind: "object", typeName: "FusedObservation", fields };
 }
+
+  private evalMissionMethod(
+    runtime: MissionRuntime,
+    method: string,
+    line: number,
+  ): RuntimeValue {
+    // Dispatch mission lifecycle methods on the active mission controller.
+    switch (method) {
+      case "start":
+        missionStart(runtime);
+        return { kind: "string", value: runtime.state };
+      case "pause":
+        missionPause(runtime);
+        return { kind: "string", value: runtime.state };
+      case "resume":
+        missionResume(runtime);
+        return { kind: "string", value: runtime.state };
+      case "advance":
+        return { kind: "string", value: missionAdvance(runtime) };
+      case "complete":
+        missionComplete(runtime);
+        return { kind: "string", value: runtime.state };
+      case "fail":
+        missionFail(runtime);
+        return { kind: "string", value: runtime.state };
+      case "state":
+        return { kind: "string", value: runtime.state };
+      case "step":
+        return { kind: "string", value: missionCurrentStep(runtime) };
+      default:
+        throw new RuntimeError(`Unknown mission method '${method}'`, line);
+    }
+  }
+
+  private evalNavigationMethod(
+    target: { kind: "navigation_control"; goal: string | null },
+    method: string,
+    expr: import("../ast/nodes.js").CallExpr,
+  ): RuntimeValue {
+    // Dispatch navigation helpers for goals, paths, and cost maps.
+    const line = expr.span.start.line;
+    switch (method) {
+      case "goal": {
+        const textArg = expr.args[0]
+          ? this.evalExpr(expr.args[0])
+          : this.getNamedArgValue(expr, "text");
+        const text = getString(textArg);
+        if (!text) {
+          throw new RuntimeError("navigation.goal() requires a text argument", line);
+        }
+        target.goal = text;
+        return {
+          kind: "object",
+          typeName: "NavigationGoal",
+          fields: { text: { kind: "string", value: text } },
+        };
+      }
+      case "path": {
+        const state = this.options.backend.getState();
+        const from = poseFromState(state.pose);
+        const to = runtimePose(state.pose.x + 1, state.pose.y, state.pose.theta, state.pose.z ?? 0);
+        const waypoints = getTrajectoryWaypoints(
+          runtimeTrajectory(interpolatePoses(from, to, 2)),
+        ) ?? [];
+        return {
+          kind: "object",
+          typeName: "Path",
+          fields: {
+            waypoints: { kind: "number", value: waypoints.length, unit: "none" },
+          },
+        };
+      }
+      case "cost_map":
+        return {
+          kind: "object",
+          typeName: "CostMap",
+          fields: {
+            resolution: { kind: "number", value: 0.05, unit: "m" },
+          },
+        };
+      case "navigate": {
+        this.options.onLog?.(
+          `navigation: executing goal '${target.goal ?? "none"}'`,
+        );
+        tryPublishNav2CmdVel({
+          backend: this.options.backend,
+          topicPathToMessageType: this.topicPathToMessageType,
+          goal: target.goal,
+          onLog: (message) => this.options.onLog?.(message),
+        });
+        return {
+          kind: "object",
+          typeName: "Trajectory",
+          fields: {
+            status: { kind: "string", value: "executing" },
+          },
+        };
+      }
+      default:
+        throw new RuntimeError(`Unknown navigation method '${method}'`, line);
+    }
+  }
+
+  private evalFleetMethod(
+    registry: FleetRegistry,
+    method: string,
+    expr: import("../ast/nodes.js").CallExpr,
+  ): RuntimeValue {
+    // Dispatch fleet coordination helpers for member lookup.
+    const line = expr.span.start.line;
+    switch (method) {
+      case "members": {
+        const fleetName = expr.args[0]
+          ? getString(this.evalExpr(expr.args[0]))
+          : "";
+        if (!fleetName) {
+          throw new RuntimeError("fleet.members() requires a fleet name", line);
+        }
+        const members = registry.members(fleetName) ?? [];
+        return { kind: "number", value: members.length, unit: "none" };
+      }
+      case "names":
+        return { kind: "number", value: registry.names().length, unit: "none" };
+      default:
+        throw new RuntimeError(`Unknown fleet method '${method}'`, line);
+    }
+  }
 
   private evalBuiltinFunction(name: string, expr: import("../ast/nodes.js").CallExpr): RuntimeValue {
     // EvalBuiltinFunction.
@@ -3470,7 +3705,8 @@ export class Interpreter {
       case "drive": {
         const linear = this.getNamedArgNumber(expr, "linear", 0);
         const angular = this.getNamedArgNumber(expr, "angular", 0);
-        const maxSpeed = this.safetyMonitor?.clampSpeed(linear) ?? linear;
+        const pose = this.options.backend.getState().pose;
+        const maxSpeed = this.safetyMonitor?.clampSpeedAtPose(linear, pose) ?? linear;
         this.options.backend.executeMotion({ kind: "drive", linear: maxSpeed, angular, actuator: name });
         break;
       }
