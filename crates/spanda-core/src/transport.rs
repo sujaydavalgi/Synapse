@@ -1,15 +1,18 @@
 //! Pluggable transport adapters for ROS2, MQTT, DDS, and WebSocket.
 //!
-//! Each adapter records operations for simulation/testing and exposes a uniform
-//! interface that real broker/node integrations can implement later.
+//! Adapters exchange versioned wire frames (`TransportWireFrame` v1) with optional
+//! AES-256-GCM encryption negotiated via `TlsTransportSession`.
 
 use crate::comm::{
-    CommBus, DiscoverFilter, DiscoverTarget, InMemoryCommBus, PublishedCommMessage,
+    CommBus, CommEnvelope, DiscoverFilter, DiscoverTarget, InMemoryCommBus, PublishedCommMessage,
     SimNetworkConfig, TransportKind,
 };
 use crate::runtime::RuntimeValue;
 use crate::transport_live as live;
 use crate::transport_rclrs as rclrs;
+use crate::transport_security::TlsTransportSession;
+use crate::transport_wire::{decode_wire_value, encode_wire_value};
+use spanda_security::policy::EncryptionMode;
 use std::collections::{HashMap, VecDeque};
 
 fn payload_string_for_service(value: &RuntimeValue) -> String {
@@ -50,6 +53,8 @@ pub struct TransportConfig {
     pub namespace: Option<String>,
     pub domain_id: Option<u32>,
     pub client_id: Option<String>,
+    pub security: crate::transport_security::TransportSecurityConfig,
+    pub tls: TlsTransportSession,
 }
 
 #[derive(Debug, Clone)]
@@ -250,6 +255,13 @@ macro_rules! stub_adapter {
                 // let result = instance.connect(config);
 
                 // Call connected = true; on the current instance.
+                config.security.validate(self.kind().as_str())?;
+                if config.security.encryption != EncryptionMode::None && !config.tls.negotiated {
+                    return Err(format!(
+                        "{} adapter requires negotiated TLS session",
+                        self.kind().as_str()
+                    ));
+                }
                 self.state.connected = true;
                 self.state.config = config.clone();
                 Ok(())
@@ -752,7 +764,7 @@ impl RoutingCommBus {
         }
     }
 
-    pub fn configure(&mut self, config: TransportConfig) {
+    pub fn configure(&mut self, config: TransportConfig) -> Result<(), String> {
         // Configure.
         //
         // Parameters:
@@ -760,7 +772,7 @@ impl RoutingCommBus {
         // - `config` — input value
         //
         // Returns:
-        // Nothing.
+        // Success value on completion, or an error.
         //
         // Options:
         // None.
@@ -768,28 +780,37 @@ impl RoutingCommBus {
         // Example:
         // let result = instance.configure(config);
 
-        // Call clone on the current instance.
+        let mut config = config;
+        if crate::transport_security::TransportSecurityConfig::url_requires_tls(
+            config.broker_url.as_deref(),
+        ) && config.security.encryption == EncryptionMode::None
+        {
+            config.security.encryption = EncryptionMode::Required;
+        }
+        config.security.validate("transport")?;
+        config.tls.connect(&config.security)?;
         self.config = config.clone();
-        let _ = self.ros2.connect(&config);
-        let _ = self.mqtt.connect(&TransportConfig {
+        self.ros2.connect(&config)?;
+        self.mqtt.connect(&TransportConfig {
             broker_url: config
                 .broker_url
                 .clone()
                 .or(Some("mqtt://localhost:1883".into())),
             client_id: config.client_id.clone().or(Some("spanda".into())),
             ..config.clone()
-        });
-        let _ = self.dds.connect(&TransportConfig {
+        })?;
+        self.dds.connect(&TransportConfig {
             domain_id: config.domain_id.or(Some(0)),
             ..config.clone()
-        });
-        let _ = self.websocket.connect(&TransportConfig {
+        })?;
+        self.websocket.connect(&TransportConfig {
             broker_url: config
                 .broker_url
                 .clone()
                 .or(Some("ws://localhost:9090".into())),
             ..config
-        });
+        })?;
+        Ok(())
     }
 
     pub fn adapter(&self, kind: TransportKind) -> Option<&dyn TransportAdapter> {
@@ -948,6 +969,7 @@ impl RoutingCommBus {
         topic: &str,
         value: RuntimeValue,
         transport: TransportKind,
+        source_id: Option<&str>,
     ) {
         // Publish peer.
         //
@@ -957,6 +979,7 @@ impl RoutingCommBus {
         // - `topic` — input value
         // - `value` — input value
         // - `transport` — input value
+        // - `source_id` — optional sender identity
         //
         // Returns:
         // Nothing.
@@ -965,10 +988,76 @@ impl RoutingCommBus {
         // None.
         //
         // Example:
-        // let result = instance.publish_peer(peer, topic, value, transport);
+        // let result = instance.publish_peer(peer, topic, value, transport, source_id);
 
         // Call publish peer on the current instance.
-        self.memory.publish_peer(peer, topic, value, transport);
+        self.memory
+            .publish_peer(peer, topic, value, transport, source_id);
+    }
+
+    /// Poll external transport adapters for inbound messages on subscribed topics.
+    pub fn poll_inbound(&mut self, transport: TransportKind) -> Vec<(String, CommEnvelope)> {
+        // Poll inbound.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `transport` — input value
+        //
+        // Returns:
+        // Vec<(String, CommEnvelope)>.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let result = instance.poll_inbound(transport);
+
+        // Compute paths for the following logic.
+        let paths = self.memory.subscription_paths();
+        let mut inbound = Vec::new();
+        let kinds = [
+            transport,
+            TransportKind::Ros2,
+            TransportKind::Mqtt,
+            TransportKind::Dds,
+            TransportKind::Websocket,
+        ];
+
+        // Process each filesystem path.
+        for path in paths {
+            // Process each kind.
+            for kind in kinds {
+                // Emit output when adapter mut provides a adapter.
+                if let Some(adapter) = self.adapter_mut(kind) {
+                    // Take this path when adapter.is connected().
+                    if adapter.is_connected() {
+                        // Emit output when receive provides a value.
+                        if let Some(value) = adapter.receive(&path) {
+                            let (value, source_id) =
+                                decode_wire_value(&self.config, value).unwrap_or_else(|_| {
+                                    (
+                                        RuntimeValue::String {
+                                            value: "<wire-decode-failed>".into(),
+                                        },
+                                        None,
+                                    )
+                                });
+                            let envelope = CommEnvelope {
+                                value: value.clone(),
+                                source_id,
+                            };
+                            self.memory.push_inbound(
+                                &path,
+                                value,
+                                envelope.source_id.as_deref(),
+                            );
+                            inbound.push((path.clone(), envelope));
+                        }
+                    }
+                }
+            }
+        }
+        inbound
     }
 
     /// Connect the active transport adapter and resubscribe all in-memory topic paths.
@@ -1053,54 +1142,6 @@ impl RoutingCommBus {
             adapter.subscribe(&path);
         }
     }
-
-    /// Poll external transport adapters for inbound messages on subscribed topics.
-    pub fn poll_inbound(&mut self, transport: TransportKind) -> Vec<(String, RuntimeValue)> {
-        // Poll inbound.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        // - `transport` — input value
-        //
-        // Returns:
-        // Vec<(String, RuntimeValue)>.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.poll_inbound(transport);
-
-        // Compute paths for the following logic.
-        let paths = self.memory.subscription_paths();
-        let mut inbound = Vec::new();
-        let kinds = [
-            transport,
-            TransportKind::Ros2,
-            TransportKind::Mqtt,
-            TransportKind::Dds,
-            TransportKind::Websocket,
-        ];
-
-        // Process each filesystem path.
-        for path in paths {
-            // Process each kind.
-            for kind in kinds {
-                // Emit output when adapter mut provides a adapter.
-                if let Some(adapter) = self.adapter_mut(kind) {
-                    // Take this path when adapter.is connected().
-                    if adapter.is_connected() {
-                        // Emit output when receive provides a value.
-                        if let Some(value) = adapter.receive(&path) {
-                            self.memory.push_inbound(&path, value.clone());
-                            inbound.push((path.clone(), value));
-                        }
-                    }
-                }
-            }
-        }
-        inbound
-    }
 }
 
 impl CommBus for RoutingCommBus {
@@ -1110,6 +1151,7 @@ impl CommBus for RoutingCommBus {
         message_type: &str,
         value: RuntimeValue,
         transport: TransportKind,
+        source_id: Option<&str>,
     ) {
         // Publish.
         //
@@ -1130,12 +1172,27 @@ impl CommBus for RoutingCommBus {
         // let result = instance.publish(topic_path, message_type, value, transport);
 
         // Call memory on the current instance.
-        self.memory
-            .publish(topic_path, message_type, value.clone(), transport);
+        self.memory.publish(
+            topic_path,
+            message_type,
+            value.clone(),
+            transport,
+            source_id,
+        );
 
-        // Emit output when adapter mut provides a adapter.
+        // Encrypt for external transport adapters when TLS is enabled.
+        let config = self.config.clone();
         if let Some(adapter) = self.adapter_mut(transport) {
-            adapter.publish(topic_path, message_type, value);
+            let wire_value = encode_wire_value(
+                &config,
+                topic_path,
+                message_type,
+                &value,
+                source_id,
+                transport,
+            )
+            .unwrap_or(value);
+            adapter.publish(topic_path, message_type, wire_value);
         }
     }
 
@@ -1178,6 +1235,26 @@ impl CommBus for RoutingCommBus {
 
         // Call receive on the current instance.
         self.memory.receive(topic_path)
+    }
+
+    fn receive_envelope(&mut self, topic_path: &str) -> Option<CommEnvelope> {
+        // Receive envelope.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `topic_path` — input value
+        //
+        // Returns:
+        // Some envelope on success, otherwise none.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let result = instance.receive_envelope(topic_path);
+
+        // Call receive envelope on the current instance.
+        self.memory.receive_envelope(topic_path)
     }
 
     fn call_service(
@@ -1353,13 +1430,14 @@ impl CommBus for RoutingCommBus {
         self.memory.subscription_paths()
     }
 
-    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
+    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue, source_id: Option<&str>) {
         // Push inbound.
         //
         // Parameters:
         // - `self` — method receiver
         // - `topic_path` — input value
         // - `value` — input value
+        // - `source_id` — optional publisher identity
         //
         // Returns:
         // Nothing.
@@ -1368,10 +1446,10 @@ impl CommBus for RoutingCommBus {
         // None.
         //
         // Example:
-        // let result = instance.push_inbound(topic_path, value);
+        // let result = instance.push_inbound(topic_path, value, source_id);
 
         // Call push inbound on the current instance.
-        self.memory.push_inbound(topic_path, value);
+        self.memory.push_inbound(topic_path, value, source_id);
     }
 }
 
@@ -1428,12 +1506,14 @@ mod tests {
         bus.configure(TransportConfig {
             node_name: Some("bot".into()),
             ..Default::default()
-        });
+        })
+        .unwrap();
         bus.publish(
             "/cmd_vel",
             "Velocity",
             RuntimeValue::Bool { value: true },
             TransportKind::Ros2,
+            None,
         );
         assert_eq!(bus.published_messages().len(), 1);
         assert_eq!(bus.ros2.published().len(), 1);
@@ -1461,6 +1541,7 @@ mod tests {
             "String",
             RuntimeValue::Bool { value: true },
             TransportKind::Sim,
+            None,
         );
         assert_eq!(bus.published_messages().len(), 1);
         assert!(bus.ros2.published().is_empty());
@@ -1469,7 +1550,7 @@ mod tests {
     #[test]
     fn reconnect_transport_disconnects_inactive_adapters() {
         let mut bus = RoutingCommBus::new();
-        bus.configure(TransportConfig::default());
+        bus.configure(TransportConfig::default()).unwrap();
         bus.subscribe("/scan", "handler");
         bus.reconnect_transport(TransportKind::Mqtt);
         assert!(bus.mqtt.is_connected());
@@ -1481,7 +1562,7 @@ mod tests {
     #[test]
     fn reconnect_transport_resubscribes_on_dds() {
         let mut bus = RoutingCommBus::new();
-        bus.configure(TransportConfig::default());
+        bus.configure(TransportConfig::default()).unwrap();
         bus.subscribe("/scan", "handler");
         bus.reconnect_transport(TransportKind::Dds);
         assert!(bus.dds.is_connected());

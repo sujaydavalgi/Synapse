@@ -817,6 +817,12 @@ pub struct InterpreterOptions {
 
     /// Max trigger dispatches per scheduler tick (hardware-aware storm protection).
     pub max_triggers_per_tick: usize,
+
+    /// Enforce strict secure communication at runtime.
+    pub secure_mode: bool,
+
+    /// Inject default security fault scenarios during simulation.
+    pub inject_security_faults: bool,
 }
 
 impl Default for InterpreterOptions {
@@ -852,6 +858,8 @@ impl Default for InterpreterOptions {
             scheduler_clock: SchedulerClock::Sim,
             replay_deterministic: false,
             max_triggers_per_tick: MAX_TRIGGERS_PER_TICK,
+            secure_mode: false,
+            inject_security_faults: false,
         }
     }
 }
@@ -1433,6 +1441,20 @@ impl<B: RobotBackend> Interpreter<B> {
         self.load_program_metadata(program);
         self.load_connectivity_metadata(geofences, connectivity_policies);
 
+        if self.options.secure_mode {
+            self.security.enable_strict_permissions();
+            self.log("security: strict secure mode enabled".into());
+        }
+
+        if self.options.inject_security_faults {
+            for fault in ["InvalidSignature", "ExpiredCertificate", "ReplayAttack"] {
+                self.comm_bus.inject_fault(fault);
+                self.hardware_monitor.inject_fault(fault.to_string());
+                self.security.inject_security_fault(fault);
+            }
+            self.log("security: injected default security fault scenarios".into());
+        }
+
         // Handle each robot declared in the program.
         for robot in robots {
             self.setup_robot(robot)?;
@@ -1441,6 +1463,17 @@ impl<B: RobotBackend> Interpreter<B> {
             for fault in &sim_faults {
                 self.hardware_monitor.inject_fault(fault.clone());
                 self.comm_bus.inject_fault(fault);
+                if matches!(
+                    fault.as_str(),
+                    "InvalidSignature"
+                        | "ExpiredCertificate"
+                        | "ReplayAttack"
+                        | "UnknownDevice"
+                        | "ManInTheMiddle"
+                        | "SecureHandshakeDropped"
+                ) {
+                    self.security.inject_security_fault(fault);
+                }
             }
 
             // Skip further work when !sim faults is empty.
@@ -1663,9 +1696,10 @@ impl<B: RobotBackend> Interpreter<B> {
         self.connectivity_policies = policies.iter().map(connectivity_policy_from_decl).collect();
         if let Some(policy) = self.connectivity_policies.first() {
             self.active_connectivity_link = policy.preferred.clone();
-            self.default_transport = crate::connectivity_positioning::connectivity_link_to_transport(
-                &self.active_connectivity_link,
-            );
+            self.default_transport =
+                crate::connectivity_positioning::connectivity_link_to_transport(
+                    &self.active_connectivity_link,
+                );
         }
     }
 
@@ -1718,6 +1752,8 @@ impl<B: RobotBackend> Interpreter<B> {
             devices,
             twin_sync,
             agent_channels,
+            secure_comm,
+            trust_boundaries: _trust_boundaries,
             ..
         } = robot;
         self.env = Environment::new();
@@ -1779,15 +1815,75 @@ impl<B: RobotBackend> Interpreter<B> {
             self.log(format!("HAL configured: {} bus(es)/pin(s)", members.len()));
         }
 
-        // Process each buse.
+        // Process each bus.
         for bus in buses {
-            let crate::comm::BusDecl::BusDecl { transport, .. } = bus;
+            let crate::comm::BusDecl::BusDecl {
+                transport,
+                encryption,
+                authentication,
+                integrity,
+                ..
+            } = bus;
             self.default_transport = *transport;
-            self.comm_bus.configure(TransportConfig {
-                node_name: Some(robot_name.clone()),
-                ..Default::default()
-            });
-            self.log(format!("bus transport: {}", transport.as_str()));
+            let mut bus_security =
+                crate::transport_security::TransportSecurityConfig::from_bus_fields(
+                    encryption.as_deref(),
+                    authentication.as_deref(),
+                    integrity.as_deref(),
+                )
+                .unwrap_or_default();
+            if let Some(sc) = secure_comm {
+                let crate::foundations::SecureCommPolicyDecl::SecureCommPolicyDecl {
+                    encryption,
+                    authentication,
+                    integrity,
+                    ..
+                } = sc;
+                let robot_policy = spanda_security::SecureCommPolicy {
+                    encryption: encryption
+                        .as_deref()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or_default(),
+                    authentication: authentication
+                        .as_deref()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or_default(),
+                    integrity: integrity
+                        .as_deref()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or_default(),
+                };
+                bus_security = crate::transport_security::effective_transport_policy(
+                    &robot_policy,
+                    &bus_security,
+                );
+            }
+            for secret_decl in secrets {
+                let crate::foundations::SecretDecl::SecretDecl { name, source, .. } = secret_decl;
+                if name.contains("cert") {
+                    if let crate::foundations::SecretSourceDecl::File { path } = source {
+                        bus_security.cert_path = Some(path.clone());
+                    }
+                }
+                if name.contains("key") {
+                    bus_security.key_secret = Some(name.clone());
+                }
+            }
+            if let Err(e) = bus_security.validate(transport.as_str()) {
+                return Err(RuntimeError::new(format!("bus security: {e}"), 1).into_spanda());
+            }
+            self.comm_bus
+                .configure(TransportConfig {
+                    node_name: Some(robot_name.clone()),
+                    security: bus_security.clone(),
+                    ..Default::default()
+                })
+                .map_err(|e| RuntimeError::new(format!("transport configure: {e}"), 1).into_spanda())?;
+            self.log(format!(
+                "bus transport: {} (encryption: {:?})",
+                transport.as_str(),
+                bus_security.encryption
+            ));
         }
 
         // Process each peer robot.
@@ -2049,10 +2145,14 @@ impl<B: RobotBackend> Interpreter<B> {
                 crate::foundations::SecretSourceDecl::Env { var } => {
                     SecretSource::Env { var: var.clone() }
                 }
+                crate::foundations::SecretSourceDecl::File { path } => {
+                    SecretSource::File { path: path.clone() }
+                }
                 crate::foundations::SecretSourceDecl::Literal { value } => SecretSource::Literal {
                     value: value.clone(),
                 },
             };
+            self.security.grant_if_not_strict("secret.read");
             self.security.secrets.register(SecretHandle {
                 name: name.clone(),
                 source: src,
@@ -4316,8 +4416,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.active_connectivity_link = link.to_string();
         self.default_transport =
             crate::connectivity_positioning::connectivity_link_to_transport(link);
-        self.comm_bus
-            .reconnect_transport(self.default_transport);
+        self.comm_bus.reconnect_transport(self.default_transport);
         self.log(format!(
             "connectivity_policy '{policy_name}': {reason} (transport {:?})",
             self.default_transport
@@ -4427,7 +4526,23 @@ impl<B: RobotBackend> Interpreter<B> {
         let inbound = self.comm_bus.poll_inbound(self.default_transport);
 
         // Iterate over inbound with destructured elements.
-        for (topic_path, _value) in inbound {
+        for (topic_path, envelope) in inbound {
+            let payload = Self::runtime_value_payload(&envelope.value);
+            if let Err(e) = self.security.verify_inbound_message(
+                &topic_path,
+                &payload,
+                envelope.source_id.as_deref(),
+                None,
+            ) {
+                if let Some(rt) = self.audit_runtime.as_mut() {
+                    let _ = self.security.audit_security_event(
+                        rt,
+                        "inbound_denied",
+                        &format!("topic={topic_path} reason={e}"),
+                    );
+                }
+                continue;
+            }
             let topic_name = self
                 .topic_path_to_name
                 .get(&topic_path)
@@ -4678,6 +4793,17 @@ impl<B: RobotBackend> Interpreter<B> {
         Ok(())
     }
 
+    fn publish_source_id(&self) -> String {
+        if let Some(agent) = &self.current_agent {
+            return agent.clone();
+        }
+        self.security
+            .identity
+            .as_ref()
+            .map(|id| id.id().to_string())
+            .unwrap_or_else(|| "robot".into())
+    }
+
     fn secure_policy_from_block(block: &crate::foundations::SecureBlockDecl) -> SecurePolicy {
         // Secure policy from block.
         //
@@ -4701,6 +4827,23 @@ impl<B: RobotBackend> Interpreter<B> {
                 .as_ref()
                 .and_then(|s| s.parse::<TrustLevel>().ok()),
             requires: block.requires.clone(),
+            encryption: block
+                .encryption
+                .as_deref()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or_default(),
+            authentication: block
+                .authentication
+                .as_deref()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or_default(),
+            integrity: block
+                .integrity
+                .as_deref()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or_default(),
+            trusted_sources: block.trusted_sources.clone(),
+            reject_untrusted: block.reject_untrusted,
         }
     }
 
@@ -4897,16 +5040,34 @@ impl<B: RobotBackend> Interpreter<B> {
                 }) = topic
                 {
                     let payload = Self::runtime_value_payload(&val);
+                    let source_id = self.publish_source_id();
 
-                    // Handle the error returned from sign outbound.
-                    if let Err(e) = self.security.sign_outbound(&topic_path, &payload) {
+                    if let Err(e) = self
+                        .security
+                        .prepare_publish(&topic_path, &payload, &source_id)
+                    {
+                        if let Some(rt) = self.audit_runtime.as_mut() {
+                            let _ = self.security.audit_security_event(
+                                rt,
+                                "publish_denied",
+                                &format!("topic={topic_path} source={source_id} reason={e}"),
+                            );
+                        }
                         return Err(self.security_error(e, line));
+                    }
+                    if let Some(rt) = self.audit_runtime.as_mut() {
+                        let _ = self.security.audit_security_event(
+                            rt,
+                            "encryption_enabled",
+                            &format!("topic={topic_path}"),
+                        );
                     }
                     self.comm_bus.publish(
                         &topic_path,
                         &message_type,
                         val.clone(),
                         self.default_transport,
+                        Some(&source_id),
                     );
                     self.backend.publish_topic(&topic_path, &message_type, val);
                     self.topic_last_publish_ms
@@ -4945,7 +5106,7 @@ impl<B: RobotBackend> Interpreter<B> {
                     let endpoint = format!("/service/{name}");
 
                     // Handle the error returned from verify inbound.
-                    if let Err(e) = self.security.verify_inbound(&endpoint, None) {
+                    if let Err(e) = self.security.verify_inbound(&endpoint, None, None) {
                         return Err(self.security_error(e, line));
                     }
                     self.backend.call_service(&name, &service_type);
@@ -4999,7 +5160,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 };
 
                 // Handle the error returned from verify inbound.
-                if let Err(e) = self.security.verify_inbound(&path, None) {
+                if let Err(e) = self.security.authorize_subscribe(&path) {
                     return Err(self.security_error(e, line));
                 }
                 self.comm_bus.subscribe(&path, target);
@@ -5060,8 +5221,10 @@ impl<B: RobotBackend> Interpreter<B> {
             Stmt::ReceiveStmt {
                 topic_name,
                 var_name,
+                span,
                 ..
             } => {
+                let line = span.start.line;
                 let path = if topic_name.contains('.') {
                     format!("/{}", topic_name.replace('.', "/"))
                 } else if let Some(RuntimeValue::Topic { topic_path, .. }) =
@@ -5073,8 +5236,17 @@ impl<B: RobotBackend> Interpreter<B> {
                 };
 
                 // Emit output when receive provides a val.
-                if let Some(val) = self.comm_bus.receive(&path) {
-                    self.env.define(var_name.clone(), val);
+                if let Some(envelope) = self.comm_bus.receive_envelope(&path) {
+                    let payload = Self::runtime_value_payload(&envelope.value);
+                    if let Err(e) = self.security.verify_inbound_message(
+                        &path,
+                        &payload,
+                        envelope.source_id.as_deref(),
+                        None,
+                    ) {
+                        return Err(self.security_error(e, line));
+                    }
+                    self.env.define(var_name.clone(), envelope.value);
                     self.log(format!("receive {topic_name} to {var_name}"));
                 }
             }
@@ -6896,8 +7068,14 @@ impl<B: RobotBackend> Interpreter<B> {
                             .into_spanda(),
                     );
                 }
-                self.comm_bus
-                    .publish_peer(&peer, &topic, value, self.default_transport);
+                let source = self.publish_source_id();
+                self.comm_bus.publish_peer(
+                    &peer,
+                    &topic,
+                    value,
+                    self.default_transport,
+                    Some(&source),
+                );
                 self.log(format!("peer_send {peer}.{topic}"));
                 Ok(RuntimeValue::Void)
             }
@@ -7511,25 +7689,18 @@ impl<B: RobotBackend> Interpreter<B> {
                 self.security
                     .require_operation("cellular.sim_identity")
                     .map_err(|e| self.security_error(e, 0))?;
-                let cellular_active =
-                    crate::connectivity_positioning::is_modem_bearer(&self.active_connectivity_link);
-                let outage = self
-                    .comm_bus
-                    .active_faults()
-                    .iter()
-                    .any(|f| {
+                let cellular_active = crate::connectivity_positioning::is_modem_bearer(
+                    &self.active_connectivity_link,
+                );
+                let outage =
+                    self.comm_bus.active_faults().iter().any(|f| {
                         matches!(
                             f.as_str(),
                             "LteOutage" | "SatelliteOutage" | "NetworkOutage"
                         )
-                    })
-                    || self
-                        .hardware_monitor
-                        .injected_faults()
-                        .iter()
-                        .any(|f| {
-                            f == "LteOutage" || f == "SatelliteOutage" || f == "NetworkOutage"
-                        });
+                    }) || self.hardware_monitor.injected_faults().iter().any(|f| {
+                        f == "LteOutage" || f == "SatelliteOutage" || f == "NetworkOutage"
+                    });
                 Ok(crate::connectivity_positioning::runtime_sim_identity(
                     &self.active_connectivity_link,
                     cellular_active && !outage,

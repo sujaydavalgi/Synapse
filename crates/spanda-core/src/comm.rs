@@ -45,6 +45,9 @@ impl TransportKind {
             "dds" => Some(Self::Dds),
             "websocket" => Some(Self::Websocket),
             "sim" => Some(Self::Sim),
+            "ble" | "bluetooth" => Some(Self::Mqtt),
+            "wifi" => Some(Self::Local),
+            "cellular" => Some(Self::Mqtt),
             _ => None,
         }
     }
@@ -72,6 +75,10 @@ impl TransportKind {
             Self::Websocket => "websocket",
             Self::Sim => "sim",
         }
+    }
+
+    pub fn supports_encryption(self) -> bool {
+        !matches!(self, Self::Local | Self::Sim)
     }
 }
 
@@ -298,12 +305,22 @@ impl MessageRegistry {
                 Some(SpandaType::Named { name: name.into() })
             }
             "SafeMessage" | "VerifiedMessage" | "TrustedSource" | "ActionProposal"
-            | "SafeAction" | "CommandMessage" => Some(SpandaType::Named { name: name.into() }),
+            | "SafeAction" | "CommandMessage" | "EncryptedMessage" | "SignedMessage"
+            | "Certificate" | "PublicKey" | "PrivateKey" | "SessionKey" => {
+                Some(SpandaType::Named { name: name.into() })
+            }
             "BatteryRequest" | "BatteryStatus" | "NavigationFeedback" | "NavigationResult"
             | "LidarReading" | "LidarScan" | "Timestamp" | "PathPlan" => {
                 Some(SpandaType::Named { name: name.into() })
             }
             other if self.schemas.contains_key(other) => {
+                Some(SpandaType::Named { name: other.into() })
+            }
+            other
+                if other.starts_with("Topic<")
+                    || other.starts_with("Service<")
+                    || other.starts_with("Action<") =>
+            {
                 Some(SpandaType::Named { name: other.into() })
             }
             _ => None,
@@ -319,6 +336,10 @@ pub enum BusDecl {
     BusDecl {
         name: String,
         transport: TransportKind,
+        transport_name: Option<String>,
+        encryption: Option<String>,
+        authentication: Option<String>,
+        integrity: Option<String>,
         span: Span,
     },
 }
@@ -393,11 +414,18 @@ pub struct TypedActionFields {
 // ── CommBus trait (transport abstraction) ────────────────────────────────────
 
 #[derive(Debug, Clone)]
+pub struct CommEnvelope {
+    pub value: RuntimeValue,
+    pub source_id: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct PublishedCommMessage {
     pub topic_path: String,
     pub message_type: String,
     pub value: RuntimeValue,
     pub transport: TransportKind,
+    pub source_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -436,9 +464,11 @@ pub trait CommBus {
         message_type: &str,
         value: RuntimeValue,
         transport: TransportKind,
+        source_id: Option<&str>,
     );
     fn subscribe(&mut self, topic_path: &str, handler: &str);
     fn receive(&mut self, topic_path: &str) -> Option<RuntimeValue>;
+    fn receive_envelope(&mut self, topic_path: &str) -> Option<CommEnvelope>;
     fn call_service(
         &mut self,
         service_name: &str,
@@ -457,14 +487,14 @@ pub trait CommBus {
     fn set_network_config(&mut self, config: SimNetworkConfig);
     fn active_faults(&self) -> Vec<String>;
     fn subscription_paths(&self) -> Vec<String>;
-    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue);
+    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue, source_id: Option<&str>);
 }
 
 /// In-memory pub/sub bus for simulation and tests.
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryCommBus {
     subscriptions: HashMap<String, Vec<String>>,
-    buffers: HashMap<String, VecDeque<RuntimeValue>>,
+    buffers: HashMap<String, VecDeque<CommEnvelope>>,
     published: Vec<PublishedCommMessage>,
     discovered_robots: Vec<String>,
     discovered_agents: Vec<String>,
@@ -596,13 +626,14 @@ impl InMemoryCommBus {
         self.subscriptions.keys().cloned().collect()
     }
 
-    pub fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
+    pub fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue, source_id: Option<&str>) {
         // Push inbound.
         //
         // Parameters:
         // - `self` — method receiver
         // - `topic_path` — input value
         // - `value` — input value
+        // - `source_id` — optional publisher identity
         //
         // Returns:
         // Nothing.
@@ -611,13 +642,16 @@ impl InMemoryCommBus {
         // None.
         //
         // Example:
-        // let result = instance.push_inbound(topic_path, value);
+        // let result = instance.push_inbound(topic_path, value, source_id);
 
-        // Call buffers on the current instance.
+        // Queue the inbound envelope for subscribers.
         self.buffers
             .entry(topic_path.to_string())
             .or_default()
-            .push_back(value);
+            .push_back(CommEnvelope {
+                value,
+                source_id: source_id.map(str::to_string),
+            });
     }
 
     /// Deliver a message to a peer robot topic namespace (`/{peer}/{topic}`).
@@ -627,6 +661,7 @@ impl InMemoryCommBus {
         topic: &str,
         value: RuntimeValue,
         transport: TransportKind,
+        source_id: Option<&str>,
     ) {
         // Publish peer.
         //
@@ -636,6 +671,7 @@ impl InMemoryCommBus {
         // - `topic` — input value
         // - `value` — input value
         // - `transport` — input value
+        // - `source_id` — optional sender identity
         //
         // Returns:
         // Nothing.
@@ -644,11 +680,17 @@ impl InMemoryCommBus {
         // None.
         //
         // Example:
-        // let result = instance.publish_peer(peer, topic, value, transport);
+        // let result = instance.publish_peer(peer, topic, value, transport, source_id);
 
         // Resolve the filesystem path for the next step.
         let path = format!("/{peer}/{topic}");
-        self.publish(&path, "PeerMessage", value, transport);
+        self.publish(
+            &path,
+            "PeerMessage",
+            value,
+            transport,
+            source_id.or(Some(peer)),
+        );
     }
 }
 
@@ -659,6 +701,7 @@ impl CommBus for InMemoryCommBus {
         message_type: &str,
         value: RuntimeValue,
         transport: TransportKind,
+        source_id: Option<&str>,
     ) {
         // Publish.
         //
@@ -668,6 +711,7 @@ impl CommBus for InMemoryCommBus {
         // - `message_type` — input value
         // - `value` — input value
         // - `transport` — input value
+        // - `source_id` — optional publisher identity
         //
         // Returns:
         // Nothing.
@@ -676,7 +720,7 @@ impl CommBus for InMemoryCommBus {
         // None.
         //
         // Example:
-        // let result = instance.publish(topic_path, message_type, value, transport);
+        // let result = instance.publish(topic_path, message_type, value, transport, source_id);
 
         // take the branch when any equals "NetworkOutage").
         if self.faults.iter().any(|f| f == "NetworkOutage") {
@@ -697,11 +741,15 @@ impl CommBus for InMemoryCommBus {
             message_type: message_type.to_string(),
             value: value.clone(),
             transport,
+            source_id: source_id.map(str::to_string),
         });
 
         // Emit output when get mut provides a buf.
         if let Some(buf) = self.buffers.get_mut(topic_path) {
-            buf.push_back(value);
+            buf.push_back(CommEnvelope {
+                value,
+                source_id: source_id.map(str::to_string),
+            });
         }
     }
 
@@ -747,6 +795,29 @@ impl CommBus for InMemoryCommBus {
         // let result = instance.receive(topic_path);
 
         // Transform self and continue the chain.
+        self.buffers
+            .get_mut(topic_path)
+            .and_then(|q| q.pop_front())
+            .map(|env| env.value)
+    }
+
+    fn receive_envelope(&mut self, topic_path: &str) -> Option<CommEnvelope> {
+        // Receive envelope.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `topic_path` — input value
+        //
+        // Returns:
+        // Some envelope on success, otherwise none.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let result = instance.receive_envelope(topic_path);
+
+        // Pop the next queued envelope for this topic path.
         self.buffers.get_mut(topic_path).and_then(|q| q.pop_front())
     }
 
@@ -941,13 +1012,14 @@ impl CommBus for InMemoryCommBus {
         self.subscriptions.keys().cloned().collect()
     }
 
-    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue) {
+    fn push_inbound(&mut self, topic_path: &str, value: RuntimeValue, source_id: Option<&str>) {
         // Push inbound.
         //
         // Parameters:
         // - `self` — method receiver
         // - `topic_path` — input value
         // - `value` — input value
+        // - `source_id` — optional publisher identity
         //
         // Returns:
         // Nothing.
@@ -956,13 +1028,16 @@ impl CommBus for InMemoryCommBus {
         // None.
         //
         // Example:
-        // let result = instance.push_inbound(topic_path, value);
+        // let result = instance.push_inbound(topic_path, value, source_id);
 
-        // Call buffers on the current instance.
+        // Queue the inbound envelope for subscribers.
         self.buffers
             .entry(topic_path.to_string())
             .or_default()
-            .push_back(value);
+            .push_back(CommEnvelope {
+                value,
+                source_id: source_id.map(str::to_string),
+            });
     }
 }
 
@@ -1206,6 +1281,7 @@ mod tests {
                 nearest_distance: 1.5,
             },
             TransportKind::Sim,
+            None,
         );
         let msg = bus.receive("/scan");
         assert!(msg.is_some());

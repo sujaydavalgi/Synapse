@@ -35,6 +35,7 @@ pub mod runtime;
 pub mod safety;
 pub mod scheduler;
 pub mod security;
+pub mod security_validate;
 pub mod serialize;
 pub mod simulator;
 pub mod sir;
@@ -51,6 +52,8 @@ mod transport_rclrs_native;
 #[cfg(target_arch = "wasm32")]
 #[path = "transport_rclrs_native_stub.rs"]
 mod transport_rclrs_native;
+pub mod transport_security;
+pub mod transport_wire;
 pub mod triggers;
 pub mod twin;
 pub mod type_system;
@@ -77,6 +80,9 @@ pub use replay::{
     ReplayStateSnapshot, ReplayStateTarget, TraceVerification,
 };
 pub use scheduler::SchedulerClock;
+pub use security_validate::{
+    security_audit, security_check, SecurityFinding, SecurityReport, SecuritySeverity,
+};
 pub use sir::{
     lower_program, SirBehavior, SirExtern, SirFunction, SirParam, SirProgram, SirStmt,
     SirVisibility,
@@ -444,6 +450,8 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
             trace_source,
             scheduler_clock,
             replay_deterministic: options.replay_deterministic,
+            secure_mode: options.secure_mode,
+            inject_security_faults: options.inject_security_faults,
             ..Default::default()
         },
     );

@@ -107,6 +107,21 @@ pub fn deserialize_value(data: &RuntimeValue, format: &str) -> Result<RuntimeVal
     }
 }
 
+/// Serialize a runtime value to JSON for transport wire frames.
+pub fn runtime_to_json_string(value: &RuntimeValue) -> Result<String, SpandaError> {
+    serde_json::to_string(&runtime_to_json(value)).map_err(|e| {
+        RuntimeError::new(format!("serialize json failed: {e}"), 0).into_spanda()
+    })
+}
+
+/// Deserialize a runtime value from JSON transport wire payload.
+pub fn runtime_from_json_string(json: &str) -> Result<RuntimeValue, SpandaError> {
+    let parsed: JsonValue = serde_json::from_str(json).map_err(|e| {
+        RuntimeError::new(format!("deserialize json failed: {e}"), 0).into_spanda()
+    })?;
+    json_to_runtime(&parsed)
+}
+
 fn runtime_string(value: &RuntimeValue) -> Result<String, SpandaError> {
     // Runtime string.
     //
