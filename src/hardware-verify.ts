@@ -524,6 +524,19 @@ export function verifyHardwareProgram(
   const targets = resolveTargets(program, options, registry);
   const runSimulation = options.simulate || program.simulateCompatibility != null;
 
+  // Warn when deploy targets exist but the program omits certification metadata.
+  if (targets.length > 0 && (program.certifications ?? []).length === 0) {
+    items.push(
+      compat(
+        "certify",
+        "Deploy targets declared without certification metadata — add certify ISO13849 (or IEC61508 / ISO26262)",
+        "warning",
+        1,
+        1,
+      ),
+    );
+  }
+
   if (targets.length === 0 && !options.target && !options.allTargets) {
     return {
       ok: true,

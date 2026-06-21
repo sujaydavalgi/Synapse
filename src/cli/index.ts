@@ -4,8 +4,8 @@
  * @module
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { compileFile, run } from "../compile.js";
 import { createDefaultSimulator } from "../simulator/index.js";
 import { LexerError } from "../lexer/index.js";
@@ -26,6 +26,20 @@ import {
   type VerifyResult,
 } from "../rust-bridge.js";
 import { securityCheck, securityAudit, reportHasErrors } from "../security/index.js";
+import {
+  applyRollout,
+  buildDeployPlan,
+  defaultRolloutOptions,
+  defaultStatePath,
+  emptyDeployState,
+  loadDeployState,
+  planRollout,
+  rollbackTargets,
+  serializeDeployState,
+  type DeployState,
+  type RolloutStrategy,
+} from "../deploy-service.js";
+import { orchestrateFleets } from "../fleet-orchestrator.js";
 
 const USAGE = `Spanda Programming Language — the pulse of autonomous intelligence
 
@@ -41,7 +55,13 @@ Usage:
   spanda lint [--json] <file.sd>
   spanda doc [--json] [--out <file.md>] <file.sd>
   spanda codegen [--target native|wasm|esp32] [--out <file>] <file.sd>
+  spanda deploy plan [--json] [--version <ver>] <file.sd>
+  spanda deploy rollout [--json] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>
+  spanda deploy rollback [--json] <file.sd>
+  spanda deploy status [--json]
   spanda deploy --target wasm [--out <file.json>] <file.sd>
+  spanda fleet run [--json] [--trace-*] <file.sd>
+  spanda fleet orchestrate [--json] <file.sd>
   spanda debug [--break <line>] <file.sd>
   spanda ir [--json] <file.sd>
   spanda llvm-ir [--out <file.ll>] [--target-triple <triple>] <file.sd>
@@ -249,7 +269,10 @@ function main(): void {
         handleCodegen(positional[0], flagStr(flags, "target"), flagStr(flags, "out"));
         break;
       case "deploy":
-        handleDeploy(positional[0], flagStr(flags, "out"));
+        handleDeploy(positional, flags, json);
+        break;
+      case "fleet":
+        handleFleet(positional, flags, json);
         break;
       case "debug":
         handleDebug(positional[0], flags);
@@ -752,12 +775,52 @@ function handleCodegen(filePath: string | undefined, target: string | undefined,
   }
 }
 
-function handleDeploy(filePath: string | undefined, outPath: string | undefined): void {
-  // HandleDeploy.
+function deployStateFilePath(): string {
+  // Resolve the on-disk OTA deploy state file path.
+  return process.env.SPANDA_DEPLOY_STATE ?? defaultStatePath();
+}
+
+function readDeployStateFromDisk(): DeployState {
+  // Load persisted OTA deploy state, or return an empty record when missing.
+  const path = deployStateFilePath();
+  if (!existsSync(path)) {
+    return emptyDeployState();
+  }
+  return loadDeployState(readFileSync(path, "utf-8"));
+}
+
+function writeDeployStateToDisk(state: DeployState): void {
+  // Persist OTA deploy state, creating parent directories when needed.
+  const path = resolve(deployStateFilePath());
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, serializeDeployState(state));
+}
+
+function compileProgramOrExit(filePath: string) {
+  // Compile a Spanda source file and exit with a CLI error on failure.
+  const abs = absPath(filePath);
+  try {
+    const result = compileFile(abs, "typescript");
+    return { abs, program: result.program };
+  } catch (err) {
+    console.error(`Error compiling ${abs}: ${String(err)}`);
+    process.exit(1);
+  }
+}
+
+function handleDeployOta(
+  subcommand: string,
+  args: string[],
+  flags: Map<string, string | boolean>,
+  json: boolean,
+): void {
+  // Handle OTA deploy subcommands in the TypeScript CLI.
   //
   // Parameters:
-  // - `filePath` — input value
-  // - `outPath` — input value
+  // - `subcommand` — plan, rollout, rollback, or status
+  // - `args` — remaining positional arguments after the subcommand
+  // - `flags` — parsed CLI flags
+  // - `json` — emit JSON output when true
   //
   // Returns:
   // Nothing.
@@ -766,9 +829,117 @@ function handleDeploy(filePath: string | undefined, outPath: string | undefined)
   // None.
   //
   // Example:
+  // handleDeployOta("plan", ["examples/robotics/ota_deployment.sd"], flags, false);
 
-  // const result = handleDeploy(filePath, outPath);
-  requireNative("Deploy requires the native Rust CLI.");
+  if (subcommand === "status") {
+    const state = readDeployStateFromDisk();
+    const path = deployStateFilePath();
+    if (json) {
+      console.log(JSON.stringify(state, null, 2));
+      return;
+    }
+    console.log(`Deploy state (${path})`);
+    const entries = Object.entries(state.currentVersion);
+    if (entries.length === 0) {
+      console.log("  (no deployments recorded)");
+      return;
+    }
+    for (const [key, ver] of entries) {
+      const prev = state.previousVersion[key] ?? "-";
+      console.log(`  ${key}: ${ver} (previous: ${prev})`);
+    }
+    return;
+  }
+
+  const filePath = args.find((arg) => !arg.startsWith("-"));
+  const { abs, program } = compileProgramOrExit(filePath ?? "");
+  const version = flagStr(flags, "version") ?? "1.0.0";
+  const plan = buildDeployPlan(program, abs, version);
+
+  if (subcommand === "plan") {
+    if (json) {
+      console.log(JSON.stringify(plan, null, 2));
+      return;
+    }
+    console.log(`Deploy plan for ${abs} (version ${version})`);
+    for (const assignment of plan.assignments) {
+      console.log(`  ${assignment.robotName} -> ${assignment.hardware}`);
+    }
+    if (plan.certifications.length > 0) {
+      console.log(`  certifications: ${plan.certifications.join(", ")}`);
+    }
+    return;
+  }
+
+  if (subcommand === "rollout") {
+    const strategyRaw = flagStr(flags, "strategy") ?? "all";
+    const strategy = strategyRaw as RolloutStrategy;
+    if (!["all", "canary", "staged"].includes(strategy)) {
+      console.error(`Unknown strategy '${strategyRaw}'`);
+      process.exit(1);
+    }
+    const dryRun = flagBool(flags, "dry-run");
+    const canaryPercent = Number.parseInt(flagStr(flags, "canary-percent") ?? "10", 10);
+    const options = {
+      ...defaultRolloutOptions(),
+      strategy,
+      canaryPercent: Number.isFinite(canaryPercent) ? canaryPercent : 10,
+      version,
+      dryRun,
+    };
+    const result = planRollout(plan, options);
+    if (!dryRun) {
+      const state = readDeployStateFromDisk();
+      applyRollout(state, result);
+      try {
+        writeDeployStateToDisk(state);
+      } catch (err) {
+        console.error(`Warning: could not save deploy state: ${String(err)}`);
+      }
+    }
+    printRolloutResult(result, json);
+    return;
+  }
+
+  if (subcommand === "rollback") {
+    const state = readDeployStateFromDisk();
+    const rollbackPlan = buildDeployPlan(program, abs, "rollback");
+    const result = rollbackTargets(state, rollbackPlan);
+    try {
+      writeDeployStateToDisk(state);
+    } catch (err) {
+      console.error(`Warning: could not save deploy state: ${String(err)}`);
+    }
+    printRolloutResult(result, json);
+    return;
+  }
+
+  console.error(`Unknown deploy subcommand '${subcommand}'`);
+  process.exit(1);
+}
+
+function printRolloutResult(
+  result: ReturnType<typeof planRollout>,
+  json: boolean,
+): void {
+  // Print rollout or rollback results as JSON or human-readable lines.
+  if (json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  console.log(
+    `Rollout ${result.version} (${result.strategy}) — ${result.success ? "ok" : "failed"}`,
+  );
+  for (const step of result.steps) {
+    console.log(
+      `  ${step.robotName}@${step.hardware} -> ${step.status} v${step.version}`,
+    );
+  }
+}
+
+function handleDeployWasm(filePath: string | undefined, outPath: string | undefined): void {
+  // Emit a WASM deploy manifest using the native Rust CLI.
+  requireNative("WASM deploy manifest requires the native Rust CLI.");
   const abs = absPath(filePath);
   const source = readFileSync(abs, "utf-8");
   const manifest = deployViaCli(source);
@@ -782,6 +953,112 @@ function handleDeploy(filePath: string | undefined, outPath: string | undefined)
   } else {
     console.log(manifest);
   }
+}
+
+function handleDeploy(
+  positional: string[],
+  flags: Map<string, string | boolean>,
+  json: boolean,
+): void {
+  // Route deploy commands to OTA handlers or legacy WASM manifest generation.
+  //
+  // Parameters:
+  // - `positional` — command arguments after `deploy`
+  // - `flags` — parsed CLI flags
+  // - `json` — emit JSON output when true
+  //
+  // Returns:
+  // Nothing.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // handleDeploy(["plan", "examples/robotics/ota_deployment.sd"], flags, false);
+
+  const sub = positional[0];
+  if (sub === "plan" || sub === "rollout" || sub === "rollback" || sub === "status") {
+    handleDeployOta(sub, positional.slice(1), flags, json);
+    return;
+  }
+  handleDeployWasm(positional[0], flagStr(flags, "out"));
+}
+
+function handleFleetOrchestrate(filePath: string | undefined, json: boolean): void {
+  // Coordinate fleet missions declared in a Spanda program.
+  const { abs, program } = compileProgramOrExit(filePath ?? "");
+  const result = orchestrateFleets(program, abs);
+  if (json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  console.log(`Fleet orchestration for ${abs}`);
+  for (const fleet of result.fleets) {
+    console.log(`  fleet ${fleet.fleetName} (${fleet.coordinationMode})`);
+    for (const member of fleet.members) {
+      console.log(
+        `    ${member.robotName} mission=${member.missionName ?? "null"} state=${member.missionState} step='${member.currentStep}' peer=${member.hasPeerLink}`,
+      );
+    }
+  }
+}
+
+function handleFleet(
+  positional: string[],
+  flags: Map<string, string | boolean>,
+  json: boolean,
+): void {
+  // Route fleet subcommands to orchestration or native multi-robot simulation.
+  //
+  // Parameters:
+  // - `positional` — command arguments after `fleet`
+  // - `flags` — parsed CLI flags
+  // - `json` — emit JSON output when true
+  //
+  // Returns:
+  // Nothing.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+  // handleFleet(["orchestrate", "examples/robotics/nav2_bridge.sd"], flags, false);
+
+  const sub = positional[0];
+  if (sub === "orchestrate") {
+    handleFleetOrchestrate(positional[1], json);
+    return;
+  }
+
+  if (sub === "run") {
+    requireNative("Fleet run requires the native Rust CLI.");
+    const abs = absPath(positional[1]);
+    const args = ["fleet", "run", abs];
+    if (json) args.push("--json");
+    for (const [key, value] of flags) {
+      if (value === true) {
+        args.push(`--${key}`);
+      } else if (typeof value === "string") {
+        args.push(`--${key}`, value);
+      }
+    }
+    const result = runNativeCli(args);
+    if (json) {
+      console.log(result.stdout ?? "");
+    } else {
+      process.stdout.write(result.stdout ?? "");
+      process.stderr.write(result.stderr ?? "");
+    }
+    if (result.status !== 0) {
+      process.exit(result.status ?? 1);
+    }
+    return;
+  }
+
+  console.error(`Unknown fleet subcommand '${sub ?? ""}'`);
+  console.error("Usage: spanda fleet run [--json] [--trace-*] <file.sd>");
+  console.error("       spanda fleet orchestrate [--json] <file.sd>");
+  process.exit(1);
 }
 
 function handleIr(filePath: string | undefined, json: boolean): void {
