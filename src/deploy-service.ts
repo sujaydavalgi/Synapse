@@ -63,6 +63,10 @@ function assignmentKey(robot: string, hardware: string): string {
   return `${robot}@${hardware}`;
 }
 
+export function deployTargetKey(robot: string, hardware: string): string {
+  return assignmentKey(robot, hardware);
+}
+
 export function buildDeployPlan(program: Program, programPath: string, version: string): DeployPlan {
   // Extract deploy targets and certification metadata from the program AST.
   const assignments: DeployAssignment[] = [];

@@ -23,6 +23,7 @@ import {
   type HardwareProfile,
 } from "./hardware-profile.js";
 import { defaultMessageSize, estimateTopicBandwidthMbps } from "./comm/index.js";
+import { verifyFrameworkImports } from "./adapter-verify.js";
 
 const ESTIMATED_TASK_COST_MS = 5;
 
@@ -520,6 +521,7 @@ export function verifyHardwareProgram(
       ),
     );
   }
+  items.push(...verifyFrameworkImports(program.imports));
 
   const targets = resolveTargets(program, options, registry);
   const runSimulation = options.simulate || program.simulateCompatibility != null;
@@ -538,11 +540,14 @@ export function verifyHardwareProgram(
   }
 
   if (targets.length === 0 && !options.target && !options.allTargets) {
+    items.push(
+      compat("deploy", "No deployment targets declared — hardware compatibility not required", "pass", 1, 1),
+    );
     return {
       ok: true,
       compatible: true,
       target: undefined,
-      items: [compat("deploy", "No deployment targets declared — hardware compatibility not required", "pass", 1, 1)],
+      items,
     };
   }
 

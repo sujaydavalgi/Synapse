@@ -188,6 +188,26 @@ spanda deploy status
 
 State persists to `.spanda/deploy-state.json` (override with `SPANDA_DEPLOY_STATE`).
 
+### Remote OTA via deploy agents
+
+Run a lightweight HTTP deploy agent on each device (or edge gateway):
+
+```bash
+# On device / edge node
+spanda deploy agent start --target RoverProgram@JetsonOrin --bind 0.0.0.0:8765
+
+# On CI / operator workstation
+spanda deploy agent register RoverProgram@JetsonOrin http://192.168.1.50:8765
+spanda deploy rollout examples/robotics/remote_ota_deployment.sd --remote --version 1.3.0
+spanda deploy rollback examples/robotics/remote_ota_deployment.sd --remote
+spanda deploy agent list
+```
+
+Agent registry: `.spanda/deploy-agents.json` (`SPANDA_DEPLOY_AGENTS` override).  
+Agent state on device: `.spanda/agent-state.json` (`SPANDA_AGENT_STATE` override).
+
+Protocol: `GET /v1/health`, `GET /v1/status`, `POST /v1/rollout`, `POST /v1/rollback` (JSON, optional bearer token).
+
 ### Nav2 golden path
 
 When a robot declares `topic cmd_vel: Velocity publish on "/cmd_vel"`, calling `navigation.navigate()` publishes a stub velocity on `/cmd_vel` for ROS2 bridge validation (`SPANDA_ROS2_LIVE=1`). See `examples/robotics/nav2_bridge.sd` and `docs/ros2-golden-path.md`. Nav2 itself remains a ROS2 stack — Spanda orchestrates, it does not replace planners.
@@ -225,6 +245,13 @@ navigation.goal("Dock at charger");
 let path = navigation.path();
 let traj = navigation.navigate();
 let cost = navigation.cost_map();
+
+// Statement sugar (equivalent goal + navigate + optional cmd_vel overrides):
+navigate {
+  goal: "Dock at charger";
+  linear: 0.2 m/s;
+  angular: 0.0 rad/s;
+}
 ```
 
 ---
@@ -291,14 +318,14 @@ Runnable programs under `examples/robotics/`:
 
 | Item | Target |
 |------|--------|
-| Distributed fleet orchestrator | **Partial** — `spanda fleet orchestrate` round-robin mission coordination |
-| `navigate { … }` statement sugar | Parser sugar over `navigation.navigate()` |
+| Distributed fleet orchestrator | **Partial** — `spanda fleet orchestrate` with peer-aware `peer_round_robin_mission` mode |
+| `navigate { … }` statement sugar | **Done** — parser sugar over `navigation.goal()` + Nav2 `/cmd_vel` publish |
 | Safety zone speed enforcement at runtime | **Done** — `SafetyMonitor.clamp_speed_at_pose()` (Rust + TS) |
 | `certify ISO13849` / IEC 61508 / ISO 26262 | **Partial** — program `certify` metadata (+ optional `level`) + verify reporting |
-| OTA rollout/canary/rollback | **Partial** — `spanda deploy plan\|rollout\|rollback\|status` |
+| OTA rollout/canary/rollback | **Partial** — local deploy CLI + **remote HTTP agents** (`--remote`, `deploy agent`) |
 | Swarm coordinator runtime | Experimental; build on fleet + peer robots |
 | World model runtime | Explicitly deferred in product strategy |
-| Production SLAM/nav package implementations | Community/registry packages |
+| Production SLAM/nav package implementations | **Partial** — `slam.localize()` / `slam.map()` stub hooks when SLAM imports declared |
 
 ---
 

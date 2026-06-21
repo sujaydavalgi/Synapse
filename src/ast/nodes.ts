@@ -456,6 +456,7 @@ export type Stmt =
   | EnterModeStmt
   | StopAllActuatorsStmt
   | RunPipelineStmt
+  | NavigateStmt
   | UseFallbackStmt
   | RememberStmt
   | SubscribeStmt
@@ -510,6 +511,14 @@ export type StopAllActuatorsStmt = {
 export type RunPipelineStmt = {
   kind: "RunPipelineStmt";
   name: string;
+  span: Span;
+};
+
+export type NavigateStmt = {
+  kind: "NavigateStmt";
+  goal: Expr;
+  linear: Expr | null;
+  angular: Expr | null;
   span: Span;
 };
 

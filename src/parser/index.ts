@@ -5433,6 +5433,47 @@ class Parser {
       };
     }
 
+    if (this.check("IDENT") && this.peek().lexeme === "navigate") {
+      this.advance();
+      this.expect("LBRACE", "Expected '{' after navigate");
+      let goal: import("../ast/nodes.js").Expr | null = null;
+      let linear: import("../ast/nodes.js").Expr | null = null;
+      let angular: import("../ast/nodes.js").Expr | null = null;
+      while (!this.check("RBRACE") && !this.check("EOF")) {
+        const fieldName = this.match("GOAL")
+          ? "goal"
+          : this.check("IDENT")
+            ? this.advance().lexeme
+            : null;
+        if (!fieldName) {
+          const t = this.peek();
+          throw new ParseError("Expected field name in navigate block", t.line, t.column);
+        }
+        this.expect("COLON", "Expected ':' after navigate field");
+        if (fieldName === "goal") {
+          goal = this.parseExpr();
+        } else if (fieldName === "linear") {
+          linear = this.parseExpr();
+        } else if (fieldName === "angular") {
+          angular = this.parseExpr();
+        } else {
+          throw new ParseError(`Unknown navigate field '${fieldName}'`, this.previous().line, this.previous().column);
+        }
+        this.expect("SEMICOLON", "Expected ';' after navigate field");
+      }
+      const end = this.expect("RBRACE", "Expected '}' to close navigate block");
+      if (!goal) {
+        throw new ParseError("navigate block requires goal: ...", start.line, start.column);
+      }
+      return {
+        kind: "NavigateStmt",
+        goal,
+        linear,
+        angular,
+        span: this.spanFrom(start, end),
+      };
+    }
+
     if (this.match("USE")) {
       const resource = this.expect("IDENT", "Expected fallback resource name");
       this.expect("SEMICOLON", "Expected ';' after use statement");

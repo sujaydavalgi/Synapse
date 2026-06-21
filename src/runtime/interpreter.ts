@@ -121,6 +121,7 @@ export type RuntimeValue =
   | { kind: "sensor_fusion"; sensors: string[] }
   | { kind: "mission_control"; runtime: MissionRuntime }
   | { kind: "navigation_control"; goal: string | null }
+  | { kind: "slam_control" }
   | { kind: "fleet_control"; registry: FleetRegistry }
   | { kind: "completion"; text: string; model?: string }
   | { kind: "embedding"; dimensions: number; vector: number[] }
@@ -310,6 +311,7 @@ export class Interpreter {
   >();
   private verifyRules: Expr[] = [];
   private fusionSensors: string[] = [];
+  private slamEnabled = false;
   private security = new SecurityContext();
   private commBus = new RoutingCommBus();
   private defaultTransport: TransportKind = "local";
@@ -529,6 +531,9 @@ export class Interpreter {
         `certify ${cert.standard}${levelSuffix}: metadata recorded (verify-only)`,
       );
     }
+
+    const slamPaths = ["navigation.slam", "navigation.cartographer", "navigation.rtabmap"];
+    this.slamEnabled = program.imports.some((imp) => slamPaths.includes(imp.path));
   }
 
   private loadConnectivityMetadata(program: Program): void {
@@ -1773,6 +1778,11 @@ export class Interpreter {
       );
     }
 
+    if (this.slamEnabled) {
+      this.env.define("slam", { kind: "slam_control" });
+      this.options.onLog?.("slam: adapter enabled (stub localize/map hooks)");
+    }
+
     // Iterate over stateMachines ?? [].
     for (const sm of robot.stateMachines ?? []) {
       const initial = sm.states[0] ?? "unknown";
@@ -2196,6 +2206,9 @@ export class Interpreter {
         break;
       case "RunPipelineStmt":
         this.reliability.executePipeline(stmt.name, this.reliabilityHost());
+        break;
+      case "NavigateStmt":
+        this.executeNavigateStmt(stmt);
         break;
       case "UseFallbackStmt":
         this.options.onLog?.(`use fallback ${stmt.resource}`);
@@ -2768,6 +2781,10 @@ export class Interpreter {
       return this.evalNavigationMethod(target, method, expr);
     }
 
+    if (target.kind === "slam_control") {
+      return this.evalSlamMethod(method, expr.span.start.line);
+    }
+
     if (target.kind === "fleet_control") {
       return this.evalFleetMethod(target.registry, method, expr);
     }
@@ -3097,6 +3114,66 @@ export class Interpreter {
       default:
         throw new RuntimeError(`Unknown mission method '${method}'`, line);
     }
+  }
+
+  private executeNavigateStmt(stmt: import("../ast/nodes.js").NavigateStmt): void {
+    // Execute navigate { goal: ... } sugar over navigation.goal/navigate.
+    const line = stmt.span.start.line;
+    const goalText = getString(this.evalExpr(stmt.goal));
+    if (!goalText) {
+      throw new RuntimeError("navigate.goal requires a text or numeric expression", line);
+    }
+
+    const nav = this.env.get("navigation");
+    if (!nav || nav.kind !== "navigation_control") {
+      throw new RuntimeError("navigate statement requires a robot with a declared mission", line);
+    }
+    nav.goal = goalText;
+
+    const linearVal = stmt.linear ? this.evalExpr(stmt.linear) : null;
+    const angularVal = stmt.angular ? this.evalExpr(stmt.angular) : null;
+    const linearMps =
+      linearVal?.kind === "number" ? linearVal.value : 0.2;
+    const angularRad =
+      angularVal?.kind === "number" ? angularVal.value : 0.0;
+
+    this.options.onLog?.(`navigation: executing goal '${goalText}'`);
+    tryPublishNav2CmdVel({
+      backend: this.options.backend,
+      topicPathToMessageType: this.topicPathToMessageType,
+      goal: goalText,
+      linearMps,
+      angularRadS: angularRad,
+      onLog: (message) => this.options.onLog?.(message),
+    });
+  }
+
+  private evalSlamMethod(method: string, line: number): RuntimeValue {
+    // Dispatch SLAM adapter helpers for map and localization stubs.
+    if (method === "localize") {
+      const state = this.options.backend.getState();
+      this.options.onLog?.("slam: localize (stub adapter)");
+      return {
+        kind: "object",
+        typeName: "LocalizationEstimate",
+        fields: {
+          pose: poseFromState(state.pose),
+          confidence: { kind: "number", value: 0.85, unit: "none" },
+        },
+      };
+    }
+    if (method === "map") {
+      this.options.onLog?.("slam: map snapshot (stub adapter)");
+      return {
+        kind: "object",
+        typeName: "OccupancyGrid",
+        fields: {
+          resolution: { kind: "number", value: 0.05, unit: "m" },
+          width: { kind: "number", value: 100, unit: "none" },
+        },
+      };
+    }
+    throw new RuntimeError(`Unknown slam method '${method}'`, line);
   }
 
   private evalNavigationMethod(

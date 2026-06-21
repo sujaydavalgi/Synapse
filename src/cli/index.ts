@@ -39,6 +39,16 @@ import {
   type DeployState,
   type RolloutStrategy,
 } from "../deploy-service.js";
+import {
+  agentHealth,
+  defaultAgentsPath,
+  executeRemoteRollback,
+  executeRemoteRollout,
+  readAgentRegistryFromDisk,
+  registerAgent,
+  writeAgentRegistryToDisk,
+} from "../deploy-remote.js";
+import { startDeployAgentServer } from "../deploy-agent.js";
 import { orchestrateFleets } from "../fleet-orchestrator.js";
 
 const USAGE = `Spanda Programming Language — the pulse of autonomous intelligence
@@ -56,9 +66,12 @@ Usage:
   spanda doc [--json] [--out <file.md>] <file.sd>
   spanda codegen [--target native|wasm|esp32] [--out <file>] <file.sd>
   spanda deploy plan [--json] [--version <ver>] <file.sd>
-  spanda deploy rollout [--json] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>
-  spanda deploy rollback [--json] <file.sd>
+  spanda deploy rollout [--json] [--remote] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>
+  spanda deploy rollback [--json] [--remote] <file.sd>
   spanda deploy status [--json]
+  spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>]
+  spanda deploy agent register <Robot@Hardware> <http://host:port> [--token <t>]
+  spanda deploy agent list [--json]
   spanda deploy --target wasm [--out <file.json>] <file.sd>
   spanda fleet run [--json] [--trace-*] <file.sd>
   spanda fleet orchestrate [--json] <file.sd>
@@ -213,7 +226,7 @@ function flagBool(flags: Map<string, string | boolean>, key: string): boolean {
   return flags.get(key) === true;
 }
 
-function main(): void {
+async function main(): Promise<void> {
   // Main.
   //
   // Parameters:
@@ -269,7 +282,7 @@ function main(): void {
         handleCodegen(positional[0], flagStr(flags, "target"), flagStr(flags, "out"));
         break;
       case "deploy":
-        handleDeploy(positional, flags, json);
+        await handleDeploy(positional, flags, json);
         break;
       case "fleet":
         handleFleet(positional, flags, json);
@@ -808,12 +821,16 @@ function compileProgramOrExit(filePath: string) {
   }
 }
 
-function handleDeployOta(
+function agentsRegistryPath(): string {
+  return process.env.SPANDA_DEPLOY_AGENTS ?? defaultAgentsPath();
+}
+
+async function handleDeployOta(
   subcommand: string,
   args: string[],
   flags: Map<string, string | boolean>,
   json: boolean,
-): void {
+): Promise<void> {
   // Handle OTA deploy subcommands in the TypeScript CLI.
   //
   // Parameters:
@@ -879,6 +896,7 @@ function handleDeployOta(
       process.exit(1);
     }
     const dryRun = flagBool(flags, "dry-run");
+    const remote = flagBool(flags, "remote");
     const canaryPercent = Number.parseInt(flagStr(flags, "canary-percent") ?? "10", 10);
     const options = {
       ...defaultRolloutOptions(),
@@ -887,7 +905,10 @@ function handleDeployOta(
       version,
       dryRun,
     };
-    const result = planRollout(plan, options);
+    const registry = readAgentRegistryFromDisk(agentsRegistryPath());
+    const result = remote
+      ? await executeRemoteRollout(plan, options, registry)
+      : planRollout(plan, options);
     if (!dryRun) {
       const state = readDeployStateFromDisk();
       applyRollout(state, result);
@@ -902,13 +923,26 @@ function handleDeployOta(
   }
 
   if (subcommand === "rollback") {
+    const remote = flagBool(flags, "remote");
     const state = readDeployStateFromDisk();
     const rollbackPlan = buildDeployPlan(program, abs, "rollback");
-    const result = rollbackTargets(state, rollbackPlan);
-    try {
-      writeDeployStateToDisk(state);
-    } catch (err) {
-      console.error(`Warning: could not save deploy state: ${String(err)}`);
+    const registry = readAgentRegistryFromDisk(agentsRegistryPath());
+    const result = remote
+      ? await executeRemoteRollback(rollbackPlan, registry)
+      : rollbackTargets(state, rollbackPlan);
+    if (!remote) {
+      try {
+        writeDeployStateToDisk(state);
+      } catch (err) {
+        console.error(`Warning: could not save deploy state: ${String(err)}`);
+      }
+    } else {
+      rollbackTargets(state, rollbackPlan);
+      try {
+        writeDeployStateToDisk(state);
+      } catch (err) {
+        console.error(`Warning: could not save deploy state: ${String(err)}`);
+      }
     }
     printRolloutResult(result, json);
     return;
@@ -955,11 +989,77 @@ function handleDeployWasm(filePath: string | undefined, outPath: string | undefi
   }
 }
 
-function handleDeploy(
+function handleDeployAgent(subcommand: string | undefined, args: string[], json: boolean): void | Promise<void> {
+  if (subcommand === "start") {
+    let bind = "127.0.0.1:8765";
+    let target = "";
+    let token: string | undefined;
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === "--bind" && args[i + 1]) {
+        bind = args[++i]!;
+      } else if (args[i] === "--target" && args[i + 1]) {
+        target = args[++i]!;
+      } else if (args[i] === "--token" && args[i + 1]) {
+        token = args[++i];
+      }
+    }
+    if (!target) {
+      console.error("Missing --target Robot@Hardware");
+      process.exit(1);
+    }
+    startDeployAgentServer({ bind, target, token });
+    return;
+  }
+
+  if (subcommand === "register") {
+    const positional = args.filter((arg) => !arg.startsWith("-") && arg !== args[args.indexOf("--token") + 1]);
+    const target = positional[0];
+    const url = positional[1];
+    const tokenIdx = args.indexOf("--token");
+    const token = tokenIdx >= 0 ? args[tokenIdx + 1] : undefined;
+    if (!target || !url) {
+      console.error("Usage: spanda deploy agent register <Robot@Hardware> <http://host:port> [--token <t>]");
+      process.exit(1);
+    }
+    const registry = readAgentRegistryFromDisk(agentsRegistryPath());
+    try {
+      writeAgentRegistryToDisk(registerAgent(registry, target, url, token), agentsRegistryPath());
+      console.log(`Registered deploy agent in ${agentsRegistryPath()}`);
+    } catch (err) {
+      console.error(`Register failed: ${String(err)}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (subcommand === "list") {
+    const registry = readAgentRegistryFromDisk(agentsRegistryPath());
+    if (json) {
+      console.log(JSON.stringify(registry, null, 2));
+      return;
+    }
+    console.log(`Deploy agents (${agentsRegistryPath()})`);
+    if (registry.agents.length === 0) {
+      console.log("  (no agents registered)");
+      return;
+    }
+    return (async () => {
+      for (const entry of registry.agents) {
+        const healthy = await agentHealth(entry);
+        console.log(`  ${entry.target} -> ${entry.url} (healthy=${healthy})`);
+      }
+    })();
+  }
+
+  console.error("Usage: spanda deploy agent start|register|list");
+  process.exit(1);
+}
+
+async function handleDeploy(
   positional: string[],
   flags: Map<string, string | boolean>,
   json: boolean,
-): void {
+): Promise<void> {
   // Route deploy commands to OTA handlers or legacy WASM manifest generation.
   //
   // Parameters:
@@ -977,8 +1077,12 @@ function handleDeploy(
   // handleDeploy(["plan", "examples/robotics/ota_deployment.sd"], flags, false);
 
   const sub = positional[0];
+  if (sub === "agent") {
+    await handleDeployAgent(positional[1], positional.slice(2), json);
+    return;
+  }
   if (sub === "plan" || sub === "rollout" || sub === "rollback" || sub === "status") {
-    handleDeployOta(sub, positional.slice(1), flags, json);
+    await handleDeployOta(sub, positional.slice(1), flags, json);
     return;
   }
   handleDeployWasm(positional[0], flagStr(flags, "out"));
@@ -1335,4 +1439,7 @@ function printError(err: unknown): void {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error(String(err));
+  process.exit(1);
+});

@@ -88,7 +88,9 @@ export function orchestrateFleets(program: Program, programPath: string): FleetO
     reports.push({
       fleetName: fleet.name,
       members,
-      coordinationMode: "round_robin_mission",
+      coordinationMode: members.some((m) => m.hasPeerLink)
+        ? "peer_round_robin_mission"
+        : "round_robin_mission",
       stepsAdvanced,
     });
   }

@@ -48,6 +48,27 @@ robot R {
     expect(robot?.mission?.steps).toEqual(["navigate", "deliver"]);
     expect(robot?.mission?.durationHours).toBeCloseTo(20 / 60);
   });
+
+  it("parses navigate statement sugar", () => {
+    const source = `
+robot R {
+  actuator wheels: DifferentialDrive;
+  mission Go { navigate; }
+  behavior run() {
+    navigate {
+      goal: "Dock";
+      linear: 0.2 m/s;
+    }
+  }
+}
+`;
+    const program = parse(tokenize(source));
+    const stmt = program.robots[0]?.behaviors[0]?.body[0];
+    expect(stmt?.kind).toBe("NavigateStmt");
+    if (stmt?.kind === "NavigateStmt") {
+      expect(stmt.goal.kind).toBe("LiteralExpr");
+    }
+  });
 });
 
 describe("robotics platform type checker", () => {
@@ -259,5 +280,30 @@ robot R {
     });
     expect(sim.getPublishedTopics().some((p) => p.topic === "/cmd_vel")).toBe(true);
     expect(logs.some((l) => l.includes("Nav2 bridge publish"))).toBe(true);
+  });
+
+  it("executes navigate statement sugar", () => {
+    const source = `
+robot R {
+  topic cmd_vel: Velocity publish on "/cmd_vel";
+  actuator wheels: DifferentialDrive;
+  mission Go { navigate; }
+  behavior run() {
+    navigate {
+      goal: "Dock";
+    }
+    wheels.stop();
+  }
+}
+`;
+    const { program } = compile(source);
+    const sim = createDefaultSimulator();
+    const logs: string[] = [];
+    run(program, {
+      backend: sim,
+      maxLoopIterations: 1,
+      onLog: (msg) => logs.push(msg),
+    });
+    expect(logs.some((l) => l.includes("navigation: executing goal 'Dock'"))).toBe(true);
   });
 });

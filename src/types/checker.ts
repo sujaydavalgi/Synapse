@@ -2183,6 +2183,7 @@ class TypeChecker {
       case "EnterModeStmt":
       case "StopAllActuatorsStmt":
       case "RunPipelineStmt":
+      case "NavigateStmt":
       case "UseFallbackStmt":
         break;
       case "RememberStmt":

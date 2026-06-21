@@ -160,6 +160,14 @@ spanda deploy status
 
 Rollout state is stored in `.spanda/deploy-state.json` (override with `SPANDA_DEPLOY_STATE`).
 
+Remote rollout pushes updates to on-device deploy agents:
+
+```bash
+spanda deploy agent start --target RoverProgram@JetsonOrin --bind 0.0.0.0:8765
+spanda deploy agent register RoverProgram@JetsonOrin http://192.168.1.50:8765
+spanda deploy rollout examples/robotics/remote_ota_deployment.sd --remote --version 1.3.0
+```
+
 See [robotics-platform.md](./robotics-platform.md) for missions, fleets, safety zones, and Nav2 integration.
 
 ### Run tests

@@ -79,6 +79,19 @@ deploy R to Tiny;
     ).toBe(true);
   });
 
+  it("reports framework adapter imports during verify", () => {
+    const program = parse(
+      tokenize(`
+import navigation.nav2;
+robot R { actuator wheels: DifferentialDrive; behavior run() { wheels.stop(); } }
+`),
+    );
+    const result = verifyHardwareProgram(program);
+    expect(result.items.some((i) => i.category === "adapter" && i.message.includes("spanda-nav2"))).toBe(
+      true,
+    );
+  });
+
   it("verifies AI models and adapters in full_compat", () => {
     const source = readFileSync(
       join(import.meta.dirname, "..", "examples/hardware/full_compat.sd"),
