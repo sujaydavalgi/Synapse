@@ -210,6 +210,19 @@ pub fn fault_to_connectivity(fault: &str) -> Option<(&'static str, &'static str)
     }
 }
 
+/// Map an active connectivity link name to the default transport kind.
+pub fn connectivity_link_to_transport(link: &str) -> crate::comm::TransportKind {
+    use crate::comm::TransportKind;
+    match link.to_ascii_lowercase().as_str() {
+        "wifi" => TransportKind::Mqtt,
+        "cellular" | "lte" | "4g" | "fiveg" | "5g" => TransportKind::Dds,
+        "bluetooth" | "ble" => TransportKind::Websocket,
+        "ethernet" => TransportKind::Ros2,
+        "network" => TransportKind::Sim,
+        _ => TransportKind::Sim,
+    }
+}
+
 /// Produce a [`GpsFix`]-shaped runtime object from lat/lon and optional metadata.
 pub fn runtime_gps_fix(
     lat: f64,
@@ -561,6 +574,19 @@ mod tests {
     fn haversine_zero_distance() {
         let d = haversine_m(30.0, -97.0, 30.0, -97.0);
         assert!(d.abs() < 0.01);
+    }
+
+    #[test]
+    fn connectivity_link_to_transport_maps_wifi() {
+        use crate::comm::TransportKind;
+        assert_eq!(
+            connectivity_link_to_transport("wifi"),
+            TransportKind::Mqtt
+        );
+        assert_eq!(
+            connectivity_link_to_transport("cellular"),
+            TransportKind::Dds
+        );
     }
 
     #[test]

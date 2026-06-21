@@ -1663,6 +1663,9 @@ impl<B: RobotBackend> Interpreter<B> {
         self.connectivity_policies = policies.iter().map(connectivity_policy_from_decl).collect();
         if let Some(policy) = self.connectivity_policies.first() {
             self.active_connectivity_link = policy.preferred.clone();
+            self.default_transport = crate::connectivity_positioning::connectivity_link_to_transport(
+                &self.active_connectivity_link,
+            );
         }
     }
 
@@ -4306,17 +4309,22 @@ impl<B: RobotBackend> Interpreter<B> {
             if domain == "network" && event == "disconnected" {
                 if self.active_connectivity_link == policy.preferred {
                     self.active_connectivity_link = policy.fallback.clone();
+                    self.default_transport = crate::connectivity_positioning::connectivity_link_to_transport(
+                        &self.active_connectivity_link,
+                    );
                     self.log(format!(
-                        "connectivity_policy '{}': failover {} -> {}",
-                        policy.name, policy.preferred, policy.fallback
+                        "connectivity_policy '{}': failover {} -> {} (transport {:?})",
+                        policy.name, policy.preferred, policy.fallback, self.default_transport
                     ));
                 } else if Some(&self.active_connectivity_link) == policy.emergency.as_ref() {
                     continue;
                 } else if let Some(em) = &policy.emergency {
                     self.active_connectivity_link = em.clone();
+                    self.default_transport =
+                        crate::connectivity_positioning::connectivity_link_to_transport(em);
                     self.log(format!(
-                        "connectivity_policy '{}': emergency link {}",
-                        policy.name, em
+                        "connectivity_policy '{}': emergency link {} (transport {:?})",
+                        policy.name, em, self.default_transport
                     ));
                 }
             }
