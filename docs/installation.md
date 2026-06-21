@@ -6,7 +6,7 @@ Spanda ships prebuilt installable packages for **Linux**, **macOS**, and **Windo
 
 ## Prebuilt binaries (recommended)
 
-Download the latest release from [GitHub Releases](https://github.com/sujaydavalgi/Spanda/releases).
+Download the latest release from [GitHub Releases](https://github.com/Davalgi/Spanda/releases).
 
 Each release includes:
 
@@ -25,7 +25,7 @@ Release tags must match the workspace version in `Cargo.toml` (for example `v0.1
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/sujaydavalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.sh | sh
+  https://github.com/Davalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.sh | sh
 ```
 
 The installer places `spanda` in `~/.cargo/bin` by default. Ensure that directory is on your `PATH`.
@@ -47,7 +47,7 @@ Download `spanda-cli-x86_64-pc-windows-msvc.msi` from the release and run the in
 ### Windows — PowerShell installer
 
 ```powershell
-irm https://github.com/sujaydavalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.ps1 | iex
+irm https://github.com/Davalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.ps1 | iex
 ```
 
 ### Manual archive install
@@ -86,7 +86,7 @@ For contributors or unreleased builds:
 ### Steps
 
 ```bash
-git clone https://github.com/sujaydavalgi/Spanda.git
+git clone https://github.com/Davalgi/Spanda.git
 cd Spanda
 npm install
 npm run build:rust    # → target/release/spanda

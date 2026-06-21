@@ -90,12 +90,12 @@ spanda sim robot.sd --wall-clock
 
 ## Install
 
-Install prebuilt packages for Linux, macOS, and Windows from [GitHub Releases](https://github.com/sujaydavalgi/Spanda/releases), or build from source. See [installation.md](./installation.md) for shell/MSI/PowerShell installers, platform archives, and maintainer packaging notes.
+Install prebuilt packages for Linux, macOS, and Windows from [GitHub Releases](https://github.com/Davalgi/Spanda/releases), or build from source. See [installation.md](./installation.md) for shell/MSI/PowerShell installers, platform archives, and maintainer packaging notes.
 
 ```bash
 # Linux / macOS (replace v0.1.0 with your release tag)
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/sujaydavalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.sh | sh
+  https://github.com/Davalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.sh | sh
 ```
 
 Contributors can build the native CLI with `npm run build:rust` (output: `target/release/spanda`).
@@ -114,5 +114,5 @@ See [../CONTRIBUTING.md](../CONTRIBUTING.md#inline-documentation) for the full s
 
 ## Links
 
-- GitHub: [github.com/sujaydavalgi/Spanda](https://github.com/sujaydavalgi/Spanda)
+- GitHub: [github.com/Davalgi/Spanda](https://github.com/Davalgi/Spanda)
 - Golden tests: [../tests/golden/manifest.json](../tests/golden/manifest.json)

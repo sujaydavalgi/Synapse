@@ -195,4 +195,4 @@ npm test -- tests/showcase.test.ts
 
 ## Related GitHub issue
 
-[v0.5 beta — Curate killer demo program](https://github.com/sujaydavalgi/Spanda/issues/4)
+[v0.5 beta — Curate killer demo program](https://github.com/Davalgi/Spanda/issues/4)

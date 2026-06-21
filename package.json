@@ -4,11 +4,11 @@
   "description": "Spanda — the pulse of autonomous intelligence",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sujaydavalgi/Spanda.git"
+    "url": "git+https://github.com/Davalgi/Spanda.git"
   },
-  "homepage": "https://github.com/sujaydavalgi/Spanda#readme",
+  "homepage": "https://github.com/Davalgi/Spanda#readme",
   "bugs": {
-    "url": "https://github.com/sujaydavalgi/Spanda/issues"
+    "url": "https://github.com/Davalgi/Spanda/issues"
   },
   "type": "module",
   "workspaces": [

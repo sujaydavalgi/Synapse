@@ -107,5 +107,5 @@ This is the foundation. The vision scales from a single rover to fleets of auton
 Spanda is open source under Apache-2.0. We welcome contributors, roboticists, safety engineers, and AI researchers.
 
 - [CONTRIBUTING.md](../CONTRIBUTING.md)
-- [GitHub Issues](https://github.com/sujaydavalgi/Spanda/issues)
+- [GitHub Issues](https://github.com/Davalgi/Spanda/issues)
 - [feature-status.md](./feature-status.md)

@@ -6,7 +6,7 @@ Build and run your first autonomous robot program in under 10 minutes.
 
 ## Installation
 
-Install prebuilt packages for Linux, macOS, and Windows from [GitHub Releases](https://github.com/sujaydavalgi/Spanda/releases), or build from source below.
+Install prebuilt packages for Linux, macOS, and Windows from [GitHub Releases](https://github.com/Davalgi/Spanda/releases), or build from source below.
 
 See [installation.md](./installation.md) for shell/MSI/PowerShell installers and platform archives.
 
@@ -15,7 +15,7 @@ See [installation.md](./installation.md) for shell/MSI/PowerShell installers and
 #### 1. Clone the repository
 
 ```bash
-git clone https://github.com/sujaydavalgi/Spanda.git
+git clone https://github.com/Davalgi/Spanda.git
 cd Spanda
 ```
 

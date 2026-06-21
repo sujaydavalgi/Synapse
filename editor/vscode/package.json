@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sujaydavalgi/Spanda.git"
+    "url": "https://github.com/Davalgi/Spanda.git"
   },
   "files": [
     "dist/**",

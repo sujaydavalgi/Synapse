@@ -17,10 +17,10 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-repository = "https://github.com/sujaydavalgi/Spanda"
+repository = "https://github.com/Davalgi/Spanda"
 license = "Apache-2.0"
 authors = ["Sujay Davalgi <sujay@davalgi.com>"]
-homepage = "https://github.com/sujaydavalgi/Spanda"
+homepage = "https://github.com/Davalgi/Spanda"
 description = "Spanda — safety-first language for robotics and autonomous systems"
 
 [profile.release]

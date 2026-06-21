@@ -27,7 +27,7 @@ Thank you for your interest in contributing to Spanda — the Autonomous Systems
 ### Clone and build
 
 ```bash
-git clone https://github.com/sujaydavalgi/Spanda.git
+git clone https://github.com/Davalgi/Spanda.git
 cd Spanda
 npm install
 npm run build:rust
@@ -233,4 +233,4 @@ This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Be respectf
 
 ## Questions
 
-Open a [GitHub Discussion](https://github.com/sujaydavalgi/Spanda/discussions) or issue if you are unsure where to start. We are happy to help newcomers find a good first contribution.
+Open a [GitHub Discussion](https://github.com/Davalgi/Spanda/discussions) or issue if you are unsure where to start. We are happy to help newcomers find a good first contribution.

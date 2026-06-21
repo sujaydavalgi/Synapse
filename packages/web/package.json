@@ -4,7 +4,7 @@
   "description": "Spanda web playground — React IDE with WASM backend",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sujaydavalgi/Spanda.git",
+    "url": "git+https://github.com/Davalgi/Spanda.git",
     "directory": "packages/web"
   },
   "private": true,

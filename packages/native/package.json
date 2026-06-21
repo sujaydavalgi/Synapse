@@ -4,7 +4,7 @@
   "description": "Spanda Rust core bindings for Node.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sujaydavalgi/Spanda.git",
+    "url": "git+https://github.com/Davalgi/Spanda.git",
     "directory": "packages/native"
   },
   "type": "module",

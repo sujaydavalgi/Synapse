@@ -13,12 +13,12 @@ Draft copy for a future Spanda project website. Use as-is or adapt for static si
 Write robots, agents, and digital twins with built-in safety validation and hardware verification.
 
 ```bash
-git clone https://github.com/sujaydavalgi/Spanda.git
+git clone https://github.com/Davalgi/Spanda.git
 npm run build:rust
 spanda run examples/showcase/rover_navigation.sd
 ```
 
-[Get Started](getting-started) · [View on GitHub](https://github.com/sujaydavalgi/Spanda)
+[Get Started](getting-started) · [View on GitHub](https://github.com/Davalgi/Spanda)
 
 ### Tagline
 
@@ -156,7 +156,7 @@ Optional: SIR → LLVM (experimental)
 | Bindings | N-API, WASM |
 | Developer UX | TypeScript, React, LSP |
 
-Link to [architecture.md](https://github.com/sujaydavalgi/Spanda/blob/main/docs/architecture.md) for full diagrams.
+Link to [architecture.md](https://github.com/Davalgi/Spanda/blob/main/docs/architecture.md) for full diagrams.
 
 ---
 
@@ -218,6 +218,6 @@ spanda replay mission.trace --deterministic
 
 ## Footer
 
-- GitHub: [github.com/sujaydavalgi/Spanda](https://github.com/sujaydavalgi/Spanda)
+- GitHub: [github.com/Davalgi/Spanda](https://github.com/Davalgi/Spanda)
 - License: Apache-2.0
-- Docs: [docs/README.md](https://github.com/sujaydavalgi/Spanda/blob/main/docs/README.md)
+- Docs: [docs/README.md](https://github.com/Davalgi/Spanda/blob/main/docs/README.md)

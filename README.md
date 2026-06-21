@@ -4,7 +4,7 @@
 
 Spanda is an AI-native programming language for robotics, autonomous agents, digital twins, and edge systems. Source files use the **`.sd`** extension.
 
-Repository: [github.com/sujaydavalgi/Spanda](https://github.com/sujaydavalgi/Spanda)
+Repository: [github.com/Davalgi/Spanda](https://github.com/Davalgi/Spanda)
 
 ---
 
@@ -169,12 +169,12 @@ Real-time and reliability demos in [`examples/realtime/`](examples/realtime/); r
 
 ### Prebuilt packages (Linux, macOS, Windows)
 
-Download installable packages from [GitHub Releases](https://github.com/sujaydavalgi/Spanda/releases):
+Download installable packages from [GitHub Releases](https://github.com/Davalgi/Spanda/releases):
 
 ```bash
 # Linux / macOS
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/sujaydavalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.sh | sh
+  https://github.com/Davalgi/Spanda/releases/download/v0.1.0/spanda-cli-installer.sh | sh
 ```
 
 Windows: use the `.msi` installer or PowerShell script from the same release page.
@@ -192,7 +192,7 @@ Full install guide: [docs/installation.md](docs/installation.md)
 #### Clone and build
 
 ```bash
-git clone https://github.com/sujaydavalgi/Spanda.git
+git clone https://github.com/Davalgi/Spanda.git
 cd Spanda
 npm install
 npm run build:rust    # builds target/release/spanda
