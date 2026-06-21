@@ -1,0 +1,33 @@
+// Robotics — Nav2 golden path via `/cmd_vel` bridge
+//
+//   spanda check examples/robotics/nav2_bridge.sd
+//   export SPANDA_ROS2_LIVE=1
+//   spanda run examples/robotics/nav2_bridge.sd
+//
+// When `/cmd_vel` is declared, navigation.navigate() publishes a stub velocity
+// command for Nav2 / teleop validation. Keep Nav2, drivers, and SLAM as ROS2 nodes.
+
+import std.navigation;
+
+robot Nav2Rover {
+  topic cmd_vel: Velocity publish on "/cmd_vel";
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 0.5 m/s;
+    stop_if lidar.nearest_distance < 0.4 m;
+  }
+
+  mission Dock {
+    navigate;
+    charge;
+  }
+
+  behavior go_to_charger() {
+    navigation.goal("Return to charger");
+    let traj = navigation.navigate();
+    let _ = traj;
+    wheels.stop();
+  }
+}

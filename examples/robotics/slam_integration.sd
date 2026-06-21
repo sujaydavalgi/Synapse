@@ -1,0 +1,27 @@
+// Robotics — SLAM via package ecosystem (orchestration, not in-language SLAM)
+//
+//   spanda check examples/robotics/slam_integration.sd
+//
+// Wrap external SLAM stacks (Cartographer, RTAB-Map) through spanda-slam / spanda-ros2.
+
+import navigation.slam;
+
+extern python fn update_map(scan: LidarScan) -> Pose;
+
+robot WarehouseBot {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety { max_speed = 0.8 m/s; }
+
+  topic map_updates: String publish on "/slam/map";
+
+  behavior mapping() {
+    loop every 200ms {
+      let scan = lidar.read();
+      let pose = update_map(scan);
+      let _ = pose;
+      publish map_updates with "map_updated";
+    }
+  }
+}

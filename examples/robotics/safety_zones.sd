@@ -1,0 +1,33 @@
+// Robotics — program-level safety zones with speed caps
+//
+//   spanda check examples/robotics/safety_zones.sd
+//   spanda run examples/robotics/safety_zones.sd
+
+safety_zone HumanArea {
+  max_speed 0.5 m/s;
+}
+
+robot PatrolBot {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+    zone HumanArea circle at (0.0 m, 0.0 m) radius 1.5 m;
+    stop_if robot.in_zone("HumanArea");
+  }
+
+  on safety {
+    wheels.stop();
+  }
+
+  behavior patrol() {
+    loop every 100ms {
+      if robot.in_zone("HumanArea") {
+        wheels.stop();
+      } else {
+        wheels.drive(linear: 0.3 m/s, angular: 0.05 rad/s);
+      }
+    }
+  }
+}

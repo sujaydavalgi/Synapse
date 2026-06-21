@@ -1,0 +1,44 @@
+// Robotics — edge/cloud coordination with trust boundaries
+//
+//   spanda check examples/robotics/edge_cloud.sd
+//   spanda run examples/robotics/edge_cloud.sd
+
+robot EdgeRover {
+  sensor camera: Camera on "/camera";
+  actuator wheels: DifferentialDrive;
+
+  ai_model local_vision: VisionModel {
+    provider: "mock";
+    backend: "onnx";
+  }
+
+  trust_boundary robot_to_cloud;
+
+  secure_comm {
+    encryption: aes_gcm;
+    authentication: mutual_tls;
+    integrity: signed;
+  }
+
+  topic telemetry: String publish on "/edge/telemetry";
+
+  agent EdgeAgent {
+    uses local_vision;
+    goal "Infer locally, sync summaries to cloud";
+
+    can read(camera);
+    can propose_motion;
+
+    plan {
+      let frame = camera.frame();
+      let _ = frame;
+    }
+  }
+
+  behavior edge_infer() {
+    loop every 500ms {
+      publish telemetry with "edge_inference_ok";
+      wheels.stop();
+    }
+  }
+}

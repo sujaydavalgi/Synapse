@@ -1,0 +1,33 @@
+// Robotics — navigation goals and path planning (stdlib.navigation)
+//
+//   spanda check examples/robotics/navigation.sd
+//   spanda run examples/robotics/navigation.sd
+
+import std.navigation;
+import std.spatial;
+
+robot NavRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  mission Patrol {
+    navigate;
+    return_home;
+  }
+
+  behavior navigate_route() {
+    navigation.goal("Dock at charger");
+    let path = navigation.path();
+    let _ = path;
+    let traj = navigation.navigate();
+    let _ = traj;
+    let cost = navigation.cost_map();
+    let _ = cost;
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+}

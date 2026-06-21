@@ -1,0 +1,38 @@
+// Robotics — OTA deployment workflow (runtime service + deploy blocks)
+//
+//   spanda check examples/robotics/ota_deployment.sd
+//   spanda verify examples/robotics/ota_deployment.sd --all-targets
+//
+// Production rollout/rollback/canary is handled by the Spanda deploy runtime service.
+// Programs declare deploy targets; CI/CD invokes `spanda deploy` with rollout policy.
+
+hardware JetsonOrin {
+  cpu: CortexA78;
+  memory: 8 GB;
+  sensors [ Lidar, Camera ];
+  actuators [ DifferentialDrive ];
+}
+
+robot RoverProgram {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  mission Scout {
+    duration: 2 h;
+    navigate;
+    return_home;
+  }
+
+  safety { max_speed = 1.0 m/s; }
+
+  behavior patrol() {
+    mission.start();
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+}
+
+deploy RoverProgram to JetsonOrin;
+
+simulate_compatibility {
+  fault NetworkOutage;
+}

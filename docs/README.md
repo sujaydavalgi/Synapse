@@ -47,6 +47,7 @@ Spanda is an AI-native autonomous systems programming language. Source files use
 | [spanda-reference.md](./spanda-reference.md) | **Full language API reference** (keywords, `std.*`, builtins, man-style CLI) |
 | [api-reference.md](./api-reference.md) | Rust/TypeScript compiler API index (modules, types, functions) |
 | [standard-library.md](./standard-library.md) | Standard library overview and design |
+| [robotics-platform.md](./robotics-platform.md) | **Robotics platform: missions, fleet, safety zones, navigation, fusion, package strategy** |
 | [spanda-type-system.md](./spanda-type-system.md) | Type system: units, generics, AI/safety types |
 | [man/](./man/) | Man-page style CLI reference |
 | [roadmap.md](./roadmap.md) | Roadmap and self-hosting plan |

@@ -1,0 +1,39 @@
+// Robotics — certification metadata for verify/deploy workflows
+//
+//   spanda check examples/robotics/certified_deployment.sd
+//   spanda verify examples/robotics/certified_deployment.sd --all-targets
+//
+// `certify` records ISO/IEC safety standard intent for verify and CI gates.
+// It is metadata only — Spanda does not prove certification at runtime.
+
+certify ISO13849 {
+  level PLd;
+}
+certify IEC61508;
+
+hardware IndustrialController {
+  cpu: CortexA78;
+  memory: 4 GB;
+  actuators [ DifferentialDrive ];
+}
+
+robot CertifiedRover {
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 0.8 m/s;
+  }
+
+  mission Inspect {
+    duration: 1 h;
+    navigate;
+    inspect;
+  }
+
+  behavior run() {
+    mission.start();
+    wheels.stop();
+  }
+}
+
+deploy CertifiedRover to IndustrialController;

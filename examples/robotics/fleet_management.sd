@@ -1,0 +1,48 @@
+// Robotics — fleet grouping and coordination
+//
+//   spanda check examples/robotics/fleet_management.sd
+//   spanda fleet run examples/robotics/fleet_management.sd
+
+robot Picker1 {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety { max_speed = 0.8 m/s; }
+
+  behavior pick() {
+    loop every 200ms {
+      wheels.drive(linear: 0.15 m/s, angular: 0.0 rad/s);
+    }
+  }
+}
+
+robot Picker2 {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety { max_speed = 0.8 m/s; }
+
+  behavior pick() {
+    loop every 200ms {
+      wheels.drive(linear: 0.15 m/s, angular: 0.0 rad/s);
+    }
+  }
+}
+
+fleet Warehouse {
+  Picker1;
+  Picker2;
+}
+
+robot Coordinator {
+  bus dds;
+  topic fleet_status: String publish on "/fleet/status";
+
+  behavior coordinate() {
+    let members = fleet.members("Warehouse");
+    let _ = members;
+    loop every 500ms {
+      publish fleet_status with "Warehouse active";
+    }
+  }
+}

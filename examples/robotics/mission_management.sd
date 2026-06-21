@@ -1,0 +1,34 @@
+// Robotics — mission management with step sequences and lifecycle states
+//
+//   spanda check examples/robotics/mission_management.sd
+//   spanda run examples/robotics/mission_management.sd
+
+import std.navigation;
+
+robot DeliveryRover {
+  sensor lidar: Lidar on "/scan";
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+    stop_if lidar.nearest_distance < 0.4 m;
+  }
+
+  mission Delivery {
+    duration: 45 min;
+    navigate;
+    deliver;
+    return_home;
+  }
+
+  behavior execute() {
+    mission.start();
+    loop every 500ms {
+      let step = mission.advance();
+      let _ = step;
+      if mission.state() == "Completed" {
+        wheels.stop();
+      }
+    }
+  }
+}

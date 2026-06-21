@@ -1,0 +1,33 @@
+// Robotics — multi-sensor fusion via observe/fusion (std.fusion)
+//
+//   spanda check examples/robotics/sensor_fusion.sd
+//   spanda run examples/robotics/sensor_fusion.sd
+
+import std.fusion;
+
+robot FusionRover {
+  sensor camera: Camera on "/camera";
+  sensor lidar: Lidar on "/scan";
+  sensor imu: IMU;
+  sensor gps: GPS;
+  actuator wheels: DifferentialDrive;
+
+  safety { max_speed = 1.0 m/s; }
+
+  observe {
+    camera;
+    lidar;
+    imu;
+    gps;
+  }
+
+  behavior navigate_with_fusion() {
+    loop every 100ms {
+      let fused = fusion.read();
+      let _ = fused.pose;
+      let _ = fused.confidence;
+      let _ = fused.state_estimate;
+      wheels.drive(linear: 0.1 m/s, angular: 0.0 rad/s);
+    }
+  }
+}

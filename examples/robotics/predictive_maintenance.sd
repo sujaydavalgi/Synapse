@@ -1,0 +1,30 @@
+// Robotics — predictive maintenance signals (std.maintenance)
+//
+//   spanda check examples/robotics/predictive_maintenance.sd
+//   spanda run examples/robotics/predictive_maintenance.sd
+
+import std.maintenance;
+
+robot IndustrialArm {
+  sensor torque: TorqueSensor;
+  actuator joint: Servo;
+
+  safety {
+    max_speed = 0.5 m/s;
+    stop_if torque.read() > 50.0 N;
+  }
+
+  on every 5s {
+    let score: HealthScore = 0.92;
+    let _ = score;
+    if score < 0.7 {
+      joint.stop();
+    }
+  }
+
+  behavior operate() {
+    loop every 100ms {
+      joint.rotate(angle: 0.1 rad);
+    }
+  }
+}
