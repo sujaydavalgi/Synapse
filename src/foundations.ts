@@ -295,6 +295,31 @@ export type FleetDecl = {
   span: Span;
 };
 
+export type SwarmPolicy = "round_robin" | "broadcast" | "leader_follow";
+
+export type SwarmDecl = {
+  kind: "SwarmDecl";
+  name: string;
+  fleetName: string;
+  policy: SwarmPolicy;
+  span: Span;
+};
+
+export const SWARM_POLICIES: SwarmPolicy[] = ["round_robin", "broadcast", "leader_follow"];
+
+export function parseSwarmPolicy(name: string): SwarmPolicy | undefined {
+  return SWARM_POLICIES.includes(name as SwarmPolicy) ? (name as SwarmPolicy) : undefined;
+}
+
+export function validateSwarmFleet(
+  swarmName: string,
+  fleetName: string,
+  fleetNames: string[],
+): string | undefined {
+  if (fleetNames.includes(fleetName)) return undefined;
+  return `swarm '${swarmName}' references unknown fleet '${fleetName}'`;
+}
+
 export type ProgramSafetyZoneDecl = {
   kind: "ProgramSafetyZoneDecl";
   name: string;

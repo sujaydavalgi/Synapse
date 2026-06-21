@@ -430,6 +430,8 @@ const KEYWORDS: Record<string, TokenType> = {
   fault: "FAULT",
   mission: "MISSION",
   fleet: "FLEET",
+  swarm: "SWARM",
+  policy: "POLICY",
   safety_zone: "SAFETY_ZONE",
   certify: "CERTIFY",
   network: "NETWORK",

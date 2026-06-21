@@ -18,7 +18,7 @@ import type {
   ActionDecl,
 } from "../ast/nodes.js";
 import type { CapabilityDecl, ExternFnDecl, MatchArm, ModuleFnDecl, TraitImplDecl } from "../foundations.js";
-import { resolveModuleImport, resolveTypeAlias } from "../foundations.js";
+import { resolveModuleImport, resolveTypeAlias, validateSwarmFleet } from "../foundations.js";
 import { resolveFfiImport } from "../ffi/registry.js";
 import { resolveStdImport } from "../stdlib.js";
 import {
@@ -266,6 +266,22 @@ class TypeChecker {
             fleet.span.start.column,
           );
         }
+      }
+    }
+    const fleetNames = program.fleets.map((fleet) => fleet.name);
+    const swarmNames = new Set<string>();
+    for (const swarm of program.swarms ?? []) {
+      if (swarmNames.has(swarm.name)) {
+        this.error(
+          `Duplicate swarm '${swarm.name}'`,
+          swarm.span.start.line,
+          swarm.span.start.column,
+        );
+      }
+      swarmNames.add(swarm.name);
+      const message = validateSwarmFleet(swarm.name, swarm.fleetName, fleetNames);
+      if (message) {
+        this.error(message, swarm.span.start.line, swarm.span.start.column);
       }
     }
     const zoneNames = new Set<string>();

@@ -105,6 +105,7 @@ import type {
   SecureBlockDecl,
   SecureCommPolicyDecl,
   TrustBoundaryDecl,
+  type SwarmPolicy,
 } from "../foundations.js";
 
 export class ParseError extends Error {
@@ -457,6 +458,7 @@ class Parser {
     let requiresConnectivity: RequiresConnectivityDecl | null = null;
     const geofences: GeofenceDecl[] = [];
     const fleets: import("../foundations.js").FleetDecl[] = [];
+    const swarms: import("../foundations.js").SwarmDecl[] = [];
     const programSafetyZones: import("../foundations.js").ProgramSafetyZoneDecl[] = [];
     const certifications: import("../foundations.js").CertifyDecl[] = [];
     const connectivityPolicies: ConnectivityPolicyDecl[] = [];
@@ -494,6 +496,8 @@ class Parser {
         geofences.push(this.parseGeofence());
       } else if (this.check("FLEET")) {
         fleets.push(this.parseFleet());
+      } else if (this.check("SWARM")) {
+        swarms.push(this.parseSwarm());
       } else if (this.check("SAFETY_ZONE")) {
         programSafetyZones.push(this.parseProgramSafetyZone());
       } else if (this.check("CERTIFY")) {
@@ -538,6 +542,7 @@ class Parser {
       requiresConnectivity,
       geofences,
       fleets,
+      swarms,
       programSafetyZones,
       certifications,
       connectivityPolicies,
@@ -4930,6 +4935,52 @@ class Parser {
     }
     const end = this.expect("RBRACE", "Expected '}' to close fleet");
     return { kind: "FleetDecl", name, members, span: this.spanFrom(start, end) };
+  }
+
+  private parseSwarm(): import("../foundations.js").SwarmDecl {
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected swarm name").lexeme;
+    this.expect("LBRACE", "Expected '{' after swarm name");
+    let fleetName: string | null = null;
+    let policy: SwarmPolicy = "round_robin";
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.check("FLEET")) {
+        this.advance();
+        fleetName = this.expect("IDENT", "Expected fleet name after 'fleet'").lexeme;
+        this.expect("SEMICOLON", "Expected ';' after fleet name");
+      } else if (this.check("POLICY")) {
+        this.advance();
+        const policyName = this.expect("IDENT", "Expected swarm policy name").lexeme;
+        this.expect("SEMICOLON", "Expected ';' after swarm policy");
+        const allowed: SwarmPolicy[] = ["round_robin", "broadcast", "leader_follow"];
+        const parsed = allowed.includes(policyName as SwarmPolicy)
+          ? (policyName as SwarmPolicy)
+          : undefined;
+        if (!parsed) {
+          const tok = this.previous();
+          throw new ParseError(
+            `Unknown swarm policy '${policyName}' (expected round_robin, broadcast, or leader_follow)`,
+            tok.line,
+            tok.column,
+          );
+        }
+        policy = parsed;
+      } else {
+        const tok = this.peek();
+        throw new ParseError("Expected fleet or policy in swarm block", tok.line, tok.column);
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close swarm");
+    if (!fleetName) {
+      throw new ParseError(`swarm '${name}' requires a fleet reference`, end.line, end.column);
+    }
+    return {
+      kind: "SwarmDecl",
+      name,
+      fleetName,
+      policy,
+      span: this.spanFrom(start, end),
+    };
   }
 
   private parseProgramSafetyZone(): import("../foundations.js").ProgramSafetyZoneDecl {
