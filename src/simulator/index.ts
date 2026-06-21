@@ -87,12 +87,15 @@ export class Simulator implements RobotBackend {
       case "AltitudeSensor":
         return { kind: "number", value: this.pose.z, unit: "m" };
       case "GPS":
+      case "GNSS":
         return {
           kind: "object",
-          typeName: "GPSReading",
+          typeName: "GpsFix",
           fields: {
             lat: { kind: "number", value: this.pose.x, unit: "none" },
             lon: { kind: "number", value: this.pose.y, unit: "none" },
+            altitude: { kind: "number", value: this.pose.z, unit: "m" },
+            fix_quality: { kind: "number", value: 1.0, unit: "none" },
           },
         };
       case "ForceTorque":

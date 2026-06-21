@@ -112,6 +112,15 @@ export type TokenType =
   | "TO"
   | "REQUIRES_HARDWARE"
   | "REQUIRES_NETWORK"
+  | "REQUIRES_CONNECTIVITY"
+  | "CONNECTIVITY"
+  | "GEOFENCE"
+  | "CONNECTIVITY_POLICY"
+  | "BLUETOOTH"
+  | "BLE_SERVICE"
+  | "PACKET_LOSS"
+  | "SWITCH_IF"
+  | "TRUSTED_ONLY"
   | "SIMULATE_COMPATIBILITY"
   | "BUDGET"
   | "FAULT"
@@ -401,6 +410,15 @@ const KEYWORDS: Record<string, TokenType> = {
   to: "TO",
   requires_hardware: "REQUIRES_HARDWARE",
   requires_network: "REQUIRES_NETWORK",
+  requires_connectivity: "REQUIRES_CONNECTIVITY",
+  connectivity: "CONNECTIVITY",
+  geofence: "GEOFENCE",
+  connectivity_policy: "CONNECTIVITY_POLICY",
+  bluetooth: "BLUETOOTH",
+  ble_service: "BLE_SERVICE",
+  packet_loss: "PACKET_LOSS",
+  switch_if: "SWITCH_IF",
+  trusted_only: "TRUSTED_ONLY",
   simulate_compatibility: "SIMULATE_COMPATIBILITY",
   budget: "BUDGET",
   fault: "FAULT",

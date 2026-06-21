@@ -237,6 +237,7 @@ export const SENSOR_TYPES: Record<string, SpandaType> = {
   Lidar: { kind: "named", name: "Lidar" },
   IMU: { kind: "named", name: "IMU" },
   GPS: { kind: "named", name: "GPS" },
+  GNSS: { kind: "named", name: "GNSS" },
   Camera: { kind: "named", name: "Camera" },
   AltitudeSensor: { kind: "named", name: "AltitudeSensor" },
   ForceTorque: { kind: "named", name: "ForceTorque" },
@@ -511,6 +512,8 @@ export const ROBOT_METHODS: Record<string, { params: SpandaType[]; returns: Span
   pose: { params: [], returns: { kind: "pose" } },
   velocity: { params: [], returns: { kind: "velocity" } },
   in_zone: { params: [{ kind: "string" }], returns: { kind: "bool" } },
+  in_geofence: { params: [{ kind: "string" }], returns: { kind: "bool" } },
+  connectivity_link: { params: [], returns: { kind: "string" } },
 };
 
 export const BUILTIN_METHODS: Record<
@@ -715,6 +718,12 @@ export const OBJECT_PROPERTIES: Record<string, Record<string, SpandaType>> = {
   IMUReading: { yaw: { kind: "number", unit: "rad" }, roll: { kind: "number", unit: "rad" }, pitch: { kind: "number", unit: "rad" } },
   ForceTorqueReading: { force: { kind: "number", unit: "none" } },
   GPSReading: { lat: { kind: "number", unit: "none" }, lon: { kind: "number", unit: "none" } },
+  GpsFix: {
+    lat: { kind: "number", unit: "none" },
+    lon: { kind: "number", unit: "none" },
+    altitude: { kind: "number", unit: "m" },
+    fix_quality: { kind: "number", unit: "none" },
+  },
   NavigationPolicy: {
     linear: { kind: "number", unit: "m/s" },
     angular: { kind: "number", unit: "rad/s" },

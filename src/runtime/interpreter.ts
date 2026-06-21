@@ -3001,6 +3001,12 @@ export class Interpreter {
         const inZone = this.safetyMonitor?.isInZone(zoneName, state.pose) ?? false;
         return { kind: "bool", value: inZone };
       }
+      case "in_geofence": {
+        return { kind: "bool", value: false };
+      }
+      case "connectivity_link": {
+        return { kind: "string", value: "wifi" };
+      }
       default:
         return { kind: "void" };
     }
