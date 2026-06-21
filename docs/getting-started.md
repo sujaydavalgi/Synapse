@@ -2,6 +2,8 @@
 
 Build and run your first autonomous robot program in under 10 minutes.
 
+**All tutorials:** [Tutorials index](./tutorials/README.md)
+
 ---
 
 ## Installation
@@ -76,7 +78,10 @@ robot MyRover {
 
 ## Learn by example (basics → end-to-end)
 
-**New to Spanda?** Start with the [Spanda 101 tutorial series](./spanda-101/README.md) — ten lessons from your first robot through deploy and replay.
+**New to Spanda?** Pick your style (full list: [Tutorials index](./tutorials/README.md)):
+
+- [Spanda for Dummies](./spanda-for-dummies/README.md) — plain English, ~45 min read, cheat sheet
+- [Spanda 101](./spanda-101/README.md) — ten hands-on lessons with exercises (~3 hours)
 
 Progressive code examples live under [`examples/basics/`](examples/basics/README.md):
 

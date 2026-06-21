@@ -155,9 +155,19 @@ deploy RoverProgram to RoverV1;
 spanda verify rover.sd --json
 ```
 
+### Learn Spanda
+
+**[Tutorials index](docs/tutorials/README.md)** — all learning paths in one place.
+
+| Track | Guide | Time |
+|-------|-------|------|
+| Plain English | [Spanda for Dummies](docs/spanda-for-dummies/README.md) | ~45 min |
+| Hands-on course | [Spanda 101](docs/spanda-101/README.md) | ~3 hours |
+| Quickstart | [Getting started](docs/getting-started.md) | ~10 min |
+
 ### Examples library
 
-**Tutorial series:** [Spanda 101](docs/spanda-101/README.md) — ten lessons with exercises, from hello-world to end-to-end patrol.
+**Tutorial series:** [Tutorials index](docs/tutorials/README.md) · [For Dummies](docs/spanda-for-dummies/README.md) · [Spanda 101](docs/spanda-101/README.md)
 
 Start with the progressive ladder in [`examples/basics/`](examples/basics/README.md), then integration slices and end-to-end packages:
 

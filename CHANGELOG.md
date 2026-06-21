@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tutorials index:** master catalog at `docs/tutorials/README.md` (all learning paths, topic guides, examples)
+- **Spanda for Dummies:** plain-English guide in `docs/spanda-for-dummies/` (cheat sheet, glossary, common mistakes)
 - **Spanda 101:** ten-lesson tutorial series in `docs/spanda-101/` (hello robot through end-to-end patrol)
 - **Examples ladder:** `examples/basics/` (11 progressive tutorials), `examples/integration/`, and `examples/end_to_end/` (safe patrol package + replay mission)
 - **Cross-platform installable packages:** cargo-dist release pipeline (Linux/macOS/Windows archives, shell/PowerShell installers, Windows MSI, Homebrew formula); see [docs/installation.md](docs/installation.md)

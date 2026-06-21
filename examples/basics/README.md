@@ -2,7 +2,7 @@
 
 Progressive Spanda examples from a minimal robot to full deployment workflows.
 
-**Guided tutorials:** [docs/spanda-101/README.md](../../docs/spanda-101/README.md) (Spanda 101 — lesson per topic with exercises)
+**Guided tutorials:** [Tutorials index](../../docs/tutorials/README.md) · [Spanda for Dummies](../../docs/spanda-for-dummies/README.md) · [Spanda 101](../../docs/spanda-101/README.md)
 
 ## Tier 1 — Language basics (`basics/`)
 
@@ -57,4 +57,4 @@ spanda test examples/basics/07_in_language_tests.sd
 | `std/` | Standard library samples |
 | `packages/` | Package manifest layouts |
 
-Next step after basics: [Spanda 101](../../docs/spanda-101/README.md), [getting-started.md](../../docs/getting-started.md), and [showcase/killer_demo.sd](../showcase/killer_demo.sd).
+Next step after basics: [Spanda for Dummies](../../docs/spanda-for-dummies/README.md), [Spanda 101](../../docs/spanda-101/README.md), [getting-started.md](../../docs/getting-started.md), and [showcase/killer_demo.sd](../showcase/killer_demo.sd).

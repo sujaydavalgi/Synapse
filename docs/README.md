@@ -2,12 +2,18 @@
 
 Spanda is an AI-native autonomous systems programming language. Source files use the `.sd` extension.
 
+## Tutorials
+
+**[Tutorials index](./tutorials/README.md)** — all learning paths: For Dummies, Spanda 101, topic guides, walkthroughs, and example libraries.
+
 ## Guides
 
 | Document | Description |
 |----------|-------------|
+| [tutorials/README.md](./tutorials/README.md) | **Master index — all tutorials, walkthroughs, and example paths** |
 | [../README.md](../README.md) | Project overview, philosophy, quick start, and examples |
 | [getting-started.md](./getting-started.md) | **First robot in 10 minutes** |
+| [spanda-for-dummies/README.md](./spanda-for-dummies/README.md) | **Spanda for Dummies — plain-English no-jargon guide** |
 | [spanda-101/README.md](./spanda-101/README.md) | **Spanda 101 — 10-lesson tutorial series (basics → end-to-end)** |
 | [installation.md](./installation.md) | **Prebuilt packages for Linux, macOS, and Windows** |
 | [architecture.md](./architecture.md) | **Compiler pipeline with diagrams** |

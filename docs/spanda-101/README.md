@@ -4,6 +4,10 @@ A hands-on tutorial series for learning Spanda from your first robot program thr
 
 Each lesson links to a runnable example in the repo. Work through them in order, or jump to a topic you need.
 
+**Prefer plain English first?** See [Spanda for Dummies](../spanda-for-dummies/README.md) (~45 min, no jargon).
+
+**All tutorials:** [Tutorials index](../tutorials/README.md)
+
 **Prerequisites:** [Installation](../installation.md) and a built CLI (`npm run build:rust` → `target/release/spanda`).
 
 ---
@@ -31,6 +35,7 @@ Each lesson links to a runnable example in the repo. Work through them in order,
 
 | Next step | Resource |
 |-----------|----------|
+| All tutorials | [Tutorials index](../tutorials/README.md) |
 | Flagship safety demo | [killer-demo.md](../killer-demo.md) + `examples/showcase/killer_demo.sd` |
 | Language reference | [spanda-language.md](../spanda-language.md) |
 | Full API index | [spanda-reference.md](../spanda-reference.md) |
