@@ -1,0 +1,48 @@
+robot CloudRover {
+  trust trusted;
+
+  permissions [
+    crypto.encrypt,
+    crypto.decrypt,
+    identity.sign,
+    identity.verify,
+    secret.read,
+    secure_topic.publish,
+    secure_topic.subscribe,
+    network.outbound
+  ];
+
+  secrets {
+    tls_cert from file "certs/cloud-rover.pem";
+    cloud_key from env "CLOUD_PRIVATE_KEY";
+  }
+
+  identity RoverIdentity {
+    id: "cloud-rover-001";
+    public_key: "pub-cloud-001";
+    cert: "certs/cloud-rover.pem";
+  }
+
+  trust_boundary robot_to_cloud;
+
+  secure_comm {
+    encryption: required;
+    authentication: mutual;
+    integrity: required;
+  }
+
+  bus cloud_link {
+    transport: "websocket";
+    encryption: required;
+    authentication: mutual;
+  }
+
+  topic telemetry: String publish on "/cloud/telemetry" secure {
+    encryption required;
+    signed required;
+  };
+
+  behavior run() {
+    publish telemetry with "pose:ok";
+  }
+}

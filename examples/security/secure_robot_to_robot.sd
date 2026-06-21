@@ -1,0 +1,65 @@
+robot RoverA {
+  trust trusted;
+
+  permissions [
+    crypto.encrypt,
+    crypto.decrypt,
+    identity.sign,
+    identity.verify,
+    secret.read,
+    secure_topic.publish,
+    secure_topic.subscribe
+  ];
+
+  secrets {
+    rover_private_key from env "ROVER_A_PRIVATE_KEY";
+    tls_cert from file "certs/rover-a.pem";
+  }
+
+  identity RoverIdentity {
+    id: "rover-a";
+    public_key: "pub-rover-a";
+    cert: "certs/rover-a.pem";
+  }
+
+  trust_boundary robot_to_robot;
+
+  bus robot_mesh {
+    transport: "dds";
+    encryption: required;
+    authentication: mutual;
+  }
+
+  robot RoverB;
+
+  topic fleet_pose: Pose publish on "/fleet/pose" secure {
+    encryption required;
+    signed required;
+  };
+
+  behavior run() {
+    publish fleet_pose with pose(x: 1.0 m, y: 2.0 m, theta: 0.0 rad);
+  }
+}
+
+robot RoverB {
+  trust trusted;
+
+  permissions [
+    crypto.decrypt,
+    identity.verify,
+    secure_topic.subscribe
+  ];
+
+  identity RoverIdentity {
+    id: "rover-b";
+    public_key: "pub-rover-b";
+  }
+
+  topic fleet_pose: Pose subscribe on "/fleet/pose" secure {
+    encryption required;
+    signed required;
+  };
+
+  behavior run() {}
+}

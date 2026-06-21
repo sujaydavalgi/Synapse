@@ -84,7 +84,7 @@ fn secure_topic_requires_identity_at_publish() {
 
     let source = r#"
 robot R {
-  permissions [ identity.sign, identity.verify ];
+  permissions [ identity.sign, identity.verify, secure_topic.publish ];
 
   topic cmd: Velocity publish on "/cmd" secure {
     signed = true;

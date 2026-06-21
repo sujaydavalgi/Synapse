@@ -1,0 +1,49 @@
+robot EncryptedLidar {
+  trust trusted;
+
+  permissions [
+    crypto.encrypt,
+    crypto.decrypt,
+    identity.sign,
+    identity.verify,
+    secret.read,
+    secure_topic.publish,
+    secure_topic.subscribe
+  ];
+
+  secrets {
+    session_key from env "LIDAR_SESSION_KEY";
+  }
+
+  identity RoverIdentity {
+    id: "rover-lidar-01";
+    public_key: "pub-lidar-01";
+  }
+
+  secure_comm {
+    encryption: required;
+    authentication: signed;
+    integrity: required;
+  }
+
+  trust_boundary robot_internal;
+
+  bus local_secure {
+    transport: "local";
+    encryption: optional;
+  }
+
+  topic lidar_scan: Topic<LidarScan> {
+    secure {
+      encryption required;
+      signed required;
+      trusted_sources [LidarFront];
+    }
+  };
+
+  sensor LidarFront: Lidar { rate: 10 Hz; }
+
+  behavior run() {
+    publish lidar_scan with scan(ranges: [1.0, 2.0, 3.0]);
+  }
+}

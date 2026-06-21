@@ -1,0 +1,62 @@
+robot PatrolBot {
+  trust certified;
+
+  permissions [
+    crypto.encrypt,
+    crypto.sign,
+    crypto.verify,
+    identity.sign,
+    identity.verify,
+    secret.read,
+    secure_topic.publish,
+    actuator.execute.safe
+  ];
+
+  secrets {
+    operator_key from env "OPERATOR_SIGNING_KEY";
+  }
+
+  identity RoverIdentity {
+    id: "patrol-bot-01";
+    public_key: "pub-patrol-01";
+  }
+
+  identity OperatorConsole {
+    id: "operator-console";
+    trust: verified;
+  }
+
+  trust_boundary operator_to_robot;
+
+  secure_comm {
+    encryption: required;
+    authentication: mutual;
+    integrity: required;
+  }
+
+  topic motion_cmd: Topic<SafeAction> {
+    secure {
+      encryption required;
+      signed required;
+      trusted_sources [Navigator];
+      reject_untrusted true;
+    }
+  };
+
+  agent Navigator {
+    uses planner;
+    tools [];
+    goal "Navigate safely";
+    can [ publish(motion_cmd), plan ];
+
+    plan {
+      publish motion_cmd with safe_action(type: "stop");
+    }
+  }
+
+  ai_model planner: LLM { provider: "mock"; model: "test"; temperature: 0.1; }
+
+  behavior run() {
+    Navigator.plan();
+  }
+}

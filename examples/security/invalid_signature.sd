@@ -1,0 +1,30 @@
+simulate_compatibility {
+  fault InvalidSignature at T+10s;
+  fault ExpiredCertificate at T+20s;
+  fault ReplayAttack at T+30s;
+}
+
+robot FaultDemo {
+  trust trusted;
+
+  permissions [
+    identity.sign,
+    identity.verify,
+    crypto.verify,
+    secure_topic.publish
+  ];
+
+  identity RoverIdentity {
+    id: "fault-demo";
+    public_key: "pub-fault";
+  }
+
+  topic cmd: Velocity publish on "/cmd" secure {
+    signed = true;
+    encryption required;
+  };
+
+  behavior run() {
+    publish cmd with velocity(linear: 0.0 m/s, angular: 0.0 rad/s);
+  }
+}
