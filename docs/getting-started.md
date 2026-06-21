@@ -323,6 +323,20 @@ Open http://localhost:5173 to type-check and run programs in the browser.
 
 ---
 
+## GPS, connectivity, and geofencing
+
+Spanda programs can declare wireless requirements, geofence zones, and failover policies at module scope, then react with `on gps.lost`, `on geofence Zone exited`, and similar triggers.
+
+```bash
+spanda check examples/connectivity/gps_navigation.sd
+spanda check examples/connectivity/geofence_safety.sd
+spanda verify examples/connectivity/connectivity_hardware_verify.sd --target RoverV2
+```
+
+See [positioning.md](positioning.md), [connectivity.md](connectivity.md), and [geofencing.md](geofencing.md) for syntax and verification details. The TypeScript parser and interpreter mirror the Rust core for these constructs; hardware verify still requires the native CLI.
+
+---
+
 ## Language Server (LSP)
 
 Build the LSP for editor integration:
