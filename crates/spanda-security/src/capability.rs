@@ -280,6 +280,7 @@ pub fn capability_for_operation(operation: &str) -> Option<&'static str> {
         "verify_signature" | "identity.verify" => Some("identity.verify"),
         "ledger.anchor" => Some("ledger.anchor"),
         "actuator.execute" => Some("actuator.execute"),
+        "cellular.sim_identity" => Some("cellular.connect"),
         "network.publish" => Some("network.outbound"),
         _ => None,
     }

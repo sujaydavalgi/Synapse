@@ -96,7 +96,8 @@ pub fn resolve_type_name(name: &str) -> Result<SpandaType, String> {
         | "NetworkStatus"
         | "SignalStrength"
         | "PacketLoss"
-        | "RoamingStatus" => Ok(SpandaType::Named {
+        | "RoamingStatus"
+        | "SimIdentity" => Ok(SpandaType::Named {
             name: name.to_string(),
         }),
         "LLM" | "VisionModel" | "EmbeddingModel" | "Prompt" | "Completion" | "Embedding"
@@ -831,6 +832,7 @@ pub fn std_namespaces() -> HashMap<&'static str, &'static [&'static str]> {
             "Latency",
             "PacketLoss",
             "RoamingStatus",
+            "SimIdentity",
         ][..],
     );
     m.insert(
@@ -849,6 +851,7 @@ pub fn std_namespaces() -> HashMap<&'static str, &'static [&'static str]> {
             "FourGConnection",
             "FiveGConnection",
             "RoamingStatus",
+            "SimIdentity",
         ][..],
     );
     m.insert("std.geofence", &["GeoFence", "GeoPoint"][..]);

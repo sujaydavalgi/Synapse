@@ -971,6 +971,89 @@ impl RoutingCommBus {
         self.memory.publish_peer(peer, topic, value, transport);
     }
 
+    /// Connect the active transport adapter and resubscribe all in-memory topic paths.
+    pub fn reconnect_transport(&mut self, transport: TransportKind) {
+        // Reconnect transport.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        // - `transport` — transport kind to activate after connectivity failover
+        //
+        // Returns:
+        // Nothing.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let result = instance.reconnect_transport(transport);
+
+        let paths = self.memory.subscription_paths();
+
+        // Tear down stub adapters that are no longer the active transport.
+        for kind in [
+            TransportKind::Ros2,
+            TransportKind::Mqtt,
+            TransportKind::Dds,
+            TransportKind::Websocket,
+        ] {
+            if kind != transport {
+                match kind {
+                    TransportKind::Ros2 => self.ros2.disconnect(),
+                    TransportKind::Mqtt => self.mqtt.disconnect(),
+                    TransportKind::Dds => self.dds.disconnect(),
+                    TransportKind::Websocket => self.websocket.disconnect(),
+                    _ => {}
+                }
+            }
+        }
+
+        // Connect the target adapter when it is not already live.
+        match transport {
+            TransportKind::Ros2 if !self.ros2.is_connected() => {
+                let _ = self.ros2.connect(&self.config);
+            }
+            TransportKind::Mqtt if !self.mqtt.is_connected() => {
+                let _ = self.mqtt.connect(&TransportConfig {
+                    broker_url: self
+                        .config
+                        .broker_url
+                        .clone()
+                        .or(Some("mqtt://localhost:1883".into())),
+                    client_id: self.config.client_id.clone().or(Some("spanda".into())),
+                    ..self.config.clone()
+                });
+            }
+            TransportKind::Dds if !self.dds.is_connected() => {
+                let _ = self.dds.connect(&TransportConfig {
+                    domain_id: self.config.domain_id.or(Some(0)),
+                    ..self.config.clone()
+                });
+            }
+            TransportKind::Websocket if !self.websocket.is_connected() => {
+                let _ = self.websocket.connect(&TransportConfig {
+                    broker_url: self
+                        .config
+                        .broker_url
+                        .clone()
+                        .or(Some("ws://localhost:9090".into())),
+                    ..self.config.clone()
+                });
+            }
+            TransportKind::Local | TransportKind::Sim => return,
+            _ => {}
+        }
+
+        let Some(adapter) = self.adapter_mut(transport) else {
+            return;
+        };
+
+        // Resubscribe every topic path on the newly active adapter.
+        for path in paths {
+            adapter.subscribe(&path);
+        }
+    }
+
     /// Poll external transport adapters for inbound messages on subscribed topics.
     pub fn poll_inbound(&mut self, transport: TransportKind) -> Vec<(String, RuntimeValue)> {
         // Poll inbound.
@@ -1381,5 +1464,26 @@ mod tests {
         );
         assert_eq!(bus.published_messages().len(), 1);
         assert!(bus.ros2.published().is_empty());
+    }
+
+    #[test]
+    fn reconnect_transport_disconnects_inactive_adapters() {
+        let mut bus = RoutingCommBus::new();
+        bus.configure(TransportConfig::default());
+        bus.subscribe("/scan", "handler");
+        bus.reconnect_transport(TransportKind::Mqtt);
+        assert!(bus.mqtt.is_connected());
+        bus.reconnect_transport(TransportKind::Dds);
+        assert!(!bus.mqtt.is_connected());
+        assert!(bus.dds.is_connected());
+    }
+
+    #[test]
+    fn reconnect_transport_resubscribes_on_dds() {
+        let mut bus = RoutingCommBus::new();
+        bus.configure(TransportConfig::default());
+        bus.subscribe("/scan", "handler");
+        bus.reconnect_transport(TransportKind::Dds);
+        assert!(bus.dds.is_connected());
     }
 }

@@ -4304,28 +4304,64 @@ impl<B: RobotBackend> Interpreter<B> {
         Ok(())
     }
 
+    fn active_connectivity_faults(&self) -> std::collections::HashSet<String> {
+        let mut faults = self.hardware_monitor.injected_faults().clone();
+        for fault in self.comm_bus.active_faults() {
+            faults.insert(fault);
+        }
+        faults
+    }
+
+    fn activate_connectivity_link(&mut self, policy_name: &str, link: &str, reason: &str) {
+        self.active_connectivity_link = link.to_string();
+        self.default_transport =
+            crate::connectivity_positioning::connectivity_link_to_transport(link);
+        self.comm_bus
+            .reconnect_transport(self.default_transport);
+        self.log(format!(
+            "connectivity_policy '{policy_name}': {reason} (transport {:?})",
+            self.default_transport
+        ));
+    }
+
     fn apply_connectivity_failover(&mut self, domain: &str, event: &str) {
-        for policy in &self.connectivity_policies {
-            if domain == "network" && event == "disconnected" {
-                if self.active_connectivity_link == policy.preferred {
-                    self.active_connectivity_link = policy.fallback.clone();
-                    self.default_transport = crate::connectivity_positioning::connectivity_link_to_transport(
+        if domain != "network" || event != "disconnected" {
+            return;
+        }
+        let faults = self.active_connectivity_faults();
+        let policies: Vec<_> = self
+            .connectivity_policies
+            .iter()
+            .map(|policy| {
+                (
+                    policy.name.clone(),
+                    policy.preferred.clone(),
+                    policy.fallback.clone(),
+                    policy.emergency.clone(),
+                )
+            })
+            .collect();
+        for (policy_name, preferred, fallback, emergency) in policies {
+            if self.active_connectivity_link == preferred {
+                self.activate_connectivity_link(
+                    &policy_name,
+                    &fallback,
+                    &format!("failover {preferred} -> {fallback}"),
+                );
+            }
+
+            if let Some(em) = &emergency {
+                if self.active_connectivity_link != *em
+                    && crate::connectivity_positioning::is_link_impaired(
                         &self.active_connectivity_link,
+                        &faults,
+                    )
+                {
+                    self.activate_connectivity_link(
+                        &policy_name,
+                        em,
+                        &format!("emergency link {em}"),
                     );
-                    self.log(format!(
-                        "connectivity_policy '{}': failover {} -> {} (transport {:?})",
-                        policy.name, policy.preferred, policy.fallback, self.default_transport
-                    ));
-                } else if Some(&self.active_connectivity_link) == policy.emergency.as_ref() {
-                    continue;
-                } else if let Some(em) = &policy.emergency {
-                    self.active_connectivity_link = em.clone();
-                    self.default_transport =
-                        crate::connectivity_positioning::connectivity_link_to_transport(em);
-                    self.log(format!(
-                        "connectivity_policy '{}': emergency link {} (transport {:?})",
-                        policy.name, em, self.default_transport
-                    ));
                 }
             }
         }
@@ -7471,6 +7507,34 @@ impl<B: RobotBackend> Interpreter<B> {
             "connectivity_link" => Ok(RuntimeValue::String {
                 value: self.active_connectivity_link.clone(),
             }),
+            "sim_identity" => {
+                self.security
+                    .require_operation("cellular.sim_identity")
+                    .map_err(|e| self.security_error(e, 0))?;
+                let cellular_active =
+                    crate::connectivity_positioning::is_modem_bearer(&self.active_connectivity_link);
+                let outage = self
+                    .comm_bus
+                    .active_faults()
+                    .iter()
+                    .any(|f| {
+                        matches!(
+                            f.as_str(),
+                            "LteOutage" | "SatelliteOutage" | "NetworkOutage"
+                        )
+                    })
+                    || self
+                        .hardware_monitor
+                        .injected_faults()
+                        .iter()
+                        .any(|f| {
+                            f == "LteOutage" || f == "SatelliteOutage" || f == "NetworkOutage"
+                        });
+                Ok(crate::connectivity_positioning::runtime_sim_identity(
+                    &self.active_connectivity_link,
+                    cellular_active && !outage,
+                ))
+            }
             "identity" => self
                 .env
                 .get("identity")

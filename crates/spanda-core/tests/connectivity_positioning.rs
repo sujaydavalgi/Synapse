@@ -317,3 +317,19 @@ robot Rover {
 "#;
     check(source).expect("connectivity capabilities should parse");
 }
+
+#[test]
+fn robot_sim_identity_method() {
+    let source = r#"
+robot Rover {
+  permissions [ cellular.connect ];
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let sim = robot.sim_identity();
+    let _ = sim;
+    wheels.stop();
+  }
+}
+"#;
+    check(source).expect("sim_identity should type-check");
+}

@@ -5631,6 +5631,8 @@ fn object_property(type_name: &str, property: &str) -> Option<SpandaType> {
         ("GeoPoint", "lat" | "lon") => Some(SpandaType::Number {
             unit: UnitKind::None,
         }),
+        ("SimIdentity", "iccid" | "carrier") => Some(SpandaType::String),
+        ("SimIdentity", "esim" | "attested") => Some(SpandaType::Bool),
         ("ActionProposal" | "SafeAction" | "NavigationPolicy", "linear") => {
             Some(SpandaType::Number {
                 unit: UnitKind::MPerS,
@@ -5891,6 +5893,16 @@ fn robot_methods() -> HashMap<&'static str, MethodSig> {
                 params: vec![],
                 named_params: HashMap::new(),
                 returns: SpandaType::String,
+            },
+        ),
+        (
+            "sim_identity",
+            MethodSig {
+                params: vec![],
+                named_params: HashMap::new(),
+                returns: SpandaType::Named {
+                    name: "SimIdentity".into(),
+                },
             },
         ),
         (

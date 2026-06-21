@@ -49,6 +49,7 @@ pub fn connectivity_types() -> &'static [&'static str] {
         "Latency",
         "PacketLoss",
         "RoamingStatus",
+        "SimIdentity",
     ]
 }
 
@@ -99,6 +100,7 @@ pub fn connectivity_faults() -> &'static [&'static str] {
         "NetworkLatencySpike",
         "WeakWifi",
         "LteOutage",
+        "SatelliteOutage",
         "FiveGHandoff",
         "BluetoothDisconnect",
         "PacketLoss",
@@ -203,10 +205,11 @@ pub fn hardware_event_to_connectivity(event: &str) -> Option<(&'static str, &'st
 /// Map comm bus fault names to connectivity trigger pairs.
 pub fn fault_to_connectivity(fault: &str) -> Option<(&'static str, &'static str)> {
     match fault {
-        "NetworkOutage" | "LteOutage" | "WeakWifi" => Some(("network", "disconnected")),
+        "NetworkOutage" | "LteOutage" | "SatelliteOutage" | "WeakWifi" => Some(("network", "disconnected")),
         "BluetoothDisconnect" => Some(("bluetooth", "device_disconnected")),
         "FiveGHandoff" => Some(("cellular", "roaming")),
         "GpsSpoofing" => Some(("gps", "spoofed")),
+        "GpsDrift" => Some(("gps", "drift")),
         _ => None,
     }
 }
@@ -284,6 +287,7 @@ pub fn connectivity_link_to_transport(link: &str) -> crate::comm::TransportKind 
         "cellular" | "lte" | "4g" | "fiveg" | "5g" => TransportKind::Dds,
         "bluetooth" | "ble" => TransportKind::Websocket,
         "ethernet" => TransportKind::Ros2,
+        "satellite" => TransportKind::Websocket,
         "network" => TransportKind::Sim,
         _ => TransportKind::Sim,
     }
@@ -329,6 +333,102 @@ pub fn runtime_gps_fix(
                     value: fix_quality,
                     unit: UnitKind::None,
                 },
+            ),
+        ]),
+    }
+}
+
+/// Return true when the active link name refers to a cellular bearer (not satellite).
+pub fn is_cellular_link(link: &str) -> bool {
+    matches!(
+        link.to_ascii_lowercase().as_str(),
+        "cellular" | "lte" | "4g" | "fourg" | "fiveg" | "5g"
+    )
+}
+
+/// Return true when the active link name refers to a satellite backhaul bearer.
+pub fn is_satellite_link(link: &str) -> bool {
+    link.eq_ignore_ascii_case("satellite")
+}
+
+/// Return true when the active link supports SIM/modem attestation simulation.
+pub fn is_modem_bearer(link: &str) -> bool {
+    is_cellular_link(link) || is_satellite_link(link)
+}
+
+/// Return true when a connectivity link name refers to Wi-Fi.
+pub fn is_wifi_link(link: &str) -> bool {
+    matches!(
+        link.to_ascii_lowercase().as_str(),
+        "wifi" | "wi-fi" | "wifi6"
+    )
+}
+
+/// Return true when simulation faults disable the given connectivity link.
+pub fn is_link_impaired(link: &str, faults: &HashSet<String>) -> bool {
+    let link = link.to_ascii_lowercase();
+    for fault in faults {
+        match fault.as_str() {
+            "NetworkOutage" => {
+                if is_satellite_link(&link) || link == "bluetooth" || link == "ble" {
+                    continue;
+                }
+                if is_wifi_link(&link) || is_cellular_link(&link) || link == "network" || link == "ethernet"
+                {
+                    return true;
+                }
+            }
+            "WeakWifi" if is_wifi_link(&link) || link == "network" => return true,
+            "LteOutage" if is_cellular_link(&link) => return true,
+            "SatelliteOutage" if is_satellite_link(&link) => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Produce a [`SimIdentity`]-shaped runtime object for SIM/eSIM attestation simulation.
+pub fn runtime_sim_identity(link: &str, attested: bool) -> crate::runtime::RuntimeValue {
+    use crate::runtime::RuntimeValue;
+    use std::collections::HashMap;
+    let link_lower = link.to_ascii_lowercase();
+    let iccid = format!(
+        "89{:010}00000000000",
+        link_lower.bytes().fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64))
+            % 10_000_000_000
+    );
+    let carrier = if is_satellite_link(link) {
+        "sim-satellite"
+    } else if link_lower.contains("5g") || link_lower.contains("fiveg") {
+        "sim-5g"
+    } else if is_cellular_link(link) {
+        "sim-lte"
+    } else {
+        "sim-unknown"
+    };
+    let esim = link_lower.contains("5g") || link_lower.contains("fiveg");
+    RuntimeValue::Object {
+        type_name: "SimIdentity".into(),
+        fields: HashMap::from([
+            (
+                "iccid".into(),
+                RuntimeValue::String {
+                    value: iccid,
+                },
+            ),
+            (
+                "carrier".into(),
+                RuntimeValue::String {
+                    value: carrier.into(),
+                },
+            ),
+            (
+                "esim".into(),
+                RuntimeValue::Bool { value: esim },
+            ),
+            (
+                "attested".into(),
+                RuntimeValue::Bool { value: attested },
             ),
         ]),
     }
@@ -525,6 +625,11 @@ pub fn apply_connectivity_fault(
                 )
             });
         }
+        "SatelliteOutage" => {
+            profile.network_bandwidth_mbps = Some(0.0);
+            profile.network_latency_ms = Some(10_000.0);
+            profile.connectivity.retain(|c| c != "Satellite");
+        }
         "WeakWifi" => {
             profile.network_bandwidth_mbps = Some(1.0);
             profile.network_latency_ms = Some(500.0);
@@ -683,6 +788,42 @@ mod tests {
         let (lat0, _, _) = apply_gps_position_faults(&faults, 30.0, -97.0, 0.0);
         let (lat1, _, _) = apply_gps_position_faults(&faults, 30.0, -97.0, 10_000.0);
         assert!(lat1 > lat0);
+    }
+
+    #[test]
+    fn gps_drift_maps_to_trigger() {
+        assert_eq!(
+            fault_to_connectivity("GpsDrift"),
+            Some(("gps", "drift"))
+        );
+    }
+
+    #[test]
+    fn connectivity_link_to_transport_maps_satellite() {
+        assert_eq!(
+            connectivity_link_to_transport("satellite"),
+            crate::comm::TransportKind::Websocket
+        );
+    }
+
+    #[test]
+    fn is_link_impaired_for_lte_outage_on_cellular() {
+        use std::collections::HashSet;
+        let faults = HashSet::from(["LteOutage".to_string()]);
+        assert!(is_link_impaired("cellular", &faults));
+        assert!(!is_link_impaired("satellite", &faults));
+    }
+
+    #[test]
+    fn runtime_sim_identity_cellular_attested() {
+        use crate::runtime::RuntimeValue;
+        let value = runtime_sim_identity("cellular", true);
+        let RuntimeValue::Object { type_name, fields } = value else {
+            panic!("expected object");
+        };
+        assert_eq!(type_name, "SimIdentity");
+        assert!(fields.contains_key("iccid"));
+        assert!(fields.contains_key("attested"));
     }
 
     #[test]

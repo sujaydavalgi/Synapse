@@ -558,6 +558,11 @@ fn apply_fault(mut profile: HardwareProfile, fault_type: &str) -> HardwareProfil
                 .connectivity
                 .retain(|c| !matches!(c.as_str(), "LTE" | "FourG" | "4G" | "FiveG" | "5G"));
         }
+        "SatelliteOutage" => {
+            profile.network_bandwidth_mbps = Some(0.0);
+            profile.network_latency_ms = Some(10_000.0);
+            profile.connectivity.retain(|c| c != "Satellite");
+        }
         "NetworkLatencySpike" | "LatencySpike" => {
             profile.network_latency_ms = Some(2000.0);
         }
