@@ -79,6 +79,7 @@ pub struct VerifyOptions {
     pub target: Option<String>,
     pub all_targets: bool,
     pub simulate: bool,
+    pub strict_certify: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1948,6 +1949,10 @@ pub fn verify_program_compatibility(
         items.extend(validate_connectivity_policy(policy));
     }
     items.extend(crate::adapter_verify::verify_framework_imports(imports));
+    items.extend(crate::certify_verify::verify_certification_proof(
+        program,
+        options.strict_certify,
+    ));
     for cert in certifications {
         use crate::robotics_platform::CertifyDecl;
         let CertifyDecl::CertifyDecl {
@@ -1971,15 +1976,6 @@ pub fn verify_program_compatibility(
     let program_traits = trait_names(program);
     let targets_to_check = resolve_targets(program, options, &registry);
     let run_simulation = options.simulate || simulate_compatibility.is_some();
-
-    if !targets_to_check.is_empty() && certifications.is_empty() {
-        items.push(warn(
-            "certify",
-            "Deploy targets declared without certification metadata — add certify ISO13849 (or IEC61508 / ISO26262)",
-            1,
-            1,
-        ));
-    }
 
     // Skip further work when targets to check is empty.
     if targets_to_check.is_empty() && options.target.is_none() && !options.all_targets {
@@ -2140,6 +2136,7 @@ pub fn verify_program_compatibility_legacy(
             target: cli_target.map(str::to_string),
             all_targets: false,
             simulate: false,
+            strict_certify: false,
         },
     )
 }
