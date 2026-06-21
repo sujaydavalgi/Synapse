@@ -1,11 +1,12 @@
 //! OTA deploy CLI handlers (`spanda deploy plan|rollout|rollback|status|agent`).
 
 use spanda_core::{
-    agent_health, apply_rollout, build_deploy_plan, compile, default_agent_state_path,
-    default_agents_path, default_state_path, execute_remote_rollout, execute_remote_rollback,
-    load_agent_registry, load_deploy_state, orchestrate_fleets, plan_rollout, register_agent,
-    rollback_targets, run_deploy_agent_server, save_agent_registry, save_deploy_state,
-    DeployAgentTls, DeployState, RolloutOptions, RolloutStrategy,
+    agent_health, apply_rollout, build_deploy_bundle, build_deploy_plan, compile,
+    default_agent_state_path, default_agents_path, default_state_path, execute_remote_rollout,
+    execute_remote_rollback, load_agent_registry, load_deploy_state, orchestrate_fleets,
+    plan_rollout, register_agent, rollback_targets, run_deploy_agent_server, save_agent_registry,
+    save_deploy_state, sign_deploy_bundle, DeployAgentTls, DeployState, RolloutOptions,
+    RolloutStrategy,
 };
 use std::env;
 use std::fs;
@@ -62,11 +63,11 @@ pub fn deploy_dispatch(args: &[String]) {
 }
 
 pub fn deploy_usage_lines() -> &'static str {
-    "           spanda deploy plan [--json] [--version <ver>] <file.sd>\n\
-     spanda deploy rollout [--json] [--remote] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>\n\
+    "           spanda deploy plan [--json] [--version <ver>] [--sign-key <material>] [--bundle-out <file>] <file.sd>\n\
+     spanda deploy rollout [--json] [--remote] [--sign-key <material>] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>\n\
      spanda deploy rollback [--json] [--remote] <file.sd>\n\
      spanda deploy status [--json]\n\
-     spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>] [--require-hash]\n\
+     spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>] [--require-hash] [--require-signature] [--trust-key <material>]\n\
      spanda deploy agent register <Robot@Hardware> <http(s)://host:port> [--token <t>]\n\
      spanda deploy agent list [--json]\n\
      spanda deploy --target wasm [--out <file.json>] <file.sd>"
@@ -79,6 +80,8 @@ fn usage() {
 fn cmd_plan(args: &[String]) {
     let mut json = false;
     let mut version = "1.0.0".to_string();
+    let mut sign_key = None;
+    let mut bundle_out = None;
     let mut file: Option<String> = None;
     let mut i = 0;
     while i < args.len() {
@@ -86,6 +89,14 @@ fn cmd_plan(args: &[String]) {
             "--json" => json = true,
             "--version" if i + 1 < args.len() => {
                 version = args[i + 1].clone();
+                i += 1;
+            }
+            "--sign-key" if i + 1 < args.len() => {
+                sign_key = Some(args[i + 1].clone());
+                i += 1;
+            }
+            "--bundle-out" if i + 1 < args.len() => {
+                bundle_out = Some(args[i + 1].clone());
                 i += 1;
             }
             other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
@@ -103,8 +114,26 @@ fn cmd_plan(args: &[String]) {
     let source = read_source(&file);
     let program = parse_program(&source, &file);
     let plan = build_deploy_plan(&program, &file, &version);
+    let mut bundle = build_deploy_bundle(&plan);
+    if let Some(key) = sign_key.or_else(|| std::env::var("SPANDA_DEPLOY_SIGN_KEY").ok()) {
+        if let Err(err) = sign_deploy_bundle(&mut bundle, &key) {
+            eprintln!("Sign bundle failed: {err}");
+            process::exit(1);
+        }
+    }
+    if let Some(out) = bundle_out {
+        if let Err(err) = fs::write(&out, serde_json::to_string_pretty(&bundle).unwrap()) {
+            eprintln!("Write bundle failed: {err}");
+            process::exit(1);
+        }
+        println!("Wrote signed deploy bundle to {out}");
+    }
     if json {
-        println!("{}", serde_json::to_string_pretty(&plan).unwrap());
+        if bundle.signature.is_some() {
+            println!("{}", serde_json::to_string_pretty(&bundle).unwrap());
+        } else {
+            println!("{}", serde_json::to_string_pretty(&plan).unwrap());
+        }
     } else {
         println!("Deploy plan for {file} (version {version})");
         for a in &plan.assignments {
@@ -116,6 +145,9 @@ fn cmd_plan(args: &[String]) {
         if let Some(hash) = &plan.program_hash {
             println!("  program_hash: {hash}");
         }
+        if let Some(signature) = &bundle.signature {
+            println!("  artifact_signature: {signature}");
+        }
     }
 }
 
@@ -126,6 +158,7 @@ fn cmd_rollout(args: &[String]) {
     let mut version = "1.0.0".to_string();
     let mut strategy = RolloutStrategy::All;
     let mut canary_percent = 10u8;
+    let mut sign_key = None;
     let mut file: Option<String> = None;
     let mut i = 0;
     while i < args.len() {
@@ -153,6 +186,10 @@ fn cmd_rollout(args: &[String]) {
                 canary_percent = args[i + 1].parse().unwrap_or(10);
                 i += 1;
             }
+            "--sign-key" if i + 1 < args.len() => {
+                sign_key = Some(args[i + 1].clone());
+                i += 1;
+            }
             other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
             other => {
                 eprintln!("Unknown argument: {other}");
@@ -168,6 +205,13 @@ fn cmd_rollout(args: &[String]) {
     let source = read_source(&file);
     let program = parse_program(&source, &file);
     let plan = build_deploy_plan(&program, &file, &version);
+    let mut bundle = build_deploy_bundle(&plan);
+    if let Some(key) = sign_key.or_else(|| std::env::var("SPANDA_DEPLOY_SIGN_KEY").ok()) {
+        if let Err(err) = sign_deploy_bundle(&mut bundle, &key) {
+            eprintln!("Sign bundle failed: {err}");
+            process::exit(1);
+        }
+    }
     let options = RolloutOptions {
         strategy,
         canary_percent,
@@ -177,7 +221,7 @@ fn cmd_rollout(args: &[String]) {
     };
     let result = if remote {
         let registry = load_agent_registry(&agents_path());
-        execute_remote_rollout(&plan, &options, &registry)
+        execute_remote_rollout(&plan, &options, &registry, &bundle)
     } else {
         plan_rollout(&plan, &options)
     };
@@ -253,6 +297,8 @@ fn cmd_agent_start(args: &[String]) {
     let mut tls_cert = None;
     let mut tls_key = None;
     let mut require_hash = false;
+    let mut require_signature = false;
+    let mut trusted_public_key = None;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -277,6 +323,11 @@ fn cmd_agent_start(args: &[String]) {
                 i += 1;
             }
             "--require-hash" => require_hash = true,
+            "--require-signature" => require_signature = true,
+            "--trust-key" if i + 1 < args.len() => {
+                trusted_public_key = Some(args[i + 1].clone());
+                i += 1;
+            }
             other => {
                 eprintln!("Unknown argument: {other}");
                 process::exit(1);
@@ -299,6 +350,10 @@ fn cmd_agent_start(args: &[String]) {
             process::exit(1);
         }
     };
+    if require_signature && trusted_public_key.is_none() {
+        eprintln!("Missing --trust-key when --require-signature is set");
+        process::exit(1);
+    }
     if let Err(err) = run_deploy_agent_server(
         &bind,
         &target,
@@ -306,6 +361,8 @@ fn cmd_agent_start(args: &[String]) {
         &default_agent_state_path(),
         tls,
         require_hash,
+        require_signature,
+        trusted_public_key,
     ) {
         eprintln!("Deploy agent failed: {err}");
         process::exit(1);
@@ -452,6 +509,16 @@ pub fn fleet_orchestrate_dispatch(args: &[String]) {
             }
             for message in &fleet.peer_messages {
                 println!("    peer: {message}");
+            }
+            for delivery in &fleet.peer_deliveries {
+                println!(
+                    "    mesh: {} -> {} topic={} step={} delivered={}",
+                    delivery.from_robot,
+                    delivery.to_robot,
+                    delivery.topic,
+                    delivery.step,
+                    delivery.delivered
+                );
             }
         }
     }

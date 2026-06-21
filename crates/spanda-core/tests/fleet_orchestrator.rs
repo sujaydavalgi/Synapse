@@ -33,9 +33,10 @@ fleet Recon { ScoutA; ScoutB; }
     let result = orchestrate_fleets(&program, "peer_fleet.sd");
     assert!(result.success);
     let fleet = &result.fleets[0];
-    assert_eq!(fleet.coordination_mode, "peer_round_robin_mission");
+    assert_eq!(fleet.coordination_mode, "peer_mesh_mission");
     assert!(!fleet.peer_messages.is_empty());
-    assert!(fleet.peer_messages[0].contains("ScoutA->ScoutB:step="));
+    assert!(!fleet.peer_deliveries.is_empty());
+    assert!(fleet.peer_deliveries.iter().all(|d| d.delivered));
 }
 
 #[test]

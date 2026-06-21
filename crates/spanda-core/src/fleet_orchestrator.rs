@@ -4,9 +4,10 @@
 //! then executes a round-robin mission coordination pass across fleet members.
 
 use crate::ast::{Program, RobotDecl};
-use crate::comm::PeerRobotDecl;
+use crate::comm::{CommBus, InMemoryCommBus, PeerRobotDecl, TransportKind};
 use crate::foundations::MissionDecl;
 use crate::robotics_platform::{FleetDecl, FleetRegistry, MissionRuntime};
+use crate::runtime::RuntimeValue;
 use serde::{Deserialize, Serialize};
 
 /// Per-member coordination state during orchestration.
@@ -21,6 +22,16 @@ pub struct FleetMemberState {
     pub peer_handoffs: Vec<String>,
 }
 
+/// One peer message delivered over the in-process fleet mesh bus.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PeerDelivery {
+    pub from_robot: String,
+    pub to_robot: String,
+    pub topic: String,
+    pub step: String,
+    pub delivered: bool,
+}
+
 /// Orchestration report for one fleet group.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FleetOrchestrationReport {
@@ -30,6 +41,8 @@ pub struct FleetOrchestrationReport {
     pub steps_advanced: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub peer_messages: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub peer_deliveries: Vec<PeerDelivery>,
 }
 
 /// Full orchestration result for a program.
@@ -73,6 +86,43 @@ fn peer_handoffs(member_name: &str, step: &str, peer_robots: &[PeerRobotDecl]) -
         .collect()
 }
 
+fn deliver_peer_steps(
+    mesh_bus: &mut InMemoryCommBus,
+    from_robot: &str,
+    step: &str,
+    peer_robots: &[PeerRobotDecl],
+) -> Vec<PeerDelivery> {
+    if step.is_empty() || peer_robots.is_empty() {
+        return Vec::new();
+    }
+    let mut deliveries = Vec::new();
+    for peer in peer_robots {
+        let PeerRobotDecl::PeerRobotDecl { name, .. } = peer;
+        mesh_bus.register_robot(name);
+        mesh_bus.publish_peer(
+            name,
+            "mission_step",
+            RuntimeValue::String {
+                value: step.to_string(),
+            },
+            TransportKind::Sim,
+            Some(from_robot),
+        );
+        let path = format!("/{name}/mission_step");
+        let delivered = mesh_bus.published_messages().iter().any(|message| {
+            message.topic_path == path && message.source_id.as_deref() == Some(from_robot)
+        });
+        deliveries.push(PeerDelivery {
+            from_robot: from_robot.to_string(),
+            to_robot: name.clone(),
+            topic: "mission_step".into(),
+            step: step.to_string(),
+            delivered,
+        });
+    }
+    deliveries
+}
+
 /// Build fleet registry from program declarations.
 pub fn fleet_registry_from_program(program: &Program) -> FleetRegistry {
     let Program::Program { fleets, .. } = program;
@@ -109,6 +159,12 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
         let mut member_states = Vec::new();
         let mut steps_advanced = 0u32;
         let mut peer_messages = Vec::new();
+        let mut peer_deliveries = Vec::new();
+        let mut mesh_bus = InMemoryCommBus::new();
+
+        for member_name in members {
+            mesh_bus.register_robot(member_name);
+        }
 
         for member_name in members {
             let Some(robot) = robot_by_name(robots, member_name) else {
@@ -142,6 +198,12 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
             };
             let handoffs = peer_handoffs(member_name, &current_step, peer_robots);
             peer_messages.extend(handoffs.clone());
+            peer_deliveries.extend(deliver_peer_steps(
+                &mut mesh_bus,
+                member_name,
+                &current_step,
+                peer_robots,
+            ));
             let _ = mission;
             member_states.push(FleetMemberState {
                 robot_name: member_name.clone(),
@@ -153,7 +215,10 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
             });
         }
 
-        let coordination_mode = if member_states.iter().any(|m| m.has_peer_link) {
+        let has_peer_link = member_states.iter().any(|m| m.has_peer_link);
+        let coordination_mode = if !peer_deliveries.is_empty() {
+            "peer_mesh_mission".into()
+        } else if has_peer_link {
             "peer_round_robin_mission".into()
         } else {
             "round_robin_mission".into()
@@ -164,6 +229,7 @@ pub fn orchestrate_fleets(program: &Program, program_path: &str) -> FleetOrchest
             coordination_mode,
             steps_advanced,
             peer_messages,
+            peer_deliveries,
         });
     }
 

@@ -1,10 +1,10 @@
 //! Remote OTA deploy agent integration tests.
 
 use spanda_core::{
-    agent_entry_for_port, agent_health, agent_rollout, agent_status, build_deploy_plan,
-    compile, default_agents_path, deploy_target_key, execute_remote_rollout, load_agent_registry,
-    register_agent, save_agent_registry, spawn_test_agent, DeployAgentRegistry, RolloutOptions,
-    RolloutStrategy,
+    agent_entry_for_port, agent_health, agent_rollout, agent_status, build_deploy_bundle,
+    build_deploy_plan, compile, default_agents_path, deploy_target_key, execute_remote_rollout,
+    load_agent_registry, register_agent, save_agent_registry, sign_deploy_bundle,
+    spawn_test_agent, DeployAgentRegistry, RolloutOptions, RolloutStrategy,
 };
 use std::thread;
 use std::time::Duration;
@@ -25,6 +25,8 @@ fn remote_rollout_updates_agent_state() {
     );
     let plan = build_deploy_plan(&program, program_path, "2.0.0");
     assert!(plan.program_hash.is_some(), "deploy plan should include program hash");
+    let mut bundle = build_deploy_bundle(&plan);
+    sign_deploy_bundle(&mut bundle, "test-signing-key").expect("sign bundle");
     let mut registry = DeployAgentRegistry::default();
     register_agent(
         &mut registry,
@@ -43,18 +45,15 @@ fn remote_rollout_updates_agent_state() {
             ..Default::default()
         },
         &registry,
+        &bundle,
     );
     assert!(result.success, "remote rollout failed: {:?}", result.steps);
     let status = agent_status(&entry).expect("agent status");
     assert_eq!(status.current_version, "2.0.0");
 
-    let rollout = agent_rollout(
-        &entry,
-        "2.1.0",
-        Some("ota_deployment.sd"),
-        plan.program_hash.as_deref(),
-    )
-    .expect("agent rollout");
+    bundle.version = "2.1.0".into();
+    sign_deploy_bundle(&mut bundle, "test-signing-key").expect("resign bundle");
+    let rollout = agent_rollout(&entry, &bundle).expect("agent rollout");
     assert!(rollout.ok);
     assert_eq!(rollout.version, "2.1.0");
 }

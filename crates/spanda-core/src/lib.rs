@@ -14,6 +14,7 @@ pub mod deploy_service;
 pub mod deploy_http;
 pub mod deploy_remote;
 pub mod deploy_agent;
+pub mod deploy_bundle;
 pub mod docs;
 mod error;
 pub mod events;
@@ -82,6 +83,10 @@ pub use deploy_service::{
     DeployPlan, DeployState, RolloutOptions, RolloutResult, RolloutStep, RolloutStepStatus,
     RolloutStrategy,
 };
+pub use deploy_bundle::{
+    build_deploy_bundle, bundle_canonical_json, sign_deploy_bundle, verify_deploy_bundle,
+    verify_rollout_artifact, DeployArtifactBundle,
+};
 pub use deploy_remote::{
     agent_health, agent_rollout, agent_status, default_agents_path, execute_remote_rollout,
     execute_remote_rollback, load_agent_registry, lookup_agent, missing_remote_targets,
@@ -94,7 +99,7 @@ pub use deploy_agent::{
 pub use deploy_http::{parse_http_url, DeployAgentTls};
 pub use fleet_orchestrator::{
     fleet_registry_from_program, orchestrate_fleets, FleetMemberState, FleetOrchestrationReport,
-    FleetOrchestrationResult,
+    FleetOrchestrationResult, PeerDelivery,
 };
 pub use debug_session::{DebugMachine, DebugStackFrame, DebugStepKind};
 pub use docs::generate_markdown;

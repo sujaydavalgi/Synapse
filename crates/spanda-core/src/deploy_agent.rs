@@ -1,10 +1,12 @@
 //! On-device Spanda deploy agent HTTP server.
 
+use crate::deploy_bundle::{verify_deploy_bundle, DeployArtifactBundle};
 use crate::deploy_http::{
     http_response, parse_http_request, read_plain_request, serve_tls_connection,
     write_plain_response, DeployAgentTls, HttpRequest, HttpResponse,
 };
 use crate::deploy_remote::DeployAgentEntry;
+use crate::deploy_service::DeployAssignment;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
@@ -26,6 +28,10 @@ pub struct AgentState {
     pub program_hash: Option<String>,
     #[serde(default)]
     pub require_hash: bool,
+    #[serde(default)]
+    pub require_signature: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trusted_public_key: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,6 +40,12 @@ struct RolloutRequest {
     version: String,
     program: Option<String>,
     program_hash: Option<String>,
+    #[serde(default)]
+    assignments: Vec<DeployAssignment>,
+    #[serde(default)]
+    certifications: Vec<String>,
+    artifact_signature: Option<String>,
+    artifact_public_key: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -121,6 +133,29 @@ pub fn handle_agent_request(state: &mut AgentState, request: HttpRequest) -> Htt
                     status: 400,
                     body: r#"{"ok":false,"error":"program_hash required"}"#.into(),
                 };
+            }
+            if state.require_signature {
+                let Some(trusted) = state.trusted_public_key.as_deref() else {
+                    return HttpResponse {
+                        status: 500,
+                        body: r#"{"ok":false,"error":"agent missing trusted public key"}"#.into(),
+                    };
+                };
+                let bundle = DeployArtifactBundle {
+                    version: payload.version.clone(),
+                    program: payload.program.clone().unwrap_or_default(),
+                    program_hash: payload.program_hash.clone(),
+                    assignments: payload.assignments.clone(),
+                    certifications: payload.certifications.clone(),
+                    signature: payload.artifact_signature.clone(),
+                    public_key: payload.artifact_public_key.clone(),
+                };
+                if !verify_deploy_bundle(&bundle, trusted) {
+                    return HttpResponse {
+                        status: 400,
+                        body: r#"{"ok":false,"error":"invalid artifact signature"}"#.into(),
+                    };
+                }
             }
             if state.target.is_empty() {
                 state.target = payload.target.clone();
@@ -225,6 +260,8 @@ pub fn run_deploy_agent_server(
     state_path: &Path,
     tls: Option<DeployAgentTls>,
     require_hash: bool,
+    require_signature: bool,
+    trusted_public_key: Option<String>,
 ) -> Result<(), String> {
     // Run the deploy agent until the listener is interrupted.
     let mut state = load_agent_state(state_path);
@@ -233,6 +270,8 @@ pub fn run_deploy_agent_server(
     }
     state.token = token.or(state.token);
     state.require_hash = require_hash || state.require_hash;
+    state.require_signature = require_signature || state.require_signature;
+    state.trusted_public_key = trusted_public_key.or(state.trusted_public_key);
     save_agent_state(state_path, &state)?;
     let listener = TcpListener::bind(bind).map_err(|e| format!("bind {bind} failed: {e}"))?;
     let shared = Arc::new(Mutex::new(state));

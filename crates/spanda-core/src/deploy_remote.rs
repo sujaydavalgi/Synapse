@@ -1,9 +1,10 @@
 //! Remote OTA rollout via HTTP deploy agents.
 
+use crate::deploy_bundle::DeployArtifactBundle;
 use crate::deploy_http::{http_request, parse_http_url, HttpResponse};
 use crate::deploy_service::{
-    deploy_target_key, DeployPlan, RolloutOptions, RolloutResult, RolloutStep, RolloutStepStatus,
-    RolloutStrategy,
+    deploy_target_key, DeployAssignment, DeployPlan, RolloutOptions, RolloutResult, RolloutStep,
+    RolloutStepStatus, RolloutStrategy,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -38,6 +39,12 @@ struct RolloutRequest {
     version: String,
     program: Option<String>,
     program_hash: Option<String>,
+    #[serde(default)]
+    assignments: Vec<DeployAssignment>,
+    #[serde(default)]
+    certifications: Vec<String>,
+    artifact_signature: Option<String>,
+    artifact_public_key: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,16 +130,18 @@ pub fn agent_status(entry: &DeployAgentEntry) -> Result<AgentStatusResponse, Str
 
 pub fn agent_rollout(
     entry: &DeployAgentEntry,
-    version: &str,
-    program: Option<&str>,
-    program_hash: Option<&str>,
+    bundle: &DeployArtifactBundle,
 ) -> Result<AgentRolloutResponse, String> {
     let url = agent_endpoint(&entry.url, "/v1/rollout")?;
     let payload = serde_json::to_string(&RolloutRequest {
         target: entry.target.clone(),
-        version: version.to_string(),
-        program: program.map(str::to_string),
-        program_hash: program_hash.map(str::to_string),
+        version: bundle.version.clone(),
+        program: Some(bundle.program.clone()),
+        program_hash: bundle.program_hash.clone(),
+        assignments: bundle.assignments.clone(),
+        certifications: bundle.certifications.clone(),
+        artifact_signature: bundle.signature.clone(),
+        artifact_public_key: bundle.public_key.clone(),
     })
     .map_err(|e| e.to_string())?;
     let response = http_request("POST", &url, Some(&payload), entry.token.as_deref())?;
@@ -153,6 +162,7 @@ pub fn execute_remote_rollout(
     plan: &DeployPlan,
     options: &RolloutOptions,
     registry: &DeployAgentRegistry,
+    bundle: &DeployArtifactBundle,
 ) -> RolloutResult {
     // Plan rollout steps locally, then push updates to registered deploy agents.
     let local = crate::deploy_service::plan_rollout(plan, options);
@@ -176,12 +186,7 @@ pub fn execute_remote_rollout(
             success = false;
             continue;
         };
-        match agent_rollout(
-            agent,
-            &step.version,
-            Some(&plan.program),
-            plan.program_hash.as_deref(),
-        ) {
+        match agent_rollout(agent, bundle) {
             Ok(resp) if resp.ok => steps.push(RolloutStep {
                 status: RolloutStepStatus::Deployed,
                 ..step.clone()
