@@ -14,7 +14,7 @@ const KNOWN_DOMAIN_TYPES = new Set([
   "MagneticField", "RotationalSpeed", "Torque", "Energy",
   "UvIndex", "Ph", "Conductivity", "ParticulateMatter", "Turbidity",
   "Salinity", "Radiation", "SoilMoisture",
-  "Timestamp", "Interval", "Waypoint", "MotionCommand", "ControlSignal", "PIDConfig", "GpsFix",
+  "Timestamp", "Interval", "Waypoint", "MotionCommand", "ControlSignal", "PIDConfig", "GpsFix", "GeoPoint",
   "ImuData", "AudioFrame", "Prompt", "Completion", "Embedding", "Token", "Context", "Memory",
   "Plan", "ReasoningTrace", "Agent", "Goal", "Task", "Skill", "Capability", "Intent", "Command",
   "Conversation", "Speech", "Gesture", "Emotion", "Feedback", "Approval", "Risk", "Hazard",
@@ -181,6 +181,7 @@ export function resolveTypeName(name: string): SpandaType {
     case "Scan":
       return { kind: "scan" };
     case "GpsFix":
+    case "GeoPoint":
     case "ImuData":
     case "AudioFrame":
     case "LLM":

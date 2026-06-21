@@ -173,6 +173,10 @@ export type Program = {
   deployments: import("../foundations.js").DeployDecl[];
   requiresHardware: import("../foundations.js").RequiresHardwareDecl | null;
   requiresNetwork: import("../foundations.js").RequiresNetworkDecl | null;
+  requiresConnectivity: import("../foundations.js").RequiresConnectivityDecl | null;
+  geofences: import("../foundations.js").GeofenceDecl[];
+  connectivityPolicies: import("../foundations.js").ConnectivityPolicyDecl[];
+  bleServices: import("../foundations.js").BleServiceDecl[];
   simulateCompatibility: import("../foundations.js").SimulateCompatibilityDecl | null;
   messages: MessageDecl[];
   validateRules: import("../foundations.js").ValidateRuleDecl[];
@@ -221,6 +225,8 @@ export type RobotDecl = {
   secrets: import("../foundations.js").SecretDecl[];
   trust: import("../foundations.js").TrustDecl | null;
   permissions: import("../foundations.js").PermissionsDecl | null;
+  requiresConnectivity: import("../foundations.js").RequiresConnectivityDecl | null;
+  bluetooth: import("../foundations.js").BluetoothConfigDecl | null;
   traitImpls: TraitImplDecl[];
   buses: BusDecl[];
   peerRobots: PeerRobotDecl[];

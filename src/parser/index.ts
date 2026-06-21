@@ -78,6 +78,11 @@ import type {
   DeployDecl,
   RequiresHardwareDecl,
   RequiresNetworkDecl,
+  RequiresConnectivityDecl,
+  GeofenceDecl,
+  ConnectivityPolicyDecl,
+  BluetoothConfigDecl,
+  BleServiceDecl,
   SimulateCompatibilityDecl,
   MissionDecl,
   ResourceBudgetDecl,
@@ -447,6 +452,10 @@ class Parser {
     const deployments: DeployDecl[] = [];
     let requiresHardware: RequiresHardwareDecl | null = null;
     let requiresNetwork: RequiresNetworkDecl | null = null;
+    let requiresConnectivity: RequiresConnectivityDecl | null = null;
+    const geofences: GeofenceDecl[] = [];
+    const connectivityPolicies: ConnectivityPolicyDecl[] = [];
+    const bleServices: BleServiceDecl[] = [];
     let simulateCompatibility: SimulateCompatibilityDecl | null = null;
 
     while (this.check("IMPORT")) {
@@ -474,6 +483,14 @@ class Parser {
         requiresHardware = this.parseRequiresHardware();
       } else if (this.check("REQUIRES_NETWORK")) {
         requiresNetwork = this.parseRequiresNetwork();
+      } else if (this.check("REQUIRES_CONNECTIVITY")) {
+        requiresConnectivity = this.parseRequiresConnectivity();
+      } else if (this.check("GEOFENCE")) {
+        geofences.push(this.parseGeofence());
+      } else if (this.check("CONNECTIVITY_POLICY")) {
+        connectivityPolicies.push(this.parseConnectivityPolicy());
+      } else if (this.check("BLE_SERVICE")) {
+        bleServices.push(this.parseBleService());
       } else if (this.check("SIMULATE_COMPATIBILITY")) {
         simulateCompatibility = this.parseSimulateCompatibility();
       } else if (this.check("MESSAGE")) {
@@ -507,6 +524,10 @@ class Parser {
       deployments,
       requiresHardware,
       requiresNetwork,
+      requiresConnectivity,
+      geofences,
+      connectivityPolicies,
+      bleServices,
       simulateCompatibility,
       messages,
       validateRules,
@@ -1195,6 +1216,8 @@ class Parser {
     const secrets: SecretDecl[] = [];
     let trust: TrustDecl | null = null;
     let permissions: PermissionsDecl | null = null;
+    let requiresConnectivity: RequiresConnectivityDecl | null = null;
+    let bluetooth: BluetoothConfigDecl | null = null;
     const traitImpls: TraitImplDecl[] = [];
     const buses: BusDecl[] = [];
     const peerRobots: PeerRobotDecl[] = [];
@@ -1341,6 +1364,14 @@ class Parser {
       } else if (this.check("PERMISSIONS")) {
         permissions = this.parsePermissions();
 
+      // Otherwise, continue when this.check("REQUIRES_CONNECTIVITY").
+      } else if (this.check("REQUIRES_CONNECTIVITY")) {
+        requiresConnectivity = this.parseRequiresConnectivity();
+
+      // Otherwise, continue when this.check("BLUETOOTH").
+      } else if (this.check("BLUETOOTH")) {
+        bluetooth = this.parseBluetoothConfig();
+
       // Otherwise, continue when this.check("MISSION").
       } else if (this.check("MISSION")) {
         mission = this.parseMission();
@@ -1403,6 +1434,8 @@ class Parser {
       secrets,
       trust,
       permissions,
+      requiresConnectivity,
+      bluetooth,
       traitImpls,
       buses,
       peerRobots,
@@ -1888,6 +1921,7 @@ class Parser {
     let gpuRequired = false;
     let sensors: string[] = [];
     let actuators: string[] = [];
+    let connectivity: string[] = [];
     let batteryWh: number | null = null;
     let networkBandwidthMbps: number | null = null;
     let networkLatencyMs: number | null = null;
@@ -1941,6 +1975,10 @@ class Parser {
       // Otherwise, continue when this.match("ACTUATORS").
       } else if (this.match("ACTUATORS")) {
         actuators = this.parseHardwareTypeList("actuators");
+
+      // Otherwise, continue when this.match("CONNECTIVITY").
+      } else if (this.match("CONNECTIVITY")) {
+        connectivity = this.parseHardwareTypeList("connectivity");
 
       // Otherwise, continue when this.match("BATTERY").
       } else if (this.match("BATTERY")) {
@@ -2018,6 +2056,7 @@ class Parser {
       gpuRequired,
       sensors,
       actuators,
+      connectivity,
       batteryWh,
       networkBandwidthMbps,
       networkLatencyMs,
@@ -2216,6 +2255,382 @@ class Parser {
       span: this.spanFrom(start, end),
     };
 }
+
+  private parseSignedNumberValue(): number {
+    // Parse a numeric literal that may be prefixed with minus.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Signed numeric value.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const lon = parseSignedNumberValue();
+
+    let sign = 1;
+    if (this.match("MINUS")) {
+      sign = -1;
+    }
+    return sign * this.parseNumberValue();
+  }
+
+  private parseConnectivityLink(message: string): string {
+    // Parse a connectivity link identifier (wifi, cellular, bluetooth, network).
+    //
+    // Parameters:
+    // - `message` — parse error when the token is invalid
+    //
+    // Returns:
+    // Link name string.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const link = parseConnectivityLink("Expected link name");
+
+    if (this.check("BLUETOOTH")) {
+      this.advance();
+      return "bluetooth";
+    }
+    if (this.check("NETWORK")) {
+      this.advance();
+      return "network";
+    }
+    return this.parseLabel(message);
+  }
+
+  private parseTriggerDomain(): string {
+    // Parse the domain prefix in dot-notation triggers (gps, network, bluetooth).
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Domain identifier string.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const domain = parseTriggerDomain();
+
+    if (this.check("BLUETOOTH")) {
+      this.advance();
+      return "bluetooth";
+    }
+    if (this.check("NETWORK")) {
+      this.advance();
+      return "network";
+    }
+    return this.expect("IDENT", "Expected trigger domain").lexeme;
+  }
+
+  private parseRequiresConnectivity(): RequiresConnectivityDecl {
+    // Parse a requires_connectivity verification block.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Parsed connectivity requirements.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const req = parseRequiresConnectivity();
+
+    const start = this.advance();
+    this.expect("LBRACE", "Expected '{' after requires_connectivity");
+    const channels: Array<[string, import("../foundations.js").ConnectivityRequirement]> = [];
+    let latencyMsMax: number | null = null;
+    let bandwidthMbpsMin: number | null = null;
+    let packetLossPctMax: number | null = null;
+
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.match("LATENCY")) {
+        this.expect("LTE", "Expected '<=' after latency");
+        latencyMsMax = this.parseDuration();
+        this.expect("SEMICOLON", "Expected ';' after latency");
+      } else if (this.match("BANDWIDTH")) {
+        this.expect("GTE", "Expected '>=' after bandwidth");
+        bandwidthMbpsMin = this.parseNetworkAmount();
+        this.expect("SEMICOLON", "Expected ';' after bandwidth");
+      } else if (this.match("PACKET_LOSS")) {
+        this.expect("LTE", "Expected '<=' after packet_loss");
+        packetLossPctMax = this.parseNumberValue();
+        if (this.check("PERCENT")) {
+          this.advance();
+        } else if (this.check("IDENT") && this.peek().lexeme === "%") {
+          this.advance();
+        }
+        this.expect("SEMICOLON", "Expected ';' after packet_loss");
+      } else if (this.check("IDENT")) {
+        const key = this.advance().lexeme;
+        this.expect("COLON", "Expected ':' after connectivity key");
+        let level: import("../foundations.js").ConnectivityRequirement;
+        if (this.check("IDENT") && this.peek().lexeme === "required") {
+          this.advance();
+          level = "required";
+        } else if (this.check("IDENT") && this.peek().lexeme === "optional") {
+          this.advance();
+          level = "optional";
+        } else {
+          const t = this.peek();
+          throw new ParseError(
+            "Expected required or optional after connectivity key",
+            t.line,
+            t.column,
+          );
+        }
+        this.expect("SEMICOLON", "Expected ';' after connectivity requirement");
+        channels.push([key, level]);
+      } else {
+        const t = this.peek();
+        throw new ParseError(
+          "Expected connectivity channel or metric in requires_connectivity",
+          t.line,
+          t.column,
+        );
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close requires_connectivity");
+    return {
+      kind: "RequiresConnectivityDecl",
+      channels,
+      latencyMsMax,
+      bandwidthMbpsMin,
+      packetLossPctMax,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseGeofence(): GeofenceDecl {
+    // Parse a WGS84 geofence zone declaration.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Parsed geofence declaration.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const fence = parseGeofence();
+
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected geofence name").lexeme;
+    this.expect("LBRACE", "Expected '{' after geofence name");
+    let centerLat = 0;
+    let centerLon = 0;
+    let radiusM = 0;
+
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.check("IDENT") && this.peek().lexeme === "center") {
+        this.advance();
+        this.expect("COLON", "Expected ':' after center");
+        this.expect("IDENT", "Expected geo");
+        this.expect("LPAREN", "Expected '(' after geo");
+        centerLat = this.parseSignedNumberValue();
+        this.expect("COMMA", "Expected ',' in geo()");
+        centerLon = this.parseSignedNumberValue();
+        this.expect("RPAREN", "Expected ')' after geo coordinates");
+        this.expect("SEMICOLON", "Expected ';' after center");
+      } else if (this.match("RADIUS")) {
+        this.expect("COLON", "Expected ':' after radius");
+        radiusM = this.parseNumberValue();
+        if (this.check("IDENT") && this.peek().lexeme === "m") {
+          this.advance();
+        }
+        this.expect("SEMICOLON", "Expected ';' after radius");
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected center or radius in geofence block", t.line, t.column);
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close geofence");
+    return {
+      kind: "GeofenceDecl",
+      name,
+      centerLat,
+      centerLon,
+      radiusM,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseConnectivityPolicy(): ConnectivityPolicyDecl {
+    // Parse a multi-link connectivity failover policy.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Parsed connectivity policy.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const policy = parseConnectivityPolicy();
+
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected connectivity policy name").lexeme;
+    this.expect("LBRACE", "Expected '{' after policy name");
+    let preferred = "";
+    let fallback = "";
+    let emergency: string | null = null;
+    let switchIfLatencyMs: number | null = null;
+    let switchIfPacketLossPct: number | null = null;
+
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.check("IDENT") && this.peek().lexeme === "preferred") {
+        this.advance();
+        this.expect("COLON", "Expected ':' after preferred");
+        preferred = this.parseConnectivityLink("Expected link name");
+        this.expect("SEMICOLON", "Expected ';' after preferred");
+      } else if (this.match("FALLBACK")) {
+        this.expect("COLON", "Expected ':' after fallback");
+        fallback = this.parseConnectivityLink("Expected link name");
+        this.expect("SEMICOLON", "Expected ';' after fallback");
+      } else if (this.check("IDENT") && this.peek().lexeme === "emergency") {
+        this.advance();
+        this.expect("COLON", "Expected ':' after emergency");
+        emergency = this.parseConnectivityLink("Expected link name");
+        this.expect("SEMICOLON", "Expected ';' after emergency");
+      } else if (this.match("SWITCH_IF")) {
+        if (this.match("LATENCY")) {
+          this.expect("GT", "Expected '>' after latency");
+          switchIfLatencyMs = this.parseDuration();
+        } else if (this.match("PACKET_LOSS")) {
+          this.expect("GT", "Expected '>' after packet_loss");
+          switchIfPacketLossPct = this.parseNumberValue();
+          if (this.check("PERCENT")) {
+            this.advance();
+          } else if (this.check("IDENT") && this.peek().lexeme === "%") {
+            this.advance();
+          }
+        } else {
+          const t = this.peek();
+          throw new ParseError("Expected latency or packet_loss after switch_if", t.line, t.column);
+        }
+        this.expect("SEMICOLON", "Expected ';' after switch_if");
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected policy member in connectivity_policy", t.line, t.column);
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close connectivity_policy");
+    return {
+      kind: "ConnectivityPolicyDecl",
+      name,
+      preferred,
+      fallback,
+      emergency,
+      switchIfLatencyMs,
+      switchIfPacketLossPct,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseBleService(): BleServiceDecl {
+    // Parse a BLE GATT service declaration.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Parsed BLE service block.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const svc = parseBleService();
+
+    const start = this.advance();
+    const name = this.expect("IDENT", "Expected BLE service name").lexeme;
+    this.expect("LBRACE", "Expected '{' after ble_service name");
+    let uuid = "";
+
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.check("IDENT") && this.peek().lexeme === "uuid") {
+        this.advance();
+        this.expect("COLON", "Expected ':' after uuid");
+        uuid = this.expect("STRING", "Expected UUID string").value as string;
+        this.expect("SEMICOLON", "Expected ';' after uuid");
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected uuid in ble_service block", t.line, t.column);
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close ble_service");
+    return {
+      kind: "BleServiceDecl",
+      name,
+      uuid,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseBluetoothConfig(): BluetoothConfigDecl {
+    // Parse a robot-level Bluetooth scan and pairing configuration.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Parsed bluetooth block.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const bt = parseBluetoothConfig();
+
+    const start = this.advance();
+    this.expect("LBRACE", "Expected '{' after bluetooth");
+    let scanPattern: import("../regex.js").RegexPattern | null = null;
+    let pairMode: string | null = null;
+
+    while (!this.check("RBRACE") && !this.check("EOF")) {
+      if (this.check("IDENT") && this.peek().lexeme === "scan") {
+        this.advance();
+        this.expect("FOR", "Expected 'for' after scan");
+        this.expect("IDENT", "Expected 'devices'");
+        this.expect("WHERE", "Expected 'where' in bluetooth scan");
+        this.expect("IDENT", "Expected 'name'");
+        this.expect("MATCHES", "Expected 'matches' in bluetooth scan");
+        scanPattern = this.parseRegexLiteral();
+        this.expect("SEMICOLON", "Expected ';' after scan");
+      } else if (this.check("IDENT") && this.peek().lexeme === "pair") {
+        this.advance();
+        if (this.match("TRUSTED_ONLY")) {
+          pairMode = "trusted_only";
+        } else {
+          pairMode = this.parseLabel("Expected pair mode");
+        }
+        this.expect("SEMICOLON", "Expected ';' after pair");
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected scan or pair in bluetooth block", t.line, t.column);
+      }
+    }
+    const end = this.expect("RBRACE", "Expected '}' to close bluetooth");
+    return {
+      kind: "BluetoothConfigDecl",
+      scanPattern,
+      pairMode,
+      span: this.spanFrom(start, end),
+    };
+  }
 
   private parseSimulateCompatibility(): SimulateCompatibilityDecl {
     // ParseSimulateCompatibility.
@@ -2494,7 +2909,7 @@ class Parser {
     // Example:
 
     // const result = parseDottedCapability();
-    const first = this.parseLabel("Expected capability name");
+    const first = this.parseCapabilityDomain();
 
     // continue when this.match("DOT").
     if (this.match("DOT")) {
@@ -2502,7 +2917,33 @@ class Parser {
       return `${first}.${second}`;
     }
     return first;
-}
+  }
+
+  private parseCapabilityDomain(): string {
+    // Parse the domain prefix in dotted capability names (network.status, gps.read).
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Capability domain string.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // const domain = parseCapabilityDomain();
+
+    if (this.check("NETWORK")) {
+      this.advance();
+      return "network";
+    }
+    if (this.check("BLUETOOTH")) {
+      this.advance();
+      return "bluetooth";
+    }
+    return this.parseLabel("Expected capability name");
+  }
 
   private parsePermissions(): PermissionsDecl {
     // ParsePermissions.
@@ -4449,6 +4890,33 @@ class Parser {
     } else if (this.check("HARDWARE")) {
       this.advance();
       eventName = `hardware.${this.expect("IDENT", "Expected hardware event name").lexeme}`;
+    } else if (this.check("GEOFENCE")) {
+      this.advance();
+      const fenceName = this.expect("IDENT", "Expected geofence name").lexeme;
+      let phase: string;
+      if (this.match("EXITED")) {
+        phase = "exited";
+      } else if (this.match("ENTERED")) {
+        phase = "entered";
+      } else if (this.check("IDENT")) {
+        phase = this.advance().lexeme.toLowerCase();
+      } else {
+        const t = this.peek();
+        throw new ParseError("Expected entered or exited after geofence name", t.line, t.column);
+      }
+      eventName = `geofence:${fenceName}:${phase}`;
+    } else if (
+      this.check("IDENT") ||
+      this.check("BLUETOOTH") ||
+      this.check("NETWORK")
+    ) {
+      const domain = this.parseTriggerDomain();
+      if (this.match("DOT")) {
+        const event = this.expect("IDENT", "Expected event after '.'").lexeme.toLowerCase();
+        eventName = `${domain}.${event}`;
+      } else {
+        eventName = domain;
+      }
     } else {
       eventName = this.expect("IDENT", "Expected trigger target name").lexeme;
     }

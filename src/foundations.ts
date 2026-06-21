@@ -235,6 +235,51 @@ export type RequiresNetworkDecl = {
   span: Span;
 };
 
+export type ConnectivityRequirement = "required" | "optional";
+
+export type RequiresConnectivityDecl = {
+  kind: "RequiresConnectivityDecl";
+  channels: Array<[string, ConnectivityRequirement]>;
+  latencyMsMax: number | null;
+  bandwidthMbpsMin: number | null;
+  packetLossPctMax: number | null;
+  span: Span;
+};
+
+export type GeofenceDecl = {
+  kind: "GeofenceDecl";
+  name: string;
+  centerLat: number;
+  centerLon: number;
+  radiusM: number;
+  span: Span;
+};
+
+export type ConnectivityPolicyDecl = {
+  kind: "ConnectivityPolicyDecl";
+  name: string;
+  preferred: string;
+  fallback: string;
+  emergency: string | null;
+  switchIfLatencyMs: number | null;
+  switchIfPacketLossPct: number | null;
+  span: Span;
+};
+
+export type BluetoothConfigDecl = {
+  kind: "BluetoothConfigDecl";
+  scanPattern: RegexPattern | null;
+  pairMode: string | null;
+  span: Span;
+};
+
+export type BleServiceDecl = {
+  kind: "BleServiceDecl";
+  name: string;
+  uuid: string;
+  span: Span;
+};
+
 export type MissionDecl = {
   kind: "MissionDecl";
   durationHours: number;
@@ -251,6 +296,7 @@ export type HardwareDecl = {
   gpuRequired: boolean;
   sensors: string[];
   actuators: string[];
+  connectivity: string[];
   batteryWh: number | null;
   networkBandwidthMbps: number | null;
   networkLatencyMs: number | null;

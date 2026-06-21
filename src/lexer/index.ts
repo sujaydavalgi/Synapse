@@ -121,6 +121,8 @@ export type TokenType =
   | "PACKET_LOSS"
   | "SWITCH_IF"
   | "TRUSTED_ONLY"
+  | "ENTERED"
+  | "EXITED"
   | "SIMULATE_COMPATIBILITY"
   | "BUDGET"
   | "FAULT"
@@ -419,6 +421,8 @@ const KEYWORDS: Record<string, TokenType> = {
   packet_loss: "PACKET_LOSS",
   switch_if: "SWITCH_IF",
   trusted_only: "TRUSTED_ONLY",
+  entered: "ENTERED",
+  exited: "EXITED",
   simulate_compatibility: "SIMULATE_COMPATIBILITY",
   budget: "BUDGET",
   fault: "FAULT",

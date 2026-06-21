@@ -1329,7 +1329,9 @@ class TypeChecker {
       const isTriggerHandler =
         handler.eventName === "log" ||
         handler.eventName.startsWith("hardware.") ||
-        handler.eventName.startsWith("message.");
+        handler.eventName.startsWith("message.") ||
+        handler.eventName.startsWith("geofence:") ||
+        /^[a-z]+\.[a-z_]+$/.test(handler.eventName);
       const declared = robot.events.some((e) => e.name === handler.eventName);
 
       // continue when declared is falsy.
