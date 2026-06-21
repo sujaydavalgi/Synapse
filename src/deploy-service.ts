@@ -6,6 +6,10 @@
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import type { Program } from "./ast/nodes.js";
+import {
+  buildCertificationProofSummary,
+  type CertificationProofSummary,
+} from "./certify-prover.js";
 
 export type RolloutStrategy = "all" | "canary" | "staged";
 
@@ -20,6 +24,7 @@ export type DeployPlan = {
   programHash?: string;
   assignments: DeployAssignment[];
   certifications: string[];
+  certificationProof?: CertificationProofSummary;
 };
 
 export type RolloutStepStatus = "pending" | "deployed" | "rolled_back" | "skipped" | "failed";
@@ -52,6 +57,7 @@ export type RolloutOptions = {
   stagedPhases: number[];
   version: string;
   dryRun: boolean;
+  requireCertify: boolean;
 };
 
 export const defaultRolloutOptions = (): RolloutOptions => ({
@@ -60,6 +66,7 @@ export const defaultRolloutOptions = (): RolloutOptions => ({
   stagedPhases: [10, 50, 100],
   version: "1.0.0",
   dryRun: false,
+  requireCertify: false,
 });
 
 function assignmentKey(robot: string, hardware: string): string {
@@ -97,10 +104,35 @@ export function buildDeployPlan(program: Program, programPath: string, version: 
     programHash: hashProgramArtifact(programPath),
     assignments,
     certifications,
+    certificationProof: buildCertificationProofSummary(program, programPath),
   };
 }
 
+export function validateRolloutCertification(
+  plan: DeployPlan,
+  options: RolloutOptions,
+): string | undefined {
+  // Enforce strict certification proof before OTA rollout proceeds.
+  if (!options.requireCertify) return undefined;
+  const proof = plan.certificationProof;
+  if (!proof) return "Deploy plan missing certification proof summary";
+  if (!proof.passedStrict) {
+    return `Deploy blocked — strict certification proof failed: ${proof.summary}`;
+  }
+  return undefined;
+}
+
 export function planRollout(plan: DeployPlan, options: RolloutOptions): RolloutResult {
+  const certifyError = validateRolloutCertification(plan, options);
+  if (certifyError) {
+    return {
+      strategy: options.strategy,
+      version: options.version,
+      dryRun: options.dryRun,
+      steps: [],
+      success: false,
+    };
+  }
   const total = plan.assignments.length;
   const steps: RolloutStep[] = [];
   if (total === 0) {

@@ -28,6 +28,14 @@ export type CertificationProofReport = {
   summary: string;
 };
 
+export type CertificationProofSummary = {
+  passed: boolean;
+  passedStrict: boolean;
+  summary: string;
+  errorCount: number;
+  warningCount: number;
+};
+
 export function buildCertificationProof(
   program: Program,
   programPath: string,
@@ -59,5 +67,24 @@ export function buildCertificationProof(
     deployTargets,
     checklist,
     summary,
+  };
+}
+
+export function buildCertificationProofSummary(
+  program: Program,
+  programPath: string,
+): CertificationProofSummary {
+  // Derive non-strict and strict proof outcomes for deploy plan reporting.
+  const proof = buildCertificationProof(program, programPath, false);
+  const strict = buildCertificationProof(program, programPath, true);
+  const errorCount = strict.checklist.filter((item) => item.severity === "error").length;
+  const warningCount = strict.checklist.filter((item) => item.severity === "warning").length;
+  const summary = strict.passed ? proof.summary : strict.summary;
+  return {
+    passed: proof.passed,
+    passedStrict: strict.passed,
+    summary,
+    errorCount,
+    warningCount,
   };
 }

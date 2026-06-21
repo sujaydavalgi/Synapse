@@ -32,6 +32,7 @@ describe("deploy service (TS mirror)", () => {
       stagedPhases: [10, 50, 100],
       version: "1.0.0",
       dryRun: false,
+      requireCertify: false,
     });
     expect(full.success).toBe(true);
     expect(full.steps.every((s) => s.status === "deployed")).toBe(true);
@@ -42,6 +43,7 @@ describe("deploy service (TS mirror)", () => {
       stagedPhases: [10, 50, 100],
       version: "1.1.0",
       dryRun: true,
+      requireCertify: false,
     });
     expect(canary.success).toBe(true);
     expect(canary.steps.some((s) => s.status === "pending")).toBe(true);
@@ -58,6 +60,7 @@ describe("deploy service (TS mirror)", () => {
       stagedPhases: [10, 50, 100],
       version: "2.0.0",
       dryRun: false,
+      requireCertify: false,
     });
     applyRollout(state, rollout);
     expect(Object.keys(state.currentVersion)).toHaveLength(1);

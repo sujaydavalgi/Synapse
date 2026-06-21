@@ -36,6 +36,7 @@ import {
   planRollout,
   rollbackTargets,
   serializeDeployState,
+  validateRolloutCertification,
   type DeployState,
   type RolloutStrategy,
 } from "../deploy-service.js";
@@ -64,6 +65,11 @@ import {
   writeFleetAgentRegistryToDisk,
 } from "../fleet-remote.js";
 import { startFleetAgentServer } from "../fleet-agent.js";
+import {
+  adapterVerifyOk,
+  readAdapterManifestSection,
+  verifyAdapterPackage,
+} from "../adapter-package-verify.js";
 
 const USAGE = `Spanda Programming Language — the pulse of autonomous intelligence
 
@@ -81,7 +87,7 @@ Usage:
   spanda doc [--json] [--out <file.md>] <file.sd>
   spanda codegen [--target native|wasm|esp32] [--out <file>] <file.sd>
   spanda deploy plan [--json] [--version <ver>] <file.sd>
-  spanda deploy rollout [--json] [--remote] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>
+  spanda deploy rollout [--json] [--remote] [--require-certify] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>
   spanda deploy rollback [--json] [--remote] <file.sd>
   spanda deploy status [--json]
   spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>] [--require-hash]
@@ -958,6 +964,15 @@ async function handleDeployOta(
     if (plan.certifications.length > 0) {
       console.log(`  certifications: ${plan.certifications.join(", ")}`);
     }
+    if (plan.certificationProof) {
+      const proof = plan.certificationProof;
+      const status = proof.passedStrict
+        ? "passed (strict)"
+        : proof.passed
+          ? "passed (relaxed)"
+          : "failed";
+      console.log(`  certification_proof: ${status} — ${proof.summary}`);
+    }
     if (plan.programHash) {
       console.log(`  program_hash: ${plan.programHash}`);
     }
@@ -976,6 +991,7 @@ async function handleDeployOta(
     }
     const dryRun = flagBool(flags, "dry-run");
     const remote = flagBool(flags, "remote");
+    const requireCertify = flagBool(flags, "require-certify");
     const canaryPercent = Number.parseInt(flagStr(flags, "canary-percent") ?? "10", 10);
     const options = {
       ...defaultRolloutOptions(),
@@ -983,7 +999,13 @@ async function handleDeployOta(
       canaryPercent: Number.isFinite(canaryPercent) ? canaryPercent : 10,
       version,
       dryRun,
+      requireCertify,
     };
+    const certifyError = validateRolloutCertification(plan, options);
+    if (certifyError) {
+      console.error(certifyError);
+      process.exit(1);
+    }
     const registry = readAgentRegistryFromDisk(agentsRegistryPath());
     const result = remote
       ? await executeRemoteRollout(plan, options, registry, bundle)
@@ -1531,6 +1553,10 @@ function handlePackage(
   // Example:
 
   // const result = handlePackage(command, positional, flags, json);
+  if (command === "verify-adapter" && !isCliAvailable()) {
+    handleVerifyAdapterFallback(positional, flags, json);
+    return;
+  }
   requireNative("Package commands require the native Rust CLI.");
   const args = [command];
 
@@ -1561,6 +1587,40 @@ function handlePackage(
   process.stdout.write(result.stdout ?? "");
   process.stderr.write(result.stderr ?? "");
   process.exit(result.status === 0 ? 0 : 1);
+}
+
+function handleVerifyAdapterFallback(
+  positional: string[],
+  flags: Map<string, string | boolean>,
+  json: boolean,
+): void {
+  // Validate adapter package metadata without the native Rust CLI.
+  const project = flagStr(flags, "project") ?? process.cwd();
+  const importPath = flagStr(flags, "import");
+  const packageName = flagStr(flags, "package");
+  const resolvedImport = importPath ?? (packageName ? undefined : "navigation.nav2");
+  try {
+    const issues = verifyAdapterPackage(project, resolvedImport, packageName);
+    if (json) {
+      console.log(JSON.stringify({ ok: adapterVerifyOk(issues), issues }, null, 2));
+    } else {
+      for (const issue of issues) {
+        const icon = issue.severity === "pass" ? "✓" : issue.severity === "warning" ? "⚠" : "✗";
+        console.log(`  ${icon} ${issue.message}`);
+      }
+      if (!adapterVerifyOk(issues)) process.exit(1);
+      const manifest = readAdapterManifestSection(project);
+      console.log(`✓ Adapter package verification passed for ${manifest.packageName}`);
+    }
+  } catch (err) {
+    if (json) {
+      console.log(JSON.stringify({ ok: false, error: String(err) }));
+    } else {
+      console.error(`Adapter verify failed: ${String(err)}`);
+    }
+    process.exit(1);
+  }
+  void positional;
 }
 
 function handleRegistry(positional: string[], json: boolean): void {
