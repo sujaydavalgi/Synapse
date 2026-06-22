@@ -1993,6 +1993,7 @@ impl<'h> TypeChecker<'h> {
                 ensures,
                 invariant,
                 budget,
+                return_type,
                 body,
                 span,
             } = task;
@@ -2141,7 +2142,7 @@ impl<'h> TypeChecker<'h> {
                     actuator_type: None,
                 },
             );
-            self.check_behavior(body, &SpandaType::Void);
+            self.check_behavior(body, return_type);
         }
 
         // Invoke each registered handler.
