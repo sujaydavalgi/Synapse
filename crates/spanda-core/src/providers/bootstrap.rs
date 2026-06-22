@@ -1,6 +1,10 @@
 //! Bootstrap default provider registrations from core compatibility shims.
 //!
-use super::package_stubs::{GpsPositioningStub, NavNavigationStub, SlamPackageStub};
+use super::package_stubs::{
+    CloudPackageStub, FleetPackageStub, GpsPositioningStub, LedgerPackageStub,
+    MaintenancePackageStub, NavNavigationStub, SimulationPackageStub, SlamPackageStub,
+    VisionPackageStub,
+};
 use super::registry::{transport_registry_key, ProviderRegistry};
 use super::traits::TransportAdapterProvider;
 use crate::comm::TransportKind;
@@ -105,15 +109,43 @@ pub fn bootstrap_providers_for_packages(package_names: &[&str]) -> ProviderRegis
     }
     if names.contains("spanda-fleet") {
         registry.grant_capability("fleet.orchestrate");
+        registry.register_fleet(Box::new(FleetPackageStub));
     }
     if names.contains("spanda-ota") {
         registry.grant_capability("deploy.rollout");
     }
     if names.contains("spanda-ledger") {
         registry.grant_capability("audit.append");
+        registry.register_ledger(Box::new(LedgerPackageStub));
     }
     if names.contains("spanda-cloud") {
         registry.grant_capability("cloud.invoke");
+        registry.register_cloud(Box::new(CloudPackageStub));
+    }
+    if names.contains("spanda-maintenance") {
+        registry.grant_capability("maintenance.health");
+        registry.register_maintenance(Box::new(MaintenancePackageStub));
+    }
+    if names.contains("spanda-opencv") {
+        registry.register_vision(Box::new(VisionPackageStub::opencv()));
+    }
+    if names.contains("spanda-yolo") {
+        registry.register_vision(Box::new(VisionPackageStub::yolo()));
+    }
+    if names.contains("spanda-gazebo") {
+        registry.register_simulation(Box::new(SimulationPackageStub::gazebo()));
+    }
+    if names.contains("spanda-webots") {
+        registry.register_simulation(Box::new(SimulationPackageStub::webots()));
+    }
+    if names.contains("spanda-moveit") {
+        registry.grant_capability("manipulation.plan");
+    }
+    if names.contains("spanda-cellular") {
+        registry.grant_capability("connectivity.cellular");
+    }
+    if names.contains("spanda-openai") {
+        registry.grant_capability("ai.invoke");
     }
 
     registry

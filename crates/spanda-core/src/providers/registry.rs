@@ -161,6 +161,13 @@ impl ProviderRegistry {
             .collect()
     }
 
+    pub fn list_fleet(&self) -> Vec<ProviderId> {
+        self.fleet
+            .values()
+            .map(|p| p.metadata().id.clone())
+            .collect()
+    }
+
     pub fn transport_count(&self) -> usize {
         self.transports.len()
     }
