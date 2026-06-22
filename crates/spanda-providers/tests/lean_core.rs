@@ -6,7 +6,7 @@ use spanda_providers::{
 use spanda_runtime::classification::{
     module_classifications, official_package_names, ModuleOwnership,
 };
-use spanda_runtime::providers::{ProviderId, TransportConfig};
+use spanda_runtime::providers::TransportConfig;
 use spanda_transport_ros2::Ros2TransportAdapter;
 
 #[test]
@@ -151,4 +151,28 @@ fn dispatch_skips_when_package_not_installed() {
         )
             .is_none()
     );
+}
+
+#[test]
+fn ledger_package_append_dispatches() {
+    use spanda_providers::dispatch_official_package_call;
+    let mut registry = bootstrap_providers_for_packages(&["spanda-ledger"]);
+    let value = dispatch_official_package_call(
+        &mut registry,
+        "provenance.ledger",
+        "append",
+        &[spanda_runtime::value::RuntimeValue::String {
+            value: "audit-record".into(),
+        }],
+        None,
+        None,
+        0.0,
+    )
+    .expect("ledger append dispatch");
+    match value {
+        spanda_runtime::value::RuntimeValue::Number { value, .. } => {
+            assert!((value - 1.0).abs() < f64::EPSILON);
+        }
+        other => panic!("expected ok int, got {other:?}"),
+    }
 }

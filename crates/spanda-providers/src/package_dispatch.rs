@@ -32,6 +32,7 @@ pub fn official_package_for_module(module_path: &str) -> Option<&'static str> {
         "sim.gazebo" => Some("spanda-gazebo"),
         "sim.webots" => Some("spanda-webots"),
         "ai.openai" => Some("spanda-openai"),
+        "provenance.ledger" => Some("spanda-ledger"),
         _ => None,
     }
 }
@@ -288,6 +289,26 @@ pub fn dispatch_official_package_call(
             );
             Some(ok_int())
         }
+        ("provenance.ledger", "append") if registry.has_capability("audit.append") => registry
+            .with_ledger(&key, |provider| {
+                let record = args.first().cloned().unwrap_or(RuntimeValue::Void);
+                provider.append(record)
+            })
+            .map(|result| {
+                let failed = result.is_err();
+                record_call(
+                    telemetry,
+                    mission_trace,
+                    sim_time_ms,
+                    &key,
+                    category,
+                    module_path,
+                    function_name,
+                    started,
+                    failed,
+                );
+                ok_int()
+            }),
         _ => None,
     };
 

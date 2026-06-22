@@ -5,7 +5,7 @@ description = "Audit ledger anchoring"
 license = "Apache-2.0"
 
 [safety]
-level = "ledger"
+level = "experimental"
 
 [capabilities]
 required = [

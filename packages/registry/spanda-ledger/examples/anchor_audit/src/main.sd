@@ -1,0 +1,14 @@
+import provenance.ledger;
+
+robot AuditRover {
+  bus sim;
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  behavior run() {
+    let tx = provenance.ledger.append();
+    let _ = tx;
+  }
+}

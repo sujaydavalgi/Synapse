@@ -255,4 +255,11 @@ impl ProviderRegistry {
     {
         self.simulation.get_mut(key).map(|p| f(p.as_mut()))
     }
+
+    pub fn with_ledger<F, R>(&mut self, key: &str, f: F) -> Option<R>
+    where
+        F: FnOnce(&mut dyn LedgerProvider) -> R,
+    {
+        self.ledger.get_mut(key).map(|p| f(p.as_mut()))
+    }
 }

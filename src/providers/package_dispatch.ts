@@ -42,6 +42,8 @@ export function officialPackageForModule(modulePath: string): string | null {
       return "spanda-webots";
     case "ai.openai":
       return "spanda-openai";
+    case "provenance.ledger":
+      return "spanda-ledger";
     default:
       return null;
   }
@@ -104,6 +106,10 @@ export function dispatchOfficialPackageCall(
     functionName === "step"
   ) {
     if (!registry.hasCapability("simulation.step")) return null;
+    return okInt();
+  }
+  if (modulePath === "provenance.ledger" && functionName === "append") {
+    if (!registry.hasCapability("audit.append")) return null;
     return okInt();
   }
 
