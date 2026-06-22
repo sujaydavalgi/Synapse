@@ -29,10 +29,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace -- -D warnings
+      - run: cargo build -p spanda-core --no-default-features
       - run: cargo test --workspace
-  - run: cargo build -p spanda-cli --release
-  - run: chmod +x scripts/check_all_examples.sh
-  - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/check_all_examples.sh
+      - run: cargo build -p spanda-cli --release
+      - run: chmod +x scripts/check_all_examples.sh
+      - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/check_all_examples.sh
 
   security-audit:
     runs-on: ubuntu-latest

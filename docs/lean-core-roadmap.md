@@ -229,7 +229,7 @@ Goal: address post–Phase 17 audit findings without changing the lean-core depe
 | Pipeline benchmark (`spanda-driver`) | **Complete** |
 | Slim CLI feature (`--no-default-features` + `--features slim`) | **Complete** |
 | Panic audit (`runtime_twin`, agent helpers) | **Complete** |
-| Phase 19 shim sunset plan (`transport*` remaining shims) | **Planned** |
+| Phase 19 shim sunset plan (`transport*` remaining shims) | **Complete** |
 
 See [phase-18-security-hardening.md](./phase-18-security-hardening.md).
 
@@ -244,3 +244,19 @@ Goal: remove the last `spanda_core::transport*` facade modules and slim `spanda-
 | Migrate tests to workspace crate imports | **Complete** |
 | Mark modules `Deprecated` in classification tables (Rust + TS) | **Complete** |
 | Move `transport_rclrs` tests to `spanda-transport-ros2` | **Complete** |
+
+## Phase 20 — Complete ✓ (test distribution + embedder features)
+
+Goal: move domain integration tests into owning crates and optional `spanda-core` feature bundles for minimal embedders.
+
+| Step | Status |
+|------|--------|
+| Move provider tests to `spanda-providers` | **Complete** |
+| Move OTA/deploy tests to `spanda-ota` | **Complete** |
+| Move fleet/swarm tests to `spanda-fleet` | **Complete** |
+| Move certify tests to `spanda-certify` | **Complete** |
+| Optional `ota` / `fleet` features on `spanda-core` (`--no-default-features` = minimal) | **Complete** |
+| CI builds minimal `spanda-core` without fleet/OTA | **Complete** |
+
+Embedders that only need compile/run/check can depend on `spanda-core` with `default-features = false`. Enable `features = ["ota"]`, `["fleet"]`, or `["full"]` as needed.
+

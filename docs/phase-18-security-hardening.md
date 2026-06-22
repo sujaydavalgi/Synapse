@@ -48,10 +48,10 @@ Follow-up to the post–Phase 17 audit (security **B**, stability **A−**, perf
 | B2 | Verify on install (`SPANDA_REGISTRY_TRUST_KEY`, `SPANDA_REGISTRY_REQUIRE_SIGNATURE`) | **Complete** |
 | B3 | `version_signatures` in registry index | **Complete** |
 
-## Deferred (Phase 20+)
+## Deferred (Phase 21+)
 
-- Full migration of `spanda-core/tests/` into owning crates
-- Optional `spanda-core` feature bundles for embedders (transport, fleet, OTA)
+- Sign hosted registry packages in CI
+- Further slim `spanda-core` optional surfaces (certify, bridge FFI) if embedders need smaller graphs
 
 ## Verification
 

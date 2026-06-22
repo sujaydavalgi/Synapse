@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Phase 18 security hardening:** registry tarball SHA-256 verification and tar-slip-safe extraction in `spanda-package`; deploy/fleet/mesh agents require `--token` on non-loopback binds; bridge subprocess timeouts; `cargo audit` CI job; slim CLI build (`--no-default-features --features slim`); pipeline benchmark test; [phase-18-security-hardening.md](docs/phase-18-security-hardening.md).
 - **Phase 18b signed registry:** Ed25519 `version_signatures` on publish/install via `SPANDA_REGISTRY_SIGN_KEY` / `SPANDA_REGISTRY_TRUST_KEY`.
 - **Phase 19 transport shim removal:** dropped `spanda_core::transport*` modules; `spanda-core` no longer depends on transport adapter crates directly.
+- **Phase 20 test distribution + embedder features:** OTA, fleet, provider, and certify integration tests moved to owning crates; `spanda-core` exposes optional `ota` / `fleet` features (`default = ["full"]`; `--no-default-features` for minimal embedder builds).
 
 - **Interpreter architecture docs:** [architecture.md](docs/architecture.md) documents the modular `spanda-interpreter` runtime tree, one-way `spanda-core` → `spanda-interpreter` dependency, and `CoreRuntimeHost` wiring (see [lean-core-roadmap.md](docs/lean-core-roadmap.md)).
 - **Hosted registry (20 packages):** `registry/index.json` and tarballs for all official packages under `packages/registry/`; `./scripts/build-registry.sh` auto-discovers package scaffolds; [registry.md](docs/registry.md) curated table updated.
