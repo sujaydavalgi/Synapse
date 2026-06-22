@@ -7,7 +7,7 @@ use super::traits::{
     VisionProvider,
 };
 use super::types::{ProviderCapabilitySet, ProviderId};
-use crate::comm::TransportKind;
+use spanda_ast::comm_decl::TransportKind;
 use std::collections::HashMap;
 
 /// Holds installed provider implementations keyed by package and name.

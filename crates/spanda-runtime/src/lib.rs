@@ -3,8 +3,11 @@
 pub mod classification;
 pub mod environment;
 pub mod error;
+pub mod hal_config;
 pub mod host;
 pub mod provider_types;
+pub mod providers;
+pub mod robot_state;
 pub mod robotics;
 pub mod scheduler;
 pub mod value;
@@ -15,10 +18,18 @@ pub use classification::{
 pub use environment::Environment;
 pub use error::RuntimeError;
 pub use host::{imports_enable_navigation, imports_enable_slam, RuntimeHost};
+pub use hal_config::HalMemberConfig;
 pub use provider_types::{
     ProviderCapability, ProviderCapabilitySet, ProviderError, ProviderId, ProviderMetadata,
     ProviderResult, ProviderSafetyLevel,
 };
+pub use providers::{
+    transport_registry_key, ActuatorProvider, AdapterMessage, CloudProvider, ConnectivityProvider,
+    CryptoProvider, FleetProvider, HalProvider, LedgerProvider, MaintenanceProvider,
+    NavigationProvider, PositioningProvider, ProviderRegistry, RosProvider, SensorProvider,
+    SimulationProvider, SlamProvider, TransportConfig, TransportProvider, VisionProvider,
+};
+pub use robot_state::{PoseState, RobotState, VelocityState};
 pub use robotics::{
     FleetRegistry, MissionRuntime, MissionState, ProgramSafetyZoneRegistry,
 };

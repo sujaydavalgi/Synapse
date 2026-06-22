@@ -103,27 +103,7 @@ pub struct CompileResult {
     pub source: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RobotState {
-    pub pose: PoseState,
-    pub velocity: VelocityState,
-    pub emergency_stop: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct PoseState {
-    pub x: f64,
-    pub y: f64,
-    pub theta: f64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub z: Option<f64>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct VelocityState {
-    pub linear: f64,
-    pub angular: f64,
-}
+pub use spanda_runtime::robot_state::{PoseState, RobotState, VelocityState};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RunOptions {

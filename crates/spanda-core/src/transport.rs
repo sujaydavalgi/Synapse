@@ -191,7 +191,8 @@ impl RoutingCommBus {
 
     fn connect_external(&mut self, kind: TransportKind, config: &TransportConfig) {
         if let Some(()) = self.with_registry_transport(kind, |provider| {
-            let _ = provider.connect(config);
+            let runtime_config = crate::providers::adapter_config_to_runtime(config);
+            let _ = provider.connect(&runtime_config);
         }) {
             return;
         }

@@ -1,16 +1,13 @@
-//! Lean-core provider contracts and registry for optional domain packages.
+//! Lean-core provider contracts and registry — compatibility shims over `spanda-runtime`.
 //!
-//! Spanda Core defines extension traits (sensor, transport, navigation, vision, etc.).
-//! Official packages under `packages/registry/` implement these traits and register
-//! at runtime. Legacy modules in `spanda-core` remain as compatibility shims until
-//! callers migrate to package imports.
+//! Spanda Core wires optional domain packages through `bootstrap` and `package_stubs`.
+//! Trait definitions, registry, and shared types live in `spanda-runtime` for the
+//! Phase 4 lean-core split.
 //!
 pub mod bootstrap;
 pub mod classification;
 pub mod package_stubs;
-pub mod registry;
-pub mod traits;
-pub mod types;
+pub mod transport_adapter;
 
 pub use bootstrap::{
     bootstrap_default_providers, bootstrap_providers_for_packages, official_package_for_transport,
@@ -19,14 +16,15 @@ pub use bootstrap::{
 pub use classification::{
     module_classifications, official_package_names, ModuleClassification, ModuleOwnership,
 };
-pub use registry::ProviderRegistry;
-pub use traits::{
-    ActuatorProvider, CloudProvider, ConnectivityProvider, CryptoProvider, FleetProvider,
-    HalProvider, LedgerProvider, MaintenanceProvider, NavigationProvider, PositioningProvider,
-    RosProvider, SensorProvider, SimulationProvider, SlamProvider, TransportAdapterProvider,
-    TransportProvider, VisionProvider,
+pub use spanda_runtime::providers::{
+    transport_registry_key, ActuatorProvider, AdapterMessage, CloudProvider,
+    ConnectivityProvider, CryptoProvider, FleetProvider, HalProvider, LedgerProvider,
+    MaintenanceProvider, NavigationProvider, PositioningProvider, ProviderCapability,
+    ProviderCapabilitySet, ProviderError, ProviderId, ProviderMetadata, ProviderRegistry,
+    ProviderResult, ProviderSafetyLevel, RosProvider, SensorProvider, SimulationProvider,
+    SlamProvider, TransportConfig, TransportProvider, VisionProvider,
 };
-pub use types::{
-    ProviderCapability, ProviderCapabilitySet, ProviderError, ProviderId, ProviderMetadata,
-    ProviderResult, ProviderSafetyLevel,
-};
+pub use transport_adapter::{adapter_config_to_runtime, TransportAdapterProvider};
+
+/// Re-export legacy AI provider surface for vision-capable packages.
+pub use crate::ai::{AiProvider, CompletionRequest, DetectionRequest, EmbedRequest};

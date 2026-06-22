@@ -1,11 +1,11 @@
 //! Lean-core provider trait contracts for optional domain packages.
 //!
-use super::types::{ProviderId, ProviderMetadata, ProviderResult};
-use crate::comm::TransportKind;
-use crate::error::RobotState;
-use crate::hal::HalMemberConfig;
-use crate::runtime::{MotionCommand, RuntimeValue};
-use crate::transport::{AdapterMessage, TransportAdapter, TransportConfig};
+use super::transport_types::{AdapterMessage, TransportConfig};
+use super::types::{ProviderMetadata, ProviderResult};
+use crate::hal_config::HalMemberConfig;
+use crate::robot_state::RobotState;
+use crate::value::{MotionCommand, RuntimeValue};
+use spanda_ast::comm_decl::TransportKind;
 
 /// Read sensor samples from hardware or simulation backends.
 pub trait SensorProvider: Send + Sync {
@@ -146,90 +146,3 @@ pub trait HalProvider: Send + Sync {
     fn read_gpio(&self, name: &str) -> bool;
     fn write_gpio(&mut self, name: &str, value: bool);
 }
-
-/// Blanket adapter: wrap an existing `TransportAdapter` as a `TransportProvider`.
-pub struct TransportAdapterProvider<T: TransportAdapter> {
-    id: ProviderId,
-    inner: T,
-}
-
-impl<T: TransportAdapter> TransportAdapterProvider<T> {
-    pub fn new(package: impl Into<String>, name: impl Into<String>, inner: T) -> Self {
-        Self {
-            id: ProviderId::new(package, name),
-            inner,
-        }
-    }
-
-    pub fn into_inner(self) -> T {
-        self.inner
-    }
-
-    pub fn inner(&self) -> &T {
-        &self.inner
-    }
-
-    pub fn inner_mut(&mut self) -> &mut T {
-        &mut self.inner
-    }
-}
-
-impl<T: TransportAdapter + Send + Sync> TransportProvider for TransportAdapterProvider<T> {
-    fn metadata(&self) -> ProviderMetadata {
-        ProviderMetadata {
-            id: self.id.clone(),
-            description: format!("Transport adapter ({:?})", self.inner.kind()),
-            safety_level: super::types::ProviderSafetyLevel::Development,
-            capabilities_required: vec![],
-            hardware_requirements: vec![],
-        }
-    }
-
-    fn kind(&self) -> TransportKind {
-        self.inner.kind()
-    }
-
-    fn connect(&mut self, config: &TransportConfig) -> Result<(), String> {
-        self.inner.connect(config)
-    }
-
-    fn disconnect(&mut self) {
-        self.inner.disconnect();
-    }
-
-    fn is_connected(&self) -> bool {
-        self.inner.is_connected()
-    }
-
-    fn publish(&mut self, topic: &str, message_type: &str, value: RuntimeValue) {
-        self.inner.publish(topic, message_type, value);
-    }
-
-    fn subscribe(&mut self, topic: &str) {
-        self.inner.subscribe(topic);
-    }
-
-    fn receive(&mut self, topic: &str) -> Option<RuntimeValue> {
-        self.inner.receive(topic)
-    }
-
-    fn call_service(
-        &mut self,
-        service: &str,
-        service_type: &str,
-        request: Option<RuntimeValue>,
-    ) -> RuntimeValue {
-        self.inner.call_service(service, service_type, request)
-    }
-
-    fn send_action(&mut self, action: &str, action_type: &str, goal: RuntimeValue) -> RuntimeValue {
-        self.inner.send_action(action, action_type, goal)
-    }
-
-    fn published(&self) -> Vec<AdapterMessage> {
-        self.inner.published()
-    }
-}
-
-/// Re-export legacy AI provider surface for vision-capable packages.
-pub use crate::ai::{AiProvider, CompletionRequest, DetectionRequest, EmbedRequest};

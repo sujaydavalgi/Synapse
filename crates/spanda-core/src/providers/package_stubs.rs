@@ -1,13 +1,14 @@
 //! Package-scoped provider stubs registered when official packages are installed.
 //!
-use crate::providers::traits::{
+use spanda_runtime::providers::traits::{
     CloudProvider, FleetProvider, LedgerProvider, MaintenanceProvider, NavigationProvider,
     PositioningProvider, SimulationProvider, SlamProvider, VisionProvider,
 };
-use crate::providers::types::{
+use spanda_runtime::providers::types::{
     ProviderId, ProviderMetadata, ProviderResult, ProviderSafetyLevel,
 };
-use crate::runtime::{runtime_pose, RuntimeValue};
+use spanda_runtime::robot_state::RobotState;
+use spanda_runtime::value::{runtime_pose, RuntimeValue};
 
 fn package_metadata(package: &str, name: &str, description: &str) -> ProviderMetadata {
     ProviderMetadata {
@@ -349,15 +350,15 @@ impl SimulationProvider for SimulationPackageStub {
 
     fn step(&mut self, _dt_ms: f64) {}
 
-    fn observe(&self) -> crate::error::RobotState {
-        crate::error::RobotState {
-            pose: crate::error::PoseState {
+    fn observe(&self) -> RobotState {
+        RobotState {
+            pose: spanda_runtime::robot_state::PoseState {
                 x: 0.0,
                 y: 0.0,
                 theta: 0.0,
                 z: None,
             },
-            velocity: crate::error::VelocityState {
+            velocity: spanda_runtime::robot_state::VelocityState {
                 linear: 0.0,
                 angular: 0.0,
             },

@@ -5,10 +5,9 @@ use super::package_stubs::{
     MaintenancePackageStub, NavNavigationStub, SimulationPackageStub, SlamPackageStub,
     VisionPackageStub,
 };
-use super::registry::{transport_registry_key, ProviderRegistry};
-use super::traits::TransportAdapterProvider;
+use super::transport_adapter::TransportAdapterProvider;
 use crate::comm::TransportKind;
-use crate::transport::TransportConfig;
+use spanda_runtime::providers::{transport_registry_key, ProviderRegistry, TransportConfig};
 use spanda_transport_dds::DdsTransportAdapterLive;
 use spanda_transport_mqtt::MqttTransportAdapter;
 use spanda_transport_ros2::Ros2TransportAdapter;

@@ -4,7 +4,8 @@ use spanda_core::providers::{
     module_classifications, official_package_names, ModuleOwnership, ProviderId, ProviderRegistry,
     TransportAdapterProvider,
 };
-use spanda_core::transport::{Ros2TransportAdapter, TransportConfig};
+use spanda_core::providers::TransportConfig;
+use spanda_core::transport::Ros2TransportAdapter;
 
 #[test]
 fn official_package_list_is_non_empty() {
