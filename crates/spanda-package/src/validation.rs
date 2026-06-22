@@ -5,7 +5,7 @@ use crate::hardware_req::{validate_capability, CapabilityRequirements, HardwareR
 use crate::manifest::PackageManifest;
 use crate::registry::find_registry_entry;
 use crate::safety::{SafetyLevel, SafetyMetadata};
-use spanda_core::list_hardware_profiles;
+use spanda_hardware::list_hardware_profiles;
 use std::collections::HashSet;
 
 /// Application-level permissions granted to the root package.

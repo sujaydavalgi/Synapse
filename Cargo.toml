@@ -18,6 +18,7 @@ members = [
     "crates/spanda-deploy-http",
     "crates/spanda-fleet",
     "crates/spanda-ota",
+    "crates/spanda-hardware",
 ]
 exclude = ["crates/spanda-ros2-rclrs-native"]
 resolver = "2"

@@ -51,13 +51,22 @@ crates/spanda-ota/                  (deploy service, agents)
 
 Each crate implements core provider traits and registers via `ProviderRegistry`. Core re-exports shims behind `#[deprecated]` aliases for one release cycle.
 
-## Phase 4 — Compiler split
+## Phase 4 — Compiler split (in progress)
 
 Break circular `spanda-package` → `spanda-core` dependency:
 
+| Crate | Status | Notes |
+|-------|--------|-------|
+| `spanda-hardware` | Done | Builtin profile catalog; `spanda-package` no longer depends on `spanda-core` |
+| `spanda-ast` | Blocked | AST references `foundations`, `comm`, `regex_lang` — extract those first |
+| `spanda-lexer` | Planned | Depends on AST + diagnostics |
+| `spanda-typecheck` | Planned | `spanda-package` target dependency |
+| `spanda-runtime` | Planned | Interpreter, scheduler, providers |
+
 ```
+spanda-hardware          (profile catalog — done)
+spanda-ast + foundations (next extraction unit)
 spanda-lexer
-spanda-ast
 spanda-typecheck   ← spanda-package depends here
 spanda-runtime     ← interpreter, scheduler, providers
 spanda-core        ← thin facade re-exporting above
@@ -87,7 +96,7 @@ Replace scaffold `.sd` exports with full implementations:
 | Package scaffolds are stubs | No live vendor I/O | Core shims handle runtime |
 | No dynamic `.so` loading | Packages are compile-time | Registry registration API ready |
 | Clippy `-D warnings` failures | CI noise | Pre-existing; fix separately |
-| `spanda-package` ↔ `spanda-core` cycle | Harder testing | Phase 4 split |
+| `spanda-package` ↔ `spanda-core` cycle | Harder testing | **Broken:** package uses `spanda-hardware`; AST split next |
 
 ## Success criteria
 

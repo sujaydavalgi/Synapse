@@ -1192,6 +1192,7 @@ dependencies = [
  "spanda-connectivity",
  "spanda-deploy-http",
  "spanda-fleet",
+ "spanda-hardware",
  "spanda-ota",
  "spanda-package",
  "spanda-security",
@@ -1229,6 +1230,13 @@ dependencies = [
  "serde",
  "serde_json",
  "spanda-deploy-http",
+]
+
+[[package]]
+name = "spanda-hardware"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -1271,7 +1279,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "spanda-core",
+ "spanda-hardware",
  "tempfile",
  "thiserror 2.0.18",
  "toml",

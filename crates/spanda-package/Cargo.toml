@@ -10,7 +10,7 @@ serde_json = "1"
 toml = "0.8"
 semver = { version = "1", features = ["serde"] }
 thiserror = "2"
-spanda-core = { path = "../spanda-core" }
+spanda-hardware = { path = "../spanda-hardware" }
 
 [dev-dependencies]
 tempfile = "3"

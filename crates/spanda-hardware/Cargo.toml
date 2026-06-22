@@ -1,0 +1,12 @@
+[package]
+name = "spanda-hardware"
+version.workspace = true
+edition.workspace = true
+description = "Builtin hardware profile catalog for Spanda package validation and verify"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
