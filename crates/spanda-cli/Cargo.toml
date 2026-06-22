@@ -35,7 +35,7 @@ spanda-fleet = { path = "../spanda-fleet" }
 spanda-format = { path = "../spanda-format" }
 spanda-hardware = { path = "../spanda-hardware" }
 spanda-lint = { path = "../spanda-lint" }
-spanda-llvm = { path = "../spanda-llvm" }
+spanda-llvm = { path = "../spanda-llvm", optional = true }
 spanda-modules = { path = "../spanda-modules" }
 spanda-ota = { path = "../spanda-ota" }
 spanda-package = { path = "../spanda-package" }
@@ -46,6 +46,11 @@ spanda-sir = { path = "../spanda-sir" }
 spanda-typecheck = { path = "../spanda-typecheck" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[features]
+default = ["llvm"]
+llvm = ["dep:spanda-llvm"]
+slim = []
 
 [dev-dependencies]
 serde_json = "1"

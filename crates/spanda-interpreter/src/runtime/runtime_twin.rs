@@ -6,8 +6,30 @@ use super::{
 };
 use spanda_ast::nodes::{Expr, LiteralValue, UnitKind};
 use spanda_error::SpandaError;
+use spanda_runtime::twin::TwinRuntime;
 
 impl<B: RobotBackend> Interpreter<B> {
+    fn twin_runtime(&self, line: u32) -> Result<&TwinRuntime, SpandaError> {
+        // Borrow the configured twin runtime or return a structured error.
+        //
+        // Parameters:
+        // - `self` — interpreter state
+        // - `line` — source line for diagnostics
+        //
+        // Returns:
+        // Twin runtime reference when configured.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let twin = self.twin_runtime(line)?;
+
+        self.twin.as_ref().ok_or_else(|| {
+            RuntimeError::new("No digital twin configured", line).into_spanda()
+        })
+    }
+
     pub(super) fn eval_twin_method(
         &mut self,
         method: &str,
@@ -33,16 +55,14 @@ impl<B: RobotBackend> Interpreter<B> {
         // Example:
         // let result = instance.eval_twin_method(method, args, named_args, line);
 
-        // take this path when self.twin.is none().
-        if self.twin.is_none() {
-            return Err(RuntimeError::new("No digital twin configured", line).into_spanda());
-        }
+        // Require a configured twin before dispatching methods.
+        let _ = self.twin_runtime(line)?;
         self.refresh_twin_shadow_from_backend();
 
         // Match on method and handle each case.
         match method {
             "frame_count" => {
-                let count = self.twin.as_ref().unwrap().replay_frame_count();
+                let count = self.twin_runtime(line)?.replay_frame_count();
                 Ok(RuntimeValue::Number {
                     value: count as f64,
                     unit: UnitKind::None,
@@ -50,9 +70,7 @@ impl<B: RobotBackend> Interpreter<B> {
             }
             "mirror" => {
                 let field = self.twin_field_name(args, named_args, line)?;
-                self.twin
-                    .as_ref()
-                    .unwrap()
+                self.twin_runtime(line)?
                     .shadow_field(&field)
                     .cloned()
                     .ok_or_else(|| {
@@ -64,8 +82,9 @@ impl<B: RobotBackend> Interpreter<B> {
                     })
             }
             "replay" => {
+                let twin = self.twin_runtime(line)?;
                 // Take the branch when replay is false.
-                if !self.twin.as_ref().unwrap().replay {
+                if !twin.replay {
                     return Err(RuntimeError::new(
                         "Twin replay is disabled — set replay true in twin block",
                         line,
@@ -75,9 +94,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 let index =
                     get_number(&self.get_named_arg_value(named_args, "index")?, 0.0) as usize;
                 let field = self.twin_field_name(args, named_args, line)?;
-                self.twin
-                    .as_ref()
-                    .unwrap()
+                self.twin_runtime(line)?
                     .replay_field(index, &field)
                     .cloned()
                     .ok_or_else(|| {
@@ -89,19 +106,10 @@ impl<B: RobotBackend> Interpreter<B> {
                     })
             }
             method => {
-                // Take this path when self.
-                if self
-                    .twin
-                    .as_ref()
-                    .unwrap()
-                    .mirrors
-                    .iter()
-                    .any(|m| m == method)
-                {
-                    self.twin
-                        .as_ref()
-                        .unwrap()
-                        .shadow_field(method)
+                let twin = self.twin_runtime(line)?;
+                // Take this path when the twin mirrors the requested field.
+                if twin.mirrors.iter().any(|m| m == method) {
+                    twin.shadow_field(method)
                         .cloned()
                         .ok_or_else(|| {
                             RuntimeError::new(

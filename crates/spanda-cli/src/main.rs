@@ -28,6 +28,7 @@ use spanda_ast::nodes::{BehaviorDecl, Program, RobotDecl};
 use spanda_ast::foundations::{DeployDecl, TaskDecl};
 use spanda_ast::comm_decl::PeerRobotDecl;
 use spanda_parser::parse;
+#[cfg(feature = "llvm")]
 use spanda_llvm::{compile_native, emit_module_ir_with_options, CompileNativeOptions};
 use std::collections::HashSet;
 use std::env;
@@ -40,6 +41,13 @@ fn run_options_for_file(file: &str, opts: RunOptions) -> RunOptions {
     let mut opts = opts;
     opts.official_packages = package::official_packages_for_source(Path::new(file));
     opts
+}
+
+#[cfg(not(feature = "llvm"))]
+fn llvm_unavailable() -> ! {
+    eprintln!("LLVM commands require the `llvm` feature (enabled by default)");
+    eprintln!("Rebuild with: cargo build -p spanda-cli --features llvm");
+    process::exit(1);
 }
 
 #[derive(Serialize)]
@@ -1895,6 +1903,10 @@ fn main() {
             }
         }
         "llvm-ir" => {
+            #[cfg(not(feature = "llvm"))]
+            llvm_unavailable();
+            #[cfg(feature = "llvm")]
+            {
             let file = file.unwrap_or_else(|| {
                 eprintln!("Missing file path");
                 usage();
@@ -1927,8 +1939,13 @@ fn main() {
                     process::exit(1);
                 }
             }
+            }
         }
         "compile-native" => {
+            #[cfg(not(feature = "llvm"))]
+            llvm_unavailable();
+            #[cfg(feature = "llvm")]
+            {
             let file = file.unwrap_or_else(|| {
                 eprintln!("Missing file path");
                 usage();
@@ -1969,6 +1986,7 @@ fn main() {
                     eprintln!("Error: {e}");
                     process::exit(1);
                 }
+            }
             }
         }
         "debug" => {
