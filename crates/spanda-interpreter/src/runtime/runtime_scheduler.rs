@@ -9,7 +9,7 @@ use spanda_ast::nodes::{Expr, Stmt};
 use crate::error::SpandaError;
 use spanda_ast::foundations::TaskPriority;
 use spanda_runtime::scheduler;
-use crate::triggers::SystemTriggerCategory;
+use spanda_runtime::triggers::SystemTriggerCategory;
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn run_scheduled_task(&mut self, schedule: &TaskSchedule) -> Result<bool, SpandaError> {

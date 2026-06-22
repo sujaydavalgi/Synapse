@@ -33,7 +33,7 @@ use crate::state_machine::StateMachineRuntime;
 use crate::transport::RoutingCommBus;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::triggers::{
+use spanda_runtime::triggers::{
     ConditionTriggerState,
     TriggerRegistry, TriggerTimerSchedule, MAX_TRIGGERS_PER_TICK,
 };

@@ -7,7 +7,7 @@ use super::{
 };
 use crate::error::SpandaError;
 use spanda_ast::foundations::{TriggerHandlerDecl, TriggerKind};
-use crate::triggers::{priority_rank, trigger_display_name, SystemTriggerCategory};
+use spanda_runtime::triggers::{priority_rank, trigger_display_name, SystemTriggerCategory};
 use crate::twin::TwinRuntime;
 
 impl<B: RobotBackend> Interpreter<B> {

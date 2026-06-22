@@ -7,7 +7,7 @@ use spanda_ast::nodes::{AgentDecl, BinaryOp, Expr, LiteralValue, Stmt, UnaryOp, 
 use crate::comm::CommBus;
 use spanda_ast::comm_decl::DiscoverFilter;
 use crate::error::SpandaError;
-use crate::triggers::SystemTriggerCategory;
+use spanda_runtime::triggers::SystemTriggerCategory;
 use spanda_typecheck::units::align_for_binary;
 use std::collections::HashMap;
 

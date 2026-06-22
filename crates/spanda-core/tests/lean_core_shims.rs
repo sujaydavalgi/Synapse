@@ -58,6 +58,18 @@ fn interpreter_runtime_uses_workspace_ast_paths() {
 }
 
 #[test]
+fn triggers_shim_reexports_spanda_runtime() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/triggers.rs");
+    let source = fs::read_to_string(&path).expect("triggers.rs");
+    let lines = source.lines().count();
+    assert!(lines <= 8, "triggers.rs should be a thin re-export shim (got {lines} lines)");
+    assert!(
+        source.contains("spanda_runtime::triggers"),
+        "triggers shim should re-export from spanda-runtime"
+    );
+}
+
+#[test]
 fn interpreter_runtime_uses_workspace_security_and_scheduler() {
     let orchestrator = fs::read_to_string(orchestrator_path()).expect("orchestrator.rs");
     assert!(

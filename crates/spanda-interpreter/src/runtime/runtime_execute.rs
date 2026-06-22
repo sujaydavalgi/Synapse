@@ -8,7 +8,7 @@ use spanda_ast::nodes::{Expr, SpandaType, Stmt};
 use crate::comm::CommBus;
 use spanda_ast::comm_decl::DiscoverFilter;
 use crate::error::SpandaError;
-use crate::triggers::SystemTriggerCategory;
+use spanda_runtime::triggers::SystemTriggerCategory;
 use std::collections::HashMap;
 
 impl<B: RobotBackend> Interpreter<B> {

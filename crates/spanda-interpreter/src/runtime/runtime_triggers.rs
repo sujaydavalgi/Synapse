@@ -6,7 +6,7 @@ use crate::comm::CommBus;
 use crate::error::SpandaError;
 use spanda_ast::nodes::Expr;
 use spanda_ast::foundations::TriggerKind;
-use crate::triggers::SystemTriggerCategory;
+use spanda_runtime::triggers::SystemTriggerCategory;
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn dispatch_system_trigger(

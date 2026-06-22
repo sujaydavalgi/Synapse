@@ -21,7 +21,7 @@ use crate::soc::get_soc_profile;
 use crate::state_machine::StateMachineRuntime;
 use crate::transport::RoutingCommBus;
 use spanda_transport::TransportConfig;
-use crate::triggers::{ConditionTriggerState, TriggerRegistry, TriggerTimerSchedule};
+use spanda_runtime::triggers::{ConditionTriggerState, TriggerRegistry, TriggerTimerSchedule};
 use crate::twin::TwinRuntime;
 use std::collections::HashMap;
 use std::rc::Rc;
