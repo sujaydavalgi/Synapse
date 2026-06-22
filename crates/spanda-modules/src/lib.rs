@@ -228,6 +228,10 @@ mod tests {
             simulate_compatibility: None,
             messages: vec![],
             validate_rules: vec![],
+            kill_switches: vec![],
+            health_checks: vec![],
+            health_policies: vec![],
+            requires_capabilities: vec![],
             robots: vec![],
             span: empty_span(),
         }

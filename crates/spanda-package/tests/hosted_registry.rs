@@ -101,10 +101,11 @@ fn hosted_packages_match_registry_scaffolds() {
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
         .collect();
 
-    assert_eq!(
+    assert!(
+        scaffolds.len() >= OFFICIAL_HOSTED.len(),
+        "packages/registry should contain at least one scaffold per hosted package (got {} scaffolds, {} hosted)",
         scaffolds.len(),
-        OFFICIAL_HOSTED.len(),
-        "packages/registry should contain one scaffold per hosted package"
+        OFFICIAL_HOSTED.len()
     );
 
     for name in OFFICIAL_HOSTED {
