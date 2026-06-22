@@ -16,10 +16,11 @@ use crate::events::EventBus;
 use crate::hal::{hal_member_from_decl, HalBackend};
 use crate::hardware_monitor::HardwareMonitor;
 use crate::safety::{create_safety_config_from_robot, SafetyMonitor};
-use crate::security::{RobotIdentity, SecretHandle, SecretSource, SecurityContext, TrustLevel};
+use spanda_security::{RobotIdentity, SecretHandle, SecretSource, SecurityContext, TrustLevel};
 use crate::soc::get_soc_profile;
 use crate::state_machine::StateMachineRuntime;
-use crate::transport::{RoutingCommBus, TransportConfig};
+use crate::transport::RoutingCommBus;
+use spanda_transport::TransportConfig;
 use crate::triggers::{ConditionTriggerState, TriggerRegistry, TriggerTimerSchedule};
 use crate::twin::TwinRuntime;
 use std::collections::HashMap;
@@ -226,7 +227,7 @@ impl<B: RobotBackend> Interpreter<B> {
             } = bus;
             self.default_transport = *transport;
             let mut bus_security =
-                crate::transport_security::TransportSecurityConfig::from_bus_fields(
+                spanda_transport::TransportSecurityConfig::from_bus_fields(
                     encryption.as_deref(),
                     authentication.as_deref(),
                     integrity.as_deref(),
@@ -253,7 +254,7 @@ impl<B: RobotBackend> Interpreter<B> {
                         .and_then(|s| s.parse().ok())
                         .unwrap_or_default(),
                 };
-                bus_security = crate::transport_security::effective_transport_policy(
+                bus_security = spanda_transport::effective_transport_policy(
                     &robot_policy,
                     &bus_security,
                 );
@@ -288,7 +289,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 bus_security.integrity,
             );
             let resolved_broker =
-                crate::transport_security::TransportSecurityConfig::resolve_broker_url(
+                spanda_transport::TransportSecurityConfig::resolve_broker_url(
                     broker_url.as_deref(),
                 );
             self.comm_bus

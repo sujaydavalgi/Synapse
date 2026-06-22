@@ -1277,8 +1277,12 @@ name = "spanda-interpreter"
 version = "0.1.0"
 dependencies = [
  "spanda-ast",
+ "spanda-audit",
+ "spanda-connectivity",
  "spanda-core",
  "spanda-runtime",
+ "spanda-security",
+ "spanda-transport",
  "spanda-typecheck",
 ]
 

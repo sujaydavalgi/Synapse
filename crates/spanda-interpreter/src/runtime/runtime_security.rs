@@ -3,7 +3,7 @@
 
 use super::{IntoSpandaError, Interpreter, RobotBackend, RuntimeError};
 use crate::error::SpandaError;
-use crate::security::{SecurePolicy, TrustLevel};
+use spanda_security::{SecurePolicy, TrustLevel};
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn check_agent_capability(
@@ -141,7 +141,7 @@ impl<B: RobotBackend> Interpreter<B> {
         }
     }
 
-    pub(super) fn security_error(&self, err: crate::security::SecurityError, line: u32) -> SpandaError {
+    pub(super) fn security_error(&self, err: spanda_security::SecurityError, line: u32) -> SpandaError {
         // Security error.
         //
         // Parameters:

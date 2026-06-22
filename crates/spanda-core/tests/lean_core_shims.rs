@@ -58,6 +58,23 @@ fn interpreter_runtime_uses_workspace_ast_paths() {
 }
 
 #[test]
+fn interpreter_runtime_uses_workspace_security_and_scheduler() {
+    let orchestrator = fs::read_to_string(orchestrator_path()).expect("orchestrator.rs");
+    assert!(
+        orchestrator.contains("spanda_security::SecurityContext"),
+        "orchestrator should import security from spanda-security"
+    );
+    assert!(
+        orchestrator.contains("spanda_runtime::scheduler::SchedulerClock"),
+        "orchestrator should import scheduler from spanda-runtime"
+    );
+    assert!(
+        orchestrator.contains("spanda_runtime::robot_state::"),
+        "orchestrator should import robot state from spanda-runtime"
+    );
+}
+
+#[test]
 fn transport_live_shim_stays_thin() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/transport_live.rs");
     let source = fs::read_to_string(&path).expect("transport_live.rs");

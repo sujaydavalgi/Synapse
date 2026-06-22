@@ -11,6 +11,9 @@ homepage.workspace = true
 [dependencies]
 spanda-ast = { path = "../spanda-ast" }
 spanda-audit = { path = "../spanda-audit" }
+spanda-connectivity = { path = "../spanda-connectivity" }
 spanda-core = { path = "../spanda-core" }
 spanda-runtime = { path = "../spanda-runtime" }
+spanda-security = { path = "../spanda-security" }
+spanda-transport = { path = "../spanda-transport" }
 spanda-typecheck = { path = "../spanda-typecheck" }

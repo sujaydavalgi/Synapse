@@ -11,7 +11,7 @@ use crate::reliability_runtime::{
     recover_handlers_from_decls, ModeRuntime, PipelineRuntime, RetryRuntime, WatchdogRuntime,
 };
 use crate::replay::MissionTrace;
-use crate::scheduler::SchedulerClock;
+use spanda_runtime::scheduler::SchedulerClock;
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn load_reliability_config(&mut self, robot: &RobotDecl) -> Result<(), SpandaError> {

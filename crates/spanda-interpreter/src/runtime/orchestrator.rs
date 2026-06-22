@@ -11,7 +11,8 @@ use spanda_ast::nodes::{
 use spanda_audit::{AuditRuntime, MockLedgerBackend};
 use crate::comm::CommBus;
 use spanda_ast::comm_decl::{QosDecl, TransportKind};
-use crate::error::{PoseState, RobotState, SpandaError, VelocityState};
+use crate::error::SpandaError;
+use spanda_runtime::robot_state::{PoseState, RobotState, VelocityState};
 use crate::events::EventBus;
 use spanda_ast::foundations::{
     CapabilityDecl, TaskDecl, TaskPriority, TriggerKind,
@@ -26,8 +27,8 @@ use crate::replay::MissionTrace;
 use crate::safety::{
     Pose2d, SafetyMonitor, SafetyZoneRuntime,
 };
-use crate::scheduler::SchedulerClock;
-use crate::security::SecurityContext;
+use spanda_runtime::scheduler::SchedulerClock;
+use spanda_security::SecurityContext;
 use crate::state_machine::StateMachineRuntime;
 use crate::transport::RoutingCommBus;
 use std::cell::RefCell;
@@ -363,7 +364,7 @@ pub struct Interpreter<B: RobotBackend> {
     topic_last_publish_ms: HashMap<String, f64>,
     topic_deadline_misses: HashMap<String, u64>,
     mission_trace: Option<MissionTrace>,
-    geofences: Vec<crate::connectivity_positioning::GeofenceRuntime>,
+    geofences: Vec<spanda_connectivity::GeofenceRuntime>,
     geofence_active: std::collections::HashSet<String>,
     connectivity_policies: Vec<crate::connectivity_positioning::ConnectivityPolicyRuntime>,
     active_connectivity_link: String,

@@ -8,7 +8,7 @@ use super::{
 use spanda_ast::nodes::{Expr, Stmt};
 use crate::error::SpandaError;
 use spanda_ast::foundations::TaskPriority;
-use crate::scheduler;
+use spanda_runtime::scheduler;
 use crate::triggers::SystemTriggerCategory;
 
 impl<B: RobotBackend> Interpreter<B> {
