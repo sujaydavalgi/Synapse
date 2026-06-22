@@ -1,7 +1,11 @@
 //! DDS transport backend extracted from Spanda core for lean-core package architecture.
 //!
+pub mod adapter;
+
 #[cfg(feature = "live")]
 mod live;
+
+pub use adapter::{DdsTransportAdapter, DdsTransportAdapterLive};
 
 /// Live DDS bridge handle over UDP multicast.
 #[derive(Debug, Default)]

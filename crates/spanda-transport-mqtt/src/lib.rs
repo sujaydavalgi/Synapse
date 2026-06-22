@@ -3,10 +3,13 @@
 //! Used by `spanda-mqtt` and wired through `spanda-core` compatibility shims until
 //! all callers migrate to package-scoped provider registration.
 //!
+pub mod adapter;
 mod python_bridge;
 
 #[cfg(feature = "live")]
 mod live;
+
+pub use adapter::MqttTransportAdapter;
 
 /// Live MQTT bridge handle; inactive unless built with the `live` feature.
 #[derive(Debug, Default)]

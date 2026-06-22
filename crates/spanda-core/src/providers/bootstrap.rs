@@ -8,10 +8,11 @@ use super::package_stubs::{
 use super::registry::{transport_registry_key, ProviderRegistry};
 use super::traits::TransportAdapterProvider;
 use crate::comm::TransportKind;
-use crate::transport::{
-    DdsTransportAdapterLive, MqttTransportAdapter, Ros2TransportAdapter, TransportConfig,
-    WebsocketTransportAdapterLive,
-};
+use crate::transport::TransportConfig;
+use spanda_transport_dds::DdsTransportAdapterLive;
+use spanda_transport_mqtt::MqttTransportAdapter;
+use spanda_transport_ros2::Ros2TransportAdapter;
+use spanda_transport_websocket::WebsocketTransportAdapterLive;
 
 fn register_transport_stub(
     registry: &mut ProviderRegistry,

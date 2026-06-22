@@ -1,6 +1,5 @@
 //! src crate public API and re-exports.
 //!
-pub mod adapter_bridge;
 pub mod adapter_verify;
 pub mod ai;
 pub mod ast;
@@ -67,8 +66,6 @@ pub mod transport_dds;
 pub mod transport_live;
 pub mod transport_mqtt;
 pub mod transport_rclrs;
-mod transport_rclrs_daemon;
-mod transport_rclrs_native;
 pub mod transport_security;
 pub mod transport_websocket;
 pub mod transport_wire;
@@ -80,7 +77,7 @@ pub mod type_system;
 pub mod types;
 pub mod units;
 
-pub use adapter_bridge::{invoke_nav2_bridge, invoke_slam_bridge};
+pub use spanda_connectivity::adapter_bridge::{invoke_nav2_bridge, invoke_slam_bridge};
 pub use ast::*;
 pub use certify_prover::{
     build_certification_proof, build_certification_proof_summary, CertificationEntry,

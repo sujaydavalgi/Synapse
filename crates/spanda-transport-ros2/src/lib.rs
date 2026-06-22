@@ -4,9 +4,11 @@
 //! `ros2` CLI / Python bridge fallbacks. Spanda core retains thin `RuntimeValue`
 //! compatibility shims that delegate here.
 //!
+pub mod adapter;
 pub mod daemon;
 pub mod live_bridge;
 mod python_bridge;
+pub mod rclrs;
 
 #[cfg_attr(target_arch = "wasm32", path = "native_stub.rs")]
 #[cfg_attr(not(target_arch = "wasm32"), path = "native.rs")]
@@ -16,6 +18,7 @@ pub mod native {
     pub use super::native_loader::*;
 }
 
+pub use adapter::Ros2TransportAdapter;
 pub use daemon::{
     daemon_publish, daemon_script_path, daemon_service_call, daemon_subscribe, python_available,
 };

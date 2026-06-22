@@ -1360,6 +1360,10 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "spanda-ast",
+ "spanda-runtime",
+ "spanda-security",
+ "spanda-transport",
 ]
 
 [[package]]
@@ -1369,6 +1373,10 @@ dependencies = [
  "rumqttc",
  "serde",
  "serde_json",
+ "spanda-ast",
+ "spanda-runtime",
+ "spanda-security",
+ "spanda-transport",
 ]
 
 [[package]]
@@ -1378,6 +1386,9 @@ dependencies = [
  "libloading",
  "serde",
  "serde_json",
+ "spanda-ast",
+ "spanda-runtime",
+ "spanda-transport",
 ]
 
 [[package]]
@@ -1386,6 +1397,10 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "spanda-ast",
+ "spanda-runtime",
+ "spanda-security",
+ "spanda-transport",
  "tungstenite",
 ]
 

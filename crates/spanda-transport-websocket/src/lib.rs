@@ -1,7 +1,11 @@
 //! WebSocket transport backend extracted from Spanda core for lean-core package architecture.
 //!
+pub mod adapter;
+
 #[cfg(feature = "live")]
 mod live;
+
+pub use adapter::{WebsocketTransportAdapter, WebsocketTransportAdapterLive};
 
 /// Live WebSocket bridge handle over a tungstenite session.
 #[derive(Debug, Default)]
