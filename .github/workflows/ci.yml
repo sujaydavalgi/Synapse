@@ -97,6 +97,20 @@ jobs:
         env:
           PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
 
+  llvm-embedded-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install clang and aarch64 cross toolchain
+        run: sudo apt-get update && sudo apt-get install -y clang gcc-aarch64-linux-gnu
+      - run: chmod +x scripts/llvm_embedded_golden_path.sh
+      - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/llvm_embedded_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
   cpp-native-golden-path:
     runs-on: ubuntu-latest
     needs: rust
@@ -132,6 +146,83 @@ jobs:
       - run: cargo build -p spanda-cli --release
       - run: chmod +x scripts/self_host_lexer_golden_path.sh
       - run: ./scripts/self_host_lexer_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
+  world-model-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p spanda-cli --release
+      - run: chmod +x scripts/world_model_golden_path.sh
+      - run: ./scripts/world_model_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
+  killer-demo-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p spanda-cli --release
+      - run: chmod +x scripts/killer_demo_golden_path.sh
+      - run: ./scripts/killer_demo_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
+  live-ai-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p spanda-cli --release
+      - run: chmod +x scripts/live_ai_golden_path.sh
+      - run: ./scripts/live_ai_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
+  registry-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p spanda-cli --release
+      - run: chmod +x scripts/registry_golden_path.sh
+      - run: ./scripts/registry_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
+  ros2-golden-path:
+    runs-on: ubuntu-22.04
+    needs: rust
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Setup ROS 2 Humble
+        env:
+          ROS_APT_SOURCE_VERSION: "1.2.0"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+          curl --fail --location --retry 3 --retry-delay 2 \
+            -o /tmp/ros2-apt-source.deb \
+            "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.jammy_all.deb"
+          sudo dpkg -i /tmp/ros2-apt-source.deb
+          sudo apt-get update
+          sudo apt-get install -y ros-humble-ros-base ros-humble-rclpy
+      - run: chmod +x scripts/ros2_golden_path.sh
+      - run: ./scripts/ros2_golden_path.sh
         env:
           PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
 

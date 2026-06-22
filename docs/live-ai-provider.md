@@ -67,6 +67,8 @@ Unsafe direct execution remains a **compile error** regardless of provider.
 
 Default registry: `SPANDA_REGISTRY_URL` points at the hosted index in this repository (see [registry.md](./registry.md)).
 
+Golden path: `./scripts/registry_golden_path.sh` (CI job `registry-golden-path`).
+
 ## Related
 
 - [ffi-and-ecosystem.md](./ffi-and-ecosystem.md) — bridge architecture

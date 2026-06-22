@@ -117,10 +117,10 @@ Handlers use `std_msgs/String` for generic payloads today. Typed `geometry_msgs/
 
 | Check | CI job | What it proves |
 |-------|--------|----------------|
-| rclrs native crate | `.github/workflows/ci.yml` → `ros2-rclrs-native` | Native library loads under ROS2 Humble |
-| rclpy live bridge | **Manual** (this doc) | Publish/subscribe on `/cmd_vel` or `/scan` |
+| rclpy live bridge | `ros2-golden-path` | Publish on `/cmd_vel` with `SPANDA_ROS2_LIVE=1` |
+| rclrs native crate | `ros2-rclrs-native` | Native library loads under ROS2 Humble |
 
-Automated rclpy live tests are not in default CI (ROS2 distro + Python env). Follow the manual steps above before enabling live transport in production.
+Run locally: `./scripts/ros2_golden_path.sh` (requires ROS 2 Humble and rclpy; skips gracefully when absent).
 
 ## Advanced: rclrs native
 

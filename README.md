@@ -71,6 +71,10 @@ Spanda exists to be that coordination layer: one typed language where perception
 | **Cooperative concurrency** | `spawn`, `join`, `parallel`, channels, and `select` with scheduler telemetry |
 | **Simulation built in** | `spanda run` / `spanda sim` — test without hardware |
 | **Digital twins** | `twin { mirror pose; replay true; }` for shadow state and replay |
+| **Platform packages** | `spanda install` / `update`, provider dispatch, `--trace-providers` | Official registry packages wire to runtime providers |
+| **World models** | `world_model { enabled; }` + `fusion.read()` belief hook | Observe → fused observation → belief-gated decisions |
+
+Lean-core status: Phases 1–24 complete · Phase 25 in progress — [docs/lean-core-roadmap.md](docs/lean-core-roadmap.md)
 
 ---
 
@@ -187,8 +191,9 @@ Three pillars for evaluators — full library has 70+ files; start with these:
 | **Safety** | Block unsafe AI at compile time | `spanda check examples/showcase/ai_safety_violation.sd` |
 | **Verify** | Hardware fit before deploy | `spanda verify examples/showcase/hardware_compatibility.sd --json` |
 | **Sim** | Patrol without hardware | `spanda sim examples/showcase/killer_demo.sd` |
+| **Platform** | Packages → providers → replay | `cd examples/showcase/autonomous_rover && spanda install && spanda run src/rover.sd --trace-providers` |
 
-5-minute walkthrough: [`docs/killer-demo.md`](docs/killer-demo.md) · Adoption path: [`docs/adoption-path.md`](docs/adoption-path.md) · CI: [`docs/ci-verify.md`](docs/ci-verify.md)
+5-minute walkthrough: [`docs/killer-demo.md`](docs/killer-demo.md) · Platform demo: [`examples/showcase/autonomous_rover/README.md`](examples/showcase/autonomous_rover/README.md) · Tier 3 CI golden paths: [`docs/tier-3-golden-paths.md`](docs/tier-3-golden-paths.md)
 
 More showcase demos: [`examples/showcase/README.md`](examples/showcase/README.md). Real-time: [`examples/realtime/`](examples/realtime/); regex: [`examples/regex/`](examples/regex/).
 
@@ -256,10 +261,12 @@ npm run web:dev       # http://localhost:5173
 | `spanda doc <file.sd>` | Generate markdown documentation |
 | `spanda build` | Build project |
 | `spanda install` | Install dependencies |
+| `spanda update` | Refresh lockfile and vendored packages |
+| `spanda twin export <file.sd> --out <replay.json>` | Export twin replay buffer as JSON |
 
 Verify flags: `--target <Profile>`, `--all-targets`, `--simulate`, `--json`
 
-Run/sim/fleet trace flags: `--trace-scheduler`, `--trace-tasks`, `--trace-triggers`, `--trace-events`, `--trace-realtime`, `--metrics-json`, `--record`, `--wall-clock`, `--replay` (sim)
+Run/sim/fleet trace flags: `--trace-scheduler`, `--trace-tasks`, `--trace-triggers`, `--trace-events`, `--trace-providers`, `--trace-realtime`, `--metrics-json`, `--record`, `--wall-clock`, `--replay` (sim)
 
 Replay flags: `--from T+mm:ss`, `--deterministic` (re-run source and verify frame parity), `--playback` (apply recorded state snapshots)
 

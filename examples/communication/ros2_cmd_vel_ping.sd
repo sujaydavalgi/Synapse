@@ -1,0 +1,18 @@
+// Golden path for live ROS2 /cmd_vel publish via rclpy bridge.
+//
+//   source /opt/ros/humble/setup.bash
+//   export SPANDA_ROS2_LIVE=1
+//   spanda run examples/communication/ros2_cmd_vel_ping.sd
+//   ./scripts/ros2_golden_path.sh
+
+module ros2_cmd_vel_ping;
+
+robot Ros2Ping {
+  topic cmd_vel: Velocity publish on "/cmd_vel";
+  actuator wheels: DifferentialDrive;
+
+  behavior ping() {
+    publish cmd_vel with velocity(linear: 0.1 m/s, angular: 0.0 rad/s);
+    wheels.stop();
+  }
+}

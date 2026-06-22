@@ -185,11 +185,15 @@ Those are documented elsewhere and dilute the core story: **safety-typed AI + ha
 
 ## CI smoke test
 
-When the native CLI is built, the showcase test suite validates this demo:
+When the native CLI is built, run the golden path script or the showcase test suite:
 
 ```bash
+./scripts/killer_demo_golden_path.sh
+# or
 npm test -- tests/showcase.test.ts
 ```
+
+CI job: `killer-demo-golden-path` in `.github/workflows/ci.yml`.
 
 ---
 
