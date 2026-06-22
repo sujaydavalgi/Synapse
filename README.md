@@ -74,7 +74,7 @@ Spanda exists to be that coordination layer: one typed language where perception
 | **Platform packages** | `spanda install` / `update`, provider dispatch, `--trace-providers` | Official registry packages wire to runtime providers |
 | **World models** | `world_model { enabled; }` + `fusion.read()` belief hook | Observe → fused observation → belief-gated decisions |
 
-Lean-core status: Phases 1–24 complete · Phase 25 in progress — [docs/lean-core-roadmap.md](docs/lean-core-roadmap.md)
+Lean-core status: Phases 1–25 complete · Phase 26 in progress — [docs/lean-core-roadmap.md](docs/lean-core-roadmap.md)
 
 ---
 

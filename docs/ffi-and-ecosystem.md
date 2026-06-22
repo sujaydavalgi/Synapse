@@ -76,9 +76,11 @@ When `spanda-core` is built with `--features python-native`, `extern python fn` 
 On Python versions newer than PyO3's supported range, set `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` at build time.
 
 ```bash
-PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 cargo build -p spanda-core --features python-native
+PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 cargo build -p spanda-cli --release --features python-native
 spanda run examples/ffi_python_extern.sd
 ```
+
+Golden path: `./scripts/python_native_golden_path.sh` (CI job `python-native-golden-path`). CLI feature mirrors `cpp-native`: `--features python-native` on `spanda-cli`.
 
 ### Subprocess C++ bridge (implemented)
 

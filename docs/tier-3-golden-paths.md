@@ -14,6 +14,8 @@ See [tier-3-experimental.md](./tier-3-experimental.md) for feature status and [t
 | **Live AI (OpenAI mock/live)** | [live_ai_golden_path.sh](../scripts/live_ai_golden_path.sh) | `live-ai-golden-path` | [ffi_openai_live.sd](../examples/ffi_openai_live.sd) |
 | **ROS2 rclpy `/cmd_vel`** | [ros2_golden_path.sh](../scripts/ros2_golden_path.sh) | `ros2-golden-path` | [ros2_cmd_vel_ping.sd](../examples/communication/ros2_cmd_vel_ping.sd) |
 | **Hosted registry install** | [registry_golden_path.sh](../scripts/registry_golden_path.sh) | `registry-golden-path` | `spanda-openai`, `spanda-ros2` |
+| **CI verify `--json` gate** | [ci_verify_golden_path.sh](../scripts/ci_verify_golden_path.sh) | `ci-verify-golden-path` | [hardware_compatibility.sd](../examples/showcase/hardware_compatibility.sd) |
+| **Python PyO3 in-process FFI** | [python_native_golden_path.sh](../scripts/python_native_golden_path.sh) | `python-native-golden-path` | [ffi_python_extern.sd](../examples/ffi_python_extern.sd) |
 
 ---
 

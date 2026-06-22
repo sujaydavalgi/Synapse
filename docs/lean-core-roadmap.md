@@ -337,7 +337,21 @@ Goal: close v0.5 beta blockers with CI-backed golden paths for killer demo, live
 | `ros2_cmd_vel_ping.sd` + `ros2_golden_path.sh` CI | **Complete** |
 | `registry_golden_path.sh` (file:// + signatures) CI | **Complete** |
 | VS Code extension marketplace publish | **Partial** — release workflow publishes when `VSCE_PAT` secret is set |
+
+Phase 25 P0 golden paths are **complete** except marketplace publish (requires maintainer `VSCE_PAT`).
 | P0 acceptance tracking in [tier-3-priority-plan.md](./tier-3-priority-plan.md) | **Complete** |
 
 See [killer-demo.md](./killer-demo.md), [live-ai-provider.md](./live-ai-provider.md), [ros2-golden-path.md](./ros2-golden-path.md), [registry.md](./registry.md).
+
+## Phase 26 — In progress (P1 adoption enablers)
+
+Goal: ship CI-backed golden paths and polish for v0.5 beta adoption — verify in CI, PyO3 FFI, LSP deploy-target completion.
+
+| Step | Status |
+|------|--------|
+| `ci_verify_golden_path.sh` + CI job | **Complete** |
+| `python_native_golden_path.sh` + `python-native` CLI feature | **Complete** |
+| Hardware profile autocomplete in LSP/VS Code | **Complete** (existing) |
+| [ci-verify.md](./ci-verify.md) + [adoption-path.md](./adoption-path.md) cross-links | **Complete** |
+| Showcase trim to 3 pillars | **Complete** ([showcase/README.md](../examples/showcase/README.md)) |
 

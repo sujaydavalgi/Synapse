@@ -53,11 +53,11 @@ See [product-strategy.md](./product-strategy.md) § v0.5 beta — prioritized wo
 
 | # | Work item | Acceptance criteria |
 |---|-----------|---------------------|
-| 6 | **CI integration guide for `spanda verify`** | [ci-verify.md](./ci-verify.md) — GitHub Actions + GitLab; `--json` gate |
-| 7 | **In-process Python FFI (PyO3)** | Document build flags; subprocess remains fallback — [ffi-and-ecosystem.md](./ffi-and-ecosystem.md) |
-| 8 | **Hardware profile picker in LSP/VS Code** | Deploy target hints or autocomplete |
-| 9 | **Trim showcase to 3 flagship examples** | [examples/showcase/README.md](../examples/showcase/README.md) — safety, verify, sim |
-| 10 | **Adoption quickstart** | [adoption-path.md](./adoption-path.md) — 1-sprint Python + ROS2 wrap |
+| 6 | **CI integration guide for `spanda verify`** | [ci-verify.md](./ci-verify.md) — GitHub Actions + GitLab; `--json` gate; CI (`ci-verify-golden-path`) | **Complete** |
+| 7 | **In-process Python FFI (PyO3)** | Document build flags; subprocess remains fallback — [ffi-and-ecosystem.md](./ffi-and-ecosystem.md); CI (`python-native-golden-path`) | **Complete** |
+| 8 | **Hardware profile picker in LSP/VS Code** | Deploy target hints or autocomplete | **Complete** |
+| 9 | **Trim showcase to 3 flagship examples** | [examples/showcase/README.md](../examples/showcase/README.md) — safety, verify, sim | **Complete** |
+| 10 | **Adoption quickstart** | [adoption-path.md](./adoption-path.md) — 1-sprint Python + ROS2 wrap | **Complete** |
 
 ---
 
