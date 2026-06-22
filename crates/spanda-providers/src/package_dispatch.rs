@@ -55,6 +55,7 @@ fn ok_int() -> RuntimeValue {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn record_call(
     telemetry: Option<&mut RuntimeTelemetry>,
     mission_trace: Option<&mut MissionTrace>,
@@ -199,7 +200,7 @@ pub fn dispatch_official_package_call(
             let request = args.first().cloned().unwrap_or(RuntimeValue::Void);
             registry
                 .with_vision(&key, |provider| provider.detect(request))
-                .map(|value| {
+                .inspect(|_| {
                     record_call(
                         telemetry,
                         mission_trace,
@@ -211,7 +212,6 @@ pub fn dispatch_official_package_call(
                         started,
                         false,
                     );
-                    value
                 })
         }
         ("sim.gazebo", "step") | ("sim.webots", "step")
