@@ -140,17 +140,20 @@ Every major feature is classified for prioritization. See [feature-status.md](./
 - LSP + published VS Code extension
 - Lean security (capabilities; not a full IAM platform)
 
-### Tier 3 — Deferred
+### Tier 3 — Experimental (Phase 22)
 
-- Blockchain / ledger packages
-- Self-hosting compiler
-- LLVM as primary deploy path
-- World models / advanced AI concepts
-- Digital twin cloud sync
-- Distributed multi-robot fleet runtime
-- MQTT/DDS live transport
-- C++ in-process FFI (after Python)
-- Full ROS replacement (never)
+Promoted from deferred to experimental with minimal runtimes and golden paths. See [tier-3-experimental.md](./tier-3-experimental.md).
+
+- LLVM native codegen (`spanda compile-native`, `scripts/llvm_golden_path.sh`)
+- Blockchain / ledger (`spanda-ledger` → `MockLedgerBackend`)
+- World models (`world_model.update` / `belief` runtime)
+- Digital twin cloud upload (`SPANDA_CLOUD_UPLOAD_URL`)
+- Distributed fleet (HTTP agents, mesh — partial)
+- MQTT / DDS live transport (env-gated live bridges)
+- C++ in-process FFI (`cpp-native` feature)
+- Self-hosting bootstrap (`examples/self_host/`)
+
+**Still future:** LLVM as primary path, production chain adapters, full world-model semantics, twin cloud SaaS, full fleet planning, OMG DDS, ROS replacement, complete self-hosted compiler.
 
 ---
 

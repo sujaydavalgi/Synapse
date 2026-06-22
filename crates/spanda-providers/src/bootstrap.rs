@@ -118,7 +118,7 @@ pub fn bootstrap_providers_for_packages(package_names: &[&str]) -> ProviderRegis
     }
     if names.contains("spanda-ledger") {
         registry.grant_capability("audit.append");
-        registry.register_ledger(Box::new(LedgerPackageStub));
+        registry.register_ledger(Box::new(LedgerPackageStub::default()));
     }
     if names.contains("spanda-cloud") {
         registry.grant_capability("cloud.invoke");

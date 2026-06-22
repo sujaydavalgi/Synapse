@@ -125,6 +125,7 @@ pub enum RuntimeValue {
     SafetyCtx,
     AuditCtx,
     LedgerCtx,
+    WorldModelCtx,
     Identity {
         id: String,
         public_key: String,

@@ -19,6 +19,7 @@ pub mod telemetry;
 pub mod triggers;
 pub mod twin;
 pub mod value;
+pub mod world_model;
 
 pub use classification::{
     module_classifications, official_package_names, ModuleClassification, ModuleOwnership,
@@ -64,6 +65,7 @@ pub use triggers::{
     SystemTriggerCategory, TriggerRegistry, TriggerTimerSchedule, MAX_TRIGGERS_PER_TICK,
 };
 pub use twin::TwinRuntime;
+pub use world_model::WorldModelRuntime;
 pub use value::{
     format_runtime_value, get_number, get_pose_fields, get_string, get_trajectory_waypoints,
     get_velocity_fields, runtime_pose, runtime_trajectory, runtime_velocity, MotionCommand,

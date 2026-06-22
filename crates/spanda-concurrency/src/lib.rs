@@ -577,6 +577,7 @@ fn runtime_type_tag(value: &RuntimeValue) -> String {
         RuntimeValue::FleetControl { .. } => "fleet_control".into(),
         RuntimeValue::AuditCtx => "audit_ctx".into(),
         RuntimeValue::LedgerCtx => "ledger_ctx".into(),
+        RuntimeValue::WorldModelCtx => "world_model_ctx".into(),
         RuntimeValue::Identity { .. } => "identity".into(),
         RuntimeValue::Secret { .. } => "secret".into(),
         RuntimeValue::Bytes { .. } => "bytes".into(),

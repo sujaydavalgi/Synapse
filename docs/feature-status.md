@@ -46,7 +46,7 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 
 | Area | Capabilities | Caveats |
 |------|--------------|---------|
-| **Digital twins (live sync)** | Twin mirror + replay | External telemetry sync is simulated; no production twin cloud |
+| **Digital twins (live sync)** | Twin mirror + replay; optional HTTP upload via `SPANDA_CLOUD_UPLOAD_URL` | No production twin cloud SaaS |
 | **Replay** | `replay true`, frame buffer, mission traces | In-process only; v2 traces embed state snapshots for `--playback` |
 | **Advanced verification** | Fault injection, compatibility matrix | Matrix may report stub targets |
 | **Multi-agent systems** | Agent-to-agent comm, fleet peer messaging | In-process mesh + HTTP fleet agent relay (`fleet orchestrate --remote` / `--mesh-url`) |
@@ -54,8 +54,12 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 | **Certification metadata** | `certify ISO13849 { level PLd; }` | Verify-only metadata; `--strict-certify` / `--enforce-certify`; `spanda certify prove`; deploy plan proof summary |
 | **Nav2 / SLAM packages** | Registry adapter stubs + example packages | External Nav2/Gazebo/OpenCV not bundled; optional `SPANDA_NAV2_CMD` / `SPANDA_SLAM_CMD` bridges |
 | **ROS2 adapter** | Native `rclrs` cdylib, rclpy daemon, CLI bridge | Requires ROS Humble; not default transport |
-| **LLVM / native codegen** | `spanda ir`, `llvm-ir`, `compile-native` | Early stage; not primary execution path |
-| **FFI** | `extern python`/`extern cpp` subprocess bridges | No in-process PyO3/cxx by default |
+| **LLVM / native codegen** | `spanda ir`, `llvm-ir`, `compile-native`; `scripts/llvm_golden_path.sh` | Early stage; not primary execution path |
+| **FFI** | `extern python`/`extern cpp` subprocess bridges; optional `cpp-native` in-process | PyO3 path is Tier 2 adoption unlock |
+| **World models** | `world_model.update` / `belief` / `export` runtime | Minimal belief buffer; not full knowledge-graph semantics |
+| **Ledger / provenance** | `spanda-ledger` provider → `MockLedgerBackend` | Mock chain only; no production blockchain adapters |
+| **MQTT / DDS live** | `SPANDA_LIVE_MQTT=1`, provider bootstrap for `spanda-mqtt` / `spanda-dds` | DDS is UDP JSON shim, not OMG middleware |
+| **Self-hosting bootstrap** | `examples/self_host/word_tokenizer.sd` | Rust compiler remains authoritative |
 | **LSP** | Diagnostics, completion, hover, rename | Requires built native CLI; VS Code extension scaffold available in `editor/vscode` |
 | **WASM / web playground** | Browser check/run/verify | Limited surface vs native CLI |
 | **Package publish** | `spanda publish`, registry search | Local/stub registry only |
@@ -64,13 +68,15 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 
 | Area | Description |
 |------|-------------|
-| **LLVM backend (production)** | Optimized native binaries as primary deploy path |
-| **Self-hosting compiler** | Spanda compiler written in Spanda |
+| **LLVM backend (production primary)** | Optimized native binaries replacing interpreter as default deploy path |
+| **Self-hosting compiler (full)** | Complete Spanda-authored compiler pipeline |
 | **ROS2 production adapter** | First-class, zero-config ROS2 deployment |
 | **Live AI providers** | OpenAI, local models, ONNX inference plugins |
 | **VS Code extension** | Publishable extension package with LSP wiring (`editor/vscode`) |
-| **In-process FFI** | PyO3 / cxx linking for Python and C++ |
-| **Distributed multi-robot** | Fleet coordination runtime | Partial — in-process mesh, HTTP fleet agents, fleet mesh coordinator, swarm mesh relay; not full fleet planning |
+| **Production blockchain** | `spanda-ledger-ethereum` and related chain adapters |
+| **Full world models** | Knowledge graphs, beliefs, policies beyond minimal runtime |
+
+See [tier-3-experimental.md](./tier-3-experimental.md) for Phase 22 experimental foundations.
 
 ### Deprecated
 

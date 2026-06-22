@@ -45,6 +45,7 @@ use spanda_runtime::triggers::{
     TriggerRegistry, TriggerTimerSchedule, MAX_TRIGGERS_PER_TICK,
 };
 use spanda_runtime::twin::TwinRuntime;
+use spanda_runtime::world_model::WorldModelRuntime;
 use std::collections::HashMap;
 
 type AgentTraitImplBody = (Vec<spanda_ast::foundations::TraitParamDecl>, Vec<Stmt>);
@@ -351,6 +352,7 @@ pub struct Interpreter<B: RobotBackend> {
     twin_faults_dispatched: std::collections::HashSet<String>,
     audit_runtime: Option<AuditRuntime>,
     mock_ledger: MockLedgerBackend,
+    world_model: WorldModelRuntime,
     security: SecurityContext,
     comm_bus: RoutingCommBus,
     default_transport: TransportKind,
@@ -458,6 +460,7 @@ impl<B: RobotBackend> Interpreter<B> {
             twin_faults_dispatched: std::collections::HashSet::new(),
             audit_runtime: None,
             mock_ledger: MockLedgerBackend::new(),
+            world_model: WorldModelRuntime::new(),
             security: SecurityContext::new(),
             comm_bus,
             default_transport: TransportKind::Sim,
@@ -1793,6 +1796,8 @@ mod runtime_helpers;
 mod runtime_builtins;
 #[path = "runtime_audit.rs"]
 mod runtime_audit;
+#[path = "runtime_world_model.rs"]
+mod runtime_world_model;
 #[path = "runtime_actuators.rs"]
 mod runtime_actuators;
 #[path = "runtime_eval.rs"]

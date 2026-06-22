@@ -704,6 +704,7 @@ fn runtime_value_kind(value: &RuntimeValue) -> &'static str {
         RuntimeValue::FleetControl { .. } => "fleet_control",
         RuntimeValue::AuditCtx => "audit_ctx",
         RuntimeValue::LedgerCtx => "ledger_ctx",
+        RuntimeValue::WorldModelCtx => "world_model_ctx",
         RuntimeValue::Identity { .. } => "identity",
         RuntimeValue::Secret { .. } => "secret",
         RuntimeValue::Result { .. } => "result",

@@ -30,15 +30,15 @@ Follow-up to the post–Phase 17 audit (security **B**, stability **A−**, perf
 
 | ID | Item | Implementation |
 |----|------|----------------|
-| P2.1 | **Slim CLI** | `spanda-cli` feature `slim` omits `spanda-llvm` (default keeps full binary) |
-| P2.2 | **Bridge timeouts** | `SPANDA_BRIDGE_TIMEOUT_SECS` (default 30) in `spanda-bridge::protocol` |
-| P2.3 | **Dependency audit CI** | `cargo audit` job in GitHub Actions |
+| P2.1 | **Slim CLI** | **Complete** — `spanda-cli` feature `slim` omits `spanda-llvm` (default keeps full binary) |
+| P2.2 | **Bridge timeouts** | **Complete** — `SPANDA_BRIDGE_TIMEOUT_SECS` (default 30) in `spanda-bridge::protocol` |
+| P2.3 | **Dependency audit CI** | **Complete** — `cargo audit` job in GitHub Actions |
 
 ## P3 — Observability
 
 | ID | Item | Implementation |
 |----|------|----------------|
-| P3.1 | **Pipeline benchmark** | `cargo bench -p spanda-driver` — parse → typecheck baseline |
+| P3.1 | **Pipeline benchmark** | **Complete** — `cargo test -p spanda-driver pipeline_bench -- --ignored` |
 
 ## Phase 18b — Signed registry (complete)
 
@@ -62,7 +62,7 @@ Hosted packages are signed with material `spanda-hosted-registry-v1` unless `SPA
 
 ## Deferred (post–Phase 21)
 
-_None from the Phase 18 hardening plan. Product strategy Tier 3 items (LLVM primary path, blockchain, world models, etc.) remain intentionally out of scope._
+Tier 3 product items now have **experimental foundations** in Phase 22 — see [tier-3-experimental.md](./tier-3-experimental.md). LLVM-as-primary, production blockchain, and full self-hosting remain future work.
 
 ## Verification
 

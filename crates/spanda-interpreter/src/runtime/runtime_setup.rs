@@ -714,6 +714,7 @@ impl<B: RobotBackend> Interpreter<B> {
             ));
         }
         self.env.define("mock_ledger", RuntimeValue::LedgerCtx);
+        self.env.define("world_model", RuntimeValue::WorldModelCtx);
         self.security.grant_if_not_strict("ledger.anchor");
 
         // Process each state machine.

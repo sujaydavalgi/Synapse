@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 22 Tier 3 experimental:** world-model runtime (`world_model.update`/`belief`/`export`), ledger provider wired to `MockLedgerBackend`, cloud upload via `SPANDA_CLOUD_UPLOAD_URL`, LLVM golden path script, self-host bootstrap example, and [tier-3-experimental.md](docs/tier-3-experimental.md).
+- **Phase 18 P2/P3 closure:** performance (slim CLI, bridge timeouts, `cargo audit`) and observability (pipeline benchmark) marked complete in docs.
+
 - **Phase 21 hosted registry signing:** `registry-index-maintain` binary updates checksums and Ed25519 `version_signatures` in `registry/index.json`; CI verifies against `registry/TRUST_KEY`; `scripts/update_registry_checksums.py` delegates to the Rust tool.
 - **Phase 21 embedder slimming:** optional `certify` and `bridge` features on `spanda-core` (`default-features = false` omits certification and FFI shims; `full` remains default).
 

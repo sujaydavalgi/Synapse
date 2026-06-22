@@ -1674,7 +1674,9 @@ dependencies = [
 name = "spanda-providers"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "spanda-ast",
+ "spanda-audit",
  "spanda-comm",
  "spanda-runtime",
  "spanda-transport",

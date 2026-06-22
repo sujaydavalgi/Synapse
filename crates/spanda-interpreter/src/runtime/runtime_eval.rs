@@ -724,6 +724,10 @@ impl<B: RobotBackend> Interpreter<B> {
             return self.eval_ledger_method(property, args, named_args, line);
         }
 
+        if matches!(target, RuntimeValue::WorldModelCtx) {
+            return self.eval_world_model_method(property, args, named_args, line);
+        }
+
         if self.ai_models.contains_key(target_name)
             || matches!(target, RuntimeValue::AiModel { .. })
         {

@@ -1,11 +1,12 @@
 //! Package-scoped provider stubs registered when official packages are installed.
 //!
+use spanda_audit::{sha256, Hash, LedgerBackend, MockLedgerBackend};
 use spanda_runtime::providers::traits::{
     CloudProvider, FleetProvider, LedgerProvider, MaintenanceProvider, NavigationProvider,
     PositioningProvider, SimulationProvider, SlamProvider, VisionProvider,
 };
 use spanda_runtime::providers::types::{
-    ProviderId, ProviderMetadata, ProviderResult, ProviderSafetyLevel,
+    ProviderError, ProviderId, ProviderMetadata, ProviderResult, ProviderSafetyLevel,
 };
 use spanda_runtime::robot_state::RobotState;
 use spanda_runtime::value::{runtime_pose, RuntimeValue};
@@ -189,40 +190,121 @@ impl FleetProvider for FleetPackageStub {
     }
 }
 
-/// Ledger stub for `spanda-ledger` package bootstrap.
-pub struct LedgerPackageStub;
+/// Ledger provider backed by the in-process mock chain (`spanda-ledger` package).
+pub struct LedgerPackageStub {
+    backend: MockLedgerBackend,
+}
+
+impl Default for LedgerPackageStub {
+    fn default() -> Self {
+        Self {
+            backend: MockLedgerBackend::new(),
+        }
+    }
+}
 
 impl LedgerProvider for LedgerPackageStub {
     fn metadata(&self) -> ProviderMetadata {
         package_metadata(
             "spanda-ledger",
             "project",
-            "Package-scoped ledger stub (audit runtime in core shim)",
+            "Mock ledger provider (anchors audit digests via spanda-audit)",
         )
     }
 
-    fn append(&mut self, _record: RuntimeValue) -> ProviderResult<String> {
-        Ok("ledger-entry-1".into())
+    fn append(&mut self, record: RuntimeValue) -> ProviderResult<String> {
+        let payload = runtime_value_summary(&record);
+        let digest = sha256(&payload);
+        let tx = self
+            .backend
+            .anchor_hash(&digest)
+            .map_err(|err| ledger_err(format!("ledger append failed: {err}")))?;
+        Ok(tx.0)
     }
 
     fn anchor(&mut self, digest: &[u8]) -> ProviderResult<String> {
-        Ok(format!("anchor:{}", digest.len()))
+        let hash = Hash(hex_encode(digest));
+        let tx = self
+            .backend
+            .anchor_hash(&hash)
+            .map_err(|err| ledger_err(format!("ledger anchor failed: {err}")))?;
+        Ok(tx.0)
     }
 }
 
-/// Cloud stub for `spanda-cloud` package bootstrap.
+/// Cloud provider with optional HTTP upload when `SPANDA_CLOUD_UPLOAD_URL` is set.
 pub struct CloudPackageStub;
+
+fn ledger_err(message: impl Into<String>) -> ProviderError {
+    ProviderError::new(ProviderId::new("spanda-ledger", "project"), message)
+}
+
+fn cloud_err(message: impl Into<String>) -> ProviderError {
+    ProviderError::new(ProviderId::new("spanda-cloud", "project"), message)
+}
+
+fn runtime_value_summary(value: &RuntimeValue) -> String {
+    match value {
+        RuntimeValue::String { value } => value.clone(),
+        RuntimeValue::Number { value, .. } => value.to_string(),
+        RuntimeValue::Object { type_name, .. } => format!("object:{type_name}"),
+        other => format!("{other:?}"),
+    }
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn cloud_upload_url() -> Option<String> {
+    std::env::var("SPANDA_CLOUD_UPLOAD_URL")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn post_json(url: &str, body: &str) -> Result<(), String> {
+    let output = std::process::Command::new("curl")
+        .args([
+            "-fsS",
+            "-X",
+            "POST",
+            "-H",
+            "Content-Type: application/json",
+            "--data-binary",
+            body,
+            url,
+        ])
+        .output()
+        .map_err(|err| format!("curl failed to start: {err}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "cloud upload failed (status {}): {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(())
+}
 
 impl CloudProvider for CloudPackageStub {
     fn metadata(&self) -> ProviderMetadata {
         package_metadata(
             "spanda-cloud",
             "project",
-            "Package-scoped cloud stub (remote invoke surface)",
+            "Cloud upload via SPANDA_CLOUD_UPLOAD_URL (curl POST) or in-process stub",
         )
     }
 
-    fn upload(&mut self, _path: &str, _payload: RuntimeValue) -> ProviderResult<()> {
+    fn upload(&mut self, path: &str, payload: RuntimeValue) -> ProviderResult<()> {
+        let body = serde_json::json!({
+            "path": path,
+            "payload": runtime_value_summary(&payload),
+        })
+        .to_string();
+        if let Some(url) = cloud_upload_url() {
+            post_json(&url, &body).map_err(|err| cloud_err(err))?;
+        }
         Ok(())
     }
 

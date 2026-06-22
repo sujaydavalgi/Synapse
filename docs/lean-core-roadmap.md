@@ -270,3 +270,19 @@ Goal: sign curated hosted registry tarballs in CI and make certification / FFI s
 | CI verifies hosted registry signatures against `registry/TRUST_KEY` | **Complete** |
 | Optional `certify` / `bridge` features on `spanda-core` | **Complete** |
 
+## Phase 22 — Complete ✓ (Tier 3 experimental + P2/P3 closure)
+
+Goal: promote deferred product-strategy items to experimental with minimal runtimes and golden paths; mark Phase 18 performance and observability tasks complete.
+
+| Step | Status |
+|------|--------|
+| `world_model` runtime (`update`, `belief`, `export`) | **Complete** |
+| `spanda-ledger` provider → `MockLedgerBackend` | **Complete** |
+| `spanda-cloud` HTTP upload via `SPANDA_CLOUD_UPLOAD_URL` | **Complete** |
+| LLVM golden path script (`scripts/llvm_golden_path.sh`) | **Complete** |
+| Self-host bootstrap example (`examples/self_host/`) | **Complete** |
+| [tier-3-experimental.md](./tier-3-experimental.md) index | **Complete** |
+| Phase 18 P2 performance + P3 observability marked complete | **Complete** |
+
+See [tier-3-experimental.md](./tier-3-experimental.md).
+

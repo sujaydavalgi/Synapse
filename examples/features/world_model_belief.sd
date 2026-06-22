@@ -1,0 +1,16 @@
+robot Explorer {
+  sensor lidar: Lidar on "/scan";
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior run() {
+    let scan = lidar.read();
+    let belief = world_model.update(scan);
+    if world_model.belief() < 0.5 {
+      return;
+    }
+    let _ = belief;
+  }
+}

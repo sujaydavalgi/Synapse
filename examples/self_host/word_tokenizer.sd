@@ -1,0 +1,15 @@
+robot TokenizerDemo {
+  sensor noop: Lidar on "/scan";
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior run() {
+    let sample = "robot Rover";
+    let _ = noop.read();
+    if sample == "" {
+      return;
+    }
+  }
+}
