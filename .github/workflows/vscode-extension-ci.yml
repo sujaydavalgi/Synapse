@@ -23,5 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm install --prefix editor/vscode
       - name: Verify VSIX build
         run: ./scripts/verify_vscode_vsix.sh
