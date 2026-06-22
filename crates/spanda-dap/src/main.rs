@@ -258,6 +258,21 @@ pub fn serve(
 
                     // Process each pause.
                     for pause in session.pauses {
+                        if pause.reason.starts_with("health_")
+                            || pause.reason.starts_with("kill_switch")
+                        {
+                            write_message(
+                                writer,
+                                &json!({
+                                    "type": "event",
+                                    "event": "output",
+                                    "body": {
+                                        "category": "spanda-health",
+                                        "output": pause.reason,
+                                    }
+                                }),
+                            )?;
+                        }
                         write_message(
                             writer,
                             &json!({
