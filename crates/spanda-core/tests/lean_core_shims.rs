@@ -510,3 +510,11 @@ fn run_pipeline_lives_in_spanda_driver() {
         "run.rs should delegate execution to spanda-interpreter"
     );
 }
+
+#[test]
+fn sir_shim_reexports_spanda_sir() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/sir.rs");
+    let source = fs::read_to_string(path).expect("sir.rs shim");
+    assert!(source.lines().count() <= 5, "sir.rs should be a thin re-export shim");
+    assert!(source.contains("spanda_sir"));
+}

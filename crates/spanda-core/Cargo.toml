@@ -26,6 +26,7 @@ spanda-ast = { path = "../spanda-ast" }
 spanda-lexer = { path = "../spanda-lexer" }
 spanda-parser = { path = "../spanda-parser" }
 spanda-driver = { path = "../spanda-driver" }
+spanda-sir = { path = "../spanda-sir" }
 spanda-certify = { path = "../spanda-certify" }
 spanda-bridge = { path = "../spanda-bridge" }
 spanda-typecheck = { path = "../spanda-typecheck" }

@@ -261,7 +261,7 @@ pub fn lower_to_sir(source: &str) -> Result<SirProgram, SpandaError> {
     let tokens = lexer::tokenize(source)?;
     let program = parser::parse(tokens)?;
     types::check(&program)?;
-    Ok(sir::lower_program(&program))
+    Ok(spanda_sir::lower_program(&program))
 }
 
 pub fn run(source: &str, options: RunOptions) -> Result<RunResult, SpandaError> {

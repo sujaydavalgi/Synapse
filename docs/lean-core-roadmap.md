@@ -112,7 +112,7 @@ Goal: extract parser and compile driver so `spanda-driver` owns the lexer → pa
 
 | Module | ~LOC | Notes |
 |--------|------|-------|
-| `sir.rs` | 2.2k | SIR lowering — candidate for `spanda-sir` |
+| `sir.rs` | 2.2k | **Extracted** to `spanda-sir` |
 | `hardware.rs` | 2.1k | Verifier — partially in `spanda-hardware` |
 | `pretty.rs` | 1.8k | Formatter |
 | `debug_session.rs` | 900 | Debugger session driver |
