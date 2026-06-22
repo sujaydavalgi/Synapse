@@ -17,3 +17,8 @@ pub fn default_ffi_registry() -> FfiRegistry {
         cpp: Some(cpp::call_extern),
     })
 }
+
+/// Compatibility alias for `spanda_core::ffi::new_with_core_bridges`.
+pub fn new_with_core_bridges() -> FfiRegistry {
+    default_ffi_registry()
+}

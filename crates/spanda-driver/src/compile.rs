@@ -2,7 +2,7 @@
 //!
 use spanda_ast::nodes::Program;
 use spanda_error::SpandaError;
-use spanda_lexer::tokenize;
+use spanda_lexer::Token;
 use spanda_parser::parse;
 use spanda_runtime_host::core_type_check_host;
 use spanda_typecheck::{self, ModuleRegistry, TypeCheckError};
@@ -12,6 +12,29 @@ use serde::{Deserialize, Serialize};
 pub struct CompileResult {
     pub program: Program,
     pub source: String,
+}
+
+/// Tokenize Spanda source (maps lexer diagnostics to `SpandaError`).
+pub fn tokenize(source: &str) -> Result<Vec<Token>, SpandaError> {
+    // Tokenize source text for tooling that needs tokens without full compile.
+    //
+    // Parameters:
+    // - `source` — full `.sd` source text
+    //
+    // Returns:
+    // Token vector, or a lexer diagnostic error.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let tokens = tokenize(source)?;
+
+    tokenize_source(source)
+}
+
+fn tokenize_source(source: &str) -> Result<Vec<Token>, SpandaError> {
+    spanda_lexer::tokenize(source).map_err(SpandaError::from)
 }
 
 pub fn compile(source: &str) -> Result<CompileResult, SpandaError> {
@@ -29,7 +52,7 @@ pub fn compile(source: &str) -> Result<CompileResult, SpandaError> {
     // Example:
     // let compiled = compile(source)?;
 
-    let tokens = tokenize(source).map_err(SpandaError::from)?;
+    let tokens = tokenize_source(source)?;
     let program = parse(tokens)?;
     spanda_typecheck::type_check(&program, core_type_check_host()).map_err(type_check_error)?;
     Ok(CompileResult {
@@ -53,7 +76,7 @@ pub fn check(source: &str) -> Result<(), SpandaError> {
     // Example:
     // check(source)?;
 
-    let tokens = tokenize(source).map_err(SpandaError::from)?;
+    let tokens = tokenize_source(source)?;
     let program = parse(tokens)?;
     spanda_typecheck::check(&program, core_type_check_host()).map_err(type_check_error)
 }
@@ -74,7 +97,7 @@ pub fn check_with_registry(source: &str, registry: &ModuleRegistry) -> Result<()
     // Example:
     // check_with_registry(source, &registry)?;
 
-    let tokens = tokenize(source).map_err(SpandaError::from)?;
+    let tokens = tokenize_source(source)?;
     let program = parse(tokens)?;
     spanda_typecheck::check_with_registry(&program, registry, core_type_check_host())
         .map_err(type_check_error)
@@ -99,7 +122,7 @@ pub fn compile_with_registry(
     // Example:
     // let compiled = compile_with_registry(source, &registry)?;
 
-    let tokens = tokenize(source).map_err(SpandaError::from)?;
+    let tokens = tokenize_source(source)?;
     let program = parse(tokens)?;
     spanda_typecheck::check_with_registry(&program, registry, core_type_check_host())
         .map_err(type_check_error)?;

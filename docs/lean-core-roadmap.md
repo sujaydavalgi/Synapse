@@ -163,3 +163,22 @@ Goal: move remaining non-shim bodies into workspace crates; `spanda-driver` owns
 | Reliability validators | `spanda-typecheck` |
 | Provider bootstrap | `spanda-core::providers` (intentional composition root) |
 | Transport / fleet / deploy agent shims | Thin `pub use` re-exports |
+
+## Phase 14 — Complete ✓ (shim consolidation)
+
+Goal: move the last small glue bodies out of `spanda-core` and collapse multi-file shim directories.
+
+| Step | Status |
+|------|--------|
+| Move `transport_live` RuntimeValue helpers to `spanda-transport-routing` | **Complete** |
+| Move `tokenize` SpandaError wrapper to `spanda-driver` | **Complete** |
+| Move `new_with_core_bridges` alias to `spanda-bridge` | **Complete** |
+| Collapse `providers/` subdirectory into single `providers.rs` facade | **Complete** |
+| `lean_core_shims` guards for Phase 14 | **Complete** |
+
+### Optional follow-up (caller migration)
+
+| Step | Status |
+|------|--------|
+| Migrate `spanda-cli` / `spanda-node` imports to workspace crates directly | Planned |
+| Remove deprecated `spanda_core::transport_*` shims after one release | Planned |

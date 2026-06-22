@@ -59,22 +59,20 @@ fn interpreter_runtime_uses_workspace_ast_paths() {
 
 #[test]
 fn providers_bootstrap_shim_reexports_spanda_providers() {
-    for module in [
-        "providers/bootstrap.rs",
-        "providers/package_stubs.rs",
-        "providers/transport_adapter.rs",
-    ] {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
-        let source = fs::read_to_string(&path).expect(module);
-        assert!(
-            source.lines().count() <= 8,
-            "{module} should be a thin re-export shim"
-        );
-        assert!(
-            source.contains("spanda_providers"),
-            "{module} shim should re-export from spanda-providers"
-        );
-    }
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/providers.rs");
+    let source = fs::read_to_string(&path).expect("providers.rs");
+    assert!(
+        source.lines().count() <= 22,
+        "providers.rs should be a facade re-export shim"
+    );
+    assert!(
+        source.contains("spanda_providers"),
+        "providers facade should re-export from spanda-providers"
+    );
+    assert!(
+        source.contains("spanda_runtime::providers"),
+        "providers facade should re-export runtime provider traits"
+    );
 }
 
 #[test]
@@ -122,8 +120,12 @@ fn ffi_shim_reexports_spanda_ffi_with_core_bridges() {
     let source = fs::read_to_string(&path).expect("ffi.rs");
     assert!(source.contains("spanda_ffi"));
     assert!(
-        source.contains("new_with_core_bridges") && source.contains("spanda_bridge"),
+        source.contains("spanda_bridge") && source.contains("new_with_core_bridges"),
         "ffi shim should delegate bridge wiring to spanda-bridge"
+    );
+    assert!(
+        source.lines().count() <= 6,
+        "ffi.rs should be a thin re-export shim"
     );
 }
 
@@ -277,16 +279,12 @@ fn transport_live_shim_stays_thin() {
     let source = fs::read_to_string(&path).expect("transport_live.rs");
     let lines = source.lines().count();
     assert!(
-        lines <= 80,
-        "transport_live.rs should remain a thin shim (got {lines} lines); move logic to spanda-transport-*"
+        lines <= 8,
+        "transport_live.rs should remain a thin shim (got {lines} lines)"
     );
     assert!(
-        source.contains("spanda_transport_ros2::live_bridge"),
-        "transport_live shim should delegate ROS2 live hooks to spanda-transport-ros2"
-    );
-    assert!(
-        source.contains("spanda_transport_mqtt"),
-        "transport_live shim should delegate MQTT live hooks to spanda-transport-mqtt"
+        source.contains("spanda_transport_routing"),
+        "transport_live shim should re-export from spanda-transport-routing"
     );
 }
 
@@ -318,7 +316,8 @@ fn transport_no_inline_adapter_impls() {
 
 #[test]
 fn transport_live_no_direct_python_bridge() {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/transport_live.rs");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../spanda-transport-routing/src/transport_live.rs");
     let source = fs::read_to_string(&path).expect("transport_live.rs");
     assert!(
         !source.contains("call_subprocess_bridge"),
@@ -523,6 +522,9 @@ fn phase13_extractions_use_thin_shims() {
         ("reliability.rs", "spanda_typecheck"),
         ("robotics_platform.rs", "spanda_runtime"),
         ("types.rs", "spanda_driver"),
+        ("lexer.rs", "spanda_driver"),
+        ("ffi.rs", "spanda_bridge"),
+        ("transport_live.rs", "spanda_transport_routing"),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
         let source = fs::read_to_string(&path).expect(module);
@@ -535,6 +537,15 @@ fn phase13_extractions_use_thin_shims() {
             "{module} shim should re-export from {crate_name}"
         );
     }
+}
+
+#[test]
+fn phase14_providers_facade_reexports_workspace_crates() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/providers.rs");
+    let source = fs::read_to_string(path).expect("providers.rs");
+    assert!(source.lines().count() <= 22);
+    assert!(source.contains("spanda_providers"));
+    assert!(source.contains("spanda_runtime::classification"));
 }
 
 #[test]

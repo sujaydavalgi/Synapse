@@ -1,5 +1,7 @@
 //! Routes publish/subscribe/service calls across transport adapters and in-memory simulation.
 //!
+pub mod transport_live;
+
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;

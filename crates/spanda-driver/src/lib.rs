@@ -11,7 +11,7 @@ pub mod type_check;
 mod verify;
 
 pub use compile::{
-    check, check_with_registry, compile, compile_with_registry, CompileResult,
+    check, check_with_registry, compile, compile_with_registry, tokenize, CompileResult,
 };
 pub use deploy_plan::build_deploy_plan;
 pub use debug_run::run_debug;
