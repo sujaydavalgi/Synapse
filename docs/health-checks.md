@@ -52,6 +52,18 @@ health_policy SafetyPolicy {
 
 At runtime, matching reactions execute when health status transitions (wired to `HardwareMonitor` polling). Policies latch per `(policy, status)` until health returns to `Healthy`.
 
+## Behavior and task return types
+
+```spanda
+behavior status() -> Bool {
+    return true;
+}
+
+task Monitor every 50ms -> Bool {
+    return battery_ok;
+}
+```
+
 ## Health triggers
 
 ```spanda

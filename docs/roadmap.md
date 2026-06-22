@@ -32,6 +32,7 @@
 - **Verification & DX (Phase 29):** LSP verification diagnostics; runtime health wired to `HardwareMonitor`; `spanda check --verification-json`; kill-switch integration tests
 - **Verification & DX (Phase 30):** verification quick-fix hints; LSP code actions; continuous health polling in trigger loop; debug pause events for kill switch and critical health
 - **Verification & DX (Phase 31):** runtime health_policy reactions; behavior return types; agent SafeAction plan returns; IoT package dispatch; agent capability audit hooks
+- **Verification & DX (Phase 32):** in-memory IoT hub; task return types; agent can[] enforcement; VSIX verify script
 
 ## In progress
 

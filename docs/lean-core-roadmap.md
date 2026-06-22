@@ -424,3 +424,16 @@ Goal: close partial gaps from the 14-item verification/DX audit — runtime heal
 | DAP `output` events for health/kill-switch debug pauses | **Complete** |
 | Integration tests (`phase31_gaps.rs`, IoT dispatch test) | **Complete** |
 
+## Phase 32 — Complete ✓ (IoT hub, task I/O, agent can[] enforcement, VSIX verify)
+
+Goal: close remaining partial gaps — in-memory IoT state, task return types, default-deny for empty `can[]`, VS Code VSIX build verification.
+
+| Step | Status |
+|------|--------|
+| In-memory `IotHub` with device/telemetry/shadow/modbus state | **Complete** |
+| IoT dispatch wired to hub (`register`, `publish`, `read_register`, …) | **Complete** |
+| Task `-> Type` return validation | **Complete** |
+| Agent `can[]` default-deny for `execute` / `propose_motion` | **Complete** |
+| `scripts/verify_vscode_vsix.sh` build smoke test | **Complete** |
+| Integration tests (`phase32_gaps.rs`, IoT hub tests) | **Complete** |
+
