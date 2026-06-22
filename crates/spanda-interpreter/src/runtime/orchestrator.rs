@@ -2,8 +2,8 @@
 //!
 use spanda_ai::{AgentRuntime, AiModel};
 use spanda_ast::comm_decl::{QosDecl, TransportKind};
-use spanda_ast::foundations::{CapabilityDecl, TaskDecl, TaskPriority, TriggerKind};
-use spanda_ast::nodes::{BehaviorDecl, Expr, Program, RobotDecl, SafetyRule, SafetyZoneDecl, Stmt};
+use spanda_ast::foundations::{CapabilityDecl, TaskPriority};
+use spanda_ast::nodes::{Expr, Program, RobotDecl, Stmt};
 use spanda_audit::{AuditRuntime, MockLedgerBackend};
 use spanda_comm::CommBus;
 use spanda_concurrency::ConcurrencyRuntime;
@@ -37,8 +37,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 type AgentTraitImplBody = (Vec<spanda_ast::foundations::TraitParamDecl>, Vec<Stmt>);
-type BehaviorContracts = (Vec<Stmt>, Option<Expr>, Option<Expr>, Option<Expr>);
-type TaskContracts = (Vec<Stmt>, f64, Option<Expr>, Option<Expr>, Option<Expr>);
 pub use spanda_runtime::environment::Environment;
 pub use spanda_runtime::value::*;
 pub use spanda_runtime::RuntimeError;
@@ -1205,11 +1203,7 @@ impl<B: RobotBackend> Interpreter<B> {
             robots: vec![],
             span: Default::default(),
         };
-        let registry = self
-            .options
-            .module_registry
-            .clone()
-            .unwrap_or_default();
+        let registry = self.options.module_registry.clone().unwrap_or_default();
         if check_with_registry(&probe, &registry, core_type_check_host()).is_ok() {
             return Err(SpandaError::Runtime {
                 message: "expect_compile_error block passed type check but should have failed"
@@ -1451,431 +1445,9 @@ fn pose_value_to_state(pose: &PoseValue) -> PoseState {
     }
 }
 
-// AST accessor extensions
-struct TaskSchedule {
-    name: String,
-    priority: TaskPriority,
-    interval_ms: f64,
-    deadline_ms: Option<f64>,
-    jitter_ms_max: Option<f64>,
-    isolated: bool,
-    next_due_ms: f64,
-    last_start_ms: Option<f64>,
-    body: Vec<Stmt>,
-    requires: Option<Expr>,
-    ensures: Option<Expr>,
-    invariant: Option<Expr>,
-    budget: Option<spanda_ast::foundations::ResourceBudgetDecl>,
-}
-
-const RUNTIME_TASK_COST_MS: f64 = 5.0;
-
-fn task_budget_violation_kind(
-    budget: &spanda_ast::foundations::ResourceBudgetDecl,
-    duration_ms: f64,
-    interval_ms: f64,
-) -> Option<&'static str> {
-    // Task budget violation kind.
-    //
-    // Parameters:
-    // - `budget` — input value
-    // - `duration_ms` — input value
-    // - `interval_ms` — input value
-    //
-    // Returns:
-    // Some value on success, otherwise none.
-    //
-    // Options:
-    // None.
-    //
-    // Example:
-    // let result = spanda_core::runtime::task_budget_violation_kind(budget, duration_ms, interval_ms);
-
-    // Compute crate for the following logic.
-    let spanda_ast::foundations::ResourceBudgetDecl::ResourceBudgetDecl {
-        cpu_pct_max,
-        battery_pct_max,
-        ..
-    } = budget;
-    let interval = interval_ms.max(1.0);
-    let duty_pct = (duration_ms / interval) * 100.0;
-
-    // Emit output when cpu pct max provides a cpu max.
-    if let Some(cpu_max) = cpu_pct_max {
-        // Take this path when duty pct > *cpu max.
-        if duty_pct > *cpu_max {
-            return Some("cpu");
-        }
-    }
-
-    // Emit output when battery pct max provides a bat max.
-    if let Some(bat_max) = battery_pct_max {
-        // Take this path when duty pct > *bat max.
-        if duty_pct > *bat_max {
-            return Some("battery");
-        }
-    }
-    None
-}
-
-impl TaskSchedule {
-    fn priority_rank(&self) -> u8 {
-        // Priority rank.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        //
-        // Returns:
-        // u8.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.priority_rank();
-
-        // Isolated safety tasks preempt other work at the same priority tier.
-        let isolation_rank = if self.isolated { 0 } else { 1 };
-        let priority_rank = match self.priority {
-            TaskPriority::Critical => 0,
-            TaskPriority::High => 1,
-            TaskPriority::Normal => 2,
-            TaskPriority::Low => 3,
-        };
-        isolation_rank * 10 + priority_rank
-    }
-}
-
-fn priority_label(priority: TaskPriority) -> &'static str {
-    // Priority label.
-    //
-    // Parameters:
-    // - `priority` — input value
-    //
-    // Returns:
-    // Text result.
-    //
-    // Options:
-    // None.
-    //
-    // Example:
-    // let result = spanda_core::runtime::priority_label(priority);
-
-    // Match on priority and handle each case.
-    match priority {
-        TaskPriority::Critical => "critical",
-        TaskPriority::High => "high",
-        TaskPriority::Normal => "normal",
-        TaskPriority::Low => "low",
-    }
-}
-
-pub(super) fn trigger_category_label(kind: &TriggerKind) -> &'static str {
-    // Trigger category label.
-    //
-    // Parameters:
-    // - `kind` — input value
-    //
-    // Returns:
-    // Text result.
-    //
-    // Options:
-    // None.
-    //
-    // Example:
-    // let result = spanda_core::runtime::trigger_category_label(kind);
-
-    // Match on kind and handle each case.
-    match kind {
-        TriggerKind::Event { .. } => "event",
-        TriggerKind::Message { .. } => "message",
-        TriggerKind::Timer { .. } => "timer",
-        TriggerKind::Condition { .. } => "condition",
-        TriggerKind::StateEntered { .. } => "state_entered",
-        TriggerKind::StateExited { .. } => "state_exited",
-        TriggerKind::Safety { .. } => "safety",
-        TriggerKind::Hardware { .. } => "hardware",
-        TriggerKind::Ai { .. } => "ai",
-        TriggerKind::Verification { .. } => "verification",
-        TriggerKind::Twin { .. } => "twin",
-        TriggerKind::LogMatch { .. } => "log_match",
-        TriggerKind::MessageMatch { .. } => "message_match",
-        TriggerKind::Connectivity { .. } => "connectivity",
-        TriggerKind::Geofence { .. } => "geofence",
-        TriggerKind::SensorEvent { .. } => "sensor_event",
-        TriggerKind::KillSwitch { .. } => "kill_switch",
-    }
-}
-
-trait RobotDeclExt {
-    fn first_behavior_name(&self) -> Option<String>;
-    fn behavior_with_contracts(&self, name: &str) -> Option<BehaviorContracts>;
-    fn task_with_contracts(&self, name: &str) -> Option<TaskContracts>;
-    fn all_task_schedules(&self) -> Vec<TaskSchedule>;
-}
-
-impl RobotDeclExt for RobotDecl {
-    fn first_behavior_name(&self) -> Option<String> {
-        // First behavior name.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        //
-        // Returns:
-        // Some value on success, otherwise none.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.first_behavior_name();
-
-        // Compute RobotDecl for the following logic.
-        let RobotDecl::RobotDecl {
-            behaviors, tasks, ..
-        } = self;
-
-        // Emit output when first provides a b.
-        if let Some(b) = behaviors.first() {
-            return match b {
-                BehaviorDecl::BehaviorDecl { name, .. } => Some(name.clone()),
-            };
-        }
-        tasks.first().map(|t| match t {
-            TaskDecl::TaskDecl { name, .. } => name.clone(),
-        })
-    }
-
-    fn behavior_with_contracts(&self, name: &str) -> Option<BehaviorContracts> {
-        // Behavior with contracts.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        // - `name` — input value
-        //
-        // Returns:
-        // Some value on success, otherwise none.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.behavior_with_contracts(name);
-
-        // Compute RobotDecl for the following logic.
-        let RobotDecl::RobotDecl { behaviors, .. } = self;
-        behaviors.iter().find_map(|b| match b {
-            BehaviorDecl::BehaviorDecl {
-                name: n,
-                requires,
-                ensures,
-                invariant,
-                body,
-                ..
-            } if n == name => Some((
-                body.clone(),
-                requires.clone(),
-                ensures.clone(),
-                invariant.clone(),
-            )),
-            _ => None,
-        })
-    }
-
-    fn task_with_contracts(&self, name: &str) -> Option<TaskContracts> {
-        // Task with contracts.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        // - `name` — input value
-        //
-        // Returns:
-        // Some value on success, otherwise none.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.task_with_contracts(name);
-
-        // Compute RobotDecl for the following logic.
-        let RobotDecl::RobotDecl { tasks, .. } = self;
-        tasks.iter().find_map(|t| match t {
-            TaskDecl::TaskDecl {
-                name: n,
-                priority: _priority,
-                interval_ms,
-                requires,
-                ensures,
-                invariant,
-                body,
-                ..
-            } if n == name => Some((
-                body.clone(),
-                *interval_ms,
-                requires.clone(),
-                ensures.clone(),
-                invariant.clone(),
-            )),
-            _ => None,
-        })
-    }
-
-    fn all_task_schedules(&self) -> Vec<TaskSchedule> {
-        // All task schedules.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        //
-        // Returns:
-        // Vec<TaskSchedule>.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.all_task_schedules();
-
-        // Compute RobotDecl for the following logic.
-        let RobotDecl::RobotDecl { tasks, .. } = self;
-        tasks
-            .iter()
-            .map(|t| match t {
-                TaskDecl::TaskDecl {
-                    name,
-                    priority,
-                    interval_ms,
-                    deadline_ms,
-                    jitter_ms_max,
-                    isolated,
-                    requires,
-                    ensures,
-                    invariant,
-                    budget,
-                    body,
-                    ..
-                } => TaskSchedule {
-                    name: name.clone(),
-                    priority: *priority,
-                    interval_ms: *interval_ms,
-                    deadline_ms: *deadline_ms,
-                    jitter_ms_max: *jitter_ms_max,
-                    isolated: *isolated,
-                    next_due_ms: 0.0,
-                    last_start_ms: None,
-                    body: body.clone(),
-                    requires: requires.clone(),
-                    ensures: ensures.clone(),
-                    invariant: invariant.clone(),
-                    budget: budget.clone(),
-                },
-            })
-            .collect()
-    }
-}
-
-trait SocDeclExt {
-    fn profile(&self) -> &str;
-}
-
-impl SocDeclExt for spanda_ast::nodes::SocDecl {
-    fn profile(&self) -> &str {
-        // Profile.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        //
-        // Returns:
-        // Text result.
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.profile();
-
-        // Dispatch based on the enum variant or current state.
-        match self {
-            spanda_ast::nodes::SocDecl::SocDecl { profile, .. } => profile,
-        }
-    }
-}
-
-trait HalBlockExt {
-    fn members(&self) -> &[spanda_ast::nodes::HalMemberDecl];
-}
-
-impl HalBlockExt for spanda_ast::nodes::HalBlock {
-    fn members(&self) -> &[spanda_ast::nodes::HalMemberDecl] {
-        // Members.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        //
-        // Returns:
-        // &[spanda_ast::nodes::HalMemberDecl].
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.members();
-
-        // Dispatch based on the enum variant or current state.
-        match self {
-            spanda_ast::nodes::HalBlock::HalBlock { members, .. } => members,
-        }
-    }
-}
-
-trait SafetyBlockExt {
-    fn rules(&self) -> &[SafetyRule];
-    fn zones(&self) -> &[SafetyZoneDecl];
-}
-
-impl SafetyBlockExt for spanda_ast::nodes::SafetyBlock {
-    fn rules(&self) -> &[SafetyRule] {
-        // Rules.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        //
-        // Returns:
-        // &[SafetyRule].
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.rules();
-
-        // Dispatch based on the enum variant or current state.
-        match self {
-            spanda_ast::nodes::SafetyBlock::SafetyBlock { rules, .. } => rules,
-        }
-    }
-
-    fn zones(&self) -> &[SafetyZoneDecl] {
-        // Zones.
-        //
-        // Parameters:
-        // - `self` — method receiver
-        //
-        // Returns:
-        // &[SafetyZoneDecl].
-        //
-        // Options:
-        // None.
-        //
-        // Example:
-        // let result = instance.zones();
-
-        // Dispatch based on the enum variant or current state.
-        match self {
-            spanda_ast::nodes::SafetyBlock::SafetyBlock { zones, .. } => zones,
-        }
-    }
-}
+#[path = "runtime_decl_extensions.rs"]
+mod runtime_decl_extensions;
+use runtime_decl_extensions::*;
 
 #[path = "runtime_actuators.rs"]
 mod runtime_actuators;
@@ -1891,8 +1463,12 @@ mod runtime_declarations;
 mod runtime_eval;
 #[path = "runtime_execute.rs"]
 mod runtime_execute;
+#[path = "runtime_health.rs"]
+mod runtime_health;
 #[path = "runtime_helpers.rs"]
 mod runtime_helpers;
+#[path = "runtime_kill_switch.rs"]
+mod runtime_kill_switch;
 #[path = "runtime_navigation.rs"]
 mod runtime_navigation;
 #[path = "runtime_program.rs"]
@@ -1921,7 +1497,3 @@ mod runtime_triggers;
 mod runtime_twin;
 #[path = "runtime_world_model.rs"]
 mod runtime_world_model;
-#[path = "runtime_health.rs"]
-mod runtime_health;
-#[path = "runtime_kill_switch.rs"]
-mod runtime_kill_switch;
