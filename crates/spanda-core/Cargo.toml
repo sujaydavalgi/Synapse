@@ -63,6 +63,7 @@ cpp-native = ["bridge", "spanda-bridge/cpp-native"]
 
 [dev-dependencies]
 glob = "0.3"
+spanda-capability = { path = "../spanda-capability" }
 spanda-package = { path = "../spanda-package" }
 spanda-transport = { path = "../spanda-transport" }
 spanda-transport-routing = { path = "../spanda-transport-routing" }
