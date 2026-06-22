@@ -1192,6 +1192,7 @@ dependencies = [
  "spanda-connectivity",
  "spanda-deploy-http",
  "spanda-fleet",
+ "spanda-ota",
  "spanda-package",
  "spanda-security",
  "spanda-transport-dds",
@@ -1248,6 +1249,19 @@ dependencies = [
  "serde",
  "serde_json",
  "spanda-core",
+]
+
+[[package]]
+name = "spanda-ota"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "rustls 0.23.40",
+ "serde",
+ "serde_json",
+ "sha2",
+ "spanda-audit",
+ "spanda-deploy-http",
 ]
 
 [[package]]

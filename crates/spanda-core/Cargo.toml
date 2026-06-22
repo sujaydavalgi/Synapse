@@ -25,6 +25,7 @@ spanda-transport-dds = { path = "../spanda-transport-dds" }
 spanda-transport-websocket = { path = "../spanda-transport-websocket" }
 spanda-deploy-http = { path = "../spanda-deploy-http" }
 spanda-fleet = { path = "../spanda-fleet" }
+spanda-ota = { path = "../spanda-ota" }
 pyo3 = { version = "0.23", optional = true, features = ["auto-initialize", "abi3-py310"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

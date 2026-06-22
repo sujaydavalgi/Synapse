@@ -17,6 +17,7 @@ members = [
     "crates/spanda-transport-websocket",
     "crates/spanda-deploy-http",
     "crates/spanda-fleet",
+    "crates/spanda-ota",
 ]
 exclude = ["crates/spanda-ros2-rclrs-native"]
 resolver = "2"

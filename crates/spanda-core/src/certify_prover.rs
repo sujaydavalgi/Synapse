@@ -2,7 +2,7 @@
 
 use crate::ast::Program;
 use crate::certify_verify::verify_certification_proof;
-use crate::deploy_service::hash_program_artifact;
+use spanda_ota::hash_program_artifact;
 use crate::foundations::DeployDecl;
 use crate::hardware::{CompatItem, CompatSeverity};
 use crate::robotics_platform::CertifyDecl;
