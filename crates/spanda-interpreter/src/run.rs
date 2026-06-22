@@ -5,7 +5,6 @@ use crate::runtime::{Interpreter, InterpreterOptions, RobotBackend};
 use crate::simulator::{create_default_simulator, Obstacle, SimulatorConfig};
 use spanda_ast::nodes::Program;
 use spanda_error::SpandaError;
-use spanda_ffi::FfiRegistry;
 use spanda_providers::bootstrap_providers_for_packages;
 use spanda_runtime::robot_state::PoseState;
 use spanda_runtime::scheduler::SchedulerClock;
@@ -64,7 +63,7 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
     let ffi_registry = options
         .ffi_registry
         .clone()
-        .unwrap_or_else(FfiRegistry::new);
+        .unwrap_or_default();
     let mut interp = Interpreter::new(
         sim,
         InterpreterOptions {

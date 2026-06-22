@@ -327,6 +327,7 @@ mod tests {
             err.to_string().contains("Unknown python extern")
                 || err.to_string().contains("not found")
                 || err.to_string().contains("Python")
+                || err.to_string().contains("No native binding")
         );
     }
 }

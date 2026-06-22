@@ -14,5 +14,5 @@ pub struct CompileResult {
 pub use spanda_runtime::robot_state::{PoseState, RobotState, VelocityState};
 
 pub use spanda_interpreter::{
-    ObstacleConfig, RunOptions, RunResult, TestRunResult,
+    ObstacleConfig, RunOptions, RunResult,
 };

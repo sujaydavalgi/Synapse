@@ -163,11 +163,8 @@ pub use telemetry::{
     TopicMetrics, TriggerMetrics, WatchdogMetrics,
 };
 
-use runtime::{Interpreter, InterpreterOptions, RobotBackend};
-use serde::{Deserialize, Serialize};
-use simulator::{create_default_simulator, Obstacle, SimulatorConfig};
-use std::cell::RefCell;
-use std::rc::Rc;
+use runtime::RobotBackend;
+use simulator::{create_default_simulator, SimulatorConfig};
 
 pub fn compile(source: &str) -> Result<CompileResult, SpandaError> {
     // Compile.

@@ -17,3 +17,9 @@ fn native_crate_builds_without_spanda_core() {
         .unwrap_or_default()
         .contains("spanda-interpreter"));
 }
+
+#[test]
+fn sim_robot_backend_type_alias_matches_simulator() {
+    fn assert_sim_type<T: spanda_interpreter::RobotBackend>() {}
+    assert_sim_type::<spanda_interpreter::SimRobotBackend>();
+}

@@ -92,7 +92,8 @@ Spanda uses a **lean-core, package-first** architecture. Core provides safety, v
 
 | Layer | Technology | Responsibility |
 |-------|------------|----------------|
-| Language core | Rust (`spanda-core`) | Parser, types, interpreter, safety, provider traits, default simulator |
+| Language core | Rust (`spanda-core`) | Parser, types, safety, provider traits, compile gate, `run(source)` |
+| Interpreter | Rust (`spanda-interpreter`) | Tree-walking runtime, `run_program`, simulator, integrated robotics/AI/safety subsystems |
 | Official packages | `.sd` + `spanda.toml` | ROS2, MQTT, GPS, SLAM, vision, fleet, OTA, cloud |
 | Native CLI | Rust (`spanda-cli`) | `check`, `verify`, `run`, `sim`, package manager |
 | Bindings | N-API, WASM | Node and browser integration |

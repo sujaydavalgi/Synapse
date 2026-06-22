@@ -2,7 +2,7 @@
 
 use spanda_security::{
     AuthenticationMode, EncryptedMessage, EncryptionMode, IntegrityMode, SecureCommPolicy,
-    SecurePolicy, SessionKey, TrustBoundaryKind,
+    SecurePolicy, TrustBoundaryKind,
 };
 
 #[test]
