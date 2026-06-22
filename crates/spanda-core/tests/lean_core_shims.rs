@@ -115,6 +115,28 @@ fn runtime_robotics_sensors_and_twin_logic_is_extracted() {
 }
 
 #[test]
+fn runtime_builtins_audit_and_actuator_logic_is_extracted() {
+    let runtime = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/runtime.rs");
+    let builtins = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/runtime_builtins.rs");
+    let audit = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/runtime_audit.rs");
+    let actuators = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/runtime_actuators.rs");
+    let helpers = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/runtime_helpers.rs");
+    let runtime_source = fs::read_to_string(&runtime).expect("runtime.rs");
+    let builtins_source = fs::read_to_string(&builtins).expect("runtime_builtins.rs");
+    let audit_source = fs::read_to_string(&audit).expect("runtime_audit.rs");
+    let actuators_source = fs::read_to_string(&actuators).expect("runtime_actuators.rs");
+    let helpers_source = fs::read_to_string(&helpers).expect("runtime_helpers.rs");
+    assert!(builtins_source.contains("fn eval_builtin_function"));
+    assert!(audit_source.contains("fn eval_audit_method"));
+    assert!(audit_source.contains("fn eval_ledger_method"));
+    assert!(actuators_source.contains("fn execute_actuator_method"));
+    assert!(helpers_source.contains("fn runtime_value_payload"));
+    assert!(!runtime_source.contains("fn eval_builtin_function"));
+    assert!(!runtime_source.contains("fn eval_audit_method"));
+    assert!(!runtime_source.contains("fn execute_actuator_method"));
+}
+
+#[test]
 fn interpreter_accepts_injected_runtime_host() {
     use spanda_core::runtime::{Interpreter, InterpreterOptions};
     use spanda_core::simulator::{create_default_simulator, SimulatorConfig};
