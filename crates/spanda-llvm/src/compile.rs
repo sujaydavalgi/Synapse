@@ -1,6 +1,6 @@
 //! Link LLVM IR with `libspanda_rt` via clang when available.
 
-use spanda_core::sir::SirProgram;
+use spanda_sir::SirProgram;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -228,7 +228,7 @@ fn ensure_spanda_rt_staticlib(workspace_root: &Path) -> Result<PathBuf, String> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use spanda_core::lower_to_sir;
+    use spanda_driver::lower_to_sir;
 
     #[test]
     fn compile_native_when_clang_available() {

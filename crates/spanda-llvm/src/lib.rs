@@ -5,8 +5,8 @@
 
 mod compile;
 
-use spanda_core::foundations::BridgeKind;
-use spanda_core::sir::{
+use spanda_ast::foundations::BridgeKind;
+use spanda_sir::{
     SirBehavior, SirCompareOp, SirExtern, SirFunction, SirMatchArm, SirProgram, SirStmt,
     SirVisibility,
 };
@@ -1621,7 +1621,8 @@ fn emit_function(func: &SirFunction, strings: &[String]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use spanda_core::{lexer, lower_to_sir, parser, types};
+    use spanda_driver::{lower_to_sir, tokenize, type_check::check};
+    use spanda_parser::parse;
 
     #[test]
     fn emits_llvm_ir_for_module_functions() {
@@ -1651,8 +1652,8 @@ robot R {
   behavior run() { wheels.stop(); }
 }
 "#;
-        let program = parser::parse(lexer::tokenize(source).unwrap()).unwrap();
-        types::check(&program).unwrap();
+        let program = parse(tokenize(source).unwrap()).unwrap();
+        check(&program).unwrap();
         let sir = lower_to_sir(source).unwrap();
         let ir = emit_module_ir(&sir);
         assert!(ir.contains("define i32 @main("));

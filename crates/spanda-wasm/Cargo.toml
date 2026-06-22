@@ -8,7 +8,10 @@ description = "WebAssembly bindings for Spanda core"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-spanda-core = { path = "../spanda-core" }
+spanda-driver = { path = "../spanda-driver" }
+spanda-error = { path = "../spanda-error" }
+spanda-format = { path = "../spanda-format" }
+spanda-hardware = { path = "../spanda-hardware" }
 wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"

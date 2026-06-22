@@ -1,7 +1,9 @@
 //! main support for Spanda.
 //!
 use serde_json::{json, Value};
-use spanda_core::{DebugMachine, DebugOptions, DebugStepKind, SpandaError};
+use spanda_debug::{DebugOptions, DebugPause, DebugSession};
+use spanda_driver::{DebugMachine, DebugStepKind};
+use spanda_error::SpandaError;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::io::{self, BufRead, Write};
@@ -247,8 +249,8 @@ pub fn serve(
                         machine.run_until_pause(kind)
                     })
                     .unwrap_or_else(|e: SpandaError| {
-                        spanda_core::DebugSession {
-                            pauses: vec![spanda_core::DebugPause {
+                        DebugSession {
+                            pauses: vec![DebugPause {
                                 line: 1,
                                 reason: e.to_string(),
                                 variables: Default::default(),

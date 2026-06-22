@@ -5,8 +5,12 @@ edition = "2021"
 description = "Spanda SIR → LLVM IR emitter (Milestone 2 foundation)"
 
 [dependencies]
-spanda-core = { path = "../spanda-core" }
+spanda-ast = { path = "../spanda-ast" }
+spanda-driver = { path = "../spanda-driver" }
+spanda-sir = { path = "../spanda-sir" }
 
 [dev-dependencies]
-spanda-core = { path = "../spanda-core" }
+spanda-driver = { path = "../spanda-driver" }
+spanda-lexer = { path = "../spanda-lexer" }
+spanda-parser = { path = "../spanda-parser" }
 spanda-rt = { path = "../spanda-rt" }

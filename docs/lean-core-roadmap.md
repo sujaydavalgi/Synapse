@@ -187,9 +187,19 @@ Goal: point first-party binaries and bindings at workspace crates directly inste
 | Move MQTT/DDS/WebSocket `RuntimeValue` live bridges to `spanda-transport-routing::live_bridges` | **Complete** |
 | `spanda-core` transport shims remain as thin `pub use` re-exports for external API stability | **Complete** |
 
+## Phase 16 — Complete ✓ (remaining caller migration)
+
+Goal: migrate the last first-party crates that still depended on `spanda-core` directly.
+
+| Step | Status |
+|------|--------|
+| Migrate `spanda-llvm` to `spanda-sir`, `spanda-ast`, and `spanda-driver` | **Complete** |
+| Migrate `spanda-wasm` to workspace driver/format/hardware/error crates | **Complete** |
+| Migrate `spanda-dap` to `spanda-driver` and `spanda-debug` | **Complete** |
+| Only `spanda-core` itself remains a direct consumer of the full facade graph | **Complete** |
+
 ### Optional follow-up
 
 | Step | Status |
 |------|--------|
 | Remove deprecated `spanda_core::transport_*` shims after one release | Planned |
-| Migrate `spanda-llvm` off `spanda-core` when native compile path is unblocked | Planned |

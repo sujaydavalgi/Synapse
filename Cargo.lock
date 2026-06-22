@@ -1359,7 +1359,9 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
- "spanda-core",
+ "spanda-debug",
+ "spanda-driver",
+ "spanda-error",
 ]
 
 [[package]]
@@ -1540,8 +1542,12 @@ dependencies = [
 name = "spanda-llvm"
 version = "0.1.0"
 dependencies = [
- "spanda-core",
+ "spanda-ast",
+ "spanda-driver",
+ "spanda-lexer",
+ "spanda-parser",
  "spanda-rt",
+ "spanda-sir",
 ]
 
 [[package]]
@@ -1799,7 +1805,10 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde-wasm-bindgen",
- "spanda-core",
+ "spanda-driver",
+ "spanda-error",
+ "spanda-format",
+ "spanda-hardware",
  "wasm-bindgen",
 ]
 

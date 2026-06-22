@@ -1,22 +1,27 @@
 //! src crate public API and re-exports.
 //!
 use serde::{Deserialize, Serialize};
-use spanda_core::{check, run, verify_compatibility, RunOptions, VerifyOptions};
+use spanda_driver::{
+    check, lower_to_sir, run, verify_compatibility, RunOptions, RunResult,
+};
+use spanda_error::Diagnostic;
+use spanda_format::format_source;
+use spanda_hardware::{CompatItem, CompatSeverity, VerifyOptions};
 use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, Deserialize)]
 struct CheckResponse {
     ok: bool,
-    diagnostics: Vec<spanda_core::Diagnostic>,
+    diagnostics: Vec<Diagnostic>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct RunResponse {
     ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    result: Option<spanda_core::RunResult>,
+    result: Option<RunResult>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    diagnostics: Option<Vec<spanda_core::Diagnostic>>,
+    diagnostics: Option<Vec<Diagnostic>>,
 }
 
 fn to_js<T: Serialize>(value: &T) -> JsValue {
@@ -124,7 +129,7 @@ pub fn wasm_ir(source: &str) -> JsValue {
     // let result = spanda_wasm::wasm_ir(source);
 
     // Match on lower to sir and handle each case.
-    match spanda_core::lower_to_sir(source) {
+    match lower_to_sir(source) {
         Ok(sir) => serde_wasm_bindgen::to_value(&sir).unwrap_or(JsValue::NULL),
         Err(e) => to_js(&CheckResponse {
             ok: false,
@@ -150,7 +155,7 @@ pub fn wasm_fmt(source: &str) -> String {
     // let result = spanda_wasm::wasm_fmt(source);
 
     // Produce format source as the result.
-    spanda_core::format_source(source)
+    format_source(source)
 }
 
 #[wasm_bindgen]
@@ -177,7 +182,7 @@ pub fn wasm_version() -> String {
 struct VerifyResponse {
     ok: bool,
     compatible: bool,
-    items: Vec<spanda_core::CompatItem>,
+    items: Vec<CompatItem>,
 }
 
 #[wasm_bindgen]
@@ -209,10 +214,10 @@ pub fn wasm_verify(source: &str) -> JsValue {
             items: e
                 .diagnostics()
                 .into_iter()
-                .map(|d| spanda_core::CompatItem {
+                .map(|d| CompatItem {
                     category: "error".into(),
                     message: d.message,
-                    severity: spanda_core::CompatSeverity::Error,
+                    severity: CompatSeverity::Error,
                     line: d.line,
                     column: d.column,
                 })

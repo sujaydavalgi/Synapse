@@ -586,7 +586,8 @@ fn compatibility_shims_stay_thin() {
             "{module} should remain a thin transport compatibility shim"
         );
         assert!(
-            source.contains("spanda_transport"),
+            source.contains("spanda_transport_routing")
+                || source.contains("spanda_transport"),
             "{module} should delegate to spanda-transport-* crates"
         );
     }
