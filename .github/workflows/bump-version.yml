@@ -1,0 +1,62 @@
+# Bump workspace semver and optionally push a release tag.
+#
+# Run manually from Actions → "Bump version". Choose patch, minor, or major.
+# When "Push release tag" is enabled, pushes vX.Y.Z which triggers release.yml.
+
+name: Bump version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semver component to increment
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      push_tag:
+        description: Push v* tag to trigger the release workflow
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Bump workspace version
+        id: bump
+        run: python3 scripts/bump_version.py "${{ inputs.bump }}" --github-output "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml CHANGELOG.md package.json package-lock.json packages/ editor/vscode/
+          git commit -m "chore: release v${VERSION}"
+
+      - name: Push version commit
+        run: git push
+
+      - name: Push release tag
+        if: inputs.push_tag
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
