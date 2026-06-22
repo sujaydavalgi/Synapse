@@ -518,3 +518,32 @@ fn sir_shim_reexports_spanda_sir() {
     assert!(source.lines().count() <= 5, "sir.rs should be a thin re-export shim");
     assert!(source.contains("spanda_sir"));
 }
+
+#[test]
+fn phase11_extractions_use_thin_shims() {
+    for (module, crate_name) in [
+        ("hardware.rs", "spanda_hardware"),
+        ("adapter_verify.rs", "spanda_hardware"),
+        ("format.rs", "spanda_format"),
+        ("pretty.rs", "spanda_format"),
+        ("lint.rs", "spanda_lint"),
+        ("codegen.rs", "spanda_codegen"),
+        ("modules.rs", "spanda_modules"),
+        ("security_validate.rs", "spanda_security"),
+        ("debug_session.rs", "spanda_driver"),
+        ("docs.rs", "spanda_docs"),
+        ("language_reference.rs", "spanda_docs"),
+        ("swarm_coordinator.rs", "spanda_fleet"),
+    ] {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
+        let source = fs::read_to_string(&path).expect(module);
+        assert!(
+            source.lines().count() <= 8,
+            "{module} should be a thin re-export shim"
+        );
+        assert!(
+            source.contains(crate_name),
+            "{module} shim should re-export from {crate_name}"
+        );
+    }
+}

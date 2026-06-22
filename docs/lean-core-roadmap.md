@@ -112,14 +112,30 @@ Goal: extract parser and compile driver so `spanda-driver` owns the lexer → pa
 
 | Module | ~LOC | Notes |
 |--------|------|-------|
-| `sir.rs` | 2.2k | **Extracted** to `spanda-sir` |
-| `hardware.rs` | 2.1k | Verifier — partially in `spanda-hardware` |
-| `pretty.rs` | 1.8k | Formatter |
-| `debug_session.rs` | 900 | Debugger session driver |
-| `language_reference.rs` | 830 | Doc generation |
-| `lint.rs` | 590 | Linter |
-| `codegen.rs` | 360 | Codegen metadata |
-| `modules.rs` | 280 | Project module loader |
+| `sir.rs` | — | **Extracted** to `spanda-sir` |
+| `hardware.rs` / `adapter_verify.rs` | — | **Extracted** to `spanda-hardware` (connectivity validators in `connectivity_validate`) |
+| `pretty.rs` / `format.rs` | — | **Extracted** to `spanda-format` |
+| `debug_session.rs` | — | **Extracted** to `spanda-driver::debug_session`; `spanda-debug` keeps controller + `stmt_line` |
+| `language_reference.rs` / `docs.rs` | — | **Extracted** to `spanda-docs` |
+| `lint.rs` | — | **Extracted** to `spanda-lint` |
+| `codegen.rs` | — | **Extracted** to `spanda-codegen` |
+| `modules.rs` | — | **Extracted** to `spanda-modules` |
+| `security_validate.rs` | — | **Extracted** to `spanda-security::validate` |
+| `swarm_coordinator.rs` | — | **Extracted** to `spanda-fleet::swarm_coordinator` |
 | `certify_*` | — | **Extracted** to `spanda-certify` |
 | `ffi.rs` / `bridge/` | — | **Extracted** to `spanda-bridge` + `spanda-ffi` |
 | 40+ thin shims | ≤25 each | `pub use spanda_*` re-exports — keep until callers migrate |
+
+## Phase 12 — Complete ✓ (tooling and verify extraction)
+
+Goal: move formatter, linter, codegen metadata, module loader, hardware verify, docs generators, and swarm coordination out of `spanda-core` while preserving the public API via thin shims.
+
+| Step | Status |
+|------|--------|
+| Extract `spanda-hardware` verify + adapter verify | **Complete** |
+| Break `spanda-hardware` ↔ `spanda-connectivity-runtime` cycle | **Complete** — validators live in `spanda-hardware::connectivity_validate` |
+| Extract `spanda-format`, `spanda-lint`, `spanda-codegen`, `spanda-modules` | **Complete** |
+| Move `debug_session` to `spanda-driver` (break driver ↔ debug cycle) | **Complete** |
+| Extract `spanda-docs` (program docs + language reference) | **Complete** |
+| Move `swarm_coordinator` to `spanda-fleet` | **Complete** |
+| `lean_core_shims` guards for Phase 12 extractions | **Complete** |
