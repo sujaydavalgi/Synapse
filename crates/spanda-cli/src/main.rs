@@ -1285,16 +1285,14 @@ fn main() {
         return;
     }
 
-    if command == "deploy" {
-        if args.len() > 2 {
-            match args[2].as_str() {
-                "plan" | "rollout" | "rollback" | "status" => {
-                    deploy_ota::deploy_dispatch(&args[2..]);
-                    let _ = io::stdout().flush();
-                    return;
-                }
-                _ => {}
+    if command == "deploy" && args.len() > 2 {
+        match args[2].as_str() {
+            "plan" | "rollout" | "rollback" | "status" => {
+                deploy_ota::deploy_dispatch(&args[2..]);
+                let _ = io::stdout().flush();
+                return;
             }
+            _ => {}
         }
     }
 

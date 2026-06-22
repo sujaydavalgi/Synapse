@@ -35,10 +35,12 @@ fn type_check_error(err: TypeCheckError) -> SpandaError {
     }
 }
 
+#[allow(non_snake_case)]
 pub fn BUILTIN_METHODS() -> std::collections::HashMap<String, std::collections::HashMap<String, MethodSig>> {
     spanda_typecheck::BUILTIN_METHODS(core_type_check_host())
 }
 
+#[allow(non_snake_case)]
 pub fn SENSOR_TYPES() -> std::collections::HashMap<String, spanda_ast::nodes::SpandaType> {
     spanda_typecheck::SENSOR_TYPES(core_type_check_host())
 }

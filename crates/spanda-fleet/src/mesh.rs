@@ -42,7 +42,7 @@ pub struct FleetMeshState {
 }
 
 #[derive(Clone)]
-enum MeshRegistryBacking {
+pub enum MeshRegistryBacking {
     Path(Arc<PathBuf>),
     Memory(Arc<FleetAgentRegistry>),
 }

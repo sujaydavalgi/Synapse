@@ -4,10 +4,9 @@
 
 pub use spanda_ast::comm_decl::*;
 
-use crate::ast::{Span, SpandaType};
-use crate::foundations::FieldDecl;
+use crate::ast::SpandaType;
 use crate::runtime::RuntimeValue;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 pub use spanda_typecheck::{is_comm_capability, MessageRegistry, COMM_CAPABILITIES};
 
@@ -768,6 +767,8 @@ pub fn qos_to_spanda_type(qos: &QosDecl) -> SpandaType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast::Span;
+    use crate::foundations::FieldDecl;
 
     #[test]
     fn message_registry_builtin_and_custom() {

@@ -1,6 +1,9 @@
 //! Package-scoped provider stubs registered when official packages are installed.
 //!
-use crate::providers::traits::{NavigationProvider, PositioningProvider, SlamProvider};
+use crate::providers::traits::{
+    CloudProvider, FleetProvider, LedgerProvider, MaintenanceProvider, NavigationProvider,
+    PositioningProvider, SimulationProvider, SlamProvider, VisionProvider,
+};
 use crate::providers::types::{
     ProviderId, ProviderMetadata, ProviderResult, ProviderSafetyLevel,
 };

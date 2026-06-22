@@ -9,7 +9,7 @@ use spanda_core::{
     orchestrate_fleets_remote, plan_rollout, register_agent, register_fleet_agent, rollback_targets,
     run_deploy_agent_server, run_fleet_agent_server, run_fleet_mesh_coordinator, save_agent_registry,
     save_deploy_state, save_fleet_agent_registry, sign_deploy_bundle, validate_rollout_certification,
-    DeployAgentTls, DeployState, RolloutOptions, RolloutStrategy,
+    DeployAgentServerOptions, DeployAgentTls, DeployState, RolloutOptions, RolloutStrategy,
 };
 use std::env;
 use std::fs;
@@ -382,17 +382,17 @@ fn cmd_agent_start(args: &[String]) {
         eprintln!("Missing --trust-key when --require-signature is set");
         process::exit(1);
     }
-    if let Err(err) = run_deploy_agent_server(
-        &bind,
-        &target,
+    if let Err(err) = run_deploy_agent_server(&DeployAgentServerOptions {
+        bind: bind.clone(),
+        target: target.clone(),
         token,
-        &default_agent_state_path(),
+        state_path: default_agent_state_path(),
         tls,
         require_hash,
         require_signature,
         require_certify,
         trusted_public_key,
-    ) {
+    }) {
         eprintln!("Deploy agent failed: {err}");
         process::exit(1);
     }

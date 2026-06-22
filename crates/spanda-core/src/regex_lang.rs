@@ -3,7 +3,6 @@
 use crate::ast::Span;
 use crate::error::SpandaError;
 pub use spanda_ast::{CaptureResult, RegexCompileError, RegexPattern};
-use regex::Regex;
 use std::collections::HashMap;
 
 impl From<RegexCompileError> for SpandaError {

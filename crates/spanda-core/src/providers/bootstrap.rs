@@ -90,15 +90,15 @@ pub fn bootstrap_providers_for_packages(package_names: &[&str]) -> ProviderRegis
             WebsocketTransportAdapterLive::default(),
         );
     }
-    if (names.contains("spanda-gps")) {
+    if names.contains("spanda-gps") {
         registry.grant_capability("positioning.read");
         registry.register_positioning(Box::new(GpsPositioningStub));
     }
-    if (names.contains("spanda-nav") || names.contains("spanda-nav2")) {
+    if names.contains("spanda-nav") || names.contains("spanda-nav2") {
         registry.grant_capability("navigation.plan");
         registry.register_navigation(Box::new(NavNavigationStub));
     }
-    if (names.contains("spanda-slam")) {
+    if names.contains("spanda-slam") {
         registry.grant_capability("slam.localize");
         registry.grant_capability("slam.map");
         registry.register_slam(Box::new(SlamPackageStub));

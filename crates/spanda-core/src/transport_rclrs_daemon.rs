@@ -3,8 +3,8 @@
 use crate::runtime::RuntimeValue;
 
 pub use spanda_transport_ros2::daemon::{
-    daemon_script_path, daemon_service_call as daemon_service_call_str,
-    daemon_subscribe as daemon_subscribe_str, python_available,
+    daemon_service_call as daemon_service_call_str,
+    daemon_subscribe as daemon_subscribe_str,
 };
 
 fn payload_string(value: &RuntimeValue) -> String {

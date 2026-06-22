@@ -269,27 +269,58 @@ fn handle_connection(
     let _ = write_plain_response(&mut stream, &response);
 }
 
-pub fn run_deploy_agent_server(
-    bind: &str,
-    target: &str,
-    token: Option<String>,
-    state_path: &Path,
-    tls: Option<DeployAgentTls>,
-    require_hash: bool,
-    require_signature: bool,
-    require_certify: bool,
-    trusted_public_key: Option<String>,
-) -> Result<(), String> {
+/// Configuration for starting the on-device deploy agent HTTP server.
+#[derive(Debug, Clone)]
+pub struct DeployAgentServerOptions {
+    pub bind: String,
+    pub target: String,
+    pub token: Option<String>,
+    pub state_path: PathBuf,
+    pub tls: Option<DeployAgentTls>,
+    pub require_hash: bool,
+    pub require_signature: bool,
+    pub require_certify: bool,
+    pub trusted_public_key: Option<String>,
+}
+
+pub fn run_deploy_agent_server(options: &DeployAgentServerOptions) -> Result<(), String> {
     // Run the deploy agent until the listener is interrupted.
+    //
+    // Parameters:
+    // - `options` — bind address, target robot, TLS, and verification policy
+    //
+    // Returns:
+    // Ok when the listener shuts down cleanly, or an error string.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // run_deploy_agent_server(&DeployAgentServerOptions { bind: "0.0.0.0:8787".into(), .. })?;
+
+    let DeployAgentServerOptions {
+        bind,
+        target,
+        token,
+        state_path,
+        tls,
+        require_hash,
+        require_signature,
+        require_certify,
+        trusted_public_key,
+    } = options;
+    let bind = bind.as_str();
+    let target = target.as_str();
+    let state_path = state_path.as_path();
     let mut state = load_agent_state(state_path);
     if state.target.is_empty() {
         state.target = target.to_string();
     }
-    state.token = token.or(state.token);
-    state.require_hash = require_hash || state.require_hash;
-    state.require_signature = require_signature || state.require_signature;
-    state.require_certify = require_certify || state.require_certify;
-    state.trusted_public_key = trusted_public_key.or(state.trusted_public_key);
+    state.token = token.clone().or(state.token);
+    state.require_hash = *require_hash || state.require_hash;
+    state.require_signature = *require_signature || state.require_signature;
+    state.require_certify = *require_certify || state.require_certify;
+    state.trusted_public_key = trusted_public_key.clone().or(state.trusted_public_key);
     save_agent_state(state_path, &state)?;
     let listener = TcpListener::bind(bind).map_err(|e| format!("bind {bind} failed: {e}"))?;
     let shared = Arc::new(Mutex::new(state));

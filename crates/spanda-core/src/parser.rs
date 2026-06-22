@@ -1881,7 +1881,7 @@ impl Parser {
         Ok(CertifyDecl::CertifyDecl {
             standard,
             level,
-            span: self.span_from(&start, &end),
+            span: self.span_from(&start, end),
         })
     }
 

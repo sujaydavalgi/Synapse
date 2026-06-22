@@ -11,7 +11,6 @@ use crate::soc::{get_soc_profile, validate_hal_against_soc};
 use crate::stdlib::resolve_std_import;
 use crate::reliability;
 use crate::slam_adapter;
-use spanda_ast::foundations::{ResourceBudgetDecl, TaskDecl};
 use spanda_ast::nodes::{HalMemberDecl, Span, SpandaType};
 use spanda_typecheck::{Diagnostic, TypeCheckHost};
 use std::collections::HashMap;

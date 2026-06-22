@@ -21,8 +21,6 @@ pub struct HardwareProfile {
     pub power_draw_w: f64,
 }
 
-const ESTIMATED_TASK_COST_MS: f64 = 5.0;
-
 pub fn builtin_profiles() -> HashMap<String, HardwareProfile> {
     // Builtin profiles.
     //

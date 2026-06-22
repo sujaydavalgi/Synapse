@@ -95,6 +95,7 @@ pub use debug_session::{DebugMachine, DebugStackFrame, DebugStepKind};
 pub use deploy_agent::{
     agent_entry_for_port, default_agent_state_path, handle_agent_request, load_agent_state,
     run_deploy_agent_server, save_agent_state, spawn_test_agent, spawn_test_agent_with_options,
+    DeployAgentServerOptions,
     AgentState,
 };
 pub use deploy_bundle::{
