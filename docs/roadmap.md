@@ -28,6 +28,7 @@
 - Phase 14: Example programs (`examples/types/`, `examples/hardware/`)
 - TypeScript parser mirror for hardware/deploy/requirements syntax
 - **Verification & DX (Phase 27):** `spanda-capability` crate; traceability matrices; hardware/robot capability exposure; minimum-hardware safety; health checks; kill switch syntax; hardened `spanda test`; IoT provider contracts; mdBook docs site
+- **Verification & DX (Phase 28):** `expect_compile_error` test blocks; module return type validation; TypeScript parser/typechecker parity for Phase 27 syntax; IoT protocol package stubs
 
 ## In progress
 

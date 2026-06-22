@@ -176,6 +176,7 @@ class TypeChecker {
   private activeAgent: string | null = null;
 
   private programFleets = false;
+  private expectedReturnType: SpandaType | null = null;
 
   constructor(private moduleRegistry?: ModuleRegistry) {}
 
@@ -234,6 +235,9 @@ class TypeChecker {
 
     for (const test of program.tests) {
       for (const stmt of test.body) {
+        if (stmt.kind === "ExpectCompileErrorStmt") {
+          continue;
+        }
         this.checkStmt(stmt);
       }
     }
@@ -755,10 +759,16 @@ class TypeChecker {
         });
       }
 
+      // Validate the function body against its declared return type.
+      const expectedReturn = this.resolveTypeAnn(func.returnType);
+      this.expectedReturnType = expectedReturn;
+
       // Execute each statement in sequence.
       for (const stmt of func.body) {
         this.checkStmt(stmt);
       }
+
+      this.expectedReturnType = null;
 
       // Bind each parameter before continuing.
       for (const param of func.params) {
@@ -2290,11 +2300,39 @@ class TypeChecker {
       case "ExprStmt":
         this.checkExpr(stmt.expr);
         break;
-      case "ReturnStmt":
-
-        // continue when stmt.value) this.checkExpr(stmt.value.
-        if (stmt.value) this.checkExpr(stmt.value);
+      case "ReturnStmt": {
+        if (stmt.value) {
+          const actual = this.checkExpr(stmt.value);
+          if (
+            this.expectedReturnType &&
+            !(
+              this.expectedReturnType.kind === "named" &&
+              this.typeParamScope.has(this.expectedReturnType.name)
+            )
+          ) {
+            this.assertCompatible(
+              this.expectedReturnType,
+              actual,
+              stmt.span.start.line,
+              stmt.span.start.column,
+            );
+          }
+        } else if (this.expectedReturnType && this.expectedReturnType.kind !== "void") {
+          if (
+            !(
+              this.expectedReturnType.kind === "named" &&
+              this.typeParamScope.has(this.expectedReturnType.name)
+            )
+          ) {
+            this.error(
+              "return statement missing value for non-unit function",
+              stmt.span.start.line,
+              stmt.span.start.column,
+            );
+          }
+        }
         break;
+      }
       case "SpawnStmt": {
 
         // continue when kind equals name).
@@ -2335,6 +2373,8 @@ class TypeChecker {
           roboType: { kind: "named", name: "ParallelResults" },
           kind: "variable",
         });
+        break;
+      case "ExpectCompileErrorStmt":
         break;
     }
 }
@@ -3595,6 +3635,30 @@ class TypeChecker {
     // continue when kind equals kind === "named".
     if (expected.kind === "string" && actual.kind === "named") {
       return actual.name === "Goal";
+    }
+
+    // Path and trajectory are interchangeable in module return checks.
+    if (
+      (expected.kind === "named" &&
+        (expected.name === "Path" || expected.name === "Trajectory") &&
+        actual.kind === "trajectory") ||
+      (actual.kind === "named" &&
+        (actual.name === "Path" || actual.name === "Trajectory") &&
+        expected.kind === "trajectory")
+    ) {
+      return true;
+    }
+
+    // Accept unconstrained type parameters and numeric literals for generic returns.
+    if (
+      (expected.kind === "named" && this.typeParamScope.has(expected.name)) ||
+      (actual.kind === "named" && this.typeParamScope.has(actual.name)) ||
+      (actual.kind === "number" &&
+        (expected.kind === "int" ||
+          expected.kind === "float" ||
+          (expected.kind === "named" && this.typeParamScope.has(expected.name))))
+    ) {
+      return true;
     }
     return false;
 }

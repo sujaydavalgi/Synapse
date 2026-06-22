@@ -26,6 +26,14 @@ describe("TypeScript parity checks", () => {
     expect(() => compile(source, "typescript")).not.toThrow();
   });
 
+  it("parses and type-checks capability verification example (Rust + TS parity)", () => {
+    const source = readFileSync(
+      join(repoRoot, "examples/hardware/capability_verification.sd"),
+      "utf-8",
+    );
+    expect(() => compile(source, "typescript")).not.toThrow();
+  });
+
   for (const dir of ["realtime", "regex"] as const) {
     const examplesDir = join(repoRoot, "examples", dir);
     for (const file of readdirSync(examplesDir).filter((name) => name.endsWith(".sd"))) {
