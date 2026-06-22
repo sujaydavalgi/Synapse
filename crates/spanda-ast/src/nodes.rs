@@ -821,6 +821,8 @@ pub enum AgentDecl {
         tools: Vec<String>,
         skills: Vec<String>,
         capabilities: Vec<crate::foundations::CapabilityDecl>,
+        #[serde(default)]
+        capability_enforced: bool,
         goal: String,
         plan_body: Vec<Stmt>,
         #[serde(default)]

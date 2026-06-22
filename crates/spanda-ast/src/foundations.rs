@@ -230,9 +230,15 @@ pub enum TaskDecl {
         ensures: Option<Expr>,
         invariant: Option<Expr>,
         budget: Option<ResourceBudgetDecl>,
+        #[serde(default = "default_void_type")]
+        return_type: SpandaType,
         body: Vec<Stmt>,
         span: Span,
     },
+}
+
+fn default_void_type() -> SpandaType {
+    SpandaType::Void
 }
 
 /// Cooperative scheduler priority for deterministic task ordering.

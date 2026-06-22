@@ -3458,6 +3458,7 @@ impl Parser {
             tools: Vec::new(),
             skills: Vec::new(),
             capabilities: Vec::new(),
+            capability_enforced: false,
             goal: String::new(),
             plan_body: Vec::new(),
             trigger_handlers: Vec::new(),
@@ -5610,6 +5611,7 @@ impl Parser {
         let mut tools = Vec::new();
         let mut skills = Vec::new();
         let mut capabilities = Vec::new();
+        let mut capability_enforced = false;
         let mut goal = String::new();
         let mut plan_body = Vec::new();
         let mut trigger_handlers = Vec::new();
@@ -5658,6 +5660,7 @@ impl Parser {
                 skills.push(self.expect(TokenType::Ident, "Expected skill name")?.lexeme);
                 self.expect(TokenType::Semicolon, "Expected ';' after skill")?;
             } else if self.match_types(&[TokenType::Can]) {
+                capability_enforced = true;
                 self.expect(TokenType::Lbracket, "Expected '[' after can")?;
 
                 // Take the branch when Rbracket) is false.
@@ -5700,6 +5703,7 @@ impl Parser {
             tools,
             skills,
             capabilities,
+            capability_enforced,
             goal,
             plan_body,
             trigger_handlers,
@@ -6021,6 +6025,12 @@ impl Parser {
         if matches!(priority, spanda_ast::foundations::TaskPriority::Critical) {
             priority = spanda_ast::foundations::TaskPriority::Critical;
         }
+        let return_type = if self.check(TokenType::Arrow) {
+            self.advance();
+            self.parse_type_annotation()?
+        } else {
+            spanda_ast::nodes::SpandaType::Void
+        };
         let (requires, ensures, invariant) = self.parse_contract_clauses()?;
         self.expect(TokenType::Lbrace, "Expected '{' after task signature")?;
         let mut budget = None;
@@ -6042,6 +6052,7 @@ impl Parser {
             ensures,
             invariant,
             budget,
+            return_type,
             body,
             span: self.span_from(&start, &end),
         })
