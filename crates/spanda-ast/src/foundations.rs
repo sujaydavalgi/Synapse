@@ -371,6 +371,8 @@ pub enum TriggerHandlerDecl {
     TriggerHandlerDecl {
         trigger_kind: TriggerKind,
         priority: TaskPriority,
+        #[serde(default = "default_void_type")]
+        return_type: SpandaType,
         body: Vec<Stmt>,
         span: Span,
     },

@@ -4,7 +4,7 @@
 //! hardware, AI, verification, and digital-twin reactive handlers under one registry.
 
 use spanda_ast::foundations::{TaskPriority, TriggerHandlerDecl, TriggerKind};
-use spanda_ast::nodes::{Span, Stmt};
+use spanda_ast::nodes::{Span, SpandaType, Stmt};
 use std::collections::{HashMap, HashSet};
 
 /// Maximum trigger dispatches per scheduler tick (prevents trigger storms).
@@ -74,6 +74,7 @@ impl TriggerRegistry {
             priority,
             body,
             span,
+            ..
         } = decl;
         let name = trigger_display_name(trigger_kind, agent.as_deref());
         let id = self.next_id;
@@ -118,6 +119,7 @@ impl TriggerRegistry {
                     name: event_name.clone(),
                 },
                 priority: TaskPriority::Normal,
+                return_type: SpandaType::Void,
                 body,
                 span: Span::default(),
             },
@@ -663,6 +665,7 @@ mod tests {
                     event: "EmergencyStop".into(),
                 },
                 priority: TaskPriority::Normal,
+                return_type: SpandaType::Void,
                 body: vec![],
                 span: Span::default(),
             },
@@ -674,6 +677,7 @@ mod tests {
                     event: "EmergencyStop".into(),
                 },
                 priority: TaskPriority::Critical,
+                return_type: SpandaType::Void,
                 body: vec![],
                 span: Span::default(),
             },

@@ -161,6 +161,7 @@ impl<B: RobotBackend> Interpreter<B> {
         let TriggerHandlerDecl::TriggerHandlerDecl {
             trigger_kind,
             priority,
+            return_type,
             body,
             span,
         } = trigger;
@@ -180,6 +181,7 @@ impl<B: RobotBackend> Interpreter<B> {
         let decl = TriggerHandlerDecl::TriggerHandlerDecl {
             trigger_kind: final_kind.clone(),
             priority: *priority,
+            return_type: return_type.clone(),
             body: body.clone(),
             span: *span,
         };

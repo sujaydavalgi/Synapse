@@ -2233,6 +2233,7 @@ impl<'h> TypeChecker<'h> {
             let TriggerHandlerDecl::TriggerHandlerDecl {
                 trigger_kind,
                 body,
+                return_type,
                 span,
                 ..
             } = handler;
@@ -2305,7 +2306,7 @@ impl<'h> TypeChecker<'h> {
                     }
                 }
             }
-            self.check_behavior(body, &SpandaType::Void);
+            self.check_behavior(body, return_type);
         }
 
         // Process each agent.
@@ -2321,6 +2322,7 @@ impl<'h> TypeChecker<'h> {
                 let TriggerHandlerDecl::TriggerHandlerDecl {
                     trigger_kind,
                     body,
+                    return_type,
                     span,
                     ..
                 } = handler;
@@ -2342,7 +2344,7 @@ impl<'h> TypeChecker<'h> {
                     }
                     _ => {}
                 }
-                self.check_behavior(body, &SpandaType::Void);
+                self.check_behavior(body, return_type);
             }
         }
     }

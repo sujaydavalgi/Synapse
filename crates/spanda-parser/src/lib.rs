@@ -6443,12 +6443,14 @@ impl Parser {
             });
         };
         let priority = self.parse_optional_trigger_priority()?;
+        let return_type = self.parse_optional_trigger_return_type()?;
         self.expect(TokenType::Lbrace, "Expected '{' after trigger signature")?;
         let body = self.parse_block()?;
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close trigger handler")?;
         Ok(TriggerHandlerDecl::TriggerHandlerDecl {
             trigger_kind: kind,
             priority,
+            return_type,
             body,
             span: self.span_from(&start, &end),
         })
@@ -6490,6 +6492,30 @@ impl Parser {
                 line: phase.line,
                 column: phase.column,
             })
+        }
+    }
+
+    fn parse_optional_trigger_return_type(&mut self) -> Result<spanda_ast::nodes::SpandaType, SpandaError> {
+        // Parse optional return type on trigger handlers (`-> Type` before `{`).
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Success value on completion, or an error.
+        //
+        // Options:
+        // None.
+        //
+        // Example:
+        // let result = instance.parse_optional_trigger_return_type();
+
+        // Take optional arrow return annotation when present.
+        if self.check(TokenType::Arrow) {
+            self.advance();
+            self.parse_type_annotation()
+        } else {
+            Ok(spanda_ast::nodes::SpandaType::Void)
         }
     }
 
@@ -6548,12 +6574,14 @@ impl Parser {
         let start = self.advance(); // every
         let interval_ms = self.parse_duration()?;
         let priority = self.parse_optional_trigger_priority()?;
+        let return_type = self.parse_optional_trigger_return_type()?;
         self.expect(TokenType::Lbrace, "Expected '{' after timer interval")?;
         let body = self.parse_block()?;
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close timer trigger")?;
         Ok(TriggerHandlerDecl::TriggerHandlerDecl {
             trigger_kind: TriggerKind::Timer { interval_ms },
             priority,
+            return_type,
             body,
             span: self.span_from(&start, &end),
         })
@@ -6578,12 +6606,14 @@ impl Parser {
         let start = self.advance(); // when
         let expr = self.parse_expr()?;
         let priority = self.parse_optional_trigger_priority()?;
+        let return_type = self.parse_optional_trigger_return_type()?;
         self.expect(TokenType::Lbrace, "Expected '{' after when condition")?;
         let body = self.parse_block()?;
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close when trigger")?;
         Ok(TriggerHandlerDecl::TriggerHandlerDecl {
             trigger_kind: TriggerKind::Condition { expr, level: false },
             priority,
+            return_type,
             body,
             span: self.span_from(&start, &end),
         })
@@ -6608,12 +6638,14 @@ impl Parser {
         let start = self.advance(); // while
         let expr = self.parse_expr()?;
         let priority = self.parse_optional_trigger_priority()?;
+        let return_type = self.parse_optional_trigger_return_type()?;
         self.expect(TokenType::Lbrace, "Expected '{' after while condition")?;
         let body = self.parse_block()?;
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close while trigger")?;
         Ok(TriggerHandlerDecl::TriggerHandlerDecl {
             trigger_kind: TriggerKind::Condition { expr, level: true },
             priority,
+            return_type,
             body,
             span: self.span_from(&start, &end),
         })
@@ -6640,12 +6672,14 @@ impl Parser {
             .expect(TokenType::Ident, "Expected trigger target in agent block")?
             .lexeme;
         let priority = self.parse_optional_trigger_priority()?;
+        let return_type = self.parse_optional_trigger_return_type()?;
         self.expect(TokenType::Lbrace, "Expected '{' after agent trigger")?;
         let body = self.parse_block()?;
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close agent trigger")?;
         Ok(TriggerHandlerDecl::TriggerHandlerDecl {
             trigger_kind: TriggerKind::Message { topic: name },
             priority,
+            return_type,
             body,
             span: self.span_from(&start, &end),
         })
