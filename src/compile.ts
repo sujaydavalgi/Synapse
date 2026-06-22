@@ -227,6 +227,10 @@ export async function compileAsync(source: string, backend?: CompileBackend): Pr
             simulateCompatibility: null,
             messages: [],
             validateRules: [],
+            killSwitches: [],
+            healthChecks: [],
+            healthPolicies: [],
+            requiresCapabilities: [],
             robots: [],
             span: {
               start: { line: 1, column: 1, offset: 0 },

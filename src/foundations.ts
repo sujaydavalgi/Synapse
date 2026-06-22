@@ -375,13 +375,14 @@ export type HealthCheckDecl = {
   name: string;
   targetKind: string;
   target: string;
+  requirements: string[];
   conditions: HealthCheckCondition[];
   span: Span;
 };
 
 export type HealthPolicyReaction = {
   status: string;
-  body: import("./nodes.js").Stmt[];
+  body: import("./ast/nodes.js").Stmt[];
 };
 
 export type HealthPolicyDecl = {

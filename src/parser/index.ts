@@ -2142,6 +2142,7 @@ class Parser {
     const target = this.parseLabel("Expected target name");
     this.expect("LBRACE", "Expected '{' after health check target");
     const conditions: HealthCheckCondition[] = [];
+    const requirements: string[] = [];
 
     while (!this.check("RBRACE") && !this.check("EOF")) {
       if (this.check("IDENT") && this.peek().lexeme === "check") {
@@ -2186,8 +2187,12 @@ class Parser {
         });
       } else if (this.check("IDENT") && this.peek().lexeme === "require") {
         this.advance();
-        this.parseLabel("Expected require clause");
+        const parts: string[] = [];
+        while (!this.check("SEMICOLON") && !this.check("EOF")) {
+          parts.push(this.advance().lexeme);
+        }
         this.expect("SEMICOLON", "Expected ';' after require");
+        requirements.push(parts.join(" "));
       } else {
         const t = this.peek();
         throw new ParseError("Expected check or require in health_check", t.line, t.column);
@@ -2199,6 +2204,7 @@ class Parser {
       name,
       targetKind,
       target,
+      requirements,
       conditions,
       span: this.spanFrom(start, end),
     };
@@ -4951,7 +4957,7 @@ class Parser {
     const name = this.expect("IDENT", "Expected behavior name");
     this.expect("LPAREN", "Expected '(' after behavior name");
     this.expect("RPAREN", "Expected ')' after behavior parameters");
-    let returnType: SpandaType = { kind: "Void" };
+    let returnType: SpandaType = { kind: "void" };
     if (this.check("ARROW")) {
       this.advance();
       returnType = this.parseTypeAnnotation();
@@ -5033,7 +5039,7 @@ class Parser {
       isolated = true;
     }
 
-    let returnType: SpandaType = { kind: "Void" };
+    let returnType: SpandaType = { kind: "void" };
     if (this.check("ARROW")) {
       this.advance();
       returnType = this.parseTypeAnnotation();
