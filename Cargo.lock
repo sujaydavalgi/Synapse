@@ -1192,6 +1192,7 @@ dependencies = [
  "spanda-connectivity",
  "spanda-package",
  "spanda-security",
+ "spanda-transport-dds",
  "spanda-transport-mqtt",
  "spanda-transport-ros2",
  "thiserror 2.0.18",
@@ -1261,6 +1262,14 @@ dependencies = [
  "sha2",
  "spanda-audit",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "spanda-transport-dds"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

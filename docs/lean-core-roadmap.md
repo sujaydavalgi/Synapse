@@ -29,6 +29,7 @@ Phased plan to complete the package-first architecture after the initial scaffol
 | `spanda-transport-mqtt` | Done | Live MQTT bridge extracted; core shim retained |
 | `spanda-transport-ros2` | Done | Native rclrs + rclpy daemon extracted; core shims retained |
 | `spanda-connectivity` | Done | Type catalogs and link classification extracted |
+| `spanda-transport-dds` | Done | Live UDP multicast bridge extracted; core shim retained |
 | `spanda-fleet` | Planned | Orchestrator, agents, mesh |
 | `spanda-ota` | Planned | Deploy service, agents |
 
@@ -37,6 +38,7 @@ Extract optional backends from `spanda-core` into workspace members:
 ```
 crates/spanda-transport-mqtt/   (feature: live-mqtt)
 crates/spanda-transport-ros2/   (optional rclrs)
+crates/spanda-transport-dds/    (feature: live-dds)
 crates/spanda-connectivity/     (GPS, WiFi, BLE, cellular sim)
 crates/spanda-fleet/            (orchestrator, agents, mesh)
 crates/spanda-ota/              (deploy service, agents)

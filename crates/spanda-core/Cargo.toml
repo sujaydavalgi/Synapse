@@ -21,6 +21,7 @@ sha2 = "0.10"
 spanda-transport-mqtt = { path = "../spanda-transport-mqtt" }
 spanda-transport-ros2 = { path = "../spanda-transport-ros2" }
 spanda-connectivity = { path = "../spanda-connectivity" }
+spanda-transport-dds = { path = "../spanda-transport-dds" }
 tungstenite = { version = "0.24", optional = true, default-features = false, features = ["rustls-tls-webpki-roots"] }
 pyo3 = { version = "0.23", optional = true, features = ["auto-initialize", "abi3-py310"] }
 
@@ -31,7 +32,7 @@ libloading = "0.8"
 default = []
 live-mqtt = ["spanda-transport-mqtt/live"]
 live-websocket = ["dep:tungstenite"]
-live-dds = []
+live-dds = ["spanda-transport-dds/live"]
 live-transport = ["live-mqtt", "live-websocket", "live-dds"]
 python-native = ["dep:pyo3"]
 cpp-native = []
