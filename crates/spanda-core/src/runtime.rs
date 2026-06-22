@@ -1,5 +1,3 @@
-//! Interpreter runtime — sources live in the `spanda-interpreter` crate tree.
+//! Interpreter runtime re-exported from `spanda-interpreter`.
 //!
-#[path = "../../spanda-interpreter/src/runtime/orchestrator.rs"]
-mod orchestrator;
-pub use orchestrator::*;
+pub use spanda_interpreter::runtime::*;

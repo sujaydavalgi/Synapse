@@ -16,6 +16,7 @@ pub struct ExternBridges {
     pub cpp: Option<ExternBridgeFn>,
 }
 
+#[derive(Clone)]
 pub struct FfiRegistry {
     handlers: HashMap<String, FfiHandler>,
     bridges: ExternBridges,

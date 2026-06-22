@@ -16,16 +16,16 @@ fn orchestrator_path() -> PathBuf {
 }
 
 #[test]
-fn runtime_shim_stays_thin() {
+fn runtime_shim_reexports_spanda_interpreter() {
     let source = fs::read_to_string(runtime_shim_path()).expect("runtime.rs shim");
     let lines = source.lines().count();
     assert!(
-        lines <= 12,
-        "runtime.rs should be a thin include shim (got {lines} lines)"
+        lines <= 8,
+        "runtime.rs should be a thin re-export shim (got {lines} lines)"
     );
     assert!(
-        source.contains("spanda-interpreter/src/runtime/orchestrator.rs"),
-        "runtime shim should include orchestrator from spanda-interpreter"
+        source.contains("spanda_interpreter::runtime"),
+        "runtime shim should re-export spanda_interpreter::runtime"
     );
 }
 

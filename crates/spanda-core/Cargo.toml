@@ -42,6 +42,7 @@ spanda-lib-registry = { path = "../spanda-lib-registry" }
 spanda-connectivity-runtime = { path = "../spanda-connectivity-runtime" }
 spanda-runtime-host = { path = "../spanda-runtime-host" }
 spanda-ffi = { path = "../spanda-ffi" }
+spanda-interpreter = { path = "../spanda-interpreter" }
 pyo3 = { version = "0.29", optional = true, features = ["auto-initialize", "abi3-py310"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

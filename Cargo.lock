@@ -1267,6 +1267,7 @@ dependencies = [
  "spanda-fleet",
  "spanda-hal",
  "spanda-hardware",
+ "spanda-interpreter",
  "spanda-lexer",
  "spanda-lib-registry",
  "spanda-ota",
@@ -1364,6 +1365,8 @@ dependencies = [
 name = "spanda-interpreter"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "spanda-ai",
  "spanda-ast",
  "spanda-audit",
@@ -1371,7 +1374,6 @@ dependencies = [
  "spanda-concurrency",
  "spanda-connectivity",
  "spanda-connectivity-runtime",
- "spanda-core",
  "spanda-debug",
  "spanda-error",
  "spanda-ffi",
