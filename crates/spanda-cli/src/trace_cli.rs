@@ -291,7 +291,7 @@ fn print_capability_trace(report: &spanda_capability::TraceabilityReport) {
     }
 }
 
-fn parse_program(source: &str) -> spanda_ast::nodes::Program {
+pub fn parse_program(source: &str) -> spanda_ast::nodes::Program {
     let tokens = tokenize(source).unwrap_or_else(|e| {
         eprintln!("Lexer error: {e}");
         process::exit(1);

@@ -59,6 +59,8 @@ fn llvm_unavailable() -> ! {
 struct CheckResponse {
     ok: bool,
     diagnostics: Vec<Diagnostic>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    verification: Option<Vec<spanda_capability::VerificationDiagnostic>>,
 }
 
 #[derive(Serialize)]
@@ -125,7 +127,7 @@ fn usage() {
     eprintln!(
         "Spanda Programming Language\n\n\
          Usage:\n\
-           spanda check [--json] [<file.sd> | --project]\n\
+           spanda check [--json] [--verification-json] [<file.sd> | --project]\n\
            spanda verify [--json] [--target <HardwareProfile>] [--all-targets] [--simulate] [--strict-certify] <file.sd>\n\
            spanda certify prove [--json] [--strict] [--out <file.json>] <file.sd>\n\
            spanda compatibility [--json] [--target <HardwareProfile>] [--all-targets] [--simulate] [--strict-certify] <file.sd>\n\
@@ -191,11 +193,12 @@ fn read_source(path: &str) -> String {
     })
 }
 
-fn print_check_json(err: Option<SpandaError>) {
+fn print_check_json(err: Option<SpandaError>, verification: Option<Vec<spanda_capability::VerificationDiagnostic>>) {
     // Print check json.
     //
     // Parameters:
     // - `err` — input value
+    // - `verification` — optional capability/traceability diagnostics
     //
     // Returns:
     // Nothing.
@@ -204,17 +207,19 @@ fn print_check_json(err: Option<SpandaError>) {
     // None.
     //
     // Example:
-    // let result = spanda_cli::main::print_check_json(err);
+    // let result = spanda_cli::main::print_check_json(err, verification);
 
     // Compute resp for the following logic.
     let resp = match err {
         None => CheckResponse {
             ok: true,
             diagnostics: vec![],
+            verification,
         },
         Some(e) => CheckResponse {
             ok: false,
             diagnostics: e.diagnostics(),
+            verification: None,
         },
     };
     println!("{}", serde_json::to_string(&resp).unwrap());
@@ -1452,6 +1457,7 @@ fn main() {
     let mut verify_capabilities = false;
     let mut verify_health = false;
     let mut minimum_capabilities = false;
+    let mut verification_json = false;
     let mut trigger_kill_switch: Option<String> = None;
     let mut inject_health_faults = false;
     let mut i = 2;
@@ -1461,6 +1467,10 @@ fn main() {
         // Match on as str and handle each case.
         match args[i].as_str() {
             "--json" => json = true,
+            "--verification-json" => {
+                verification_json = true;
+                json = true;
+            }
             "--verbose" | "-v" => verbose = true,
             "--trace-scheduler" => trace_scheduler = true,
             "--trace-tasks" => trace_tasks = true,
@@ -1646,7 +1656,15 @@ fn main() {
 
                 // Take this path when json.
                 if json {
-                    print_check_json(check(&source).err());
+                    let check_result = check(&source);
+                    let verification = if verification_json && check_result.is_ok() {
+                        Some(spanda_capability::collect_verification_diagnostics(
+                            &trace_cli::parse_program(&source),
+                        ))
+                    } else {
+                        None
+                    };
+                    print_check_json(check_result.err(), verification);
                 } else {
                     human_check(&source, file_path);
                 }
