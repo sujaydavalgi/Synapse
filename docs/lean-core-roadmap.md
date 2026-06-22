@@ -86,7 +86,7 @@ Goal: `cargo build -p spanda-interpreter` compiles the runtime tree natively; `s
 
 | Step | Status |
 |------|--------|
-| Route runtime imports through workspace crates (`spanda-ast`, `spanda-runtime`, …) instead of `crate::` | **In progress** — kernel modules + `spanda-comm` + **`spanda-safety`**; **remaining:** `ai`, `transport`, `hal`, `providers` bootstrap, `concurrency`, `error` |
+| Route runtime imports through workspace crates (`spanda-ast`, `spanda-runtime`, …) instead of `crate::` | **In progress** — kernel modules + `spanda-comm` + **`spanda-safety`** + **`spanda-hal`**; **remaining:** `ai`, `transport`, `providers` bootstrap, `concurrency`, `error` |
 | Move `run()` / `run_program()` from `spanda-core` into `spanda-interpreter` | Planned |
 | Add `spanda-interpreter` integration tests (not only re-exports) | Planned |
 | `spanda-core` feature-gated `pub use spanda_interpreter::runtime::*` | Blocked on cycle break |

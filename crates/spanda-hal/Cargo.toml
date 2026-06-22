@@ -1,0 +1,13 @@
+[package]
+name = "spanda-hal"
+version.workspace = true
+edition.workspace = true
+description = "Spanda HAL simulation backend, SoC profiles, and hardware health monitoring"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+spanda-ast = { path = "../spanda-ast" }
+spanda-runtime = { path = "../spanda-runtime" }

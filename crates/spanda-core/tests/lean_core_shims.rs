@@ -58,6 +58,22 @@ fn interpreter_runtime_uses_workspace_ast_paths() {
 }
 
 #[test]
+fn hal_shim_reexports_spanda_hal() {
+    for module in ["hal.rs", "hardware_monitor.rs", "soc.rs"] {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
+        let source = fs::read_to_string(&path).expect(module);
+        assert!(
+            source.lines().count() <= 8,
+            "{module} should be a thin re-export shim"
+        );
+        assert!(
+            source.contains("spanda_hal"),
+            "{module} shim should re-export from spanda-hal"
+        );
+    }
+}
+
+#[test]
 fn safety_shim_reexports_spanda_safety() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/safety.rs");
     let source = fs::read_to_string(&path).expect("safety.rs");

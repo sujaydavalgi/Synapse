@@ -17,8 +17,8 @@ use spanda_runtime::events::EventBus;
 use spanda_ast::foundations::{
     CapabilityDecl, TaskDecl, TaskPriority, TriggerKind,
 };
-use crate::hal::{create_sim_hal, HalBackend, SimHalBackend};
-use crate::hardware_monitor::HardwareMonitor;
+use spanda_hal::hal::{create_sim_hal, HalBackend, SimHalBackend};
+use spanda_hal::HardwareMonitor;
 use spanda_runtime::reliability_runtime::{
     ModeRuntime, PipelineRuntime, RecoverHandlers, RetryRuntime,
     WatchdogRuntime,
