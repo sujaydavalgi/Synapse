@@ -13,9 +13,9 @@ use spanda_ast::comm_decl as comm;
 use spanda_ast::foundations::MissionDecl;
 use spanda_ast::foundations::{
     resolve_module_import, resolve_type_alias, CapabilityDecl, EnumDecl, EventDecl,
-    EventHandlerDecl, ExternFnDecl, KillSwitchDecl, MatchArm, ModuleFnDecl, ResourceBudgetDecl, SecureBlockDecl,
-    StateMachineDecl, StructDecl, TaskDecl, TraitDecl, TraitImplDecl, TriggerHandlerDecl,
-    TriggerKind, TwinDecl, Visibility,
+    EventHandlerDecl, ExternFnDecl, KillSwitchDecl, MatchArm, ModuleFnDecl, ResourceBudgetDecl,
+    SecureBlockDecl, StateMachineDecl, StructDecl, TaskDecl, TraitDecl, TraitImplDecl,
+    TriggerHandlerDecl, TriggerKind, TwinDecl, Visibility,
 };
 use spanda_ast::nodes::*;
 use spanda_ast::robotics_decl::{CertifyDecl, FleetDecl, ProgramSafetyZoneDecl, SwarmDecl};
@@ -2330,7 +2330,7 @@ impl<'h> TypeChecker<'h> {
                 | TriggerKind::Hardware { event: _ }
                 | TriggerKind::Ai { event: _ }
                 | TriggerKind::Verification { event: _ }
-                |                 TriggerKind::Twin { event: _ }
+                | TriggerKind::Twin { event: _ }
                 | TriggerKind::Connectivity { .. }
                 | TriggerKind::Geofence { .. }
                 | TriggerKind::SensorEvent { .. } => {}
@@ -4281,6 +4281,79 @@ impl<'h> TypeChecker<'h> {
         // Example:
         // let result = instance.check_result_option_ctor(name, args, span);
 
+        if let Some(SpandaType::Generic {
+            name: generic_name,
+            type_args,
+        }) = self.expected_return_type.clone()
+        {
+            match (name, generic_name.as_str()) {
+                ("Ok", "Result") if type_args.len() == 2 => {
+                    if let Some(arg) = args.first() {
+                        let actual = self.check_expr(arg);
+                        self.assert_compatible(
+                            &type_args[0],
+                            &actual,
+                            span.start.line,
+                            span.start.column,
+                        );
+                    } else {
+                        self.error(
+                            "'Ok' requires a value argument".into(),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                    return SpandaType::Generic {
+                        name: "Result".into(),
+                        type_args,
+                    };
+                }
+                ("Err", "Result") if type_args.len() == 2 => {
+                    if let Some(arg) = args.first() {
+                        let actual = self.check_expr(arg);
+                        self.assert_compatible(
+                            &type_args[1],
+                            &actual,
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                    return SpandaType::Generic {
+                        name: "Result".into(),
+                        type_args,
+                    };
+                }
+                ("Some", "Option") if !type_args.is_empty() => {
+                    if let Some(arg) = args.first() {
+                        let actual = self.check_expr(arg);
+                        self.assert_compatible(
+                            &type_args[0],
+                            &actual,
+                            span.start.line,
+                            span.start.column,
+                        );
+                    } else {
+                        self.error(
+                            "'Some' requires a value argument".into(),
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                    return SpandaType::Generic {
+                        name: "Option".into(),
+                        type_args,
+                    };
+                }
+                ("None", "Option") if !type_args.is_empty() => {
+                    return SpandaType::Generic {
+                        name: "Option".into(),
+                        type_args,
+                    };
+                }
+                _ => {}
+            }
+        }
+
         // Match on name and handle each case.
         match name {
             "Ok" | "Some" => {
@@ -5127,6 +5200,14 @@ impl<'h> TypeChecker<'h> {
                 }
                 _ => true,
             }
+        } else if let (SpandaType::Named { name }, SpandaType::EnumVariant { enum_name, .. }) =
+            (expected, actual)
+        {
+            name == enum_name
+        } else if let (SpandaType::EnumVariant { enum_name, .. }, SpandaType::Named { name }) =
+            (expected, actual)
+        {
+            name == enum_name
         } else if let (SpandaType::Named { name }, SpandaType::Scan) = (expected, actual) {
             name.contains("Lidar")
         } else if let (SpandaType::Scan, SpandaType::Named { name }) = (expected, actual) {
