@@ -173,3 +173,25 @@ fn ledger_package_append_dispatches() {
         other => panic!("expected ok int, got {other:?}"),
     }
 }
+
+#[test]
+fn iot_core_package_dispatches() {
+    use spanda_providers::dispatch_official_package_call;
+    let mut registry = bootstrap_providers_for_packages(&["spanda-iot-core"]);
+    let value = dispatch_official_package_call(
+        &mut registry,
+        "iot.device",
+        "register",
+        &[],
+        None,
+        None,
+        0.0,
+    )
+    .expect("iot device register dispatch");
+    match value {
+        spanda_runtime::value::RuntimeValue::Number { value, .. } => {
+            assert!((value - 1.0).abs() < f64::EPSILON);
+        }
+        other => panic!("expected ok int, got {other:?}"),
+    }
+}

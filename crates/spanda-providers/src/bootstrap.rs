@@ -158,6 +158,25 @@ pub fn bootstrap_providers_for_packages(package_names: &[&str]) -> ProviderRegis
     if names.contains("spanda-openai") {
         registry.grant_capability("ai.invoke");
     }
+    if names.contains("spanda-iot-core") {
+        registry.grant_capability("iot.device");
+        registry.grant_capability("iot.telemetry");
+        registry.grant_capability("iot.command");
+        registry.grant_capability("iot.shadow");
+    }
+    if names.contains("spanda-modbus") {
+        registry.grant_capability("iot.modbus");
+    }
+    if names.contains("spanda-opcua") {
+        registry.grant_capability("iot.opcua");
+    }
+    if names.contains("spanda-zigbee")
+        || names.contains("spanda-lora")
+        || names.contains("spanda-matter")
+        || names.contains("spanda-canbus")
+    {
+        registry.grant_capability("iot.device");
+    }
 
     registry
 }

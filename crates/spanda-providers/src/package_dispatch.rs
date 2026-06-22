@@ -33,6 +33,10 @@ pub fn official_package_for_module(module_path: &str) -> Option<&'static str> {
         "sim.webots" => Some("spanda-webots"),
         "ai.openai" => Some("spanda-openai"),
         "provenance.ledger" => Some("spanda-ledger"),
+        "iot.device" => Some("spanda-iot-core"),
+        "iot.telemetry" => Some("spanda-iot-core"),
+        "iot.modbus" => Some("spanda-modbus"),
+        "iot.opcua" => Some("spanda-opcua"),
         _ => None,
     }
 }
@@ -309,6 +313,67 @@ pub fn dispatch_official_package_call(
                 );
                 ok_int()
             }),
+        ("iot.device", "register") if registry.has_capability("iot.device") => {
+            record_call(
+                telemetry,
+                mission_trace,
+                sim_time_ms,
+                &key,
+                "iot",
+                module_path,
+                function_name,
+                started,
+                false,
+            );
+            Some(ok_int())
+        }
+        ("iot.telemetry", "publish") if registry.has_capability("iot.telemetry") => {
+            record_call(
+                telemetry,
+                mission_trace,
+                sim_time_ms,
+                &key,
+                "iot",
+                module_path,
+                function_name,
+                started,
+                false,
+            );
+            Some(ok_int())
+        }
+        ("iot.modbus", "read_register") if registry.has_capability("iot.modbus") => {
+            record_call(
+                telemetry,
+                mission_trace,
+                sim_time_ms,
+                &key,
+                "iot",
+                module_path,
+                function_name,
+                started,
+                false,
+            );
+            Some(RuntimeValue::Number {
+                value: 0.0,
+                unit: spanda_ast::nodes::UnitKind::None,
+            })
+        }
+        ("iot.opcua", "read_node") if registry.has_capability("iot.opcua") => {
+            record_call(
+                telemetry,
+                mission_trace,
+                sim_time_ms,
+                &key,
+                "iot",
+                module_path,
+                function_name,
+                started,
+                false,
+            );
+            Some(RuntimeValue::String {
+                value: "ok".into(),
+            })
+        }
         _ => None,
     };
 
