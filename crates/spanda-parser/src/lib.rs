@@ -6732,6 +6732,21 @@ impl Parser {
         // Compute start for the following logic.
         let start = self.peek().clone();
 
+        // Parse expect_compile_error { ... } compile-fail test blocks.
+        if self.check(TokenType::Ident) && self.peek().lexeme == "expect_compile_error" {
+            self.advance();
+            self.expect(TokenType::Lbrace, "Expected '{' after expect_compile_error")?;
+            let body = self.parse_block()?;
+            let end = self.expect(
+                TokenType::Rbrace,
+                "Expected '}' to close expect_compile_error",
+            )?;
+            return Ok(Stmt::ExpectCompileErrorStmt {
+                body,
+                span: self.span_from(&start, &end),
+            });
+        }
+
         // Parse stop_all_actuators(); as a dedicated safety statement.
         if self.check(TokenType::Ident) && self.peek().lexeme == "stop_all_actuators" {
             self.advance();

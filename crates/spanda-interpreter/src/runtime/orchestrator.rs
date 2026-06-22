@@ -1112,9 +1112,89 @@ impl<B: RobotBackend> Interpreter<B> {
         // Run each test block in program order.
         for test in tests {
             self.log(format!("test {}", test.name));
-            self.execute_block(&test.body)?;
+
+            // Validate compile-fail expectations before executing runtime assertions.
+            for stmt in &test.body {
+                if let Stmt::ExpectCompileErrorStmt { body, span } = stmt {
+                    self.verify_expect_compile_error(body, span.start.line)?;
+                }
+            }
+
+            self.execute_test_block(&test.body)?;
             self.process_spawn_queue()?;
         }
+        Ok(())
+    }
+
+    fn execute_test_block(&mut self, body: &[Stmt]) -> Result<(), SpandaError> {
+        for stmt in body {
+            if matches!(stmt, Stmt::ExpectCompileErrorStmt { .. }) {
+                continue;
+            }
+            self.execute_stmt(stmt)?;
+        }
+        Ok(())
+    }
+
+    fn verify_expect_compile_error(&self, body: &[Stmt], line: u32) -> Result<(), SpandaError> {
+        use spanda_ast::foundations::{ModuleFnDecl, Visibility};
+        use spanda_ast::nodes::{Program, SpandaType};
+        use spanda_runtime_host::core_type_check_host;
+        use spanda_typecheck::check_with_registry;
+
+        let probe = Program::Program {
+            module_name: None,
+            imports: vec![],
+            functions: vec![ModuleFnDecl {
+                name: "__compile_fail_probe".into(),
+                visibility: Visibility::Private,
+                type_params: vec![],
+                params: vec![],
+                return_type: SpandaType::Void,
+                is_async: false,
+                body: body.to_vec(),
+                span: Default::default(),
+            }],
+            tests: vec![],
+            extern_functions: vec![],
+            structs: vec![],
+            enums: vec![],
+            traits: vec![],
+            hardware_profiles: vec![],
+            deployments: vec![],
+            requires_hardware: None,
+            requires_network: None,
+            requires_connectivity: None,
+            geofences: vec![],
+            fleets: vec![],
+            swarms: vec![],
+            program_safety_zones: vec![],
+            certifications: vec![],
+            connectivity_policies: vec![],
+            ble_services: vec![],
+            simulate_compatibility: None,
+            messages: vec![],
+            validate_rules: vec![],
+            kill_switches: vec![],
+            health_checks: vec![],
+            health_policies: vec![],
+            requires_capabilities: vec![],
+            robots: vec![],
+            span: Default::default(),
+        };
+        let registry = self
+            .options
+            .module_registry
+            .clone()
+            .unwrap_or_default();
+        if check_with_registry(&probe, &registry, core_type_check_host()).is_ok() {
+            return Err(SpandaError::Runtime {
+                message: "expect_compile_error block passed type check but should have failed"
+                    .into(),
+                line,
+            });
+        }
+        self.log("expect_compile_error: compile failure confirmed".into());
         Ok(())
     }
 

@@ -73,6 +73,103 @@ test "double returns input" {
 }
 
 #[test]
+fn expect_compile_error_in_test_block() {
+    // Expect compile error in test block.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Nothing.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let result = spanda_core::p1_features::expect_compile_error_in_test_block();
+
+    let source = r#"
+module math;
+
+test "rejects bad assignment" {
+  expect_compile_error {
+    let x: Int = "not an int";
+  }
+  assert(true);
+}
+"#;
+    let result = run_tests(source).expect("expect_compile_error test should pass");
+    assert_eq!(result.passed, 1);
+    assert_eq!(result.failed, 0);
+}
+
+#[test]
+fn module_function_return_type_mismatch_rejected() {
+    // Module function return type mismatch rejected.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Nothing.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let result = spanda_core::p1_features::module_function_return_type_mismatch_rejected();
+
+    let source = r#"
+module math;
+
+export fn bad() -> Int {
+  return "not an int";
+}
+"#;
+    let err = check(source).expect_err("return type mismatch should fail type check");
+    assert!(
+        err.diagnostics()
+            .iter()
+            .any(|d| d.message.contains("Type mismatch")),
+        "expected return type mismatch, got {:?}",
+        err.diagnostics()
+    );
+}
+
+#[test]
+fn module_function_missing_return_value_rejected() {
+    // Module function missing return value rejected.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Nothing.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let result = spanda_core::p1_features::module_function_missing_return_value_rejected();
+
+    let source = r#"
+module math;
+
+export fn bad() -> Int {
+  return;
+}
+"#;
+    let err = check(source).expect_err("empty return should fail for Int function");
+    assert!(
+        err.diagnostics()
+            .iter()
+            .any(|d| d.message.contains("return statement missing value")),
+        "expected missing return value error, got {:?}",
+        err.diagnostics()
+    );
+}
+
+#[test]
 fn async_await_module_function() {
     // Async await module function.
     //

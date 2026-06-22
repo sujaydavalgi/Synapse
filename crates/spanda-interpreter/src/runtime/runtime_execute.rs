@@ -541,6 +541,9 @@ impl<B: RobotBackend> Interpreter<B> {
                     span.start.line,
                 )?;
             }
+            Stmt::ExpectCompileErrorStmt { .. } => {
+                // Validated during test setup; no runtime execution.
+            }
         }
         Ok(())
     }

@@ -1002,6 +1002,10 @@ pub enum Stmt {
         angular: Option<Box<Expr>>,
         span: Span,
     },
+    ExpectCompileErrorStmt {
+        body: Vec<Stmt>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

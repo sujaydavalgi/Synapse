@@ -410,6 +410,7 @@ pub struct TypeChecker<'h> {
     channel_payload_types: HashMap<String, SpandaType>,
     active_agent: Option<String>,
     program_fleets: bool,
+    expected_return_type: Option<SpandaType>,
 }
 
 impl<'h> TypeChecker<'h> {
@@ -454,6 +455,7 @@ impl<'h> TypeChecker<'h> {
             channel_payload_types: HashMap::new(),
             active_agent: None,
             program_fleets: false,
+            expected_return_type: None,
         }
     }
 
@@ -741,10 +743,16 @@ impl<'h> TypeChecker<'h> {
                 );
             }
 
+            // Validate the function body against its declared return type.
+            let expected_return = self.resolve_type_ann(&func.return_type);
+            self.expected_return_type = Some(expected_return.clone());
+
             // Execute each statement in sequence.
             for stmt in &func.body {
                 self.check_stmt(stmt);
             }
+
+            self.expected_return_type = None;
 
             // Bind each parameter before executing the body.
             for param in &func.params {
@@ -3500,11 +3508,27 @@ impl<'h> TypeChecker<'h> {
             Stmt::ExprStmt { expr, .. } => {
                 self.check_expr(expr);
             }
-            Stmt::ReturnStmt { value, .. } => {
-                // Emit output when value provides a v.
+            Stmt::ReturnStmt { value, span } => {
                 if let Some(v) = value {
-                    self.check_expr(v);
+                    let actual = self.check_expr(v);
+                    if let Some(expected) = self.expected_return_type.clone() {
+                        self.assert_compatible(
+                            &expected,
+                            &actual,
+                            span.start.line,
+                            span.start.column,
+                        );
+                    }
+                } else if self.expected_return_type.is_some() {
+                    self.error(
+                        "return statement missing value for non-unit function".into(),
+                        span.start.line,
+                        span.start.column,
+                    );
                 }
+            }
+            Stmt::ExpectCompileErrorStmt { .. } => {
+                // compile-fail bodies are validated by the test runner, not program check
             }
             Stmt::SubscribeStmt {
                 target,

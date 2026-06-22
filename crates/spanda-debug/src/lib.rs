@@ -224,6 +224,7 @@ pub fn stmt_line(stmt: &spanda_ast::nodes::Stmt) -> u32 {
         | Stmt::UseFallbackStmt { span, .. }
         | Stmt::StopAllActuatorsStmt { span, .. }
         | Stmt::RunPipelineStmt { span, .. }
-        | Stmt::NavigateStmt { span, .. } => span.start.line,
+        | Stmt::NavigateStmt { span, .. }
+        | Stmt::ExpectCompileErrorStmt { span, .. } => span.start.line,
     }
 }

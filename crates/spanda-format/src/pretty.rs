@@ -1211,6 +1211,15 @@ impl PrettyPrinter {
                 }
                 self.write_line(" }");
             }
+            Stmt::ExpectCompileErrorStmt { body, .. } => {
+                self.write_line("expect_compile_error {");
+                self.indent += 1;
+                for s in body {
+                    self.print_stmt(s);
+                }
+                self.indent -= 1;
+                self.write_line("}");
+            }
         }
     }
 
