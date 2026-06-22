@@ -3,6 +3,8 @@
 //! Used by `spanda-mqtt` and wired through `spanda-core` compatibility shims until
 //! all callers migrate to package-scoped provider registration.
 //!
+mod python_bridge;
+
 #[cfg(feature = "live")]
 mod live;
 
@@ -70,3 +72,5 @@ impl LiveMqttBridge {
         None
     }
 }
+
+pub use python_bridge::{mqtt_live_enabled, try_mqtt_publish};

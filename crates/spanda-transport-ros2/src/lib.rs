@@ -1,10 +1,12 @@
 //! ROS 2 transport backend extracted from Spanda core for lean-core package architecture.
 //!
-//! Provides native rclrs dynamic loading and an rclpy daemon bridge. Spanda core
-//! retains compatibility shims that convert `RuntimeValue` payloads and delegate
-//! to per-call Python bridges when needed.
+//! Provides native rclrs dynamic loading, an rclpy daemon bridge, and optional live
+//! `ros2` CLI / Python bridge fallbacks. Spanda core retains thin `RuntimeValue`
+//! compatibility shims that delegate here.
 //!
 pub mod daemon;
+pub mod live_bridge;
+mod python_bridge;
 
 #[cfg_attr(target_arch = "wasm32", path = "native_stub.rs")]
 #[cfg_attr(not(target_arch = "wasm32"), path = "native.rs")]
