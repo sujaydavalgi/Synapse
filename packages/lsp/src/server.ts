@@ -359,6 +359,39 @@ function checkSourceTs(source: string): CliDiagnostic[] {
   return parsed.ok ? [] : (parsed.diagnostics ?? []);
 }
 
+function verificationSource(source: string): CompatItem[] {
+  // VerificationSource.
+  //
+  // Parameters:
+  // - `source` — input value
+  //
+  // Returns:
+  // `CompatItem[]`.
+  //
+  // Options:
+  // None.
+  //
+  // Example:
+
+  // const result = verificationSource(source);
+  const parsed = runCliJson(["check", "--verification-json"], source) as {
+    ok: boolean;
+    verification?: CompatItem[];
+  } | null;
+
+  // continue when parsed?.verification?.length.
+  if (!parsed?.verification?.length) {
+    return [];
+  }
+  return parsed.verification
+    .filter((item) => item.severity !== "pass")
+    .map((item) => ({
+      ...item,
+      severity: item.severity === "info" ? "warning" : item.severity,
+      category: item.category || "verification",
+    }));
+}
+
 function checkSource(source: string): CliDiagnostic[] {
   // CheckSource.
   //
@@ -545,6 +578,7 @@ function validate(textDocument: TextDocument): Diagnostic[] {
   refreshSymbolCache(textDocument.uri, source);
   const typeErrors = checkSource(source);
   const compatItems = verifySource(source);
+  const verificationItems = verificationSource(source);
   const typeDiags = typeErrors.map(
     (d): Diagnostic => ({
       severity: DiagnosticSeverity.Error,
@@ -556,7 +590,7 @@ function validate(textDocument: TextDocument): Diagnostic[] {
       source: "spanda",
     }),
   );
-  const compatDiags = compatItems.map((d): Diagnostic => {
+  const compatDiags = [...compatItems, ...verificationItems].map((d): Diagnostic => {
     const severity =
       d.severity === "warning" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
     const prefix = d.category ? `[${d.category}] ` : "";
@@ -567,7 +601,7 @@ function validate(textDocument: TextDocument): Diagnostic[] {
         end: { line: Math.max(0, d.line - 1), character: Math.max(0, d.column + 20) },
       },
       message: `${prefix}${d.message}`,
-      source: "spanda-compat",
+      source: d.category?.startsWith("kill") ? "spanda-verify" : "spanda-compat",
     };
   });
   return [...typeDiags, ...compatDiags];
