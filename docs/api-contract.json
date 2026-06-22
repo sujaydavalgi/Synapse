@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Spanda Core API Contract",
   "version": 2,
-  "description": "Stable JSON boundary between Spanda Rust core and TypeScript/React tooling",
+  "description": "Stable JSON boundary between Spanda tooling (spanda-driver / spanda-cli / bindings) and TypeScript/React clients. Schema is implementation-agnostic; see docs/api-documentation.md.",
   "definitions": {
     "Diagnostic": {
       "type": "object",

@@ -20,18 +20,135 @@ SKIP_DIRS = {
     "__pycache__",
 }
 
-RUST_ROOTS = [
-    ("crates/spanda-core", "spanda-core"),
-    ("crates/spanda-cli", "spanda-cli"),
-    ("crates/spanda-package", "spanda-package"),
-    ("crates/spanda-audit", "spanda-audit"),
-    ("crates/spanda-security", "spanda-security"),
-    ("crates/spanda-node", "spanda-node"),
-    ("crates/spanda-wasm", "spanda-wasm"),
-    ("crates/spanda-dap", "spanda-dap"),
-    ("crates/spanda-llvm", "spanda-llvm"),
-    ("crates/spanda-rt", "spanda-rt"),
+RUST_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
+    (
+        "Public facade",
+        [
+            ("crates/spanda-core", "spanda-core"),
+        ],
+    ),
+    (
+        "Apps and bindings",
+        [
+            ("crates/spanda-cli", "spanda-cli"),
+            ("crates/spanda-node", "spanda-node"),
+            ("crates/spanda-wasm", "spanda-wasm"),
+            ("crates/spanda-dap", "spanda-dap"),
+        ],
+    ),
+    (
+        "Compile and run pipeline",
+        [
+            ("crates/spanda-driver", "spanda-driver"),
+            ("crates/spanda-lexer", "spanda-lexer"),
+            ("crates/spanda-parser", "spanda-parser"),
+            ("crates/spanda-typecheck", "spanda-typecheck"),
+            ("crates/spanda-sir", "spanda-sir"),
+            ("crates/spanda-error", "spanda-error"),
+        ],
+    ),
+    (
+        "Front-end AST",
+        [
+            ("crates/spanda-ast", "spanda-ast"),
+            ("crates/spanda-regex-lang", "spanda-regex-lang"),
+        ],
+    ),
+    (
+        "Interpreter and runtime",
+        [
+            ("crates/spanda-interpreter", "spanda-interpreter"),
+            ("crates/spanda-runtime", "spanda-runtime"),
+            ("crates/spanda-runtime-host", "spanda-runtime-host"),
+            ("crates/spanda-comm", "spanda-comm"),
+            ("crates/spanda-safety", "spanda-safety"),
+            ("crates/spanda-hal", "spanda-hal"),
+            ("crates/spanda-concurrency", "spanda-concurrency"),
+            ("crates/spanda-debug", "spanda-debug"),
+            ("crates/spanda-ai", "spanda-ai"),
+        ],
+    ),
+    (
+        "Hardware, certify, fleet, OTA",
+        [
+            ("crates/spanda-hardware", "spanda-hardware"),
+            ("crates/spanda-certify", "spanda-certify"),
+            ("crates/spanda-fleet", "spanda-fleet"),
+            ("crates/spanda-ota", "spanda-ota"),
+            ("crates/spanda-deploy-http", "spanda-deploy-http"),
+        ],
+    ),
+    (
+        "Transport and connectivity",
+        [
+            ("crates/spanda-transport", "spanda-transport"),
+            ("crates/spanda-transport-routing", "spanda-transport-routing"),
+            ("crates/spanda-transport-ros2", "spanda-transport-ros2"),
+            ("crates/spanda-transport-mqtt", "spanda-transport-mqtt"),
+            ("crates/spanda-transport-dds", "spanda-transport-dds"),
+            ("crates/spanda-transport-websocket", "spanda-transport-websocket"),
+            ("crates/spanda-connectivity", "spanda-connectivity"),
+            ("crates/spanda-connectivity-runtime", "spanda-connectivity-runtime"),
+        ],
+    ),
+    (
+        "Tooling and codegen",
+        [
+            ("crates/spanda-format", "spanda-format"),
+            ("crates/spanda-lint", "spanda-lint"),
+            ("crates/spanda-codegen", "spanda-codegen"),
+            ("crates/spanda-docs", "spanda-docs"),
+            ("crates/spanda-modules", "spanda-modules"),
+            ("crates/spanda-llvm", "spanda-llvm"),
+            ("crates/spanda-rt", "spanda-rt"),
+        ],
+    ),
+    (
+        "FFI, bridge, providers, packages",
+        [
+            ("crates/spanda-bridge", "spanda-bridge"),
+            ("crates/spanda-ffi", "spanda-ffi"),
+            ("crates/spanda-lib-registry", "spanda-lib-registry"),
+            ("crates/spanda-providers", "spanda-providers"),
+            ("crates/spanda-package", "spanda-package"),
+        ],
+    ),
+    (
+        "Security and audit",
+        [
+            ("crates/spanda-security", "spanda-security"),
+            ("crates/spanda-audit", "spanda-audit"),
+        ],
+    ),
+]
+
+# Optional crate (excluded from default workspace build)
+RUST_OPTIONAL = [
     ("crates/spanda-ros2-rclrs-native", "spanda-ros2-rclrs-native"),
+]
+
+# Flat list for iteration (preserves group order)
+RUST_ROOTS: list[tuple[str, str]] = [
+    crate for _group, crates in RUST_GROUPS for crate in crates
+] + RUST_OPTIONAL
+
+# `spanda_core::` path → canonical workspace crate (for embedders migrating off the facade)
+FACADE_MAP: list[tuple[str, str, str]] = [
+    ("check / compile / run", "spanda_core::", "spanda_driver::"),
+    ("AST types", "spanda_core::ast", "spanda_ast::nodes"),
+    ("Parser", "spanda_core::parser", "spanda_parser"),
+    ("Lexer tokenize", "spanda_core::lexer", "spanda_driver::tokenize"),
+    ("Type check", "spanda_core::types", "spanda_driver::type_check"),
+    ("SIR", "spanda_core::sir", "spanda_sir"),
+    ("Errors / diagnostics", "spanda_core::SpandaError", "spanda_error"),
+    ("Hardware verify", "spanda_core::verify_compatibility", "spanda_driver / spanda_hardware"),
+    ("Interpreter runtime", "spanda_core::runtime", "spanda_interpreter::runtime"),
+    ("RoutingCommBus", "spanda_core::transport", "spanda_transport_routing"),
+    ("Live transport hooks", "spanda_core::transport_live (removed)", "spanda_transport_routing::transport_live"),
+    ("MQTT/DDS/WebSocket bridges", "spanda_core::transport_* (removed)", "spanda_transport_routing::live_bridges"),
+    ("Providers", "spanda_core::providers", "spanda_providers"),
+    ("Fleet / OTA", "spanda_core::fleet_* / deploy_*", "spanda_fleet / spanda_ota"),
+    ("Format / lint / codegen", "spanda_core::format / lint / codegen", "spanda_format / spanda_lint / spanda_codegen"),
 ]
 
 TS_ROOTS = [
@@ -290,9 +407,14 @@ def main() -> None:
     )
     lines.append("")
     lines.append(
-        "For the **Spanda language** itself (`.sd` syntax, robots, triggers, std imports), "
-        "see [spanda-language.md](./spanda-language.md) and the topic guides in "
-        "[README.md](./README.md)."
+        "For the **Spanda language** (`.sd` syntax, `std.*`, triggers, CLI), see "
+        "[spanda-reference.md](./spanda-reference.md). For how the API docs fit together, see "
+        "[api-documentation.md](./api-documentation.md)."
+    )
+    lines.append("")
+    lines.append(
+        "**Hierarchy:** language reference → Rust/TS compiler API (this file) → "
+        "JSON wire contract → per-crate READMEs in [crates/README.md](../crates/README.md)."
     )
     lines.append("")
     lines.append(
@@ -308,35 +430,79 @@ def main() -> None:
     lines.append("## Contents")
     lines.append("")
 
-    crate_toc: list[tuple[str, str]] = []
-    for _crate_rel, crate_name in RUST_ROOTS:
-        crate_toc.append((crate_name, anchor(f"crate-{crate_name}")))
     ts_toc: list[tuple[str, str]] = []
     for ts_rel, ts_name in TS_ROOTS:
         ts_slug = ts_rel.replace("/", "-").replace("@", "")
         ts_toc.append((ts_name, anchor(f"ts-{ts_slug}")))
 
+    lines.append("- [Documentation map](#documentation-map)")
+    lines.append("- [Facade → workspace mapping](#facade--workspace-mapping)")
     lines.append("- [Rust crates](#rust-crates)")
-    lines.extend(render_toc(crate_toc, 1))
+    for group_name, crates in RUST_GROUPS:
+        group_id = anchor(f"group-{group_name}")
+        lines.append(f"  - [{group_name}](#{group_id})")
+        for _crate_rel, crate_name in crates:
+            lines.append(f"    - [{crate_name}](#{anchor(f'crate-{crate_name}')})")
+    if RUST_OPTIONAL:
+        lines.append("  - [Optional](#group-optional)")
+        for _crate_rel, crate_name in RUST_OPTIONAL:
+            lines.append(f"    - [{crate_name}](#{anchor(f'crate-{crate_name}')})")
     lines.append("- [TypeScript](#typescript)")
     lines.extend(render_toc(ts_toc, 1))
     lines.append("- [Quick lookup](#quick-lookup)")
     lines.append("")
 
-    all_symbols: list[tuple[str, str, str]] = []
-
-    # Rust crates
-    lines.append("## Rust crates")
+    lines.append("## Documentation map")
+    lines.append("")
+    lines.append("| Layer | Document | Audience |")
+    lines.append("|-------|----------|----------|")
+    lines.append("| Spanda language (`.sd`) | [spanda-reference.md](./spanda-reference.md) | Authors, reviewers |")
+    lines.append("| Language guide | [spanda-language.md](./spanda-language.md) | Tutorial + semantics |")
+    lines.append("| Compiler / tooling API | **this file** | Rust/TS integrators |")
+    lines.append("| JSON CLI/LSP contract | [api-contract.json](./api-contract.json) | Playground, LSP, bindings |")
+    lines.append("| Crate layout | [crates/README.md](../crates/README.md) | Contributors |")
+    lines.append("| Stable embedder facade | `spanda_core::` via [spanda-core](../crates/spanda-core/README.md) | External Rust consumers |")
     lines.append("")
 
-    for crate_rel, crate_name in RUST_ROOTS:
+    lines.append("## Facade → workspace mapping")
+    lines.append("")
+    lines.append(
+        "In-repo code and new integrations should use the **canonical crate** column. "
+        "`spanda_core::` remains stable for external embedders."
+    )
+    lines.append("")
+    lines.append("| API | `spanda_core::` (facade) | Canonical workspace crate |")
+    lines.append("|-----|--------------------------|---------------------------|")
+    for label, facade, canonical in FACADE_MAP:
+        lines.append(f"| {label} | `{facade}` | `{canonical}` |")
+    lines.append("")
+
+    all_symbols: list[tuple[str, str, str]] = []
+
+    # Rust crates (grouped)
+    lines.append("## Rust crates")
+    lines.append("")
+    lines.append(
+        "Crates are grouped by lean-core layer. Module trees below list `pub` items "
+        "with source links."
+    )
+    lines.append("")
+
+    def render_crate(crate_rel: str, crate_name: str) -> None:
         docs = collect_rust(crate_rel, crate_name)
         if not docs:
-            continue
+            return
         crate_id = anchor(f"crate-{crate_name}")
-        lines.append(f"### `{crate_name}` {{#{crate_id}}}")
+        lines.append(f"#### `{crate_name}` {{#{crate_id}}}")
         lines.append("")
-        lines.append(f"Crate root: [`{crate_rel}`](../{crate_rel}/)")
+        readme = ROOT / crate_rel / "README.md"
+        if readme.exists():
+            lines.append(
+                f"Crate root: [`{crate_rel}`](../{crate_rel}/) · "
+                f"[README](../{crate_rel}/README.md)"
+            )
+        else:
+            lines.append(f"Crate root: [`{crate_rel}`](../{crate_rel}/)")
         lines.append("")
 
         by_mod: dict[str, list[ModuleDoc]] = {}
@@ -354,12 +520,27 @@ def main() -> None:
         for mod_name in sorted(by_mod.keys(), key=lambda s: (s.count("/"), s.lower())):
             for doc in by_mod[mod_name]:
                 sid = anchor(f"{crate_name}-{mod_name}")
-                section = render_module_section(doc, 4, sid)
+                section = render_module_section(doc, 5, sid)
                 if section:
                     lines.extend(section)
                 for item in doc.items:
                     if item.kind in ("fn", "method", "struct", "enum", "trait", "class"):
                         all_symbols.append((item.name, crate_name, doc.rel))
+
+    for group_name, crates in RUST_GROUPS:
+        group_id = anchor(f"group-{group_name}")
+        lines.append(f"### {group_name} {{#{group_id}}}")
+        lines.append("")
+        for crate_rel, crate_name in crates:
+            render_crate(crate_rel, crate_name)
+
+    if RUST_OPTIONAL:
+        lines.append("### Optional {{#group-optional}}")
+        lines.append("")
+        lines.append("Excluded from default `cargo build --workspace`; built when ROS2 native SDK is enabled.")
+        lines.append("")
+        for crate_rel, crate_name in RUST_OPTIONAL:
+            render_crate(crate_rel, crate_name)
 
     # TypeScript
     lines.append("## TypeScript")
