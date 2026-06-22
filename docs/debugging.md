@@ -1,6 +1,6 @@
 # Debugging Spanda in VS Code
 
-Step through `behavior` and `task every` loops with the **Spanda debug adapter** (`spanda-dap`) and the VS Code extension.
+Step through `behavior`, `task every`, and top-level `every` trigger loops with the **Spanda debug adapter** (`spanda-dap`) and the VS Code extension.
 
 ## Prerequisites
 
@@ -48,10 +48,11 @@ spanda debug examples/showcase/killer_demo.sd --break 60
 | Capability | Status |
 |------------|--------|
 | Breakpoints on line numbers | Supported |
-| Step over (`next`) | Advances periodic tasks and loop bodies |
+| Step over (`next`) | Advances periodic tasks, loop bodies, and `every` trigger ticks |
 | Step in / step out | Experimental |
 | Variables / locals | Per-frame snapshot at pause |
 | `task every` loops | Step over pauses between task ticks when breakpoints hit |
+| `every` trigger bodies | Debug session enters from behavior, task, or `every` trigger body (Phase 35) |
 
 ## Troubleshooting
 

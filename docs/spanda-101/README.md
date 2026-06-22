@@ -40,6 +40,9 @@ Each lesson links to a runnable example in the repo. Work through them in order,
 | Language reference | [spanda-language.md](../spanda-language.md) |
 | Full API index | [spanda-reference.md](../spanda-reference.md) |
 | Real-time & replay | [realtime.md](../realtime.md), [replay.md](../replay.md) |
+| Verification & health | [health-checks.md](../health-checks.md), [kill-switch.md](../kill-switch.md) |
+| Live AI & IoT | [live-ai-provider.md](../live-ai-provider.md), [iot.md](../iot.md) |
+| Debugging | [debugging.md](../debugging.md) |
 | Examples library | [examples/README.md](../../examples/README.md) |
 | Package examples | [examples/packages/README.md](../../examples/packages/README.md) |
 

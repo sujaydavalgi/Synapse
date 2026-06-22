@@ -80,6 +80,8 @@ See [standard-library.md](./standard-library.md) for the full namespace list.
 `ai.openai` is available via the `spanda-openai` package and uses the Python
 bridge (`openai_complete`) for live calls when `OPENAI_API_KEY` is set.
 
+`ai.anthropic` (`spanda-anthropic`) and ONNX inference (`spanda-onnx`, `SPANDA_ONNX_MODEL_PATH`) follow the same bridge pattern. See [live-ai-provider.md](./live-ai-provider.md).
+
 ## Audit and blockchain packages (optional)
 
 Blockchain is **not** part of the language core. Audit/provenance is built-in; ledger anchoring uses optional packages:
@@ -175,6 +177,19 @@ Applications can restrict which safety levels are permitted. Packages at `simula
 
 Run `spanda install` to resolve all dependencies and write `spanda.lock`.
 
+## Publishing
+
+```bash
+spanda publish
+```
+
+Validates manifest, capabilities, hardware requirements, safety level, and license. On success:
+
+1. **Local mirror** — copies the bundle to `registry/packages/<name>/<version>/` in the repo (maintainers run `./scripts/build-registry.sh` to refresh the hosted index).
+2. **Remote upload** — when `SPANDA_REGISTRY_URL` is set, uploads the tarball to the configured registry base.
+
+See [registry.md](./registry.md) for the hosted index, Ed25519 signatures, and `./scripts/registry_golden_path.sh`.
+
 ## CLI reference
 
 | Command | Description |
@@ -187,8 +202,8 @@ Run `spanda install` to resolve all dependencies and write `spanda.lock`.
 | `spanda test` | Type-check `tests/` |
 | `spanda add <pkg>` | Add a dependency |
 | `spanda remove <pkg>` | Remove a dependency |
-| `spanda publish` | Validate package for publishing |
-| `spanda registry search <q>` | Search local registry stub |
+| `spanda publish` | Validate and publish package (mirrors bundle to `registry/packages/<name>/<version>`) |
+| `spanda registry search <q>` | Search hosted index + local registry |
 
 ## Examples
 

@@ -383,18 +383,19 @@ npm run build:rust
 npm run build --workspace=@spanda/lsp
 ```
 
-Spanda now includes a first-party VS Code extension scaffold at `editor/vscode` that wires to `spanda-lsp`.
+Spanda includes a first-party VS Code extension at `editor/vscode` with bundled LSP, verify diagnostics, deploy-target autocomplete, and DAP debugging. CI builds and verifies the VSIX on every push (`.github/workflows/vscode-extension-ci.yml`).
 
-### Editor support roadmap (v0.1.0-alpha)
+### Editor support (v0.1.0-alpha)
 
 | Capability | Status |
 |------------|--------|
-| Syntax highlighting | Via TextMate grammar (community); LSP semantic tokens planned |
-| Autocomplete | LSP — symbols, comm keywords, transports |
-| Diagnostics | LSP — type-check + hardware verify (native CLI or TS fallback) |
+| Syntax highlighting | Bundled TextMate grammar in VS Code extension |
+| Autocomplete | LSP — symbols, comm keywords, transports, hardware profiles |
+| Diagnostics | LSP — type-check + hardware verify + verification quick-fixes |
 | Go to definition | LSP |
 | Format on save | LSP `textDocument/formatting` |
-| VS Code extension package | **Experimental** — build from `editor/vscode` |
+| Debug (DAP) | VS Code extension — `behavior`, `task every`, `every` triggers |
+| VS Code extension package | **Experimental** — local VSIX or Extension Development Host; Marketplace pending |
 
 To configure VS Code manually, add to `.vscode/settings.json`:
 
@@ -412,16 +413,30 @@ npm install
 npm run build
 ```
 
-Then run it in VS Code Extension Development Host. The extension setting `spanda.languageServerPath` can point to your built `packages/lsp/dist/server.js`.
-
-To package and install a local VSIX:
+Then run it in VS Code Extension Development Host, or install a local VSIX:
 
 ```bash
-cd editor/vscode
-npm install
-npm run package
-code --install-extension spanda-vscode-0.1.0.vsix
+./scripts/verify_vscode_vsix.sh
+code --install-extension editor/vscode/spanda-vscode-0.1.0.vsix
 ```
+
+See [debugging.md](./debugging.md) for the DAP workflow.
+
+---
+
+## Live AI and IoT (optional)
+
+When API keys or env flags are set, Spanda calls real providers via the Python bridge; otherwise mock backends apply.
+
+```bash
+export OPENAI_API_KEY=sk-your-key
+./scripts/live_ai_golden_path.sh
+
+export SPANDA_LIVE_MODBUS=1
+./scripts/live_iot_golden_path.sh
+```
+
+Guides: [live-ai-provider.md](./live-ai-provider.md) · [iot.md](./iot.md)
 
 ---
 
@@ -449,6 +464,20 @@ Platform guides: [how-packages-work.md](./how-packages-work.md) · [how-provider
 
 ---
 
+## Verification & health (optional)
+
+Health checks, fleet `require` clauses, and kill switch wiring:
+
+```bash
+spanda verify examples/hardware/capability_verification.sd --health
+spanda health robot examples/hardware/capability_verification.sd --json
+spanda sim rover.sd --inject-health-faults
+```
+
+Guides: [health-checks.md](./health-checks.md) · [kill-switch.md](./kill-switch.md) · [capability-traceability.md](./capability-traceability.md)
+
+---
+
 ## Next steps
 
 - [spanda-language.md](./spanda-language.md) — full language reference
@@ -460,6 +489,8 @@ Platform guides: [how-packages-work.md](./how-packages-work.md) · [how-provider
 - [concurrency.md](./concurrency.md) — tasks, spawn, channels, fleet CLI
 - [hardware-compatibility.md](./hardware-compatibility.md) — deploy profiles
 - [architecture.md](./architecture.md) — how the compiler works
+- [health-checks.md](./health-checks.md) — health checks and fleet requirements
+- [live-ai-provider.md](./live-ai-provider.md) — OpenAI, Anthropic, ONNX live paths
 - [feature-status.md](./feature-status.md) — what is stable vs experimental
 
 ---

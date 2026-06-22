@@ -73,8 +73,11 @@ Spanda exists to be that coordination layer: one typed language where perception
 | **Digital twins** | `twin { mirror pose; replay true; }` for shadow state and replay |
 | **Platform packages** | `spanda install` / `update`, provider dispatch, `--trace-providers` | Official registry packages wire to runtime providers |
 | **World models** | `world_model { enabled; }` + `fusion.read()` belief hook | Observe → fused observation → belief-gated decisions |
+| **Verification & DX** | `spanda verify --health`, traceability matrices, kill switch, health policies | Capability exposure, fleet `require` clauses, typed handler I/O |
+| **Live providers (optional)** | OpenAI, Anthropic, ONNX via Python bridge; IoT live bridges | Mock fallback when keys or env flags are unset |
+| **Package registry** | Hosted index + `spanda publish` mirror to `registry/packages/` | Ed25519-signed tarballs; override with `SPANDA_REGISTRY_URL` |
 
-Lean-core status: Phases 1–25 complete · Phase 26 in progress — [docs/lean-core-roadmap.md](docs/lean-core-roadmap.md)
+Lean-core status: Phases 1–35 complete — [docs/lean-core-roadmap.md](docs/lean-core-roadmap.md)
 
 ---
 
@@ -230,6 +233,7 @@ git clone https://github.com/Davalgi/Spanda.git
 cd Spanda
 npm install
 npm run build:rust    # builds target/release/spanda
+npm run build         # TypeScript mirror (tsc) — must pass in CI
 npm test
 ```
 
@@ -332,9 +336,9 @@ Package guide: [docs/packages.md](docs/packages.md)
 
 ## Roadmap
 
-**v0.1.0-alpha (current):** Stable interpreter, safety gate, hardware verify, simulation, mock AI, package manager, unified triggers, cooperative concurrency, real-time contracts, mission trace replay, first-class regex, showcase examples.
+**v0.1.0-alpha (current):** Stable interpreter, safety gate, hardware verify, simulation, package manager, unified triggers, cooperative concurrency, real-time contracts, mission trace replay, first-class regex, verification & DX (Phases 27–35), live AI/IoT paths when configured, showcase examples.
 
-**Next (v0.5 beta):** LLVM production backend, VS Code marketplace publishing, live AI providers, in-process FFI, distributed multi-robot runtime. See [docs/product-strategy.md](docs/product-strategy.md).
+**Next (v0.5 beta):** VS Code Marketplace publish (VSIX CI ready), LLVM production backend, distributed multi-robot runtime, twin cloud SaaS. Live OpenAI/Anthropic/ONNX and registry mirror publish landed in Phase 35. See [docs/product-strategy.md](docs/product-strategy.md).
 
 Full roadmap: [docs/roadmap.md](docs/roadmap.md)  
 Feature status: [docs/feature-status.md](docs/feature-status.md)  
@@ -367,6 +371,13 @@ Rust and TypeScript sources use **inline API documentation** (inside function bo
 | Document | Description |
 |----------|-------------|
 | [docs/getting-started.md](docs/getting-started.md) | First robot in 10 minutes |
+| [docs/health-checks.md](docs/health-checks.md) | Health checks, fleet `require` clauses, policies |
+| [docs/kill-switch.md](docs/kill-switch.md) | Kill switch syntax, `remote_signed`, handlers |
+| [docs/iot.md](docs/iot.md) | IoT packages, dispatch, live bridge env flags |
+| [docs/live-ai-provider.md](docs/live-ai-provider.md) | OpenAI, Anthropic, ONNX live paths |
+| [docs/debugging.md](docs/debugging.md) | VS Code DAP — `behavior`, `task every`, `every` triggers |
+| [docs/packages.md](docs/packages.md) | Package manager, `spanda publish`, capabilities |
+| [docs/registry.md](docs/registry.md) | Hosted registry, signatures, golden path |
 | [docs/killer-demo.md](docs/killer-demo.md) | 5-minute safety + verify + sim walkthrough |
 | [docs/realtime.md](docs/realtime.md) | Deadline-aware tasks, wall-clock scheduling |
 | [docs/reliability.md](docs/reliability.md) | Pipelines, watchdogs, recovery, operating modes |

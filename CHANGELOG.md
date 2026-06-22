@@ -214,24 +214,22 @@ First public alpha release. Spanda is ready for community evaluation.
 
 ### Known limitations
 
-- AI providers use mock backends by default; no live API keys shipped
+- AI providers use mock backends by default; set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `SPANDA_ONNX_MODEL_PATH` for live calls
 - ROS2 integration requires manual ROS Humble setup (experimental)
 - LLVM/native compilation is experimental; interpreter is the primary runtime
-- Package publishing uses a local stub registry
-- No published VS Code extension (LSP must be configured manually)
-- Multi-robot examples run in-process; no distributed fleet runtime
-- MQTT/DDS transports are parsed but not live-connected
+- `spanda publish` mirrors to `registry/packages/`; hosted index lists 20 curated packages until `./scripts/build-registry.sh` is run
+- VS Code extension VSIX builds in CI; Marketplace publish pending maintainer `VSCE_PAT`
+- Multi-robot examples run in-process by default; distributed orchestration uses HTTP fleet agents
 
 ### Roadmap (post-alpha)
 
+- VS Code Marketplace publish
 - Production LLVM backend and optimized native binaries
-- Published VS Code extension
-- Live AI provider plugins (OpenAI, local models, ONNX)
-- In-process Python/C++ FFI (PyO3, cxx)
+- In-process Python/C++ FFI (PyO3, cxx) as primary path
 - ROS2 production adapter with zero-config deployment
 - Self-hosting compiler
-- Digital twin cloud telemetry sync
-- Distributed multi-robot orchestration
+- Digital twin cloud SaaS backend
+- Distributed multi-robot orchestration at scale
 
 [0.1.0-alpha]: https://github.com/Davalgi/Spanda/releases/tag/v0.1.0-alpha
 

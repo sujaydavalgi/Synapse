@@ -30,7 +30,7 @@ Or build from source: `cargo build -p spanda-cli -p spanda-dap --release`
 | Verify diagnostics | LSP → `spanda verify` (warnings/errors in Problems panel) |
 | Deploy target autocomplete | Type `deploy Robot to ` — suggests `RoverV1`, `JetsonOrin`, … |
 | Verify with picker | Command Palette → **Spanda: Verify Deploy Target…** |
-| Debug | F5 with Spanda debug configuration — steps through `task every` loops via `spanda-dap` |
+| Debug | F5 with Spanda debug configuration — steps through `behavior`, `task every`, and `every` triggers via `spanda-dap` |
 
 ## Settings
 
@@ -65,7 +65,7 @@ code --install-extension spanda-vscode-0.1.0.vsix
 
 `vscode:prepublish` runs `bundle-vscode-extension.sh` automatically before `vsce package` / `vsce publish` — no separate bundle step needed.
 
-CI builds the VSIX on every release (`release.yml`). Add `VSCE_PAT` as a repository secret to publish automatically on tag release (`vscode-extension` job runs `vsce publish` when the secret is set).
+CI builds and verifies the VSIX on every push (`.github/workflows/vscode-extension-ci.yml`). Marketplace publish runs on tag release when `VSCE_PAT` is set.
 
 Verify a local VSIX build without publishing:
 

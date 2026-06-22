@@ -343,7 +343,7 @@ Phase 25 P0 golden paths are **complete** except marketplace publish (requires m
 
 See [killer-demo.md](./killer-demo.md), [live-ai-provider.md](./live-ai-provider.md), [ros2-golden-path.md](./ros2-golden-path.md), [registry.md](./registry.md).
 
-## Phase 26 — In progress (P1 adoption enablers)
+## Phase 26 — Complete ✓ (P1 adoption enablers)
 
 Goal: ship CI-backed golden paths and polish for v0.5 beta adoption — verify in CI, PyO3 FFI, LSP deploy-target completion.
 

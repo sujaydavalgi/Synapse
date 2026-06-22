@@ -32,6 +32,28 @@ robot Agent {
 }
 ```
 
+## ONNX quick start
+
+```bash
+export SPANDA_ONNX_MODEL_PATH=/path/to/model.onnx
+spanda run my_robot.sd   # ai_model with provider: "onnx"
+```
+
+With the `spanda-onnx` registry package:
+
+```spanda
+import ai.onnx;
+
+robot Agent {
+  behavior infer() {
+    let result = ai.onnx.infer(input_tensor);
+    let _ = result;
+  }
+}
+```
+
+Requires `onnxruntime` in the Python environment when using the bridge path.
+
 ## OpenAI quick start
 
 ```bash
@@ -90,6 +112,7 @@ Unsafe direct execution remains a **compile error** regardless of provider.
 |----------|---------|
 | `OPENAI_API_KEY` | Enables live OpenAI calls for `provider: "openai"` and FFI bridge |
 | `ANTHROPIC_API_KEY` | Enables live Anthropic calls for `provider: "anthropic"` and FFI bridge |
+| `SPANDA_ONNX_MODEL_PATH` | Enables ONNX inference for `provider: "onnx"` and `spanda-onnx` package |
 | `SPANDA_LIVE_AI=0` | Force mock provider even when API key is set |
 | `SPANDA_PYTHON_BRIDGE` | Override bridge script path |
 
@@ -98,6 +121,8 @@ Unsafe direct execution remains a **compile error** regardless of provider.
 `spanda-openai` ships import path `ai.openai` with `complete(prompt)` wrapping `openai_complete`.
 
 `spanda-anthropic` ships import path `ai.anthropic` with `complete(prompt)` wrapping `anthropic_complete`.
+
+`spanda-onnx` ships import path `ai.onnx` with `infer(...)` wrapping the ONNX bridge when `SPANDA_ONNX_MODEL_PATH` is set.
 
 Default registry: `SPANDA_REGISTRY_URL` points at the hosted index in this repository (see [registry.md](./registry.md)).
 

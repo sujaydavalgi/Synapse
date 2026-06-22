@@ -39,12 +39,13 @@
 
 ## In progress
 
-- Package manager publish to live registry
-- Digital twin live telemetry sync (replay buffer exists)
+- VS Code Marketplace publish (VSIX CI + `verify_vscode_vsix.sh` complete; needs maintainer `VSCE_PAT`)
+- Digital twin live telemetry sync (replay buffer exists; twin cloud golden path only)
 - Advanced power models (dynamic load from behavior analysis)
 - Self-hosted compiler subset
 - Real Python/C++/ROS2 bridge linking (see `docs/ffi-and-ecosystem.md`)
 - Inline documentation coverage across remaining community packages
+- Expand hosted registry index beyond 20 curated packages (scaffolds exist under `packages/registry/`)
 
 ## Planned
 

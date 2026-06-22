@@ -26,10 +26,10 @@ IoT integrations live in official packages. Core defines generic contracts; pack
 | `spanda-cellular` | LTE/cellular |
 | `spanda-opcua` | OPC-UA (stub + live bridge) |
 | `spanda-modbus` | Modbus (stub + live TCP) |
-| `spanda-canbus` | CAN bus (stub) |
-| `spanda-zigbee` | Zigbee (stub) |
-| `spanda-lora` | LoRa (stub) |
-| `spanda-matter` | Matter (stub) |
+| `spanda-canbus` | CAN bus (stub + live bridge) |
+| `spanda-zigbee` | Zigbee (stub + live bridge) |
+| `spanda-lora` | LoRa (stub + live bridge) |
+| `spanda-matter` | Matter (stub + live bridge) |
 
 ## Example
 

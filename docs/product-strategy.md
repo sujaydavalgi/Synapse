@@ -61,7 +61,7 @@ These are non-negotiable differentiators. Protect them in every release decision
 | Real-time drivers | C++/Rust | Call via FFI; don't rewrite |
 | Communication at scale | ROS2 | Bridge, don't replace |
 | Physics simulation | Gazebo/Isaac/Mujoco | Physics-lite sim for safety testing only |
-| Package ecosystem | PyPI/crates.io/ROS | Build incrementally; local stub today |
+| Package ecosystem | PyPI/crates.io/ROS | Hosted index + in-repo mirror via `spanda publish`; 29 scaffolds |
 | Native performance | Rust/C++ | Interpreter first; LLVM deferred |
 
 ### Differentiation ratings
@@ -75,7 +75,7 @@ These are non-negotiable differentiators. Protect them in every release decision
 | `verify { }` assertions | Somewhat unique | Between unit tests and formal methods |
 | Built-in simulation | Already common | Adequate for alpha; not a Gazebo replacement |
 | Communication model | Already common | ROS2 owns production transport |
-| AI agents / goals / memory | Already common | Structural value today; mock backends only |
+| AI agents / goals / memory | Already common | Structural value; live OpenAI/Anthropic/ONNX when configured |
 | Blockchain / provenance | Already common | Optional; stub only — remove from core narrative |
 | World models | Not implemented | Type names only; no runtime |
 | LLVM / self-hosting | Already common | Premature for current adoption stage |
@@ -173,19 +173,19 @@ A robotics team writes a `.sd` program, runs `spanda verify` against their hardw
 | Physics-lite sim | Done |
 | Showcase examples + CI | Done |
 
-Optional (present): mock AI, experimental LLVM, stub registry.  
+Optional (present): live AI/IoT when configured, experimental LLVM, hosted registry + publish mirror.  
 Not needed: blockchain, self-hosting, fleet runtime.
 
 ### v0.5 beta — target Q4 2026
 
-| Must have | |
-|-----------|---|
-| Published VS Code extension with LSP | |
-| One live AI path (OpenAI or local ONNX via Python bridge) | |
-| One documented ROS2 golden path | |
-| `spanda verify` CI integration guide | |
-| Curated killer demo (`examples/showcase/killer_demo.sd`) | |
-| Package install from remote registry (small, curated) | |
+| Must have | Status |
+|-----------|--------|
+| Published VS Code extension with LSP | VSIX CI + local install; Marketplace pending `VSCE_PAT` |
+| One live AI path (OpenAI or local ONNX via Python bridge) | Done — OpenAI, Anthropic, ONNX (Phase 33–35) |
+| One documented ROS2 golden path | Done — `ros2_golden_path.sh` |
+| `spanda verify` CI integration guide | Done — [ci-verify.md](./ci-verify.md) |
+| Curated killer demo (`examples/showcase/killer_demo.sd`) | Done |
+| Package install from remote registry (small, curated) | Done — hosted index + `spanda publish` mirror |
 
 Optional: in-process PyO3, digital twin export, DAP debugger.  
 Not needed: LLVM as primary, blockchain, world models.

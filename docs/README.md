@@ -20,7 +20,7 @@ Spanda is an AI-native autonomous systems programming language. Source files use
 | [architecture.md](./architecture.md) | **Compiler pipeline with diagrams** |
 | [lean-core.md](./lean-core.md) | **Lean-core workspace architecture (Phases 1–17)** |
 | [crates/README.md](../crates/README.md) | **Workspace crate index and dependency rules** |
-| [lean-core-roadmap.md](./lean-core-roadmap.md) | **Phased plan for crate extraction and runtime wiring** |
+| [lean-core-roadmap.md](./lean-core-roadmap.md) | **Phased plan — Phases 1–35 complete; crate extraction and verification/DX** |
 | [phase-18-security-hardening.md](./phase-18-security-hardening.md) | **Post–Phase 17 security/stability/performance hardening** |
 | [tier-3-experimental.md](./tier-3-experimental.md) | **Tier 3 experimental foundations (Phase 22–23)** |
 | [tier-3-golden-paths.md](./tier-3-golden-paths.md) | **Tier 3 CI golden paths — scripts, jobs, feature flags** |
@@ -47,9 +47,13 @@ Spanda is an AI-native autonomous systems programming language. Source files use
 | [ros2-golden-path.md](./ros2-golden-path.md) | **ROS2 interop golden path (rclpy bridge, `/cmd_vel` / `/scan`)** |
 | [mqtt-nav2-reference-architecture.md](./mqtt-nav2-reference-architecture.md) | **MQTT + Nav2 + ROS2 reference stack for field robots** |
 | [llvm-embedded-benchmark.md](./llvm-embedded-benchmark.md) | **LLVM aarch64 cross-compile slice (Jetson / Pi)** |
-| [live-ai-provider.md](./live-ai-provider.md) | **Live OpenAI path via Python bridge** |
-| [debugging.md](./debugging.md) | **Debug `task every` loops in VS Code (DAP)** |
-| [registry.md](./registry.md) | **Hosted package registry and `spanda install`** |
+| [live-ai-provider.md](./live-ai-provider.md) | **Live OpenAI, Anthropic, and ONNX paths via Python bridge** |
+| [debugging.md](./debugging.md) | **Debug `behavior`, `task every`, and `every` triggers in VS Code (DAP)** |
+| [health-checks.md](./health-checks.md) | **Health checks, fleet `require` clauses, and policies** |
+| [kill-switch.md](./kill-switch.md) | **Kill switch syntax, `remote_signed`, and `on kill_switch` handlers** |
+| [iot.md](./iot.md) | **IoT provider contracts, package dispatch, live bridge env flags** |
+| [capability-traceability.md](./capability-traceability.md) | **Capability exposure and traceability matrices** |
+| [registry.md](./registry.md) | **Hosted package registry, `spanda publish` mirror, and `spanda install`** |
 | [feature-status.md](./feature-status.md) | **v0.1.0-alpha support matrix** |
 | [release-announcement-v0.1.0-alpha.md](./release-announcement-v0.1.0-alpha.md) | Announcement copy for launch channels |
 | [hardware-compatibility.md](./hardware-compatibility.md) | **Hardware profiles, deploy targets, and compile-time verification** |
@@ -102,7 +106,7 @@ packages/
   native/                   @spanda/native — Node wrapper for N-API
   web/                      @spanda/web — React playground
   lsp/                      @spanda/lsp — Language Server
-  registry/                 20 official .sd packages (spanda-gps, spanda-ros2, …)
+  registry/                 29 official .sd packages (spanda-gps, spanda-ros2, spanda-onnx, …)
 
 src/                        TypeScript mirror (tests, CLI wrapper, providers)
 editor/vscode/              VS Code extension scaffold
