@@ -644,6 +644,13 @@ pub enum ObserveDecl {
     ObserveDecl { sensors: Vec<String>, span: Span },
 }
 
+/// World-model belief buffer configuration on a robot.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum WorldModelDecl {
+    WorldModelDecl { enabled: bool, span: Span },
+}
+
 /// System-level verification assertions checked after behavior/task execution.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
@@ -879,6 +886,7 @@ pub fn resolve_module_import(path: &str) -> bool {
             | "sim.webots"
             | "ledger.mock"
             | "provenance.core"
+            | "provenance.ledger"
             | "identity.core"
             | "supply_chain.trace"
             | "std.core"

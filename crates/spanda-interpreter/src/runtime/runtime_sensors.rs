@@ -146,9 +146,16 @@ impl<B: RobotBackend> Interpreter<B> {
                 ]),
             },
         );
-        Ok(RuntimeValue::Object {
+        let fused = RuntimeValue::Object {
             type_name: "FusedObservation".into(),
             fields,
-        })
+        };
+        if self.world_model_fusion_hook {
+            let confidence = self.world_model.update(&fused);
+            self.log(format!(
+                "world_model: fused observation -> belief {confidence:.2}"
+            ));
+        }
+        Ok(fused)
     }
 }

@@ -2769,6 +2769,7 @@ impl Parser {
         let mut twin = None;
         let mut verify = None;
         let mut observe = None;
+        let mut world_model = None;
         let mut identity = None;
         let mut audit = None;
         let mut provenance = None;
@@ -2872,6 +2873,8 @@ impl Parser {
                 verify = Some(self.parse_verify()?);
             } else if self.check(TokenType::Observe) {
                 observe = Some(self.parse_observe()?);
+            } else if self.is_robot_member_keyword("world_model") {
+                world_model = Some(self.parse_world_model()?);
             } else if self.is_robot_member_keyword("secure_comm") {
                 secure_comm = Some(self.parse_secure_comm_policy()?);
             } else if self.is_robot_member_keyword("trust_boundary") {
@@ -2948,6 +2951,7 @@ impl Parser {
             twin,
             verify,
             observe,
+            world_model,
             identity,
             audit,
             provenance,
@@ -4307,6 +4311,51 @@ impl Parser {
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close observe block")?;
         Ok(ObserveDecl::ObserveDecl {
             sensors,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_world_model(
+        &mut self,
+    ) -> Result<spanda_ast::foundations::WorldModelDecl, SpandaError> {
+        // Parse world_model block on a robot declaration.
+        //
+        // Parameters:
+        // - `self` — method receiver
+        //
+        // Returns:
+        // Parsed world-model declaration.
+        //
+        // Options:
+        // Empty blocks default to enabled.
+        //
+        // Example:
+        // let result = instance.parse_world_model();
+
+        use spanda_ast::foundations::WorldModelDecl;
+        let start = self.advance();
+        self.expect(TokenType::Lbrace, "Expected '{' after world_model")?;
+        let mut enabled = true;
+
+        // Read optional `enabled;` or `disabled;` flags inside the block.
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            let flag = self.expect(TokenType::Ident, "Expected world_model flag")?;
+            self.expect(TokenType::Semicolon, "Expected ';' after world_model flag")?;
+            match flag.lexeme.as_str() {
+                "enabled" => enabled = true,
+                "disabled" => enabled = false,
+                other => {
+                    return Err(SpandaError::Parse {
+                        message: format!("Unknown world_model flag '{other}' (use enabled or disabled)"),
+                        line: flag.line,
+                        column: flag.column,
+                    })
+                }
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close world_model block")?;
+        Ok(WorldModelDecl::WorldModelDecl {
+            enabled,
             span: self.span_from(&start, &end),
         })
     }
@@ -8103,5 +8152,25 @@ robot Rover {
         };
         let SafetyBlock::SafetyBlock { rules, .. } = s;
         assert!(matches!(rules[0], SafetyRule::MaxSpeedRule { .. }));
+    }
+
+    #[test]
+    fn parses_world_model_after_observe() {
+        use spanda_ast::foundations::WorldModelDecl;
+        let source = r#"robot R {
+  bus sim;
+  sensor lidar: Lidar on "/scan";
+  observe { lidar; }
+  world_model { enabled; }
+  safety { max_speed = 1.0 m/s; }
+  behavior b() {}
+}"#;
+        let ast = parse(tokenize(source).unwrap()).unwrap();
+        let RobotDecl::RobotDecl { world_model, observe, .. } = &ast.robots()[0];
+        assert!(observe.is_some());
+        let Some(WorldModelDecl::WorldModelDecl { enabled, .. }) = world_model else {
+            panic!("expected world_model block");
+        };
+        assert!(*enabled);
     }
 }

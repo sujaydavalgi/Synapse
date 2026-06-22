@@ -571,6 +571,8 @@ pub enum RobotDecl {
         trigger_handlers: Vec<crate::foundations::TriggerHandlerDecl>,
         twin: Option<crate::foundations::TwinDecl>,
         observe: Option<crate::foundations::ObserveDecl>,
+        #[serde(default)]
+        world_model: Option<crate::foundations::WorldModelDecl>,
         verify: Option<crate::foundations::VerifyDecl>,
         identity: Option<crate::foundations::IdentityDecl>,
         audit: Option<crate::foundations::AuditDecl>,

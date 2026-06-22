@@ -1,0 +1,30 @@
+// World model + observe fusion hook: fusion.read() updates belief automatically.
+//
+//   spanda run examples/features/world_model_observe.sd
+
+robot Explorer {
+  bus sim;
+
+  sensor lidar: Lidar on "/scan";
+
+  observe {
+    lidar;
+  }
+
+  world_model {
+    enabled;
+  }
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior run() {
+    let fused = fusion.read();
+    let belief = world_model.belief();
+    if belief < 0.1 {
+      return;
+    }
+    let _ = fused;
+  }
+}

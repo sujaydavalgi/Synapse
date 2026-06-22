@@ -32,6 +32,7 @@ spanda run examples/features/enum_payload.sd
 | Behavior `requires` / `ensures` | `basics/09_behavior_contracts.sd` |
 | State machines + `enter` | `basics/10_state_machine.sd` |
 | `observe` / fusion | `basics/11_observe_and_fusion.sd`, `types/fusion.sd` |
+| `world_model` + fusion hook | [`world_model_observe.sd`](./world_model_observe.sd), `world_model_belief.sd` |
 
 ---
 

@@ -117,6 +117,7 @@ impl<B: RobotBackend> Interpreter<B> {
             twin,
             verify,
             observe,
+            world_model,
             identity,
             audit,
             provenance,
@@ -166,6 +167,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.verify_rules.clear();
         self.verify_warning_rules.clear();
         self.fusion_sensors.clear();
+        self.world_model_fusion_hook = false;
         self.hardware_monitor = HardwareMonitor::default();
         self.topic_path_to_name.clear();
         self.topic_path_to_message_type.clear();
@@ -533,6 +535,14 @@ impl<B: RobotBackend> Interpreter<B> {
                 sensors.len(),
                 sensors.join(", ")
             ));
+        }
+
+        // Enable observe→world_model hook when a world_model block is present.
+        if let Some(world_model_decl) = world_model {
+            let spanda_ast::foundations::WorldModelDecl::WorldModelDecl { enabled, .. } =
+                world_model_decl;
+            self.world_model_fusion_hook = *enabled;
+            self.log(format!("world_model: fusion hook enabled={enabled}"));
         }
 
         // Initialize mission controller and navigation helpers when declared.
