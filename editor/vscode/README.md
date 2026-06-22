@@ -67,6 +67,12 @@ code --install-extension spanda-vscode-0.1.0.vsix
 
 CI builds the VSIX on every release (`release.yml`). Add `VSCE_PAT` as a repository secret to publish automatically on tag release (`vscode-extension` job runs `vsce publish` when the secret is set).
 
+Verify a local VSIX build without publishing:
+
+```bash
+./scripts/verify_vscode_vsix.sh
+```
+
 ## Monorepo development
 
 ```bash
