@@ -105,7 +105,8 @@ Goal: extract parser and compile driver so `spanda-driver` owns the lexer → pa
 | Create `spanda-driver` (`compile`, `check`, `CompileResult`) | **Complete** |
 | Thin `spanda-core` shims for parser, compile, type-check host | **Complete** |
 | TypeScript `compile.ts` documents Rust parity | **Complete** |
-| Move `run(source)` into `spanda-driver` or `spanda-interpreter` | Deferred — needs certify/FFI extraction |
+| Move `run(source)` into `spanda-driver` or `spanda-interpreter` | **Complete** — `spanda-driver::run` with certify + FFI defaults |
+| Extract `spanda-certify` and `spanda-bridge` | **Complete** |
 
 ### Remaining `spanda-core` bodies (shrink candidates)
 
@@ -119,6 +120,6 @@ Goal: extract parser and compile driver so `spanda-driver` owns the lexer → pa
 | `lint.rs` | 590 | Linter |
 | `codegen.rs` | 360 | Codegen metadata |
 | `modules.rs` | 280 | Project module loader |
-| `certify_*` | 440 | Certification gate — blocks `run(source)` move |
-| `ffi.rs` | — | Python/C++ bridges — blocks `run(source)` move |
+| `certify_*` | — | **Extracted** to `spanda-certify` |
+| `ffi.rs` / `bridge/` | — | **Extracted** to `spanda-bridge` + `spanda-ffi` |
 | 40+ thin shims | ≤25 each | `pub use spanda_*` re-exports — keep until callers migrate |

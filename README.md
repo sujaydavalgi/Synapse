@@ -92,8 +92,8 @@ Spanda uses a **lean-core, package-first** architecture. Core provides safety, v
 
 | Layer | Technology | Responsibility |
 |-------|------------|----------------|
-| Language core | Rust (`spanda-core`) | Facade — certify gate, FFI bridges, `run(source)`, domain shims |
-| Compile driver | Rust (`spanda-driver`) | Lexer → parser → type-check pipeline (`compile`, `check`) |
+| Language core | Rust (`spanda-core`) | Public facade — re-exports driver, interpreter, certify, and domain shims |
+| Compile + run driver | Rust (`spanda-driver`) | `compile`, `check`, `run`, `run_program` (certify + FFI + interpreter) |
 | Parser | Rust (`spanda-parser`) | AST construction from tokens |
 | Interpreter | Rust (`spanda-interpreter`) | Tree-walking runtime, `run_program`, simulator |
 | Official packages | `.sd` + `spanda.toml` | ROS2, MQTT, GPS, SLAM, vision, fleet, OTA, cloud |

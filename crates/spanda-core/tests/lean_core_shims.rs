@@ -121,7 +121,10 @@ fn ffi_shim_reexports_spanda_ffi_with_core_bridges() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ffi.rs");
     let source = fs::read_to_string(&path).expect("ffi.rs");
     assert!(source.contains("spanda_ffi"));
-    assert!(source.contains("new_with_core_bridges"));
+    assert!(
+        source.contains("new_with_core_bridges") && source.contains("spanda_bridge"),
+        "ffi shim should delegate bridge wiring to spanda-bridge"
+    );
 }
 
 #[test]
@@ -493,4 +496,17 @@ fn compile_pipeline_lives_in_spanda_driver() {
     assert!(source.contains("spanda_lexer::tokenize"));
     assert!(source.contains("spanda_parser::parse"));
     assert!(source.contains("spanda_typecheck::"));
+}
+
+#[test]
+fn run_pipeline_lives_in_spanda_driver() {
+    let run_rs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../spanda-driver/src/run.rs");
+    assert!(run_rs.exists(), "run(source) should live in spanda-driver");
+    let source = fs::read_to_string(run_rs).expect("spanda-driver run.rs");
+    assert!(source.contains("spanda_certify::"));
+    assert!(source.contains("spanda_bridge::default_ffi_registry"));
+    assert!(
+        source.contains("interpreter_run_program") || source.contains("spanda_interpreter::"),
+        "run.rs should delegate execution to spanda-interpreter"
+    );
 }

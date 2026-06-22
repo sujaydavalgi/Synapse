@@ -15,4 +15,7 @@ spanda-lexer = { path = "../spanda-lexer" }
 spanda-parser = { path = "../spanda-parser" }
 spanda-runtime-host = { path = "../spanda-runtime-host" }
 spanda-typecheck = { path = "../spanda-typecheck" }
+spanda-interpreter = { path = "../spanda-interpreter" }
+spanda-certify = { path = "../spanda-certify" }
+spanda-bridge = { path = "../spanda-bridge" }
 serde = { version = "1", features = ["derive"] }

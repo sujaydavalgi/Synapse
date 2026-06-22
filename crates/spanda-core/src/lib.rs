@@ -264,23 +264,11 @@ pub fn lower_to_sir(source: &str) -> Result<SirProgram, SpandaError> {
     Ok(sir::lower_program(&program))
 }
 
-pub fn run(source: &str, mut options: RunOptions) -> Result<RunResult, SpandaError> {
-    // Parse and type-check the source program.
-    let program = if let Some(registry) = &options.module_registry {
-        compile_with_registry(source, registry)?.program
-    } else {
-        compile(source)?.program
-    };
-    if options.ffi_registry.is_none() {
-        options.ffi_registry = Some(ffi::new_with_core_bridges());
-    }
-    if options.enforce_certify || certification_runtime_enabled_from_env() {
-        enforce_certification_runtime(&program, true)?;
-    }
-    spanda_interpreter::run_program(&program, options)
+pub fn run(source: &str, options: RunOptions) -> Result<RunResult, SpandaError> {
+    spanda_driver::run(source, options)
 }
 
-pub use spanda_interpreter::TestRunResult;
+pub use spanda_driver::TestRunResult;
 
 pub fn run_tests(source: &str) -> Result<TestRunResult, SpandaError> {
     // Run tests.
@@ -320,21 +308,11 @@ pub fn run_tests_with_registry(
     // Example:
     // let result = spanda_core::run_tests_with_registry(source, registry);
 
-    // Tokenize the source before parsing.
-    let tokens = lexer::tokenize(source)?;
-    let program = parser::parse(tokens)?;
-    types::check_with_registry(&program, registry)?;
-    spanda_interpreter::run_tests_with_registry(&program, registry)
+    spanda_driver::run_tests_with_registry(source, registry)
 }
 
-pub fn run_program(program: &Program, mut options: RunOptions) -> Result<RunResult, SpandaError> {
-    if options.enforce_certify || certification_runtime_enabled_from_env() {
-        enforce_certification_runtime(program, true)?;
-    }
-    if options.ffi_registry.is_none() {
-        options.ffi_registry = Some(ffi::new_with_core_bridges());
-    }
-    spanda_interpreter::run_program(program, options)
+pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, SpandaError> {
+    spanda_driver::run_program(program, options)
 }
 
 pub fn replay_mission(

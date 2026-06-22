@@ -168,7 +168,7 @@ See [spanda-type-system.md](./spanda-type-system.md).
 
 The tree-walking **interpreter** executes typed AST with integrated subsystems. Implementation lives in **`crates/spanda-interpreter/src/runtime/`** (21 modules, ~10.7k LOC): orchestrator, eval/execute, scheduler, triggers, robotics, sensors, safety, security, and related child files.
 
-**Composition root:** `spanda-interpreter` compiles the runtime tree natively (`cargo build -p spanda-interpreter`). `spanda-driver` owns the compile pipeline (`lexer` → `spanda-parser` → `spanda-typecheck` with `CoreTypeCheckHost` in `spanda-runtime-host`). `spanda-core` depends one-way on both crates and re-exports their APIs. `run_program` lives in `spanda-interpreter`; `run(source)` remains in core (compile via driver + certify gate + FFI bridge wiring).
+**Composition root:** `spanda-driver` owns the full pipeline: `spanda-lexer` → `spanda-parser` → `spanda-typecheck`, then `spanda-certify` runtime gate and `spanda-bridge` FFI defaults, then `spanda-interpreter::run_program`. `spanda-core` is a one-way facade that re-exports the public API.
 
 `CoreRuntimeHost` in `spanda-runtime-host` implements `spanda_runtime::RuntimeHost` and wires domain hooks (connectivity, fleet, transport adapters) into the interpreter.
 
