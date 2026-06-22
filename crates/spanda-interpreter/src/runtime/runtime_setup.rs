@@ -11,7 +11,7 @@ use spanda_ast::nodes::{
 };
 use spanda_ast::foundations::{StateMachineDecl, TwinDecl};
 use spanda_audit::{AuditRuntime, DeviceIdentity, MockLedgerBackend};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_runtime::events::EventBus;
 use spanda_hal::hal::{hal_member_from_decl, HalBackend};
 use spanda_hal::HardwareMonitor;

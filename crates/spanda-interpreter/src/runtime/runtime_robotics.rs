@@ -6,7 +6,7 @@ use crate::ai::{
     proposal_confidence, proposal_from_value, safe_action_from_proposal, AI_CONFIDENCE_LOW_THRESHOLD,
 };
 use spanda_ast::nodes::{Expr, UnitKind};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_safety::{Pose2d, ValidateActionResult};
 use spanda_runtime::triggers::SystemTriggerCategory;
 

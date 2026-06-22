@@ -1229,6 +1229,7 @@ dependencies = [
  "spanda-comm",
  "spanda-connectivity",
  "spanda-deploy-http",
+ "spanda-error",
  "spanda-fleet",
  "spanda-hal",
  "spanda-hardware",
@@ -1267,6 +1268,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "spanda-error"
+version = "0.1.0"
+dependencies = [
+ "spanda-ast",
+ "spanda-lexer",
+ "spanda-runtime",
+ "spanda-typecheck",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "spanda-fleet"
 version = "0.1.0"
 dependencies = [
@@ -1302,6 +1314,7 @@ dependencies = [
  "spanda-comm",
  "spanda-connectivity",
  "spanda-core",
+ "spanda-error",
  "spanda-hal",
  "spanda-runtime",
  "spanda-safety",

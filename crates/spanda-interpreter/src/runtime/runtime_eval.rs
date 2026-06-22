@@ -6,7 +6,7 @@ use crate::ai::{execute_agent_plan, mock_analyze_frame, mock_camera_frame, PlanE
 use spanda_ast::nodes::{AgentDecl, BinaryOp, Expr, LiteralValue, Stmt, UnaryOp, UnitKind};
 use spanda_comm::CommBus;
 use spanda_ast::comm_decl::DiscoverFilter;
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_runtime::triggers::SystemTriggerCategory;
 use spanda_typecheck::units::align_for_binary;
 use std::collections::HashMap;

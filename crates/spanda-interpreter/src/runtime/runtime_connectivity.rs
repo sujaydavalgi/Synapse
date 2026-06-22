@@ -3,7 +3,7 @@
 
 use super::{Interpreter, RobotBackend};
 use spanda_comm::CommBus;
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn load_connectivity_metadata(

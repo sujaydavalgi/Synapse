@@ -58,6 +58,20 @@ fn interpreter_runtime_uses_workspace_ast_paths() {
 }
 
 #[test]
+fn error_shim_reexports_spanda_error() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/error.rs");
+    let source = fs::read_to_string(&path).expect("error.rs");
+    assert!(
+        source.contains("spanda_error"),
+        "error.rs should re-export SpandaError from spanda-error"
+    );
+    assert!(
+        source.contains("RunOptions"),
+        "error.rs should retain RunOptions and related run API types in core"
+    );
+}
+
+#[test]
 fn hal_shim_reexports_spanda_hal() {
     for module in ["hal.rs", "hardware_monitor.rs", "soc.rs"] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);

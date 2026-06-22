@@ -6,7 +6,7 @@ use super::{
     RUNTIME_TASK_COST_MS, runtime_velocity,
 };
 use spanda_ast::nodes::{Expr, RobotDecl};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_runtime::reliability_runtime::{
     recover_handlers_from_decls, ModeRuntime, PipelineRuntime, RetryRuntime, WatchdogRuntime,
 };

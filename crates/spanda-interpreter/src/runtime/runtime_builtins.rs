@@ -8,7 +8,7 @@ use super::{
 };
 use spanda_ast::nodes::{Expr, UnitKind};
 use spanda_audit::{sha256 as audit_sha256, sign as audit_sign, verify_signature};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_safety::interpolate_poses;
 use std::collections::HashMap;
 

@@ -2,7 +2,7 @@
 //!
 
 use super::{IntoSpandaError, Interpreter, RobotBackend, RuntimeError};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_security::{SecurePolicy, TrustLevel};
 
 impl<B: RobotBackend> Interpreter<B> {

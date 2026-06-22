@@ -6,7 +6,7 @@ use super::{
     Interpreter, RobotBackend, RuntimeError, RuntimeValue, TaskSchedule, RUNTIME_TASK_COST_MS,
 };
 use spanda_ast::nodes::{Expr, Stmt};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_ast::foundations::TaskPriority;
 use spanda_runtime::scheduler;
 use spanda_runtime::triggers::SystemTriggerCategory;

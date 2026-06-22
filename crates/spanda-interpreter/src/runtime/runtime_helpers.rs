@@ -4,7 +4,7 @@
 use super::{Interpreter, RobotBackend, RuntimeValue};
 use crate::ai::MemoryStore;
 use spanda_ast::nodes::{AgentDecl, Expr};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn goal_text_from_value(value: &RuntimeValue) -> Option<String> {

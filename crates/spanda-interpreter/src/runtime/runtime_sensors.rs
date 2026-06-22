@@ -3,7 +3,7 @@
 
 use super::{pose_from_state, IntoSpandaError, Interpreter, RobotBackend, RuntimeError, RuntimeValue};
 use spanda_ast::nodes::UnitKind;
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use crate::lib_registry::{get_sensor_driver, read_with_driver, DriverContext, SimState};
 use std::collections::HashMap;
 

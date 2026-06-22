@@ -15,6 +15,7 @@ spanda-connectivity = { path = "../spanda-connectivity" }
 spanda-comm = { path = "../spanda-comm" }
 spanda-safety = { path = "../spanda-safety" }
 spanda-hal = { path = "../spanda-hal" }
+spanda-error = { path = "../spanda-error" }
 spanda-core = { path = "../spanda-core" }
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-security = { path = "../spanda-security" }

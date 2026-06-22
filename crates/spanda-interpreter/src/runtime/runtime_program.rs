@@ -5,7 +5,7 @@ use super::{
     priority_label, trigger_category_label, IntoSpandaError, Interpreter, RobotBackend,
     RuntimeError, RuntimeValue,
 };
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_ast::foundations::{TriggerHandlerDecl, TriggerKind};
 use spanda_runtime::triggers::{priority_rank, trigger_display_name, SystemTriggerCategory};
 use spanda_runtime::twin::TwinRuntime;

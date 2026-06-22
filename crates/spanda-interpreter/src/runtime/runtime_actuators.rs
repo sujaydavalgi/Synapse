@@ -7,7 +7,7 @@ use super::{
 };
 use crate::ai::{is_action_proposal, is_safe_action};
 use spanda_ast::nodes::Expr;
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_safety::Pose2d;
 
 impl<B: RobotBackend> Interpreter<B> {

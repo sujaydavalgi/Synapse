@@ -11,7 +11,7 @@ use spanda_ast::nodes::{
 use spanda_audit::{AuditRuntime, MockLedgerBackend};
 use spanda_comm::CommBus;
 use spanda_ast::comm_decl::{QosDecl, TransportKind};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_runtime::robot_state::{PoseState, RobotState, VelocityState};
 use spanda_runtime::events::EventBus;
 use spanda_ast::foundations::{

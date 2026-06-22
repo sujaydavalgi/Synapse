@@ -3,7 +3,7 @@
 
 use super::{get_string, IntoSpandaError, Interpreter, RobotBackend, RuntimeError, RuntimeValue};
 use spanda_ast::nodes::{Expr, UnitKind};
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use std::collections::HashMap;
 
 impl<B: RobotBackend> Interpreter<B> {

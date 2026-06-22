@@ -30,6 +30,7 @@ spanda-runtime = { path = "../spanda-runtime" }
 spanda-comm = { path = "../spanda-comm" }
 spanda-safety = { path = "../spanda-safety" }
 spanda-hal = { path = "../spanda-hal" }
+spanda-error = { path = "../spanda-error" }
 spanda-transport-routing = { path = "../spanda-transport-routing" }
 spanda-transport = { path = "../spanda-transport" }
 pyo3 = { version = "0.29", optional = true, features = ["auto-initialize", "abi3-py310"] }

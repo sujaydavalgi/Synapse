@@ -6,7 +6,7 @@ use super::{
 };
 use spanda_ast::nodes::Expr;
 use spanda_comm::CommBus;
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_safety::Pose2d;
 
 impl<B: RobotBackend> Interpreter<B> {

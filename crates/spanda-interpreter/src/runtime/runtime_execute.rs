@@ -7,7 +7,7 @@ use super::{
 use spanda_ast::nodes::{Expr, SpandaType, Stmt};
 use spanda_comm::CommBus;
 use spanda_ast::comm_decl::DiscoverFilter;
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 use spanda_runtime::triggers::SystemTriggerCategory;
 use std::collections::HashMap;
 

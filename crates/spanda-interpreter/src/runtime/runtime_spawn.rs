@@ -3,7 +3,7 @@
 
 use super::{IntoSpandaError, Interpreter, RobotBackend, RuntimeError, RuntimeValue};
 use spanda_ast::nodes::Expr;
-use crate::error::SpandaError;
+use spanda_error::SpandaError;
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn call_module_function(

@@ -5,16 +5,6 @@ use crate::error::SpandaError;
 pub use spanda_ast::{CaptureResult, RegexCompileError, RegexPattern};
 use std::collections::HashMap;
 
-impl From<RegexCompileError> for SpandaError {
-    fn from(err: RegexCompileError) -> Self {
-        Self::Parse {
-            message: err.message,
-            line: err.line,
-            column: err.column,
-        }
-    }
-}
-
 pub fn regex_matches(pattern: &RegexPattern, text: &str) -> Result<bool, SpandaError> {
     // Return whether text fully matches the regex pattern.
     //

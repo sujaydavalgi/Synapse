@@ -1,0 +1,16 @@
+[package]
+name = "spanda-error"
+version.workspace = true
+edition.workspace = true
+description = "Spanda compiler and runtime error types"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+spanda-lexer = { path = "../spanda-lexer" }
+spanda-ast = { path = "../spanda-ast" }
+spanda-runtime = { path = "../spanda-runtime" }
+spanda-typecheck = { path = "../spanda-typecheck" }
+thiserror = "2"
