@@ -22,7 +22,7 @@ fn main() {
     // Compute manifest dir for the following logic.
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let src = manifest_dir.join("src/bridge/spanda_cpp_bridge.cpp");
+    let src = manifest_dir.join("src/spanda_cpp_bridge.cpp");
     let bin = out_dir.join("spanda_cpp_bridge");
     let obj = out_dir.join("spanda_cpp_bridge.o");
     let static_lib = out_dir.join("libspanda_cpp_bridge.a");

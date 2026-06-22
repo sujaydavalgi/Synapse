@@ -2,8 +2,7 @@
 name = "spanda-core"
 version = "0.1.0"
 edition = "2021"
-description = "Spanda robotics language — lexer, parser, type checker, and interpreter"
-build = "build.rs"
+description = "Spanda robotics language — facade, deploy tooling, and compatibility shims"
 
 [dependencies]
 regex = "1"
@@ -27,6 +26,8 @@ spanda-ast = { path = "../spanda-ast" }
 spanda-lexer = { path = "../spanda-lexer" }
 spanda-parser = { path = "../spanda-parser" }
 spanda-driver = { path = "../spanda-driver" }
+spanda-certify = { path = "../spanda-certify" }
+spanda-bridge = { path = "../spanda-bridge" }
 spanda-typecheck = { path = "../spanda-typecheck" }
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-comm = { path = "../spanda-comm" }
@@ -56,8 +57,8 @@ live-mqtt = ["spanda-transport-mqtt/live"]
 live-websocket = ["spanda-transport-websocket/live"]
 live-dds = ["spanda-transport-dds/live"]
 live-transport = ["live-mqtt", "live-websocket", "live-dds"]
-python-native = ["dep:pyo3"]
-cpp-native = []
+python-native = ["spanda-bridge/python-native"]
+cpp-native = ["spanda-bridge/cpp-native"]
 
 [dev-dependencies]
 glob = "0.3"

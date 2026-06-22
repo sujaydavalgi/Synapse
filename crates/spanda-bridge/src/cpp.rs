@@ -3,9 +3,9 @@
 //! Invokes a small C++ helper binary (built via `build.rs`, or `SPANDA_CPP_BRIDGE`)
 //! with the same JSON stdin/stdout protocol as the Python bridge.
 
-use crate::error::SpandaError;
-use crate::foundations::ExternFnDecl;
-use crate::runtime::RuntimeValue;
+use spanda_error::SpandaError;
+use spanda_ast::foundations::ExternFnDecl;
+use spanda_runtime::value::RuntimeValue;
 use std::path::PathBuf;
 
 use super::protocol::call_subprocess_bridge;
@@ -24,7 +24,7 @@ pub fn bridge_binary_path() -> Option<PathBuf> {
     // None.
     //
     // Example:
-    // let result = spanda_core::cpp::bridge_binary_path();
+    // let result = spanda_bridge::cpp::bridge_binary_path();
 
     // handle the success value from var.
     if let Ok(path) = std::env::var("SPANDA_CPP_BRIDGE") {
@@ -53,7 +53,7 @@ fn candidate_binary_paths() -> Vec<PathBuf> {
     // None.
     //
     // Example:
-    // let result = spanda_core::cpp::candidate_binary_paths();
+    // let result = spanda_bridge::cpp::candidate_binary_paths();
 
     // Create mutable paths for accumulating results.
     let mut paths = Vec::new();
@@ -85,7 +85,7 @@ pub fn bridge_available() -> bool {
     // None.
     //
     // Example:
-    // let result = spanda_core::cpp::bridge_available();
+    // let result = spanda_bridge::cpp::bridge_available();
 
     // Produce is some as the result.
     bridge_binary_path().is_some()
@@ -108,7 +108,7 @@ pub fn call_extern(
     // None.
     //
     // Example:
-    // let result = spanda_core::cpp::call_extern(decl, args);
+    // let result = spanda_bridge::cpp::call_extern(decl, args);
 
     // Produce #[cfg as the result.
     #[cfg(feature = "cpp-native")]
@@ -132,8 +132,8 @@ pub fn call_extern(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{SourceLocation, Span, SpandaType};
-    use crate::foundations::BridgeKind;
+    use spanda_ast::nodes::{SourceLocation, Span, SpandaType};
+    use spanda_ast::foundations::BridgeKind;
 
     fn test_decl(name: &str) -> ExternFnDecl {
         // Test decl.
@@ -148,7 +148,7 @@ mod tests {
         // None.
         //
         // Example:
-        // let result = spanda_core::cpp::test_decl(name);
+        // let result = spanda_bridge::cpp::test_decl(name);
 
         // Produce ExternFnDecl as the result.
         ExternFnDecl {
@@ -186,7 +186,7 @@ mod tests {
         // None.
         //
         // Example:
-        // let result = spanda_core::cpp::subprocess_cpp_add_when_binary_available();
+        // let result = spanda_bridge::cpp::subprocess_cpp_add_when_binary_available();
 
         if !bridge_available() {
             return;
@@ -197,11 +197,11 @@ mod tests {
             &[
                 RuntimeValue::Number {
                     value: 4.0,
-                    unit: crate::ast::UnitKind::None,
+                    unit: spanda_ast::nodes::UnitKind::None,
                 },
                 RuntimeValue::Number {
                     value: 5.0,
-                    unit: crate::ast::UnitKind::None,
+                    unit: spanda_ast::nodes::UnitKind::None,
                 },
             ],
         )
@@ -226,7 +226,7 @@ mod tests {
         // None.
         //
         // Example:
-        // let result = spanda_core::cpp::subprocess_unknown_fn_errors();
+        // let result = spanda_bridge::cpp::subprocess_unknown_fn_errors();
 
         if !bridge_available() {
             return;

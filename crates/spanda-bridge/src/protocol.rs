@@ -3,10 +3,10 @@
 //! Defines request/response envelopes and helpers to spawn bridge processes
 //! for Python and C++ extern function calls.
 
-use crate::ast::SpandaType;
-use crate::error::SpandaError;
-use crate::foundations::ExternFnDecl;
-use crate::runtime::RuntimeValue;
+use spanda_ast::nodes::SpandaType;
+use spanda_error::SpandaError;
+use spanda_ast::foundations::ExternFnDecl;
+use spanda_runtime::value::RuntimeValue;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::Path;
@@ -49,8 +49,8 @@ pub fn runtime_value_to_json(value: &RuntimeValue) -> serde_json::Value {
     //
     // Example:
     //
-    // use spanda_core::bridge::protocol::runtime_value_to_json;
-    // use spanda_core::runtime::RuntimeValue;
+    // use spanda_bridge::protocol::runtime_value_to_json;
+    // use spanda_runtime::value::RuntimeValue;
     // let json = runtime_value_to_json(&RuntimeValue::Bool { value: true });
 
     // assert_eq!(json, serde_json::json!(true));
@@ -77,7 +77,7 @@ pub fn json_to_runtime_value(value: &serde_json::Value, return_type: &SpandaType
     //
 
     // Coerced [`RuntimeValue`] (defaults for missing fields).
-    use crate::ast::UnitKind;
+    use spanda_ast::nodes::UnitKind;
 
     // Match on return type and handle each case.
     match return_type {
@@ -130,7 +130,7 @@ pub fn call_subprocess_bridge(
     //
     // Example:
     //
-    // use spanda_core::bridge::protocol::call_subprocess_bridge;
+    // use spanda_bridge::protocol::call_subprocess_bridge;
 
     // // Typically invoked via bridge::python::call_extern or bridge::cpp::call_extern.
     let line = decl.span.start.line;

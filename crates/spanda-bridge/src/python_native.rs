@@ -3,9 +3,9 @@
 //! Loads `scripts/spanda_python_bridge.py` handlers directly when enabled.
 //! Falls back to subprocess bridge when this module is unavailable or fails.
 
-use crate::error::SpandaError;
-use crate::foundations::ExternFnDecl;
-use crate::runtime::RuntimeValue;
+use spanda_error::SpandaError;
+use spanda_ast::foundations::ExternFnDecl;
+use spanda_runtime::value::RuntimeValue;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
@@ -109,8 +109,8 @@ else:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{SourceLocation, Span, SpandaType};
-    use crate::foundations::BridgeKind;
+    use spanda_ast::nodes::{SourceLocation, Span, SpandaType};
+    use spanda_ast::foundations::BridgeKind;
 
     fn test_decl(name: &str) -> ExternFnDecl {
         // Test decl.
@@ -174,11 +174,11 @@ mod tests {
             &[
                 RuntimeValue::Number {
                     value: 3.0,
-                    unit: crate::ast::UnitKind::None,
+                    unit: spanda_ast::nodes::UnitKind::None,
                 },
                 RuntimeValue::Number {
                     value: 4.0,
-                    unit: crate::ast::UnitKind::None,
+                    unit: spanda_ast::nodes::UnitKind::None,
                 },
             ],
         )

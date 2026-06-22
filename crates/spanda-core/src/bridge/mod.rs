@@ -1,9 +1,3 @@
-//! bridge module for Spanda.
+//! Python/C++ extern bridges re-exported from `spanda-bridge`.
 //!
-pub mod cpp;
-#[cfg(feature = "cpp-native")]
-pub mod cpp_native;
-pub mod protocol;
-pub mod python;
-#[cfg(feature = "python-native")]
-pub mod python_native;
+pub use spanda_bridge::*;

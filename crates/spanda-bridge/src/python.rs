@@ -3,9 +3,9 @@
 //! Invokes `scripts/spanda_python_bridge.py` (or `SPANDA_PYTHON_BRIDGE`) with a
 //! JSON stdin/stdout protocol. This is a real (minimal) integration — not a stub.
 
-use crate::error::SpandaError;
-use crate::foundations::ExternFnDecl;
-use crate::runtime::RuntimeValue;
+use spanda_error::SpandaError;
+use spanda_ast::foundations::ExternFnDecl;
+use spanda_runtime::value::RuntimeValue;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
@@ -25,7 +25,7 @@ pub fn bridge_script_path() -> Option<PathBuf> {
     // None.
     //
     // Example:
-    // let result = spanda_core::python::bridge_script_path();
+    // let result = spanda_bridge::python::bridge_script_path();
 
     // handle the success value from var.
     if let Ok(path) = std::env::var("SPANDA_PYTHON_BRIDGE") {
@@ -54,7 +54,7 @@ fn candidate_script_paths() -> Vec<PathBuf> {
     // None.
     //
     // Example:
-    // let result = spanda_core::python::candidate_script_paths();
+    // let result = spanda_bridge::python::candidate_script_paths();
 
     // Create mutable paths for accumulating results.
     let mut paths = vec![
@@ -82,7 +82,7 @@ pub fn python_available() -> bool {
     // None.
     //
     // Example:
-    // let result = spanda_core::python::python_available();
+    // let result = spanda_bridge::python::python_available();
 
     // Produce is some as the result.
     python_command().is_some()
@@ -101,7 +101,7 @@ fn python_command() -> Option<String> {
     // None.
     //
     // Example:
-    // let result = spanda_core::python::python_command();
+    // let result = spanda_bridge::python::python_command();
 
     // Iterate over ["python3", "python"].
     for cmd in ["python3", "python"] {
@@ -138,7 +138,7 @@ pub fn call_extern(
     // None.
     //
     // Example:
-    // let result = spanda_core::python::call_extern(decl, args);
+    // let result = spanda_bridge::python::call_extern(decl, args);
 
     // Produce #[cfg as the result.
     #[cfg(feature = "python-native")]
@@ -171,8 +171,8 @@ pub fn call_extern(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{SourceLocation, Span, SpandaType};
-    use crate::foundations::BridgeKind;
+    use spanda_ast::nodes::{SourceLocation, Span, SpandaType};
+    use spanda_ast::foundations::BridgeKind;
 
     fn test_decl(name: &str) -> ExternFnDecl {
         // Test decl.
@@ -187,7 +187,7 @@ mod tests {
         // None.
         //
         // Example:
-        // let result = spanda_core::python::test_decl(name);
+        // let result = spanda_bridge::python::test_decl(name);
 
         // Produce ExternFnDecl as the result.
         ExternFnDecl {
@@ -225,7 +225,7 @@ mod tests {
         // None.
         //
         // Example:
-        // let result = spanda_core::python::subprocess_py_add_when_python_available();
+        // let result = spanda_bridge::python::subprocess_py_add_when_python_available();
 
         if !python_available() || bridge_script_path().is_none() {
             return;
@@ -236,11 +236,11 @@ mod tests {
             &[
                 RuntimeValue::Number {
                     value: 4.0,
-                    unit: crate::ast::UnitKind::None,
+                    unit: spanda_ast::nodes::UnitKind::None,
                 },
                 RuntimeValue::Number {
                     value: 5.0,
-                    unit: crate::ast::UnitKind::None,
+                    unit: spanda_ast::nodes::UnitKind::None,
                 },
             ],
         )
@@ -265,7 +265,7 @@ mod tests {
         // None.
         //
         // Example:
-        // let result = spanda_core::python::subprocess_unknown_fn_errors();
+        // let result = spanda_bridge::python::subprocess_unknown_fn_errors();
 
         if !python_available() || bridge_script_path().is_none() {
             return;
