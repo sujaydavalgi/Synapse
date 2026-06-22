@@ -1445,6 +1445,7 @@ dependencies = [
  "spanda-transport-ros2",
  "spanda-transport-routing",
  "spanda-typecheck",
+ "tempfile",
  "thiserror 2.0.18",
 ]
 
