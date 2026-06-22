@@ -33,7 +33,9 @@ spanda-driver = { path = "../spanda-driver" }
 spanda-error = { path = "../spanda-error" }
 spanda-fleet = { path = "../spanda-fleet" }
 spanda-format = { path = "../spanda-format" }
+spanda-lexer = { path = "../spanda-lexer" }
 spanda-hardware = { path = "../spanda-hardware" }
+spanda-capability = { path = "../spanda-capability" }
 spanda-lint = { path = "../spanda-lint" }
 spanda-llvm = { path = "../spanda-llvm", optional = true }
 spanda-modules = { path = "../spanda-modules" }

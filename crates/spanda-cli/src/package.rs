@@ -286,76 +286,207 @@ pub fn cmd_test(args: &[String]) {
     // Example:
     // let result = spanda_cli::package::cmd_test(args);
 
-    // Compute root for the following logic.
-    let root = parse_project_arg(args);
-    let manifest = load_project(&root);
-    validate_project(&root, &manifest);
-    let test_dir = root.join("tests");
+    let mut json = false;
+    let mut compile_fail = false;
+    let mut filter: Option<String> = None;
+    let mut paths: Vec<std::path::PathBuf> = Vec::new();
+    let mut project_mode = false;
 
-    // Treat the path as a directory and scan its contents.
-    if !test_dir.is_dir() {
-        println!("✓ No tests directory — nothing to run");
-        return;
-    }
-    let files = collect_source_files(&root).unwrap_or_else(|e| {
-        eprintln!("Error: {e}");
-        process::exit(1);
-    });
-    let test_files: Vec<_> = files
-        .into_iter()
-        .filter(|f| f.starts_with(&test_dir))
-        .collect();
-
-    // Skip further work when test files is empty.
-    if test_files.is_empty() {
-        println!("✓ No test files found");
-        return;
-    }
-    let registry = load_project_modules(&root).unwrap_or_else(|e| {
-        eprintln!("Error loading modules: {e}");
-        for d in e.diagnostics() {
-            eprintln!("  [{}:{}] {}", d.line, d.column, d.message);
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--json" => json = true,
+            "--compile-fail" => compile_fail = true,
+            "--filter" => {
+                i += 1;
+                filter = args.get(i).cloned();
+            }
+            "--project" => project_mode = true,
+            other if !other.starts_with('-') => {
+                paths.push(std::path::PathBuf::from(other));
+            }
+            other => {
+                eprintln!("Unknown test argument: {other}");
+                process::exit(1);
+            }
         }
-        process::exit(1);
-    });
-    let mut failed = false;
+        i += 1;
+    }
 
-    // Handle each file in the listing.
+    let start = std::time::Instant::now();
+    let root = if project_mode || paths.is_empty() {
+        parse_project_arg(args)
+    } else {
+        std::env::current_dir().unwrap_or_default()
+    };
+
+    let had_paths = !paths.is_empty();
+    let test_files: Vec<std::path::PathBuf> = if paths.is_empty() {
+        let test_dir = root.join("tests");
+        if !test_dir.is_dir() {
+            if json {
+                println!(
+                    r#"{{"passed":0,"failed":0,"skipped":0,"duration_ms":0,"tests":[]}}"#
+                );
+            } else {
+                println!("✓ No tests directory — nothing to run");
+            }
+            return;
+        }
+        let files = collect_source_files(&root).unwrap_or_else(|e| {
+            eprintln!("Error: {e}");
+            process::exit(1);
+        });
+        files
+            .into_iter()
+            .filter(|f| f.starts_with(&test_dir))
+            .collect()
+    } else {
+        paths
+    };
+
+    if test_files.is_empty() {
+        if json {
+            println!(r#"{{"passed":0,"failed":0,"skipped":0,"duration_ms":0,"tests":[]}}"#);
+        } else {
+            println!("✓ No test files found");
+        }
+        return;
+    }
+
+    let manifest = if project_mode || !had_paths {
+        Some(load_project(&root))
+    } else {
+        None
+    };
+    if manifest.is_some() {
+        validate_project(&root, manifest.as_ref().unwrap());
+    }
+
+    let registry = if project_mode || !had_paths {
+        load_project_modules(&root).unwrap_or_else(|e| {
+            eprintln!("Error loading modules: {e}");
+            process::exit(1);
+        })
+    } else {
+        spanda_typecheck::ModuleRegistry::new()
+    };
+
+    let mut passed = 0usize;
+    let mut failed = 0usize;
+    let mut skipped = 0usize;
+    let mut entries = Vec::new();
+
     for file in test_files {
+        let file_str = file.display().to_string();
+        if file.extension().and_then(|e| e.to_str()) != Some("sd") {
+            skipped += 1;
+            continue;
+        }
         let source = fs::read_to_string(&file).unwrap_or_else(|e| {
             eprintln!("Error reading {}: {e}", file.display());
             process::exit(1);
         });
 
-        // Handle the error returned from check.
-        if let Err(e) = check_with_registry(&source, &registry) {
-            failed = true;
-            eprintln!("Test failed (type errors) {}: {e}", file.display());
-        } else {
-            // Match on run tests with registry and handle each case.
-            match run_tests_with_registry(&source, &registry) {
-                Ok(result) if result.failed == 0 => {
-                    println!("✓ {} ({} test(s))", file.display(), result.passed);
-                }
-                Ok(result) => {
-                    failed = true;
-                    eprintln!("Test failed {}:", file.display());
+        if let Some(ref f) = filter {
+            if !source.contains(f) && !file_str.contains(f) {
+                skipped += 1;
+                continue;
+            }
+        }
 
-                    // Process each log.
+        let check_result = check_with_registry(&source, &registry);
+        if compile_fail {
+            if check_result.is_ok() {
+                failed += 1;
+                entries.push(serde_json::json!({
+                    "file": file_str,
+                    "status": "failed",
+                    "message": "expected compile error but check passed"
+                }));
+                if !json {
+                    eprintln!("✗ {file_str} — expected compile error");
+                }
+            } else {
+                passed += 1;
+                entries.push(serde_json::json!({
+                    "file": file_str,
+                    "status": "passed",
+                    "kind": "compile-fail"
+                }));
+                if !json {
+                    println!("✓ {file_str} — compile-fail test passed");
+                }
+            }
+            continue;
+        }
+
+        if let Err(e) = check_result {
+            failed += 1;
+            entries.push(serde_json::json!({
+                "file": file_str,
+                "status": "failed",
+                "message": format!("{e}")
+            }));
+            if !json {
+                eprintln!("Test failed (type errors) {file_str}: {e}");
+            }
+            continue;
+        }
+
+        match run_tests_with_registry(&source, &registry) {
+            Ok(result) if result.failed == 0 => {
+                passed += result.passed.max(1);
+                entries.push(serde_json::json!({
+                    "file": file_str,
+                    "status": "passed",
+                    "tests": result.passed
+                }));
+                if !json {
+                    println!("✓ {file_str} ({} test(s))", result.passed);
+                }
+            }
+            Ok(result) => {
+                failed += result.failed.max(1);
+                entries.push(serde_json::json!({
+                    "file": file_str,
+                    "status": "failed",
+                    "logs": result.logs
+                }));
+                if !json {
+                    eprintln!("Test failed {file_str}:");
                     for log in result.logs {
                         eprintln!("  {log}");
                     }
                 }
-                Err(e) => {
-                    failed = true;
-                    eprintln!("Test failed {}: {e}", file.display());
+            }
+            Err(e) => {
+                failed += 1;
+                entries.push(serde_json::json!({
+                    "file": file_str,
+                    "status": "failed",
+                    "message": format!("{e}")
+                }));
+                if !json {
+                    eprintln!("Test failed {file_str}: {e}");
                 }
             }
         }
     }
 
-    // Take this path when failed.
-    if failed {
+    let duration_ms = start.elapsed().as_millis();
+    if json {
+        let report = serde_json::json!({
+            "passed": passed,
+            "failed": failed,
+            "skipped": skipped,
+            "duration_ms": duration_ms,
+            "tests": entries
+        });
+        println!("{}", serde_json::to_string_pretty(&report).unwrap());
+    }
+
+    if failed > 0 {
         process::exit(1);
     }
 }

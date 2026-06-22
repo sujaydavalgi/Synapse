@@ -64,6 +64,10 @@ pub struct RunOptions {
     pub enforce_certify: bool,
     #[serde(default)]
     pub official_packages: Vec<String>,
+    #[serde(default)]
+    pub trigger_kill_switch: Option<String>,
+    #[serde(default)]
+    pub inject_health_faults: bool,
     #[serde(skip)]
     pub ffi_registry: Option<FfiRegistry>,
 }

@@ -4,6 +4,7 @@ mod certify_cli;
 mod deploy_ota;
 mod package;
 mod swarm_cli;
+mod trace_cli;
 
 use serde::Serialize;
 use spanda_ast::comm_decl::PeerRobotDecl;
@@ -1370,6 +1371,44 @@ fn main() {
         return;
     }
 
+    if command == "trace" {
+        let sub = args.get(2).map(String::as_str).unwrap_or("");
+        trace_cli::cmd_trace(sub, &args[3..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "health" {
+        let sub = args.get(2).map(String::as_str).unwrap_or("robot");
+        trace_cli::cmd_health(sub, &args[3..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "hardware" && args.get(2).map(String::as_str) == Some("capabilities") {
+        trace_cli::cmd_hardware_capabilities(&args[3..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "robot" && args.get(2).map(String::as_str) == Some("capabilities") {
+        trace_cli::cmd_robot_capabilities(&args[3..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "safety" {
+        let sub = args.get(2).map(String::as_str).unwrap_or("");
+        if sub == "check" {
+            trace_cli::cmd_safety_check(&args[3..]);
+        } else {
+            eprintln!("Usage: spanda safety check <file.sd> [--capabilities] [--json]");
+            process::exit(1);
+        }
+        let _ = io::stdout().flush();
+        return;
+    }
+
     // Take this path when is package command(command).
     if is_package_command(command) {
         dispatch_package(command, &args[2..]);
@@ -1408,6 +1447,13 @@ fn main() {
     let mut secure_mode = false;
     let mut inject_security_faults = false;
     let mut enforce_certify = false;
+    let mut traceability = false;
+    let mut traceability_json = false;
+    let mut verify_capabilities = false;
+    let mut verify_health = false;
+    let mut minimum_capabilities = false;
+    let mut trigger_kill_switch: Option<String> = None;
+    let mut inject_health_faults = false;
     let mut i = 2;
 
     // Repeat while i < args.len().
@@ -1431,6 +1477,28 @@ fn main() {
             "--secure" => secure_mode = true,
             "--inject-security-faults" => inject_security_faults = true,
             "--enforce-certify" => enforce_certify = true,
+            "--traceability" => traceability = true,
+            "--traceability-json" => {
+                traceability = true;
+                traceability_json = true;
+                json = true;
+            }
+            "--capabilities" => verify_capabilities = true,
+            "--capabilities-json" => {
+                verify_capabilities = true;
+                json = true;
+            }
+            "--health" => verify_health = true,
+            "--minimum-capabilities" => minimum_capabilities = true,
+            "--trigger-kill-switch" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("--trigger-kill-switch requires a kill switch name");
+                    process::exit(1);
+                }
+                trigger_kill_switch = Some(args[i].clone());
+            }
+            "--inject-health-faults" => inject_health_faults = true,
             "--twin-export" => {
                 i += 1;
                 if i >= args.len() {
@@ -1616,6 +1684,16 @@ fn main() {
             } else {
                 human_verify(&source, &file, &options);
             }
+            if traceability || verify_capabilities || verify_health || minimum_capabilities {
+                trace_cli::verify_extensions(
+                    &source,
+                    traceability,
+                    verify_capabilities,
+                    verify_health,
+                    minimum_capabilities,
+                    json || traceability_json,
+                );
+            }
         }
         "run" | "sim" => {
             let file = file.unwrap_or_else(|| {
@@ -1650,6 +1728,8 @@ fn main() {
                     secure_mode,
                     inject_security_faults,
                     enforce_certify,
+                    trigger_kill_switch,
+                    inject_health_faults,
                     ..Default::default()
                 },
             );

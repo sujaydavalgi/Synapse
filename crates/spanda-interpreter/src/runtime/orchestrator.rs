@@ -248,6 +248,12 @@ pub struct InterpreterOptions {
     /// Inject default security fault scenarios during simulation.
     pub inject_security_faults: bool,
 
+    /// Activate named kill switch at simulation start.
+    pub trigger_kill_switch: Option<String>,
+
+    /// Inject health fault scenarios during simulation.
+    pub inject_health_faults: bool,
+
     /// Optional domain provider registry; defaults to bootstrap shims when unset.
     pub provider_registry: Option<spanda_runtime::providers::ProviderRegistry>,
 
@@ -294,6 +300,8 @@ impl Default for InterpreterOptions {
             max_triggers_per_tick: MAX_TRIGGERS_PER_TICK,
             secure_mode: false,
             inject_security_faults: false,
+            trigger_kill_switch: None,
+            inject_health_faults: false,
             provider_registry: None,
             official_packages: Vec::new(),
             runtime_host: None,
@@ -967,6 +975,19 @@ impl<B: RobotBackend> Interpreter<B> {
                 self.security.inject_security_fault(fault);
             }
             self.log("security: injected default security fault scenarios".into());
+        }
+
+        if self.options.inject_health_faults {
+            for fault in ["GPSDegraded", "CameraOffline", "RobotHealthCritical"] {
+                self.hardware_monitor.inject_fault(fault.to_string());
+                self.comm_bus.inject_fault(fault);
+            }
+            self.log("health: injected default health fault scenarios".into());
+        }
+
+        if let Some(ks) = &self.options.trigger_kill_switch {
+            self.backend.set_emergency_stop(true);
+            self.log(format!("kill_switch: activated {ks}"));
         }
 
         // Handle each robot declared in the program.
