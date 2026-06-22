@@ -22,7 +22,7 @@ describe("lean-core providers (TypeScript mirror)", () => {
       MODULE_CLASSIFICATIONS.some(
         (m) =>
           m.module === "transport_mqtt" &&
-          m.ownership === ModuleOwnership.CompatibilityShim,
+          m.ownership === ModuleOwnership.Deprecated,
       ),
     ).toBe(true);
   });

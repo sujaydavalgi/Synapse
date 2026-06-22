@@ -69,14 +69,14 @@ Legacy core modules remain until packages fully own implementations:
 
 | Core shim | Target package |
 |-----------|----------------|
-| `transport_mqtt` | `spanda-mqtt` |
 | `transport_rclrs` | `spanda-ros2` |
-| `transport_dds` | `spanda-dds` |
 | `connectivity_positioning` | `spanda-gps`, `spanda-wifi`, `spanda-ble`, `spanda-cellular` |
 | `nav2_adapter` | `spanda-nav` |
 | `slam_adapter` | `spanda-slam` |
 | `fleet_orchestrator` | `spanda-fleet` |
 | `deploy_service` | `spanda-ota` |
+
+**Removed (Phase 17):** `transport_mqtt`, `transport_dds`, `transport_websocket`, and `transport_live` no longer exist under `spanda_core`. Use `spanda_transport_routing` (`transport_live`, `live_bridges`) or the `spanda-transport-*` workspace crates directly.
 
 No action required for existing programs. New projects should add package dependencies explicitly:
 

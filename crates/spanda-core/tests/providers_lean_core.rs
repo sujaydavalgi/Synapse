@@ -22,7 +22,7 @@ fn module_classifications_include_core_and_shims() {
         .iter()
         .any(|m| m.module == "providers" && m.ownership == ModuleOwnership::Core));
     assert!(table.iter().any(|m| {
-        m.module == "transport_mqtt" && m.ownership == ModuleOwnership::CompatibilityShim
+        m.module == "transport_mqtt" && m.ownership == ModuleOwnership::Deprecated
     }));
 }
 

@@ -8,4 +8,4 @@ MQTT transport backend for Spanda. Extracted from `spanda-core` as part of the l
 
 ## Usage
 
-Used by the `spanda-mqtt` official package. Core retains a compatibility shim in `transport_mqtt.rs`.
+Used by the `spanda-mqtt` official package. Live hooks live in `spanda-transport-routing`.

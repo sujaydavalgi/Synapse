@@ -274,18 +274,19 @@ fn interpreter_runtime_uses_workspace_security_and_scheduler() {
 }
 
 #[test]
-fn transport_live_shim_stays_thin() {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/transport_live.rs");
-    let source = fs::read_to_string(&path).expect("transport_live.rs");
-    let lines = source.lines().count();
-    assert!(
-        lines <= 8,
-        "transport_live.rs should remain a thin shim (got {lines} lines)"
-    );
-    assert!(
-        source.contains("spanda_transport_routing"),
-        "transport_live shim should re-export from spanda-transport-routing"
-    );
+fn transport_live_shim_removed_from_core() {
+    for module in [
+        "transport_live.rs",
+        "transport_mqtt.rs",
+        "transport_dds.rs",
+        "transport_websocket.rs",
+    ] {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
+        assert!(
+            !path.exists(),
+            "{module} should be removed from spanda-core; use spanda-transport-routing"
+        );
+    }
 }
 
 #[test]
@@ -524,7 +525,6 @@ fn phase13_extractions_use_thin_shims() {
         ("types.rs", "spanda_driver"),
         ("lexer.rs", "spanda_driver"),
         ("ffi.rs", "spanda_bridge"),
-        ("transport_live.rs", "spanda_transport_routing"),
     ] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
         let source = fs::read_to_string(&path).expect(module);
@@ -573,12 +573,7 @@ fn compatibility_shims_stay_thin() {
             "{module} should remain a compatibility shim"
         );
     }
-    for module in [
-        "transport_mqtt.rs",
-        "transport_dds.rs",
-        "transport_websocket.rs",
-        "transport_rclrs.rs",
-    ] {
+    for module in ["transport_rclrs.rs"] {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
         let source = fs::read_to_string(&path).expect(module);
         assert!(
@@ -586,8 +581,7 @@ fn compatibility_shims_stay_thin() {
             "{module} should remain a thin transport compatibility shim"
         );
         assert!(
-            source.contains("spanda_transport_routing")
-                || source.contains("spanda_transport"),
+            source.contains("spanda_transport_routing") || source.contains("spanda_transport"),
             "{module} should delegate to spanda-transport-* crates"
         );
     }

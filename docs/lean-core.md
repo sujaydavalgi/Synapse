@@ -86,7 +86,7 @@ docs/                Architecture and migration guides
 
 ## Compatibility shims
 
-Legacy core modules (`transport_mqtt`, `connectivity_positioning`, `nav2_adapter`, etc.) remain functional. They delegate to the same behavior as before while official packages mature. See [migration.md](./migration.md#lean-core-package-first-refactor).
+Legacy core modules (`connectivity_positioning`, `nav2_adapter`, `transport_rclrs`, etc.) remain functional where still present. Transport live bridges (`transport_mqtt`, `transport_dds`, `transport_websocket`, `transport_live`) were removed from `spanda-core`; use `spanda-transport-routing` or official transport packages. See [migration.md](./migration.md#lean-core-package-first-refactor).
 
 ## Related docs
 

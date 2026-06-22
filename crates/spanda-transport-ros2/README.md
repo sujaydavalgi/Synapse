@@ -8,7 +8,7 @@ ROS 2 transport backend for Spanda. Extracted from `spanda-core` as part of the 
 2. **rclpy daemon** — persistent subprocess via `scripts/spanda_ros2_daemon.py`
 3. **Live bridge** — optional `ros2` CLI (`SPANDA_ROS2_NATIVE=1`) or per-call Python bridge (`SPANDA_ROS2_LIVE=1`) via `live_bridge`
 
-Spanda core retains a thin `RuntimeValue` compatibility shim in `transport_live.rs`.
+Spanda core routes live transport through `spanda-transport-routing` (`transport_live`, `live_bridges`).
 
 ## Related crates
 

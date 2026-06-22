@@ -68,9 +68,9 @@ export const MODULE_CLASSIFICATIONS: readonly ModuleClassification[] = [
   },
   {
     module: "transport_mqtt",
-    ownership: ModuleOwnership.CompatibilityShim,
+    ownership: ModuleOwnership.Deprecated,
     targetPackage: "spanda-mqtt",
-    notes: "Live MQTT adapter; use spanda-mqtt package",
+    notes: "Removed from spanda-core; use spanda-transport-mqtt or spanda-transport-routing",
   },
   {
     module: "transport_rclrs",
@@ -80,15 +80,21 @@ export const MODULE_CLASSIFICATIONS: readonly ModuleClassification[] = [
   },
   {
     module: "transport_dds",
-    ownership: ModuleOwnership.CompatibilityShim,
+    ownership: ModuleOwnership.Deprecated,
     targetPackage: "spanda-dds",
-    notes: "DDS transport; use spanda-dds package",
+    notes: "Removed from spanda-core; use spanda-transport-dds or spanda-transport-routing",
   },
   {
     module: "transport_websocket",
-    ownership: ModuleOwnership.CompatibilityShim,
+    ownership: ModuleOwnership.Deprecated,
     targetPackage: "spanda-mqtt",
-    notes: "WebSocket transport; use spanda-transport-websocket crate",
+    notes: "Removed from spanda-core; use spanda-transport-websocket or spanda-transport-routing",
+  },
+  {
+    module: "transport_live",
+    ownership: ModuleOwnership.Deprecated,
+    targetPackage: "spanda-transport-routing",
+    notes: "Removed from spanda-core; use spanda_transport_routing::transport_live",
   },
   {
     module: "nav2_adapter",

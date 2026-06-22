@@ -17,4 +17,4 @@ comm-bus through the provider registry.
 ## Status
 
 Spanda-language exports in `src/` are scaffold stubs. Live MQTT I/O is implemented in the
-`spanda-transport-mqtt` workspace crate (core compatibility shim: `transport_mqtt.rs`).
+`spanda-transport-mqtt` workspace crate (live hooks in `spanda-transport-routing`).

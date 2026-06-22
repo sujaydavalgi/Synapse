@@ -202,4 +202,15 @@ Goal: migrate the last first-party crates that still depended on `spanda-core` d
 
 | Step | Status |
 |------|--------|
-| Remove deprecated `spanda_core::transport_*` shims after one release | Planned |
+| Remove deprecated `spanda_core::transport_*` shims after one release | **Complete** (see Phase 17) |
+
+## Phase 17 — Complete ✓ (transport shim removal)
+
+Goal: drop redundant `spanda_core::transport_{mqtt,dds,websocket,live}` modules now that callers use workspace crates.
+
+| Step | Status |
+|------|--------|
+| Delete `transport_mqtt`, `transport_dds`, `transport_websocket`, `transport_live` from `spanda-core` | **Complete** |
+| Mark removed modules `Deprecated` in classification tables (Rust + TS) | **Complete** |
+| Update migration docs and shim guard tests | **Complete** |
+| Keep `transport`, `transport_rclrs`, `transport_wire`, `transport_security` shims | **Complete** |
