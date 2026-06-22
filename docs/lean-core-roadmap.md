@@ -373,3 +373,16 @@ Goal: ship test framework hardening, hardware/robot capability exposure, traceab
 
 See [capability-traceability.md](./capability-traceability.md), [health-checks.md](./health-checks.md), [kill-switch.md](./kill-switch.md).
 
+## Phase 28 — Complete ✓ (compile-fail tests, return types, TS parity, IoT scaffolds)
+
+Goal: close verification/DX gaps from Phase 27 audit — in-language compile-fail tests, module return-type enforcement, TypeScript parser mirror, and IoT protocol package stubs.
+
+| Step | Status |
+|------|--------|
+| `expect_compile_error { }` in test blocks (parser, typecheck skip, test runner validation) | **Complete** |
+| Module function return type validation in typechecker | **Complete** |
+| TypeScript parser mirror for Phase 27 syntax + `expect_compile_error` | **Complete** |
+| IoT protocol package stubs (`spanda-opcua`, `spanda-modbus`, `spanda-zigbee`, `spanda-lora`, `spanda-matter`, `spanda-canbus`) | **Complete** |
+| Integration tests in `crates/spanda-core/tests/p1_features.rs` | **Complete** |
+| `tests/capability-parser.test.ts` | **Complete** |
+
