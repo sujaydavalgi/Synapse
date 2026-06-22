@@ -6448,10 +6448,7 @@ fn builtin_methods(
                     },
                 ),
             ),
-            (
-                "export",
-                m(vec![], HashMap::new(), SpandaType::String),
-            ),
+            ("export", m(vec![], HashMap::new(), SpandaType::String)),
         ])),
         "MockLedger" => Some(HashMap::from([
             (

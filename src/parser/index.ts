@@ -106,7 +106,7 @@ import type {
   SecureBlockDecl,
   SecureCommPolicyDecl,
   TrustBoundaryDecl,
-  type SwarmPolicy,
+  SwarmPolicy,
 } from "../foundations.js";
 
 export class ParseError extends Error {

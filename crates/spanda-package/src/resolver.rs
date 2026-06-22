@@ -67,8 +67,7 @@ pub fn resolve_dependencies(
         if let Some(dep_manifest) = manifest_for_locked_dep(project_root, &locked) {
             let parent_root = package_root_for_locked(project_root, &locked);
             for (trans_name, trans_spec) in dep_manifest.all_dependencies() {
-                if !lockfile_deps.contains_key(trans_name)
-                    && queued.insert(trans_name.to_string())
+                if !lockfile_deps.contains_key(trans_name) && queued.insert(trans_name.to_string())
                 {
                     pending.push_back((
                         trans_name.to_string(),
@@ -189,11 +188,8 @@ fn package_root_for_locked(project_root: &Path, locked: &LockedDependency) -> st
                 project_root.join(path)
             }
         }
-        LockedSource::Registry { .. } => registry_package_dir(&locked.name).unwrap_or_else(|| {
-            project_root
-                .join(".spanda/packages")
-                .join(&locked.name)
-        }),
+        LockedSource::Registry { .. } => registry_package_dir(&locked.name)
+            .unwrap_or_else(|| project_root.join(".spanda/packages").join(&locked.name)),
         LockedSource::Git { .. } => project_root.join(".spanda/packages").join(&locked.name),
     }
 }

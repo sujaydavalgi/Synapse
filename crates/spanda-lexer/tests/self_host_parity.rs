@@ -27,15 +27,11 @@ fn self_host_bootstrap_sample_tokenizes() {
 fn self_host_world_model_keyword_tokenizes() {
     let tokens = tokenize("world_model { enabled; }").expect("tokenize world_model block");
     assert!(
-        tokens
-            .iter()
-            .any(|token| token.lexeme == "world_model"),
+        tokens.iter().any(|token| token.lexeme == "world_model"),
         "expected world_model identifier"
     );
     assert!(
-        tokens
-            .iter()
-            .any(|token| token.lexeme == "enabled"),
+        tokens.iter().any(|token| token.lexeme == "enabled"),
         "expected enabled flag"
     );
 }

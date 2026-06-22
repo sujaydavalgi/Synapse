@@ -103,7 +103,7 @@ fn dispatch_gps_read_when_package_installed() {
         None,
         0.0,
     )
-        .expect("dispatch");
+    .expect("dispatch");
     match value {
         spanda_runtime::value::RuntimeValue::Object { type_name, .. } => {
             assert_eq!(type_name, "GeoPoint");
@@ -116,17 +116,16 @@ fn dispatch_gps_read_when_package_installed() {
 fn dispatch_slam_localize_when_installed() {
     use spanda_providers::dispatch_official_package_call;
     let mut registry = bootstrap_providers_for_packages(&["spanda-slam"]);
-    let value =
-        dispatch_official_package_call(
-            &mut registry,
-            "navigation.slam",
-            "localize",
-            &[],
-            None,
-            None,
-            0.0,
-        )
-            .expect("dispatch");
+    let value = dispatch_official_package_call(
+        &mut registry,
+        "navigation.slam",
+        "localize",
+        &[],
+        None,
+        None,
+        0.0,
+    )
+    .expect("dispatch");
     match value {
         spanda_runtime::value::RuntimeValue::Object { type_name, .. } => {
             assert_eq!(type_name, "LocalizationEstimate");
@@ -139,18 +138,16 @@ fn dispatch_slam_localize_when_installed() {
 fn dispatch_skips_when_package_not_installed() {
     use spanda_providers::dispatch_official_package_call;
     let mut registry = bootstrap_providers_for_packages(&[]);
-    assert!(
-        dispatch_official_package_call(
-            &mut registry,
-            "positioning.gps",
-            "read",
-            &[],
-            None,
-            None,
-            0.0,
-        )
-            .is_none()
-    );
+    assert!(dispatch_official_package_call(
+        &mut registry,
+        "positioning.gps",
+        "read",
+        &[],
+        None,
+        None,
+        0.0,
+    )
+    .is_none());
 }
 
 #[test]

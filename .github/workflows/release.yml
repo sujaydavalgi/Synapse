@@ -348,8 +348,12 @@ jobs:
       - name: Upload VS Code extension artifact
         run: gh release upload "${{ needs.plan.outputs.tag }}" editor/vscode/*.vsix --clobber
       - name: Publish to Visual Studio Marketplace
-        if: ${{ secrets.VSCE_PAT != '' }}
         working-directory: editor/vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx @vscode/vsce publish --allow-star-activation --pat "$VSCE_PAT"
+        run: |
+          if [ -z "${VSCE_PAT:-}" ]; then
+            echo "VSCE_PAT not set; skip marketplace publish"
+            exit 0
+          fi
+          npx @vscode/vsce publish --allow-star-activation --pat "$VSCE_PAT"

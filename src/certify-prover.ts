@@ -46,7 +46,7 @@ export function buildCertificationProof(
   const passed = !checklist.some((item) => item.severity === "error");
   const certifications = (program.certifications ?? []).map((cert) => ({
     standard: cert.standard,
-    level: cert.level,
+    level: cert.level ?? undefined,
   }));
   const deployTargets = program.deployments.flatMap((deploy) =>
     deploy.targets.map((hardware) => ({

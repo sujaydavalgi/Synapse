@@ -54,7 +54,7 @@ function projectProviderKey(packageName: string): string {
 }
 
 function okInt(): RuntimeValue {
-  return { kind: "number", value: 1, unit: null };
+  return { kind: "number", value: 1, unit: "none" };
 }
 
 /**
@@ -76,7 +76,14 @@ export function dispatchOfficialPackageCall(
 
   if (modulePath === "positioning.gps" && functionName === "read") {
     if (!registry.hasCapability("positioning.read")) return null;
-    return { kind: "object", typeName: "GeoPoint", fields: { lat: 37, lon: -122 } };
+    return {
+      kind: "object",
+      typeName: "GeoPoint",
+      fields: {
+        lat: { kind: "number", value: 37, unit: "none" },
+        lon: { kind: "number", value: -122, unit: "none" },
+      },
+    };
   }
   if (modulePath === "connectivity.wifi" && functionName === "connect") {
     if (!registry.hasCapability("connectivity.wifi")) return null;

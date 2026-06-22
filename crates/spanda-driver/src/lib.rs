@@ -20,4 +20,6 @@ pub use pipeline::{lower_to_sir, run_tests};
 pub use replay::{playback_mission, replay_mission};
 pub use run::{run, run_program, run_tests_with_registry};
 pub use spanda_interpreter::{RunOptions, RunResult, TestRunResult};
-pub use verify::{verify_compatibility, verify_compatibility_target, verify_compatibility_with_registry};
+pub use verify::{
+    verify_compatibility, verify_compatibility_target, verify_compatibility_with_registry,
+};

@@ -3241,8 +3241,18 @@ export class Interpreter {
       }
       case "path": {
         const state = this.options.backend.getState();
-        const from = poseFromState(state.pose);
-        const to = runtimePose(state.pose.x + 1, state.pose.y, state.pose.theta, state.pose.z ?? 0);
+        const from = {
+          x: state.pose.x,
+          y: state.pose.y,
+          theta: state.pose.theta,
+          z: state.pose.z ?? 0,
+        };
+        const to = {
+          x: state.pose.x + 1,
+          y: state.pose.y,
+          theta: state.pose.theta,
+          z: state.pose.z ?? 0,
+        };
         const waypoints = getTrajectoryWaypoints(
           runtimeTrajectory(interpolatePoses(from, to, 2)),
         ) ?? [];

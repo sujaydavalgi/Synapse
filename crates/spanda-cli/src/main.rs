@@ -1601,7 +1601,8 @@ fn main() {
 
             // Take this path when json.
             if json {
-                let result = verify_compatibility_with_registry(&source, &options, registry.as_ref());
+                let result =
+                    verify_compatibility_with_registry(&source, &options, registry.as_ref());
                 let failed = match &result {
                     Ok(report) => !options.all_targets && !report.compatible,
                     Err(_) => true,

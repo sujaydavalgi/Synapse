@@ -4346,7 +4346,9 @@ impl Parser {
                 "disabled" => enabled = false,
                 other => {
                     return Err(SpandaError::Parse {
-                        message: format!("Unknown world_model flag '{other}' (use enabled or disabled)"),
+                        message: format!(
+                            "Unknown world_model flag '{other}' (use enabled or disabled)"
+                        ),
                         line: flag.line,
                         column: flag.column,
                     })
@@ -8166,7 +8168,11 @@ robot Rover {
   behavior b() {}
 }"#;
         let ast = parse(tokenize(source).unwrap()).unwrap();
-        let RobotDecl::RobotDecl { world_model, observe, .. } = &ast.robots()[0];
+        let RobotDecl::RobotDecl {
+            world_model,
+            observe,
+            ..
+        } = &ast.robots()[0];
         assert!(observe.is_some());
         let Some(WorldModelDecl::WorldModelDecl { enabled, .. }) = world_model else {
             panic!("expected world_model block");

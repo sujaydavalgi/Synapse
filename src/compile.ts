@@ -219,6 +219,7 @@ export async function compileAsync(source: string, backend?: CompileBackend): Pr
             requiresConnectivity: null,
             geofences: [],
             fleets: [],
+            swarms: [],
             programSafetyZones: [],
             certifications: [],
             connectivityPolicies: [],
