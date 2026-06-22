@@ -5,13 +5,13 @@ Product strategy [Tier 3](./product-strategy.md) items are **not** v1 commitment
 | Item | Phase 22 status | Golden path / entry point | CI (Phase 23) |
 |------|-----------------|---------------------------|---------------|
 | **LLVM native codegen** | Experimental | `scripts/llvm_golden_path.sh`, `spanda compile-native` | `llvm-golden-path` job |
-| **Blockchain / ledger** | Experimental | `spanda-ledger` → `MockLedgerBackend` via provider; `examples/std/mock_ledger.sd` | — |
-| **World models** | Experimental | `world_model.update` / `belief` / `export` runtime; `examples/features/world_model_belief.sd` | — |
+| **Blockchain / ledger** | Experimental | `spanda-ledger` scaffold; `scripts/ledger_golden_path.sh` | `ledger-golden-path` job |
+| **World models** | Experimental | `world_model { }` parser + fusion hook; `examples/features/world_model_observe.sd` | — |
 | **Digital twin cloud sync** | Experimental | `spanda twin export` + `SPANDA_CLOUD_UPLOAD_URL`; `scripts/twin_cloud_golden_path.sh` | `twin-cloud-golden-path` job |
 | **Distributed fleet** | Experimental | `spanda fleet orchestrate --remote`, mesh coordinator; `examples/robotics/golden_path_deploy.sh` | `robotics-golden-path` job |
 | **MQTT / DDS live transport** | Experimental | `SPANDA_LIVE_MQTT=1`, `--features live-mqtt`; `examples/communication/mqtt_live.sd` | `mqtt-golden-path` job |
-| **C++ in-process FFI** | Experimental | `spanda-bridge` `cpp-native` feature; `examples/ffi_cpp_extern.sd` | Planned |
-| **Self-hosting compiler** | Bootstrap started | `examples/self_host/word_tokenizer.sd`, [roadmap](./roadmap.md) milestones | — |
+| **C++ in-process FFI** | Experimental | `spanda-bridge` `cpp-native` feature; `scripts/cpp_native_golden_path.sh` | `cpp-native-golden-path` job |
+| **Self-hosting compiler** | Bootstrap started | `examples/self_host/lexer_keywords.sd`; `scripts/self_host_lexer_golden_path.sh` | `self-host-lexer-golden-path` job |
 
 ## Performance (Phase 18 P2) — complete
 

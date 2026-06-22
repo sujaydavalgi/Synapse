@@ -96,12 +96,12 @@ See [product-strategy.md](./product-strategy.md) § v0.5 beta — prioritized wo
 | Fleet multi-host CI + golden path docs | **Complete** |
 | MQTT live Mosquitto CI | **Complete** |
 | Twin cloud export CI | **Complete** |
-| `cpp-native` golden path CI | Planned |
+| `cpp-native` golden path CI | **Complete** |
 | LLVM golden path in CI | **Complete** |
-| Ledger community package scaffold | Planned |
-| World model parser + fusion hook | Planned |
-| Self-host lexer milestone | Planned |
-| Update [tier-3-experimental.md](./tier-3-experimental.md) CI status column | Planned |
+| Ledger community package scaffold | **Complete** |
+| World model parser + fusion hook | **Complete** |
+| Self-host lexer milestone | **Complete** |
+| Update [tier-3-experimental.md](./tier-3-experimental.md) CI status column | **Complete** |
 
 ---
 

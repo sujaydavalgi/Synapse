@@ -97,6 +97,44 @@ jobs:
         env:
           PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
 
+  cpp-native-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install C++ toolchain
+        run: sudo apt-get update && sudo apt-get install -y g++
+      - run: chmod +x scripts/cpp_native_golden_path.sh
+      - run: ./scripts/cpp_native_golden_path.sh
+
+  ledger-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p spanda-cli --release
+      - run: chmod +x scripts/ledger_golden_path.sh
+      - run: ./scripts/ledger_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
+  self-host-lexer-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p spanda-cli --release
+      - run: chmod +x scripts/self_host_lexer_golden_path.sh
+      - run: ./scripts/self_host_lexer_golden_path.sh
+        env:
+          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+
   ros2-rclrs-native:
     runs-on: ubuntu-22.04
     timeout-minutes: 20

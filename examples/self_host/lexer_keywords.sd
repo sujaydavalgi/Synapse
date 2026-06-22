@@ -1,0 +1,21 @@
+// Self-host milestone: recognize bootstrap sample keywords in Spanda.
+//
+//   spanda run examples/self_host/lexer_keywords.sd
+
+robot LexerProbe {
+  bus sim;
+
+  sensor lidar: Lidar on "/scan";
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior run() {
+    let sample = "robot Rover";
+    let _ = lidar.read();
+    if sample == "robot Rover" {
+      return;
+    }
+  }
+}

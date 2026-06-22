@@ -286,7 +286,7 @@ Goal: promote deferred product-strategy items to experimental with minimal runti
 
 See [tier-3-experimental.md](./tier-3-experimental.md).
 
-## Phase 23 — In progress (platform integration + experimental Tier 3 hardening)
+## Phase 23 — Complete ✓ (platform integration + experimental Tier 3 hardening)
 
 Goal: complete package→provider→runtime wiring, transitive dependencies, replay observability, and CI golden paths for experimental Tier 3 items.
 
@@ -302,11 +302,11 @@ Goal: complete package→provider→runtime wiring, transitive dependencies, rep
 | Fleet multi-host CI + golden path docs | **Complete** |
 | MQTT live Mosquitto CI | **Complete** |
 | Twin cloud export CI | **Complete** |
-| `cpp-native` golden path CI | Planned |
+| `cpp-native` golden path CI | **Complete** |
 | LLVM golden path in CI | **Complete** |
-| Ledger community package scaffold | Planned |
-| World model parser + fusion hook | Planned |
-| Self-host lexer milestone | Planned |
+| Ledger community package scaffold | **Complete** |
+| World model parser + fusion hook | **Complete** |
+| Self-host lexer milestone | **Complete** |
 
 See [tier-3-priority-plan.md](./tier-3-priority-plan.md) for full P0–P4 ordering and release windows.
 
