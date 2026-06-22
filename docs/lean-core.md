@@ -1,96 +1,184 @@
 # Lean-Core Architecture
 
-Spanda uses a **lean-core, package-first** architecture. The language core defines contracts, safety rules, the type system, runtime hooks, and verification interfaces. Domain-specific integrations — GPS drivers, Wi-Fi, ROS2, SLAM, vision models, simulators, fleet orchestration, cloud backends — live in **optional official packages**.
+Spanda uses a **lean-core, package-first** architecture. The language kernel defines contracts, safety, verification interfaces, and runtime hooks. Domain integrations — ROS2, MQTT, GPS, SLAM, vision, fleet, OTA, cloud — ship as **optional official packages** under `packages/registry/`.
+
+Lean-core extraction is **complete through Phase 17** (see [lean-core-roadmap.md](./lean-core-roadmap.md)).
+
+---
 
 ## Principles
 
 | Principle | Meaning |
 |-----------|---------|
-| **Core = contracts** | Lexer, parser, AST, type checker, safety gate, scheduler, default simulator |
-| **Packages = implementations** | Vendor protocols, hardware drivers, AI runtimes, simulation backends |
-| **No feature loss** | Moved modules keep compatibility shims until migration is complete |
-| **Explicit capabilities** | Packages declare required capabilities in `spanda.toml` |
-| **Provider traits** | Packages implement core traits (`SensorProvider`, `TransportProvider`, etc.) |
+| **Core = contracts** | Types, safety gate, scheduler interfaces, provider traits, default simulator |
+| **Workspace crates = implementations** | Parser, interpreter, transport adapters, hardware verify, fleet/OTA |
+| **Facade = stability** | `spanda-core` re-exports the public API for external embedders |
+| **Apps = direct deps** | CLI, Node, WASM, DAP, LLVM import workspace crates, not the full facade |
+| **Packages = optional domain** | Vendor protocols and drivers via `spanda.toml` + provider traits |
+| **No feature loss** | Remaining shims are thin `pub use` until callers migrate |
 
-## What stays in core
+---
 
-- Lexer, parser, AST, diagnostics
-- Type checker and unit algebra
-- Module/import system and package loader (`spanda-package`)
-- Capability model and safety model (`ActionProposal` / `SafeAction`)
-- Hardware verification **interfaces** (profile matching, not vendor drivers)
-- Communication **interfaces** (topics, services, actions, encrypted message types)
-- Trigger/task runtime and scheduler interfaces
-- Identity/trust model (`spanda-security`)
-- Audit/provenance interfaces (`spanda-audit`)
-- Generic **provider traits** (`crates/spanda-core/src/providers/`)
-- Default in-memory simulator
+## Crate layers (summary)
 
-## What moves to packages
+```mermaid
+flowchart TB
+  subgraph apps ["First-party apps"]
+    CLI["spanda-cli"]
+    NODE["spanda-node"]
+    WASM["spanda-wasm"]
+    DAP["spanda-dap"]
+    LLVM["spanda-llvm"]
+  end
 
-| Domain | Official package(s) |
-|--------|---------------------|
-| GPS/GNSS | `spanda-gps` |
-| Wi-Fi | `spanda-wifi` |
-| BLE | `spanda-ble` |
-| Cellular/LTE/5G | `spanda-cellular` |
-| MQTT | `spanda-mqtt` |
-| DDS | `spanda-dds` |
-| ROS2 | `spanda-ros2` |
-| SLAM | `spanda-slam` |
-| Navigation | `spanda-nav` |
-| OpenCV | `spanda-opencv` |
-| YOLO | `spanda-yolo` |
-| MoveIt | `spanda-moveit` |
-| Gazebo | `spanda-gazebo` |
-| Webots | `spanda-webots` |
-| Fleet | `spanda-fleet` |
-| OTA deploy | `spanda-ota` |
-| Maintenance | `spanda-maintenance` |
-| Ledger | `spanda-ledger` |
-| Cloud | `spanda-cloud` |
+  subgraph pipeline ["Compile & run"]
+    DRIVER["spanda-driver"]
+    LEX["spanda-lexer"]
+    PAR["spanda-parser"]
+    TC["spanda-typecheck"]
+    HW["spanda-hardware"]
+  end
+
+  subgraph runtime ["Runtime"]
+    INT["spanda-interpreter"]
+    RT["spanda-runtime"]
+    ROUTE["spanda-transport-routing"]
+  end
+
+  subgraph facade ["Public facade"]
+    CORE["spanda-core"]
+  end
+
+  CLI --> DRIVER
+  NODE --> DRIVER
+  WASM --> DRIVER
+  DAP --> DRIVER
+  LLVM --> DRIVER
+  DRIVER --> LEX --> PAR --> TC
+  DRIVER --> INT
+  DRIVER --> HW
+  INT --> RT
+  INT --> ROUTE
+  CORE -.-> DRIVER
+  CORE -.-> INT
+```
+
+Full crate index: [crates/README.md](../crates/README.md).
+
+---
+
+## What lives where
+
+### Language front-end
+
+| Concern | Crate |
+|---------|-------|
+| AST | `spanda-ast` |
+| Lexer | `spanda-lexer` |
+| Parser | `spanda-parser` |
+| Type checker | `spanda-typecheck` |
+| Diagnostics | `spanda-error` |
+| SIR | `spanda-sir` |
+
+### Compile, verify, run
+
+| Concern | Crate |
+|---------|-------|
+| `compile`, `check`, `run` | `spanda-driver` |
+| Hardware verify | `spanda-hardware` |
+| Certification | `spanda-certify` |
+| Interpreter | `spanda-interpreter` |
+| `RuntimeHost` wiring | `spanda-runtime-host` |
+
+### Runtime domains (extracted)
+
+| Concern | Crate |
+|---------|-------|
+| Comm bus | `spanda-comm` |
+| Safety monitor | `spanda-safety` |
+| HAL / SoC | `spanda-hal` |
+| Concurrency | `spanda-concurrency` |
+| Debugger | `spanda-debug` |
+| AI registry | `spanda-ai` |
+| Replay / telemetry / triggers | `spanda-runtime` |
+
+### Transport & connectivity
+
+| Concern | Crate |
+|---------|-------|
+| Adapter traits + wire | `spanda-transport` |
+| `RoutingCommBus` + live hooks | `spanda-transport-routing` |
+| ROS2 / MQTT / DDS / WebSocket | `spanda-transport-{ros2,mqtt,dds,websocket}` |
+| GPS / nav bridges | `spanda-connectivity`, `spanda-connectivity-runtime` |
+
+### Fleet, OTA, deploy
+
+| Concern | Crate |
+|---------|-------|
+| Fleet orchestration | `spanda-fleet` |
+| OTA rollout | `spanda-ota` |
+| Deploy agent HTTP | `spanda-deploy-http` |
+
+### Tooling
+
+| Concern | Crate |
+|---------|-------|
+| `fmt` | `spanda-format` |
+| `lint` | `spanda-lint` |
+| Codegen metadata | `spanda-codegen` |
+| `doc` / reference | `spanda-docs` |
+| Project modules | `spanda-modules` |
+
+### Package ecosystem
+
+| Concern | Crate |
+|---------|-------|
+| `spanda.toml` / registry | `spanda-package` |
+| Provider bootstrap | `spanda-providers` |
+| Security / audit | `spanda-security`, `spanda-audit` |
+
+---
+
+## `spanda-core` today
+
+`spanda-core` is a **facade**, not a monolith:
+
+- Re-exports `spanda_driver::{check, run, compile, …}`
+- Thin shims for deploy, fleet, connectivity adapters, `transport`, `transport_rclrs`
+- `providers.rs` facade → `spanda-providers` + classification
+- **Removed (Phase 17):** `transport_live`, `transport_mqtt`, `transport_dds`, `transport_websocket`
+
+External code may keep using `spanda_core::`. In-repo and new integrations should prefer the owning crate (see [migration.md](./migration.md)).
+
+---
+
+## Official packages
+
+Twenty first-party packages under `packages/registry/` (GPS, Wi-Fi, ROS2, MQTT, fleet, OTA, …). Each declares capabilities in `spanda.toml` and registers providers when installed.
+
+Catalog: [official-packages.md](./official-packages.md)  
+Traits: [provider-interfaces.md](./provider-interfaces.md)
+
+---
 
 ## Module classification
 
-Core modules are tagged in `providers/classification.rs`:
+Core modules are tagged in `spanda_runtime::classification` (mirrored in TypeScript `src/providers/index.ts`):
 
 | Ownership | Description |
 |-----------|-------------|
 | `Core` | Language and platform kernel |
-| `StandardLibrary` | `std.*` type definitions without vendor code |
-| `OfficialPackage` | First-party package under `packages/registry/` |
-| `CompatibilityShim` | Legacy core module; target package named |
-| `Deprecated` | Scheduled for removal after migration |
+| `StandardLibrary` | `std.*` without vendor code |
+| `OfficialPackage` | `packages/registry/*` |
+| `CompatibilityShim` | Legacy `spanda_core` module with target package |
+| `Deprecated` | Removed from core; use workspace crate |
 
-Run `spanda registry info spanda-gps` (or any official package) for manifest metadata.
-
-## Workspace layout
-
-```
-crates/
-  spanda-core/       Language + runtime kernel + provider traits
-  spanda-cli/        Native CLI
-  spanda-package/    Package manager (spanda.toml)
-  spanda-security/   Identity, crypto, capabilities
-  spanda-audit/      Audit and ledger interfaces
-  spanda-llvm/       Experimental native codegen
-  spanda-rt/         Native runtime ABI
-  spanda-node/       Node.js bindings
-  spanda-wasm/       WASM bindings
-  spanda-dap/        Debug adapter
-
-packages/registry/   Official .sd packages (spanda-gps, spanda-ros2, …)
-examples/            Runnable .sd demos
-docs/                Architecture and migration guides
-```
-
-## Compatibility shims
-
-Legacy core modules (`connectivity_positioning`, `nav2_adapter`, `transport_rclrs`, etc.) remain functional where still present. Transport live bridges (`transport_mqtt`, `transport_dds`, `transport_websocket`, `transport_live`) were removed from `spanda-core`; use `spanda-transport-routing` or official transport packages. See [migration.md](./migration.md#lean-core-package-first-refactor).
+---
 
 ## Related docs
 
-- [provider-interfaces.md](./provider-interfaces.md) — trait contracts
-- [official-packages.md](./official-packages.md) — package catalog
-- [architecture.md](./architecture.md) — full system diagram
-- [packages.md](./packages.md) — package manager usage
+- [lean-core-roadmap.md](./lean-core-roadmap.md) — phases 1–17
+- [architecture.md](./architecture.md) — pipeline diagrams
+- [migration.md](./migration.md#lean-core-package-first-refactor) — import path changes
+- [packages.md](./packages.md) — package manager
+- [crates/README.md](../crates/README.md) — workspace crate index

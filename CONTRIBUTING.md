@@ -94,18 +94,26 @@ Always run `cargo fmt --all` before committing — inline doc insertion can affe
 ## Project structure
 
 ```
-crates/spanda-core/     Authoritative language implementation (Rust)
-crates/spanda-cli/      Native spanda binary
+crates/                 Rust workspace — see crates/README.md
+  spanda-core/          Public facade (re-exports + shims)
+  spanda-driver/        compile, check, run, verify pipeline
+  spanda-cli/           Native spanda binary
+  spanda-interpreter/   Tree-walking runtime
+  spanda-parser/        Parser
+  spanda-package/       Package manager (no spanda-core dep)
+  …                     See crates/README.md for full list
+
 src/                    TypeScript mirror (tests, CLI wrapper, LSP helpers)
 packages/lsp/           Language Server
 packages/web/           Web playground
 examples/               Sample .sd programs
-examples/showcase/      Curated v0.1.0-alpha demos
 tests/                  Vitest test suite
 docs/                   Documentation
 ```
 
-**Rule of thumb:** Language semantics changes go in Rust (`spanda-core`) first. TypeScript mirror (`src/`) should be updated for test parity when the change affects parsing, types, or runtime behavior.
+**Rule of thumb:** Language semantics changes land in the owning workspace crate (`spanda-parser`, `spanda-typecheck`, `spanda-interpreter`, …). Update `spanda-core` shims/re-exports when the public `spanda_core::` API changes. TypeScript mirror (`src/`) should stay in parity for parsing, types, and runtime behavior used in tests.
+
+Crate dependency rule: first-party apps (`spanda-cli`, `spanda-node`, `spanda-wasm`, `spanda-dap`, `spanda-llvm`) import workspace crates directly; only external embedders need `spanda-core`.
 
 ---
 
@@ -115,7 +123,7 @@ docs/                   Documentation
 
 - Run `cargo fmt --all` before committing
 - Fix all `cargo clippy --workspace -- -D warnings` warnings
-- Add tests in `crates/spanda-core/tests/` or inline `#[test]` for new behavior
+- Add tests in the owning crate (`crates/spanda-*/tests/`, `crates/spanda-core/tests/`) or inline `#[test]` for new behavior
 - Keep changes focused — one logical change per commit
 - Match existing module organization and naming
 

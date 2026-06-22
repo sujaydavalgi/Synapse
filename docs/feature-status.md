@@ -40,6 +40,7 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 | **Reliability runtime** | Watchdogs, operating `mode` blocks, `recover from`, retry/fallback; topic QoS deadline detection |
 | **Mission trace replay** | `spanda sim --record`, `spanda replay`, `--deterministic`, `--playback`, `--wall-clock` |
 | **First-class regex** | Literals, `Regex` type, string methods, trigger/subscribe filters, `validate` rules |
+| **Lean-core workspace** | 50+ focused Rust crates; `spanda-core` facade; CLI/bindings use workspace deps directly ([crates/README.md](../crates/README.md)) |
 
 ### Experimental (usable with caveats)
 
@@ -77,6 +78,8 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 |---------|-------------|-------|
 | Legacy inference-only AI paths | `ai_model` + `agent` | Import-based ONNX/TFLite remain for classical workflows |
 | TypeScript-only verification | Native `spanda verify` | TS mirror validates deploy syntax; Rust CLI is authoritative |
+| `spanda_core::transport_live` | `spanda_transport_routing::transport_live` | Removed Phase 17 |
+| `spanda_core::transport_mqtt` / `transport_dds` / `transport_websocket` | `spanda-transport-*` or `spanda_transport_routing::live_bridges` | Removed Phase 17 |
 
 ---
 

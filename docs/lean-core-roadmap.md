@@ -214,3 +214,4 @@ Goal: drop redundant `spanda_core::transport_{mqtt,dds,websocket,live}` modules 
 | Mark removed modules `Deprecated` in classification tables (Rust + TS) | **Complete** |
 | Update migration docs and shim guard tests | **Complete** |
 | Keep `transport`, `transport_rclrs`, `transport_wire`, `transport_security` shims | **Complete** |
+| Documentation ground-up refresh (`crates/README.md`, per-crate READMEs, lean-core.md) | **Complete** |

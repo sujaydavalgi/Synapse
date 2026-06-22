@@ -32,12 +32,12 @@ flowchart TB
     TOML["spanda.toml manifest"]
   end
 
-  subgraph frontend ["Frontend (spanda-core)"]
-    LEX["Lexer"]
-    PAR["Parser"]
-    AST["AST"]
-    TC["Type Checker"]
-    UNITS["Unit Algebra"]
+  subgraph frontend ["Frontend (workspace crates)"]
+    LEX["spanda-lexer"]
+    PAR["spanda-parser"]
+    AST["spanda-ast"]
+    TC["spanda-typecheck"]
+    UNITS["units / type_system"]
   end
 
   subgraph analysis ["Analysis"]
@@ -111,7 +111,7 @@ flowchart LR
 
 ## AST
 
-The AST (`ast.rs`, `foundations.rs`) is the canonical representation shared across type checking, verification, interpretation, and IR lowering.
+The AST lives in **`spanda-ast`** (`nodes`, `foundations`, `comm_decl`). Shared across type checking, verification, interpretation, and SIR lowering. `spanda_core::ast` is a compatibility re-export.
 
 ```mermaid
 flowchart TB
@@ -138,7 +138,7 @@ Robot declarations are the primary unit of autonomous program structure. Hardwar
 
 ## Type System
 
-The type checker (`types.rs`, `type_system.rs`, `units.rs`) enforces:
+The type checker in **`spanda-typecheck`** (`checker`, `type_system`, `units`, `reliability_validation`) enforces:
 
 - Physical unit algebra (`m`, `s`, `rad`, `m/s`, compound units)
 - AI safety types (`ActionProposal` vs `SafeAction`)
@@ -309,10 +309,11 @@ See [compiler-backend-roadmap.md](./compiler-backend-roadmap.md).
 
 | Layer | Location | Role |
 |-------|----------|------|
-| **Authoritative** | `crates/spanda-core` (Rust) | All language semantics |
-| **Mirror** | `src/` (TypeScript) | Tests, fallback CLI, LSP helpers |
-| **Bindings** | `spanda-node`, `spanda-wasm` | External integration |
-| **UX** | `packages/web`, `packages/lsp` | Playground and language server |
+| **Authoritative (Rust)** | `crates/*` workspace | All language semantics — see [crates/README.md](../crates/README.md) |
+| **Public facade** | `spanda-core` | Stable `spanda_core::` API for external embedders |
+| **First-party apps** | `spanda-cli`, `spanda-node`, `spanda-wasm`, `spanda-dap` | Direct workspace crate deps (no `spanda-core`) |
+| **Mirror** | `src/` (TypeScript) | Tests, fallback CLI, LSP helpers, provider classification mirror |
+| **UX** | `packages/web`, `packages/lsp`, `editor/vscode` | Playground, language server, extension scaffold |
 
 The TypeScript mirror delegates to the Rust CLI when `target/release/spanda` is available (`src/rust-bridge.ts`).
 
@@ -320,19 +321,21 @@ The TypeScript mirror delegates to the Rust CLI when `target/release/spanda` is 
 
 ## Crate map
 
-| Crate | Purpose |
-|-------|---------|
-| `spanda-core` | Language implementation |
-| `spanda-cli` | Native binary |
-| `spanda-package` | Package manager |
-| `spanda-audit` | Audit records and ledger |
-| `spanda-security` | Capabilities, secrets, trust |
-| `spanda-llvm` | LLVM IR emission |
-| `spanda-rt` | Native runtime C ABI |
-| `spanda-node` | N-API bindings |
-| `spanda-wasm` | WASM bindings |
-| `spanda-dap` | Debug adapter protocol |
-| `spanda-ros2-rclrs-native` | ROS2 transport (optional) |
+See **[crates/README.md](../crates/README.md)** for the full workspace index. Summary:
+
+| Layer | Key crates |
+|-------|------------|
+| Facade | `spanda-core` |
+| Pipeline | `spanda-driver`, `spanda-lexer`, `spanda-parser`, `spanda-typecheck`, `spanda-sir`, `spanda-error` |
+| Runtime | `spanda-interpreter`, `spanda-runtime`, `spanda-runtime-host`, `spanda-comm`, `spanda-safety`, `spanda-hal` |
+| Transport | `spanda-transport`, `spanda-transport-routing`, `spanda-transport-{ros2,mqtt,dds,websocket}` |
+| Domain | `spanda-hardware`, `spanda-fleet`, `spanda-ota`, `spanda-certify`, `spanda-connectivity` |
+| Tooling | `spanda-format`, `spanda-lint`, `spanda-codegen`, `spanda-docs`, `spanda-modules` |
+| Packages | `spanda-package`, `spanda-providers` |
+| Apps | `spanda-cli`, `spanda-node`, `spanda-wasm`, `spanda-dap`, `spanda-llvm`, `spanda-rt` |
+| Security | `spanda-security`, `spanda-audit` |
+
+Optional: `spanda-ros2-rclrs-native` (in-process ROS 2, excluded from default workspace build).
 
 ---
 

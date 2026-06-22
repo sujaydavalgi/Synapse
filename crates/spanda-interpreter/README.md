@@ -1,18 +1,29 @@
 # spanda-interpreter
 
-Phase 4 lean-core **staging crate** for the Spanda interpreter and public run API.
+**Tree-walking interpreter** and simulator — executes typed Spanda programs.
 
-Today this crate depends on `spanda-core` and re-exports the interpreter surface (`Interpreter`, `InterpreterOptions`, `RobotBackend`, `SimRobotBackend`, `RunOptions`, `RunResult`, `run`, `run_program`, and related helpers). Callers can depend on `spanda-interpreter` instead of the full core facade while the extraction proceeds.
+## Layout
 
-## What stays in core (for now)
+Runtime lives under `src/runtime/` (~21 modules):
 
-The full ~9k-line `Interpreter` implementation remains in `spanda-core/src/runtime.rs`. It is intentionally the **orchestration root**: it wires HAL, safety, transport, providers, scheduling, and mission replay until those subsystems expose narrower host traits on [`spanda-runtime::RuntimeHost`](../../spanda-runtime/README.md).
+- `orchestrator.rs` — main execution loop
+- `runtime_eval.rs`, `runtime_execute.rs` — expression and statement evaluation
+- `runtime_scheduler.rs`, `runtime_triggers.rs` — tasks and triggers
+- `runtime_robot.rs`, `runtime_sensors.rs`, `runtime_navigation.rs` — robot surface
+- `simulator.rs` — physics-lite 2D backend
+- Domain hooks delegate to workspace crates (`spanda-safety`, `spanda-comm`, `spanda-hal`, …)
 
-## Migration direction
+## Public API
 
-1. Subsystems move behind `RuntimeHost` and smaller traits in `spanda-runtime` and domain crates.
-2. `Interpreter` methods shrink and delegate to extracted hosts.
-3. The `Interpreter` body moves from `spanda-core/src/runtime.rs` into this crate.
-4. `spanda-core` keeps a thin compatibility re-export shim during the transition.
+- `run_program` — execute a parsed `Program`
+- `Interpreter`, `InterpreterOptions`, `RobotBackend`, `SimRobotBackend`
+- Re-exported by `spanda-driver::run` and `spanda_core::run`
 
-See [lean-core-roadmap.md](../../docs/lean-core-roadmap.md) Phase 4.
+## Dependencies
+
+Imports workspace crates directly (no `spanda-core`). `CoreRuntimeHost` in [`spanda-runtime-host`](../spanda-runtime-host/README.md) implements `RuntimeHost` for connectivity, fleet, and transport wiring.
+
+## Related
+
+- [spanda-driver](../spanda-driver/README.md) — compile + certify + run entry
+- [docs/architecture.md](../../docs/architecture.md) — runtime diagrams
