@@ -1230,6 +1230,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "spanda-connectivity-runtime"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "spanda-ast",
+ "spanda-comm",
+ "spanda-connectivity",
+ "spanda-hardware",
+ "spanda-runtime",
+]
+
+[[package]]
 name = "spanda-core"
 version = "0.1.0"
 dependencies = [
@@ -1247,17 +1259,22 @@ dependencies = [
  "spanda-comm",
  "spanda-concurrency",
  "spanda-connectivity",
+ "spanda-connectivity-runtime",
  "spanda-debug",
  "spanda-deploy-http",
  "spanda-error",
+ "spanda-ffi",
  "spanda-fleet",
  "spanda-hal",
  "spanda-hardware",
  "spanda-lexer",
+ "spanda-lib-registry",
  "spanda-ota",
  "spanda-package",
  "spanda-providers",
+ "spanda-regex-lang",
  "spanda-runtime",
+ "spanda-runtime-host",
  "spanda-safety",
  "spanda-security",
  "spanda-transport",
@@ -1308,6 +1325,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spanda-ffi"
+version = "0.1.0"
+dependencies = [
+ "spanda-ast",
+ "spanda-error",
+ "spanda-runtime",
+]
+
+[[package]]
 name = "spanda-fleet"
 version = "0.1.0"
 dependencies = [
@@ -1344,12 +1370,17 @@ dependencies = [
  "spanda-comm",
  "spanda-concurrency",
  "spanda-connectivity",
+ "spanda-connectivity-runtime",
  "spanda-core",
  "spanda-debug",
  "spanda-error",
+ "spanda-ffi",
  "spanda-hal",
+ "spanda-lib-registry",
  "spanda-providers",
+ "spanda-regex-lang",
  "spanda-runtime",
+ "spanda-runtime-host",
  "spanda-safety",
  "spanda-security",
  "spanda-transport",
@@ -1364,6 +1395,15 @@ dependencies = [
  "serde",
  "serde_json",
  "spanda-ast",
+]
+
+[[package]]
+name = "spanda-lib-registry"
+version = "0.1.0"
+dependencies = [
+ "spanda-ast",
+ "spanda-hal",
+ "spanda-runtime",
 ]
 
 [[package]]
@@ -1428,6 +1468,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "spanda-regex-lang"
+version = "0.1.0"
+dependencies = [
+ "spanda-ast",
+ "spanda-error",
+]
+
+[[package]]
 name = "spanda-rt"
 version = "0.1.0"
 dependencies = [
@@ -1443,6 +1491,17 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "spanda-ast",
+]
+
+[[package]]
+name = "spanda-runtime-host"
+version = "0.1.0"
+dependencies = [
+ "spanda-ast",
+ "spanda-comm",
+ "spanda-connectivity",
+ "spanda-connectivity-runtime",
+ "spanda-runtime",
 ]
 
 [[package]]

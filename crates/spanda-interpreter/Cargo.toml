@@ -20,6 +20,11 @@ spanda-ai = { path = "../spanda-ai" }
 spanda-providers = { path = "../spanda-providers" }
 spanda-concurrency = { path = "../spanda-concurrency" }
 spanda-debug = { path = "../spanda-debug" }
+spanda-regex-lang = { path = "../spanda-regex-lang" }
+spanda-lib-registry = { path = "../spanda-lib-registry" }
+spanda-connectivity-runtime = { path = "../spanda-connectivity-runtime" }
+spanda-runtime-host = { path = "../spanda-runtime-host" }
+spanda-ffi = { path = "../spanda-ffi" }
 spanda-core = { path = "../spanda-core" }
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-security = { path = "../spanda-security" }

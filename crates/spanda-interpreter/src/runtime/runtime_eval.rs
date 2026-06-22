@@ -7,6 +7,7 @@ use spanda_ast::nodes::{AgentDecl, BinaryOp, Expr, LiteralValue, Stmt, UnaryOp, 
 use spanda_comm::CommBus;
 use spanda_ast::comm_decl::DiscoverFilter;
 use spanda_error::SpandaError;
+use spanda_regex_lang::{regex_capture, regex_find, regex_matches, regex_replace, regex_split};
 use spanda_runtime::triggers::SystemTriggerCategory;
 use spanda_typecheck::units::align_for_binary;
 use std::collections::HashMap;
@@ -451,9 +452,9 @@ impl<B: RobotBackend> Interpreter<B> {
         };
         match method {
             "matches" => Ok(RuntimeValue::Bool {
-                value: crate::regex_lang::regex_matches(&pattern, text)?,
+                value: regex_matches(&pattern, text)?,
             }),
-            "find" => Ok(match crate::regex_lang::regex_find(&pattern, text)? {
+            "find" => Ok(match regex_find(&pattern, text)? {
                 Some(found) => RuntimeValue::String { value: found },
                 None => RuntimeValue::Null,
             }),
@@ -471,11 +472,11 @@ impl<B: RobotBackend> Interpreter<B> {
                     }
                 };
                 Ok(RuntimeValue::String {
-                    value: crate::regex_lang::regex_replace(&pattern, text, &replacement)?,
+                    value: regex_replace(&pattern, text, &replacement)?,
                 })
             }
             "split" => {
-                let parts = crate::regex_lang::regex_split(&pattern, text)?;
+                let parts = regex_split(&pattern, text)?;
                 Ok(RuntimeValue::Object {
                     type_name: "StringList".into(),
                     fields: parts
@@ -485,7 +486,7 @@ impl<B: RobotBackend> Interpreter<B> {
                         .collect(),
                 })
             }
-            "capture" => Ok(match crate::regex_lang::regex_capture(&pattern, text)? {
+            "capture" => Ok(match regex_capture(&pattern, text)? {
                 Some(result) => RuntimeValue::Capture { result },
                 None => RuntimeValue::Null,
             }),

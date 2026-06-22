@@ -113,7 +113,7 @@ pub use deploy_service::{
 };
 pub use docs::generate_markdown;
 pub use error::*;
-pub use ffi::FfiRegistry;
+pub use ffi::{new_with_core_bridges, FfiRegistry};
 pub use fleet_agent::{
     default_fleet_agent_state_path, fleet_entry_for_port, handle_fleet_agent_request,
     load_fleet_agent_state, run_fleet_agent_server, save_fleet_agent_state, spawn_test_fleet_agent,
@@ -541,6 +541,7 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
             inject_security_faults: options.inject_security_faults,
             official_packages: options.official_packages.clone(),
             provider_registry,
+            ffi_registry: ffi::new_with_core_bridges(),
             ..Default::default()
         },
     );

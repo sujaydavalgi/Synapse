@@ -11,8 +11,12 @@ use spanda_ast::nodes::{
 use spanda_audit::{AuditRuntime, MockLedgerBackend};
 use spanda_comm::CommBus;
 use spanda_concurrency::ConcurrencyRuntime;
+use spanda_connectivity_runtime::ConnectivityPolicyRuntime;
 use spanda_debug::DebugController;
+use spanda_ffi::FfiRegistry;
 use spanda_providers::{bootstrap_providers_for_packages, sync_comm_bus_for_official_packages};
+use spanda_runtime_host::core_runtime_host;
+use spanda_typecheck::ModuleRegistry;
 use spanda_ast::comm_decl::{QosDecl, TransportKind};
 use spanda_error::SpandaError;
 use spanda_runtime::robot_state::{PoseState, RobotState, VelocityState};
@@ -238,9 +242,9 @@ pub struct InterpreterOptions {
     pub max_loop_iterations: usize,
     pub on_motion_blocked: Option<MotionBlockedCallback>,
     pub on_log: Option<LogCallback>,
-    pub module_registry: Option<crate::modules::ModuleRegistry>,
+    pub module_registry: Option<ModuleRegistry>,
     pub debug: Option<DebugController>,
-    pub ffi_registry: crate::ffi::FfiRegistry,
+    pub ffi_registry: FfiRegistry,
     pub trace_scheduler: bool,
     pub trace_tasks: bool,
     pub trace_triggers: bool,
@@ -292,7 +296,7 @@ impl Default for InterpreterOptions {
             on_log: None,
             module_registry: None,
             debug: None,
-            ffi_registry: crate::ffi::FfiRegistry::new(),
+            ffi_registry: FfiRegistry::new(),
             trace_scheduler: false,
             trace_tasks: false,
             trace_triggers: false,
@@ -369,7 +373,7 @@ pub struct Interpreter<B: RobotBackend> {
     mission_trace: Option<MissionTrace>,
     geofences: Vec<spanda_connectivity::GeofenceRuntime>,
     geofence_active: std::collections::HashSet<String>,
-    connectivity_policies: Vec<crate::connectivity_positioning::ConnectivityPolicyRuntime>,
+    connectivity_policies: Vec<ConnectivityPolicyRuntime>,
     active_connectivity_link: String,
     connectivity_events_seen: std::collections::HashSet<String>,
     gps_available: bool,
@@ -415,7 +419,7 @@ impl<B: RobotBackend> Interpreter<B> {
         ));
         let host = options
             .runtime_host
-            .unwrap_or_else(|| crate::runtime_host::core_runtime_host());
+            .unwrap_or_else(|| core_runtime_host());
         let mut comm_bus = RoutingCommBus::new();
         comm_bus.attach_provider_registry(Rc::clone(&provider_registry));
         Self {

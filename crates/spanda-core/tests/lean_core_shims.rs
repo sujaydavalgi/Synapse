@@ -94,6 +94,53 @@ fn debug_shim_reexports_spanda_debug() {
 }
 
 #[test]
+fn final_phase8_shims_reexport_workspace_crates() {
+    for (module, crate_name) in [
+        ("regex_lang.rs", "spanda_regex_lang"),
+        ("lib_registry.rs", "spanda_lib_registry"),
+        ("connectivity_positioning.rs", "spanda_connectivity_runtime"),
+        ("runtime_host.rs", "spanda_runtime_host"),
+        ("nav2_adapter.rs", "spanda_runtime_host"),
+        ("slam_adapter.rs", "spanda_runtime_host"),
+    ] {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(module);
+        let source = fs::read_to_string(&path).expect(module);
+        assert!(
+            source.lines().count() <= 8,
+            "{module} should be a thin re-export shim"
+        );
+        assert!(
+            source.contains(crate_name),
+            "{module} shim should re-export from {crate_name}"
+        );
+    }
+}
+
+#[test]
+fn ffi_shim_reexports_spanda_ffi_with_core_bridges() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ffi.rs");
+    let source = fs::read_to_string(&path).expect("ffi.rs");
+    assert!(source.contains("spanda_ffi"));
+    assert!(source.contains("new_with_core_bridges"));
+}
+
+#[test]
+fn interpreter_runtime_has_no_crate_colon_imports() {
+    let dir = interpreter_runtime_dir();
+    for entry in fs::read_dir(&dir).expect("runtime dir") {
+        let path = entry.expect("entry").path();
+        if path.extension().is_some_and(|e| e == "rs") {
+            let source = fs::read_to_string(&path).expect("runtime source");
+            assert!(
+                !source.contains("crate::"),
+                "{} should not import via crate:: after Phase 8 routing",
+                path.file_name().unwrap().to_string_lossy()
+            );
+        }
+    }
+}
+
+#[test]
 fn ai_shim_reexports_spanda_ai() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ai.rs");
     let source = fs::read_to_string(&path).expect("ai.rs");

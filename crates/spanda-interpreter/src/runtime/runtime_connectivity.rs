@@ -2,6 +2,7 @@
 //!
 
 use super::{Interpreter, RobotBackend};
+use spanda_connectivity_runtime::{connectivity_policy_from_decl, geofence_from_decl};
 use spanda_comm::CommBus;
 use spanda_error::SpandaError;
 
@@ -11,7 +12,6 @@ impl<B: RobotBackend> Interpreter<B> {
         geofences: &[spanda_ast::foundations::GeofenceDecl],
         policies: &[spanda_ast::foundations::ConnectivityPolicyDecl],
     ) {
-        use crate::connectivity_positioning::{connectivity_policy_from_decl, geofence_from_decl};
         self.geofences = geofences.iter().map(geofence_from_decl).collect();
         self.connectivity_policies = policies.iter().map(connectivity_policy_from_decl).collect();
         if let Some(policy) = self.connectivity_policies.first() {

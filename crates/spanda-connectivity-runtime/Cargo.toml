@@ -1,0 +1,17 @@
+[package]
+name = "spanda-connectivity-runtime"
+version.workspace = true
+edition.workspace = true
+description = "Spanda connectivity and positioning runtime helpers from AST declarations"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+spanda-ast = { path = "../spanda-ast" }
+spanda-comm = { path = "../spanda-comm" }
+spanda-connectivity = { path = "../spanda-connectivity" }
+spanda-hardware = { path = "../spanda-hardware" }
+spanda-runtime = { path = "../spanda-runtime" }
+serde = { version = "1", features = ["derive"] }

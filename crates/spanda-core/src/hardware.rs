@@ -11,26 +11,9 @@ use crate::foundations::{
     DeployDecl, HardwareDecl, MissionDecl, RequiresConnectivityDecl, RequiresHardwareDecl,
     RequiresNetworkDecl, ResourceBudgetDecl, SimulateCompatibilityDecl, TaskDecl, TraitDecl,
 };
-pub use spanda_hardware::{builtin_profiles, list_hardware_profiles, HardwareProfile};
+pub use spanda_hardware::{builtin_profiles, list_hardware_profiles, CompatItem, CompatSeverity, HardwareProfile};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum CompatSeverity {
-    Pass,
-    Warning,
-    Error,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct CompatItem {
-    pub category: String,
-    pub message: String,
-    pub severity: CompatSeverity,
-    pub line: u32,
-    pub column: u32,
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MatrixCell {

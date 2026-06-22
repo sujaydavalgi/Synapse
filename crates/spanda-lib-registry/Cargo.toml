@@ -1,0 +1,14 @@
+[package]
+name = "spanda-lib-registry"
+version.workspace = true
+edition.workspace = true
+description = "Spanda sensor driver library registry and simulation reads"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+spanda-ast = { path = "../spanda-ast" }
+spanda-hal = { path = "../spanda-hal" }
+spanda-runtime = { path = "../spanda-runtime" }

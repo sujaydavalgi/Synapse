@@ -1,0 +1,13 @@
+[package]
+name = "spanda-regex-lang"
+version.workspace = true
+edition.workspace = true
+description = "Spanda first-class regex compilation and runtime matching"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+spanda-ast = { path = "../spanda-ast" }
+spanda-error = { path = "../spanda-error" }

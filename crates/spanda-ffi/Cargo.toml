@@ -1,0 +1,14 @@
+[package]
+name = "spanda-ffi"
+version.workspace = true
+edition.workspace = true
+description = "Spanda extern function registry and native stub handlers"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+spanda-ast = { path = "../spanda-ast" }
+spanda-error = { path = "../spanda-error" }
+spanda-runtime = { path = "../spanda-runtime" }

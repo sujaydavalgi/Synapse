@@ -32,6 +32,11 @@ members = [
     "crates/spanda-providers",
     "crates/spanda-concurrency",
     "crates/spanda-debug",
+    "crates/spanda-regex-lang",
+    "crates/spanda-lib-registry",
+    "crates/spanda-connectivity-runtime",
+    "crates/spanda-runtime-host",
+    "crates/spanda-ffi",
     "crates/spanda-interpreter",
     "crates/spanda-transport",
 ]

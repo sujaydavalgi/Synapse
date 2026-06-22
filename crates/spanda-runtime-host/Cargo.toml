@@ -1,0 +1,16 @@
+[package]
+name = "spanda-runtime-host"
+version.workspace = true
+edition.workspace = true
+description = "Default Spanda RuntimeHost wiring for navigation, SLAM, and connectivity"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+spanda-ast = { path = "../spanda-ast" }
+spanda-comm = { path = "../spanda-comm" }
+spanda-connectivity = { path = "../spanda-connectivity" }
+spanda-connectivity-runtime = { path = "../spanda-connectivity-runtime" }
+spanda-runtime = { path = "../spanda-runtime" }

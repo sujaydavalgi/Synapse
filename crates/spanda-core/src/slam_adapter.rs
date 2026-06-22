@@ -1,16 +1,3 @@
-//! SLAM package adapter hooks for external mapping/localization stacks.
-
-use crate::ast::ImportDecl;
-
-/// Import paths that enable SLAM adapter behavior.
-pub fn slam_import_paths() -> &'static [&'static str] {
-    &["navigation.slam", "navigation.cartographer", "navigation.rtabmap"]
-}
-
-/// Return true when the program imports a SLAM-related module path.
-pub fn program_uses_slam(imports: &[ImportDecl]) -> bool {
-    imports.iter().any(|imp| {
-        let crate::ast::ImportDecl::ImportDecl { path, .. } = imp;
-        slam_import_paths().contains(&path.as_str())
-    })
-}
+//! SLAM package adapter hooks re-exported from `spanda-runtime-host`.
+//!
+pub use spanda_runtime_host::slam_adapter::*;
