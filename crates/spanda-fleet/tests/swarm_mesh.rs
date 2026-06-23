@@ -29,6 +29,41 @@ fn coordinate_mesh_when_ready(
 }
 
 #[test]
+#[should_panic(expected = "mesh/agent did not become ready before timeout")]
+fn coordinate_mesh_when_ready_panics_on_timeout() {
+    let (port, _agent) = spawn_test_fleet_agent("ScoutB", None).expect("spawn agent");
+    let mut registry = FleetAgentRegistry::default();
+    register_fleet_agent(
+        &mut registry,
+        "ScoutB".into(),
+        format!("http://127.0.0.1:{port}"),
+        None,
+    )
+    .expect("register");
+    let source = r#"
+robot ScoutA {
+  mission Patrol { navigate; inspect; }
+}
+robot ScoutB {
+  mission Patrol { navigate; inspect; }
+}
+fleet Recon { ScoutA; ScoutB; }
+swarm ReconLeader {
+  fleet Recon;
+  policy leader_follow;
+}
+"#;
+    let program = compile(source).expect("compile").program;
+    let mut state = SwarmState::default();
+    coordinate_mesh_when_ready(
+        &program,
+        "swarm_leader.sd",
+        &mut state,
+        "http://127.0.0.1:9/",
+    );
+}
+
+#[test]
 fn swarm_leader_follow_relays_via_mesh() {
     let (port, _agent) = spawn_test_fleet_agent("ScoutB", None).expect("spawn agent");
     let mut registry = FleetAgentRegistry::default();
@@ -82,6 +117,7 @@ fn swarm_round_robin_relays_peer_links_via_mesh() {
     )
     .expect("register");
     let (mesh_port, _mesh) = spawn_test_fleet_mesh(&registry).expect("spawn mesh");
+    // ScoutA declares ScoutB as a peer robot for round-robin handoffs (valid Spanda syntax).
     let source = r#"
 robot ScoutA {
   robot ScoutB;
