@@ -16,6 +16,7 @@ const examplesDir = join(import.meta.dirname, "..", "examples", "connectivity");
 describe("connectivity verify (TS fallback)", () => {
   it("verifies connectivity requirements on RoverV2 with simulated faults", () => {
     const source = readFileSync(join(examplesDir, "connectivity_hardware_verify.sd"), "utf8");
+    expect(source.trim().length).toBeGreaterThan(0);
     const program = parse(tokenize(source));
     const result = verifyHardwareProgram(program, { target: "RoverV2" });
     expect(result.target).toBe("RoverV2");
