@@ -3574,7 +3574,11 @@ impl<'h> TypeChecker<'h> {
                             span.start.column,
                         );
                     }
-                } else if self.expected_return_type.is_some() {
+                } else if self
+                    .expected_return_type
+                    .as_ref()
+                    .is_some_and(|expected| !matches!(expected, SpandaType::Void))
+                {
                     self.error(
                         "return statement missing value for non-unit function".into(),
                         span.start.line,
