@@ -71,11 +71,11 @@ function defaultDeployTarget(program: Program): string | undefined {
 }
 
 function lineColumnForFactor(program: Program, factor: string): { line: number; column: number } {
-  const robot = program.robots[0];
-  const deploy = program.deployments[0];
-  const health = program.healthChecks[0];
-  const fleet = program.fleets[0];
-  const missionRobot = program.robots.find((r) => r.mission);
+  const robot = program.robots?.[0];
+  const deploy = program.deployments?.[0];
+  const health = program.healthChecks?.[0];
+  const fleet = program.fleets?.[0];
+  const missionRobot = program.robots?.find((r) => r.mission);
   if (factor === "Health" && health) {
     return { line: health.span.start.line, column: health.span.start.column };
   }
