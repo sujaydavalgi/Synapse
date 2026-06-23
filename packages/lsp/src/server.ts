@@ -398,6 +398,58 @@ function verificationSource(source: string): CompatItem[] {
     }));
 }
 
+function readinessSource(source: string): CompatItem[] {
+  const parsed = runCliJson(["check", "--readiness-json"], source) as {
+    ok: boolean;
+    readiness?: {
+      issues?: Array<{
+        factor: string;
+        severity: string;
+        message: string;
+        suggested_action?: string;
+      }>;
+    };
+  } | null;
+
+  if (parsed?.readiness?.issues?.length) {
+    return parsed.readiness.issues.map((issue) => ({
+      message: issue.message,
+      line: 1,
+      column: 1,
+      severity:
+        issue.severity === "Critical" || issue.severity === "High"
+          ? "error"
+          : issue.severity === "Medium"
+            ? "warning"
+            : "info",
+      category: `readiness:${issue.factor.toLowerCase()}`,
+      suggested_fix: issue.suggested_action,
+    }));
+  }
+
+  const tmp = join(repoRoot(), ".spanda-lsp-readiness.sd");
+  writeFileSync(tmp, source);
+  const script = join(repoRoot(), "scripts/lsp-readiness.mts");
+  const result = spawnSync(process.execPath, ["--import", "tsx", script, tmp], {
+    encoding: "utf-8",
+  });
+
+  try {
+    unlinkSync(tmp);
+  } catch {
+    /* ignore */
+  }
+
+  if (!result.stdout?.trim()) {
+    return [];
+  }
+  const ts = JSON.parse(result.stdout) as { ok: boolean; items?: CompatItem[] };
+  return (ts.items ?? []).map((item) => ({
+    ...item,
+    severity: item.severity === "info" ? "warning" : item.severity,
+  }));
+}
+
 function checkSource(source: string): CliDiagnostic[] {
   // CheckSource.
   //
@@ -588,6 +640,7 @@ function validate(textDocument: TextDocument): Diagnostic[] {
   const typeErrors = checkSource(source);
   const compatItems = verifySource(source);
   const verificationItems = verificationSource(source);
+  const readinessItems = readinessSource(source);
   verificationCache.set(textDocument.uri, verificationItems);
   const typeDiags = typeErrors.map(
     (d): Diagnostic => ({
@@ -600,7 +653,7 @@ function validate(textDocument: TextDocument): Diagnostic[] {
       source: "spanda",
     }),
   );
-  const compatDiags = [...compatItems, ...verificationItems].map((d): Diagnostic => {
+  const compatDiags = [...compatItems, ...verificationItems, ...readinessItems].map((d): Diagnostic => {
     const severity =
       d.severity === "warning" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
     const prefix = d.category ? `[${d.category}] ` : "";
@@ -611,7 +664,11 @@ function validate(textDocument: TextDocument): Diagnostic[] {
         end: { line: Math.max(0, d.line - 1), character: Math.max(0, d.column + 20) },
       },
       message: `${prefix}${d.message}`,
-      source: d.category?.startsWith("kill") ? "spanda-verify" : "spanda-compat",
+      source: d.category?.startsWith("kill")
+        ? "spanda-verify"
+        : d.category?.startsWith("readiness:")
+          ? "spanda-readiness"
+          : "spanda-compat",
     };
   });
   return [...typeDiags, ...compatDiags];
