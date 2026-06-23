@@ -45,7 +45,7 @@ export type ReadinessOptions = {
   strictCertify?: boolean;
 };
 
-const DEFAULT_WEIGHTS: Record<string, number> = {
+const DEFAULT_WEIGHTS = {
   Hardware: 12,
   Capabilities: 12,
   Health: 12,
@@ -57,9 +57,11 @@ const DEFAULT_WEIGHTS: Record<string, number> = {
   Packages: 8,
   Providers: 8,
   "Mission Requirements": 10,
-};
+} as const;
 
 const RUNTIME_FAULTS = ["GPSDegraded", "CameraOffline", "RobotHealthCritical"];
+
+const weightFor = (key: keyof typeof DEFAULT_WEIGHTS): number => DEFAULT_WEIGHTS[key];
 
 function defaultDeployTarget(program: Program): string | undefined {
   const deployments = program.deployments ?? [];
@@ -155,7 +157,7 @@ export function evaluateReadinessTs(
 
   const hwErrors = hw.items.filter((i: { severity: string }) => i.severity === "error");
   const hwScore = hw.compatible && hwErrors.length === 0 ? 100 : hw.compatible ? 85 : 40;
-  factors.push(factorRow("Hardware", hwScore, DEFAULT_WEIGHTS.Hardware!));
+  factors.push(factorRow("Hardware", hwScore, weightFor("Hardware")));
   for (const item of hwErrors) {
     issues.push({
       factor: "Hardware",
@@ -165,22 +167,22 @@ export function evaluateReadinessTs(
   }
 
   const capScore = hw.compatible ? 90 : 50;
-  factors.push(factorRow("Capabilities", capScore, DEFAULT_WEIGHTS.Capabilities!));
+  factors.push(factorRow("Capabilities", capScore, weightFor("Capabilities")));
 
   const runtimeFaults =
     options.includeRuntime && options.injectHealthFaults ? [...RUNTIME_FAULTS] : [];
   const health = healthScoreFromProgram(program, runtimeFaults);
-  factors.push(factorRow("Health", health.score, DEFAULT_WEIGHTS.Health!));
+  factors.push(factorRow("Health", health.score, weightFor("Health")));
   issues.push(...health.issues);
 
-  factors.push(factorRow("Connectivity", hw.compatible ? 90 : 70, DEFAULT_WEIGHTS.Connectivity!));
-  factors.push(factorRow("Safety", hw.compatible ? 95 : 45, DEFAULT_WEIGHTS.Safety!));
-  factors.push(factorRow("Battery", 90, DEFAULT_WEIGHTS.Battery!));
-  factors.push(factorRow("Storage", 90, DEFAULT_WEIGHTS.Storage!));
-  factors.push(factorRow("Compute", 88, DEFAULT_WEIGHTS.Compute!));
-  factors.push(factorRow("Packages", 88, DEFAULT_WEIGHTS.Packages!));
-  factors.push(factorRow("Providers", 88, DEFAULT_WEIGHTS.Providers!));
-  factors.push(factorRow("Mission Requirements", capScore, DEFAULT_WEIGHTS["Mission Requirements"]!));
+  factors.push(factorRow("Connectivity", hw.compatible ? 90 : 70, weightFor("Connectivity")));
+  factors.push(factorRow("Safety", hw.compatible ? 95 : 45, weightFor("Safety")));
+  factors.push(factorRow("Battery", 90, weightFor("Battery")));
+  factors.push(factorRow("Storage", 90, weightFor("Storage")));
+  factors.push(factorRow("Compute", 88, weightFor("Compute")));
+  factors.push(factorRow("Packages", 88, weightFor("Packages")));
+  factors.push(factorRow("Providers", 88, weightFor("Providers")));
+  factors.push(factorRow("Mission Requirements", capScore, weightFor("Mission Requirements")));
 
   const total = weightedTotal(factors);
   const hasHigh = issues.some((i) => i.severity === "High" || i.severity === "Critical");
@@ -242,6 +244,22 @@ export function evaluateAgentReadinessJson(
   });
 }
 
+}
+
+function mapSeverityToDiagnostic(severity: ReadinessSeverity): string {
+  switch (severity) {
+    case "Critical":
+    case "High":
+      return "error";
+    case "Medium":
+      return "warning";
+    case "Low":
+    case "Info":
+    default:
+      return "info";
+  }
+}
+
 /** Map readiness issues to verification-style diagnostics for LSP/check JSON. */
 export function readinessDiagnostics(
   source: string,
@@ -262,14 +280,9 @@ export function readinessDiagnostics(
       message: issue.message,
       line: span.line,
       column: span.column,
-    severity:
-      issue.severity === "Critical" || issue.severity === "High"
-        ? "error"
-        : issue.severity === "Medium"
-          ? "warning"
-          : "info",
-    category: `readiness:${issue.factor.toLowerCase()}`,
-    suggested_fix: issue.suggested_action,
+      severity: mapSeverityToDiagnostic(issue.severity),
+      category: `readiness:${issue.factor.toLowerCase()}`,
+      suggested_fix: issue.suggested_action,
     };
   });
 }
