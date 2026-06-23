@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Brand assets:** Logo in README, docs index, platform overview, mdBook intro; banner and favicon on `website/index.html`; VS Code extension icon from `assets/image/app_favicon.png`.
 - Golden-path live AI example reference: `examples/features/live_openai.sd`.
 
+### Fixed
+
+- **Fleet and deploy agents:** per-robot/per-target state files in Rust and TypeScript so concurrent agents on one host do not inherit the wrong identity; fleet mesh relay no longer holds the coordinator mutex during outbound HTTP; fleet agents reject peer relays when startup identity is missing.
+
 ## [0.4.0] - 2026-06-22
 
 ### Added

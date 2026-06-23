@@ -274,7 +274,8 @@ spanda deploy agent list
 Agents with `--require-certify` reject rollouts unless the payload includes a strict certification proof summary (`passed_strict: true`), matching the operator-side `--require-certify` gate.
 
 Agent registry: `.spanda/deploy-agents.json` (`SPANDA_DEPLOY_AGENTS` override).  
-Agent state on device: `.spanda/agent-state.json` (`SPANDA_AGENT_STATE` override).
+Agent state on device: `.spanda/agent-state/<Robot@Hardware>.json` per target (`SPANDA_AGENT_STATE` overrides the path for a single agent).  
+Fleet agent state: `.spanda/fleet-agent-state/<RobotName>.json` per robot (`SPANDA_FLEET_AGENT_STATE` overrides the path for a single agent).
 
 Protocol: `GET /v1/health`, `GET /v1/status`, `POST /v1/rollout`, `POST /v1/rollback` (JSON, optional bearer token).
 
