@@ -1,12 +1,32 @@
 //! Swarm coordinator mesh relay integration tests.
 
+use spanda_ast::nodes::Program;
 use spanda_driver::compile;
 use spanda_fleet::{
     coordinate_swarms_mesh, register_fleet_agent, spawn_test_fleet_agent, spawn_test_fleet_mesh,
-    FleetAgentRegistry, SwarmState,
+    FleetAgentRegistry, SwarmCoordinationResult, SwarmState,
 };
 use std::thread;
 use std::time::Duration;
+
+fn coordinate_mesh_when_ready(
+    program: &Program,
+    program_path: &str,
+    state: &mut SwarmState,
+    mesh_url: &str,
+) -> SwarmCoordinationResult {
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        let result = coordinate_swarms_mesh(program, program_path, state, mesh_url, None);
+        if result.success {
+            return result;
+        }
+        if std::time::Instant::now() >= deadline {
+            panic!("mesh/agent did not become ready before timeout");
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+}
 
 #[test]
 fn swarm_leader_follow_relays_via_mesh() {
@@ -35,23 +55,12 @@ swarm ReconLeader {
 "#;
     let program = compile(source).expect("compile").program;
     let mut state = SwarmState::default();
-    let deadline = std::time::Instant::now() + Duration::from_secs(2);
-    let result = loop {
-        let result = coordinate_swarms_mesh(
-            &program,
-            "swarm_leader.sd",
-            &mut state,
-            &format!("http://127.0.0.1:{mesh_port}"),
-            None,
-        );
-        if result.success {
-            break result;
-        }
-        if std::time::Instant::now() >= deadline {
-            panic!("mesh/agent did not become ready before timeout");
-        }
-        thread::sleep(Duration::from_millis(20));
-    };
+    let result = coordinate_mesh_when_ready(
+        &program,
+        "swarm_leader.sd",
+        &mut state,
+        &format!("http://127.0.0.1:{mesh_port}"),
+    );
     let leader = result
         .swarms
         .iter()
@@ -75,7 +84,7 @@ fn swarm_round_robin_relays_peer_links_via_mesh() {
     let (mesh_port, _mesh) = spawn_test_fleet_mesh(&registry).expect("spawn mesh");
     let source = r#"
 robot ScoutA {
-  peer ScoutB;
+  robot ScoutB;
   mission Patrol { navigate; inspect; }
 }
 robot ScoutB {
@@ -91,16 +100,13 @@ swarm ReconSwarm {
 }
 "#;
     let program = compile(source).expect("compile").program;
-    thread::sleep(Duration::from_millis(30));
     let mut state = SwarmState::default();
-    let result = coordinate_swarms_mesh(
+    let result = coordinate_mesh_when_ready(
         &program,
         "swarm_round.sd",
         &mut state,
         &format!("http://127.0.0.1:{mesh_port}"),
-        None,
     );
-    assert!(result.success);
     let round_robin = result
         .swarms
         .iter()
@@ -147,16 +153,13 @@ swarm ReconLeader {
 }
 "#;
     let program = compile(source).expect("compile").program;
-    thread::sleep(Duration::from_millis(30));
     let mut state = SwarmState::default();
-    let result = coordinate_swarms_mesh(
+    let result = coordinate_mesh_when_ready(
         &program,
         "swarm_leader.sd",
         &mut state,
         &format!("http://127.0.0.1:{mesh_port}"),
-        None,
     );
-    assert!(result.success);
     let leader = result
         .swarms
         .iter()
