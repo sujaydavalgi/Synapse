@@ -67,7 +67,7 @@ fn swarm_round_robin_relays_peer_links_via_mesh() {
     let (mesh_port, _mesh) = spawn_test_fleet_mesh(&registry).expect("spawn mesh");
     let source = r#"
 robot ScoutA {
-  robot ScoutB;
+  peer ScoutB;
   mission Patrol { navigate; inspect; }
 }
 robot ScoutB {
