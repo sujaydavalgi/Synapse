@@ -2,7 +2,7 @@
 
 Spanda uses a **lean-core, package-first** architecture. The language kernel defines contracts, safety, verification interfaces, and runtime hooks. Domain integrations — ROS2, MQTT, GPS, SLAM, vision, fleet, OTA, cloud — ship as **optional official packages** under `packages/registry/`.
 
-Lean-core extraction is **complete through Phase 17** (see [lean-core-roadmap.md](./lean-core-roadmap.md)).
+Lean-core extraction is **complete through Phase 35** (see [lean-core-roadmap.md](./lean-core-roadmap.md)).
 
 ---
 

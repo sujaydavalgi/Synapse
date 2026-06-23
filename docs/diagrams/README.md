@@ -6,19 +6,22 @@ Visual overview of the Spanda compile and runtime pipeline.
 
 ```mermaid
 flowchart TD
-    SD[".sd source"]
+    SD[".sd source + spanda.toml"]
+    DRIVER["spanda-driver"]
     LEX["Lexer"]
     PAR["Parser"]
     AST["AST"]
-    TC["Type checker\n+ units + safety"]
-    HV["Hardware verification\n(optional)"]
+    TC["Type checker\n+ units + safety + capabilities"]
+    HV["Hardware verification\n+ capability / health gates"]
+    CERT["spanda-certify gate"]
     RT["Interpreter +\nSimulator"]
+    PKG["Provider registry\n← official packages"]
     SIR["SIR → LLVM\n(experimental)"]
 
-    SD --> LEX --> PAR --> AST --> TC
+    SD --> DRIVER --> LEX --> PAR --> AST --> TC
     TC --> HV
-    HV --> RT
-    TC --> RT
+    TC --> CERT --> RT
+    PKG --> RT
     TC -.-> SIR
 ```
 

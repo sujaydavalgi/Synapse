@@ -61,14 +61,19 @@ robot MyRover {
   sensor lidar: Lidar on "/scan";
   actuator wheels: DifferentialDrive;
 
+  ai_model planner: LLM { provider: "mock"; model: "patrol"; }
+
   safety {
-    max_speed = 1.0 m/s;
+    max_speed = 0.5 m/s;
     stop_if lidar.nearest_distance < 0.5 m;
   }
 
   behavior patrol() {
     loop every 100ms {
-      wheels.drive(linear: 0.3 m/s, angular: 0.0 rad/s);
+      let scan = lidar.read();
+      let proposal = planner.reason(prompt: "Plan motion", input: scan);
+      let action = safety.validate(proposal);
+      wheels.execute(action);
     }
   }
 }

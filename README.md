@@ -27,18 +27,23 @@ Spanda is a language and runtime for **autonomous systems** — programs where s
 You write a `robot` block with sensors, actuators, safety zones, and agents. The compiler enforces physical units, validates AI proposals before they reach hardware, and checks that your program fits the deployment target before you ship.
 
 ```spanda
-robot Rover {
+robot SafePatrol {
   sensor lidar: Lidar on "/scan";
   actuator wheels: DifferentialDrive;
 
+  ai_model planner: LLM { provider: "mock"; model: "patrol"; }
+
   safety {
-    max_speed = 1.0 m/s;
+    max_speed = 0.5 m/s;
     stop_if lidar.nearest_distance < 0.5 m;
   }
 
   behavior patrol() {
     loop every 100ms {
-      wheels.drive(linear: 0.3 m/s, angular: 0.0 rad/s);
+      let scan = lidar.read();
+      let proposal = planner.reason(prompt: "Plan motion", input: scan);
+      let action = safety.validate(proposal);
+      wheels.execute(action);
     }
   }
 }
@@ -130,34 +135,39 @@ Video script: [docs/demo-script.md](docs/demo-script.md) · Architecture: [docs/
 
 ## Architecture overview
 
-Spanda uses a **lean-core, package-first** workspace (Phases 1–35 complete). `spanda-core` is the stable public facade; first-party apps import focused workspace crates directly.
+Spanda uses a **lean-core, package-first** workspace (Phases 1–35 complete). `spanda-driver` orchestrates compile and run; `spanda-interpreter` is the runtime composition root. `spanda-core` is the stable public facade for external embedders; first-party apps import focused workspace crates directly.
 
 ```
-.sd source → lexer → parser → AST → type checker
-                                      ↓
-                            hardware verifier (optional)
-                                      ↓
-                            interpreter + simulator
-                                      ↓
-                     optional packages (ROS2, MQTT, GPS, …)
-                                      ↓
-                            SIR → LLVM (experimental)
+.sd source + spanda.toml
+        ↓
+   spanda-driver (orchestration)
+        ↓
+   lexer → parser → AST → type checker (+ units, safety, capabilities)
+        ↓
+   hardware verifier · behavioral verify · capability / health gates
+        ↓
+   spanda-certify runtime gate → interpreter + simulator
+        ↓
+   provider registry ← official packages (ROS2, MQTT, GPS, …)
+        ↓
+   SIR → LLVM → native binary (experimental)
 ```
 
 | Layer | Crates | Responsibility |
 |-------|--------|----------------|
 | **Public facade** | `spanda-core` | Stable `spanda_core::` re-exports + thin shims |
-| **Apps** | `spanda-cli`, `spanda-node`, `spanda-wasm`, `spanda-dap` | CLI, bindings, debugger — direct workspace deps |
-| **Pipeline** | `spanda-driver`, `spanda-lexer`, `spanda-parser`, `spanda-typecheck`, `spanda-sir` | Compile, check, verify, SIR |
-| **Runtime** | `spanda-interpreter`, `spanda-runtime`, `spanda-comm`, `spanda-safety`, … | Execution, scheduling, safety, comm |
+| **Apps** | `spanda-cli`, `spanda-node`, `spanda-wasm`, `spanda-dap`, `spanda-llvm` | CLI, bindings, debugger, codegen — direct workspace deps |
+| **Pipeline** | `spanda-driver`, `spanda-lexer`, `spanda-parser`, `spanda-ast`, `spanda-typecheck`, `spanda-sir`, `spanda-error` | Lex → parse → check → SIR; compile orchestration |
+| **Runtime** | `spanda-interpreter`, `spanda-runtime`, `spanda-runtime-host`, `spanda-comm`, `spanda-safety`, `spanda-hal`, `spanda-concurrency` | Execution, scheduling, safety, HAL, cooperative tasks |
 | **Transport** | `spanda-transport-routing`, `spanda-transport-*` | Adapters, live bridges, `RoutingCommBus` |
-| **Domain** | `spanda-hardware`, `spanda-fleet`, `spanda-ota`, `spanda-certify` | Verify, fleet, rollout, certification |
+| **Domain** | `spanda-hardware`, `spanda-fleet`, `spanda-ota`, `spanda-certify`, `spanda-connectivity` | Verify, fleet, rollout, certification, connectivity |
+| **FFI & bridge** | `spanda-bridge`, `spanda-ffi` | Python/C++ subprocess bridges, live AI/IoT paths |
 | **Tooling** | `spanda-format`, `spanda-lint`, `spanda-codegen`, `spanda-docs` | fmt, lint, codegen, docgen |
 | **Packages** | `spanda-package`, `spanda-providers` | `spanda.toml`, registry, provider bootstrap |
-| **Official packages** | `packages/registry/*` | ROS2, MQTT, GPS, SLAM, vision, fleet, OTA, cloud |
-| **Mirror & UX** | `src/`, `packages/lsp`, `packages/web` | TypeScript tests, LSP, web playground |
+| **Official packages** | `packages/registry/*` | ROS2, MQTT, GPS, SLAM, vision, fleet, OTA, cloud (29 scaffolds) |
+| **Mirror & UX** | `src/`, `packages/lsp`, `packages/web`, `editor/vscode` | TypeScript tests, LSP, web playground, extension |
 
-Crate index: [crates/README.md](crates/README.md) · Deep dive: [docs/lean-core.md](docs/lean-core.md) · [docs/architecture.md](docs/architecture.md)
+Crate index: [crates/README.md](crates/README.md) · Diagrams: [docs/diagrams/](docs/diagrams/) · Deep dive: [docs/lean-core.md](docs/lean-core.md) · [docs/architecture.md](docs/architecture.md)
 
 ---
 
@@ -168,21 +178,40 @@ Crate index: [crates/README.md](crates/README.md) · Deep dive: [docs/lean-core.
 ```spanda
 robot Rover {
   sensor lidar: Lidar on "/scan";
+  sensor camera: Camera on "/camera";
   actuator wheels: DifferentialDrive;
 
-  ai_model planner: LLM { provider: "mock"; model: "safe-planner"; }
+  ai_model planner: LLM {
+    provider: "mock";
+    model: "safe-planner";
+    temperature: 0.1;
+  }
 
-  safety { max_speed = 1.0 m/s; }
+  safety {
+    max_speed = 1.0 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
 
   agent Navigator {
     uses planner;
-    tools [lidar, wheels];
-    goal "Navigate safely";
+    tools [lidar, camera, wheels];
+    memory short_term;
+    goal "Reach destination while avoiding obstacles";
 
     plan {
-      let proposal = planner.reason(prompt: "Plan path", input: lidar.read());
+      let scene = camera.analyze();
+      let proposal = planner.reason(
+        prompt: "Create a safe navigation action",
+        input: scene
+      );
       let action = safety.validate(proposal);
       wheels.execute(action);
+    }
+  }
+
+  behavior run() {
+    loop every 100ms {
+      Navigator.plan();
     }
   }
 }
@@ -191,22 +220,50 @@ robot Rover {
 ### Hardware deploy verification
 
 ```spanda
-hardware RoverV1 {
-  memory: 4 GB;
+requires_hardware {
+  memory >= 2 GB;
   sensors [ Camera, Lidar ];
-  actuators [ DifferentialDrive ];
 }
 
-robot RoverProgram {
+hardware RoverV1 {
+  cpu: CortexA78;
+  memory: 4 GB;
+  sensors [ Camera, Lidar, IMU ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 100 Wh; }
+  timing { min_period: 10 ms; }
+}
+
+robot RoverMission {
+  sensor camera: Camera on "/camera";
   sensor lidar: Lidar on "/scan";
   actuator wheels: DifferentialDrive;
+
+  mission { duration: 1 h; }
+
+  task control_loop every 50ms {
+    budget {
+      cpu <= 25%;
+      memory <= 256 MB;
+    }
+    let scan = lidar.read();
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+
+  verify {
+    robot.velocity().linear <= 2.0 m/s;
+  }
 }
 
-deploy RoverProgram to RoverV1;
+simulate_compatibility {
+  fault BatteryDegradation;
+}
+
+deploy RoverMission to RoverV1;
 ```
 
 ```bash
-spanda verify rover.sd --json
+spanda verify examples/showcase/hardware_compatibility.sd --json
 ```
 
 ### Learn Spanda
@@ -325,6 +382,10 @@ npm run web:dev       # http://localhost:5173
 | `spanda build` | Build project |
 | `spanda install` | Install dependencies |
 | `spanda update` | Refresh lockfile and vendored packages |
+| `spanda publish` | Publish package tarball to registry mirror |
+| `spanda deploy --target native <file.sd>` | Link native binary (experimental; requires LLVM feature) |
+| `spanda compile-native <file.sd>` | Emit native binary via SIR → LLVM (experimental) |
+| `spanda ros2 check` | Validate ROS 2 distro, rclpy, and bridge before live transport |
 | `spanda twin export <file.sd> --out <replay.json>` | Export twin replay buffer as JSON |
 
 Verify flags: `--target <Profile>`, `--all-targets`, `--simulate`, `--json`
@@ -395,11 +456,11 @@ Package guide: [docs/packages.md](docs/packages.md)
 
 ## Roadmap
 
-**v0.4.0 (current):** Native deploy (`spanda deploy --target native`, experimental), `spanda ros2 check`, distributed fleet docs, bundled demos (`spanda demo`), `cargo install spanda`, LSP hover/quick-fixes, live IoT CI.
+**v0.4.0 (current):** Native deploy (`spanda deploy --target native`, experimental), `spanda ros2 check`, distributed fleet docs, bundled demos (`spanda demo`), `cargo install spanda`, LSP hover/quick-fixes, live IoT CI, hosted registry index (29 scaffolds).
 
 **v0.3.0 (shipped):** Tooling polish — crate rename to `spanda`, showcase demos without clone, fleet multi-robot fix, verification & DX (Phases 27–35), docs site on GitHub Pages.
 
-**Next:** VS Code Marketplace publish (`VSCE_PAT`), expand hosted registry index (29 scaffolds), IDE polish. **v1.0:** production verify on 5+ profiles, edge deploy golden path. See [docs/roadmap.md](docs/roadmap.md).
+**Next:** VS Code Marketplace publish (`VSCE_PAT`), IDE polish, native codegen golden paths. **v1.0:** production verify on 5+ profiles, edge deploy golden path. See [docs/roadmap.md](docs/roadmap.md).
 
 Full roadmap: [docs/roadmap.md](docs/roadmap.md)  
 Feature status: [docs/feature-status.md](docs/feature-status.md)  
@@ -455,7 +516,7 @@ Rust and TypeScript sources use **inline API documentation** (inside function bo
 | [docs/triggers.md](docs/triggers.md) | Trigger-driven execution model |
 | [docs/concurrency.md](docs/concurrency.md) | Tasks, spawn, channels, fleet CLI |
 | [docs/architecture.md](docs/architecture.md) | Compiler pipeline and workspace crate map |
-| [docs/lean-core.md](docs/lean-core.md) | Lean-core architecture (Phases 1–17) |
+| [docs/lean-core.md](docs/lean-core.md) | Lean-core architecture (Phases 1–35) |
 | [crates/README.md](crates/README.md) | Workspace crate index |
 | [docs/feature-status.md](docs/feature-status.md) | Stable vs experimental vs planned |
 | [docs/product-strategy.md](docs/product-strategy.md) | v0.5 beta priorities and positioning |
