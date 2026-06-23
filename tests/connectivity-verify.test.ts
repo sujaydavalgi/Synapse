@@ -59,6 +59,28 @@ deploy R to Tiny;
     expect(items.some((i) => i.severity === "error")).toBe(true);
   });
 
+  it("passes when required cellular is present in profile", () => {
+    const program = parse(
+      tokenize(`
+requires_connectivity { cellular: required; }
+hardware Tiny { connectivity [ WiFi6, LTE, GPS ]; }
+robot R { actuator wheels: DifferentialDrive; }
+deploy R to Tiny;
+`),
+    );
+    const firstHardwareProfile = program.hardwareProfiles[0];
+    if (!firstHardwareProfile) {
+      throw new Error("Expected program.hardwareProfiles[0] to be defined");
+    }
+    const profile = hardwareProfileFromDecl(firstHardwareProfile);
+    const requiresConnectivity = program.requiresConnectivity;
+    if (!requiresConnectivity) {
+      throw new Error("Expected program.requiresConnectivity to be defined");
+    }
+    const items = verifyRequiresConnectivity(requiresConnectivity, profile);
+    expect(items.some((i) => i.severity === "error")).toBe(false);
+  });
+
   it("passes rover_deploy against RoverV1 when using builtins", () => {
     const source = readFileSync(
       join(import.meta.dirname, "..", "examples/hardware/rover_deploy.sd"),
@@ -176,5 +198,46 @@ simulate_compatibility { fault SatelliteOutage; }
     );
     const result = verifyHardwareProgram(program);
     expect(result.items.some((i) => i.category === "connectivity" && i.severity === "error")).toBe(true);
+  });
+
+  it("fails verify when NetworkOutage violates connectivity latency requirement", () => {
+    const program = parse(
+      tokenize(`
+requires_connectivity { latency <= 100 ms; }
+hardware NetBot {
+  connectivity [ WiFi6 ];
+  network { bandwidth: 100 Mbps; latency: 20 ms; }
+  sensors [ GPS ];
+  actuators [ DifferentialDrive ];
+  timing { min_period: 10 ms; }
+  resource: 10 W;
+}
+robot R { actuator wheels: DifferentialDrive; }
+deploy R to NetBot;
+simulate_compatibility { fault NetworkOutage; }
+`),
+    );
+    const result = verifyHardwareProgram(program);
+    expect(result.items.some((i) => i.category === "connectivity" && i.severity === "error")).toBe(true);
+  });
+
+  it("does not fail connectivity when SatelliteOutage affects optional satellite link", () => {
+    const program = parse(
+      tokenize(`
+requires_connectivity { satellite: optional; }
+hardware RemoteOptional {
+  connectivity [ Satellite, WiFi6 ];
+  sensors [ GPS ];
+  actuators [ DifferentialDrive ];
+  timing { min_period: 10 ms; }
+  resource: 10 W;
+}
+robot R { actuator wheels: DifferentialDrive; }
+deploy R to RemoteOptional;
+simulate_compatibility { fault SatelliteOutage; }
+`),
+    );
+    const result = verifyHardwareProgram(program);
+    expect(result.items.some((i) => i.category === "connectivity" && i.severity === "error")).toBe(false);
   });
 });
