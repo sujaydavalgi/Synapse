@@ -57,9 +57,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x examples/robotics/golden_path_deploy.sh
-      - run: ./examples/robotics/golden_path_deploy.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./examples/robotics/golden_path_deploy.sh
 
   mqtt-golden-path:
     runs-on: ubuntu-latest
@@ -82,9 +82,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/twin_cloud_golden_path.sh
-      - run: ./scripts/twin_cloud_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/twin_cloud_golden_path.sh
 
   llvm-golden-path:
     runs-on: ubuntu-latest
@@ -96,9 +96,9 @@ jobs:
       - name: Install clang
         run: sudo apt-get update && sudo apt-get install -y clang
       - run: chmod +x scripts/llvm_golden_path.sh
-      - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/llvm_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/llvm_golden_path.sh
 
   llvm-embedded-golden-path:
     runs-on: ubuntu-latest
@@ -110,9 +110,9 @@ jobs:
       - name: Install clang and aarch64 cross toolchain
         run: sudo apt-get update && sudo apt-get install -y clang gcc-aarch64-linux-gnu
       - run: chmod +x scripts/llvm_embedded_golden_path.sh
-      - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/llvm_embedded_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/llvm_embedded_golden_path.sh
 
   cpp-native-golden-path:
     runs-on: ubuntu-latest
@@ -135,9 +135,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/ledger_golden_path.sh
-      - run: ./scripts/ledger_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/ledger_golden_path.sh
 
   self-host-lexer-golden-path:
     runs-on: ubuntu-latest
@@ -148,9 +148,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/self_host_lexer_golden_path.sh
-      - run: ./scripts/self_host_lexer_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/self_host_lexer_golden_path.sh
 
   world-model-golden-path:
     runs-on: ubuntu-latest
@@ -161,9 +161,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/world_model_golden_path.sh
-      - run: ./scripts/world_model_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/world_model_golden_path.sh
 
   killer-demo-golden-path:
     runs-on: ubuntu-latest
@@ -174,9 +174,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/killer_demo_golden_path.sh
-      - run: ./scripts/killer_demo_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/killer_demo_golden_path.sh
 
   showcase-smoke:
     runs-on: ubuntu-latest
@@ -187,9 +187,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/showcase_smoke.sh
-      - run: ./scripts/showcase_smoke.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/showcase_smoke.sh
 
   live-ai-golden-path:
     runs-on: ubuntu-latest
@@ -200,9 +200,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/live_ai_golden_path.sh
-      - run: ./scripts/live_ai_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/live_ai_golden_path.sh
 
   live-iot-golden-path:
     runs-on: ubuntu-latest
@@ -226,9 +226,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/registry_golden_path.sh
-      - run: ./scripts/registry_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/registry_golden_path.sh
 
   ci-verify-golden-path:
     runs-on: ubuntu-latest
@@ -239,9 +239,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/ci_verify_golden_path.sh
-      - run: ./scripts/ci_verify_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/ci_verify_golden_path.sh
 
   python-native-golden-path:
     runs-on: ubuntu-latest
@@ -254,9 +254,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: chmod +x scripts/python_native_golden_path.sh
-      - run: ./scripts/python_native_golden_path.sh
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/python_native_golden_path.sh
         env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
           PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
 
   ros2-golden-path:
@@ -280,9 +281,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ros-humble-ros-base ros-humble-rclpy
       - run: chmod +x scripts/ros2_golden_path.sh
-      - run: ./scripts/ros2_golden_path.sh
-        env:
-          PATH: ${{ github.workspace }}/target/release:${{ env.PATH }}
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/ros2_golden_path.sh
 
   ros2-rclrs-native:
     runs-on: ubuntu-22.04
