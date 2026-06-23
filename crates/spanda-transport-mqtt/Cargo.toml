@@ -15,7 +15,7 @@ serde_json = "1"
 spanda-ast = { path = "../spanda-ast" }
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-security = { path = "../spanda-security" }
-spanda-transport = { path = "../spanda-transport" }
+spanda-transport = { path = "../spanda-transport", default-features = false }
 
 [features]
 default = []

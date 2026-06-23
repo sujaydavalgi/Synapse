@@ -8,7 +8,7 @@ description = "WebAssembly bindings for Spanda core"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-spanda-driver = { path = "../spanda-driver" }
+spanda-driver = { path = "../spanda-driver", default-features = false }
 spanda-error = { path = "../spanda-error" }
 spanda-format = { path = "../spanda-format" }
 spanda-hardware = { path = "../spanda-hardware" }

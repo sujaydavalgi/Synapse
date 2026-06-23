@@ -1,5 +1,6 @@
 //! Hardware and certification compatibility verification.
 //!
+#[cfg(feature = "certify")]
 use spanda_certify::verify_certification_proof;
 use spanda_error::SpandaError;
 use spanda_hardware::{
@@ -43,6 +44,7 @@ pub fn verify_compatibility_with_registry(
         compile(source)?.program
     };
     let mut report = verify_program_compatibility(&program, options);
+    #[cfg(feature = "certify")]
     report
         .items
         .extend(verify_certification_proof(&program, options.strict_certify));

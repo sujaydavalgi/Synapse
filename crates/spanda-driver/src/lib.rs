@@ -3,6 +3,7 @@
 mod compile;
 mod debug_run;
 pub mod debug_session;
+#[cfg(feature = "ota")]
 mod deploy_plan;
 pub mod pipeline;
 mod replay;
@@ -15,6 +16,7 @@ pub use compile::{
 };
 pub use debug_run::run_debug;
 pub use debug_session::{DebugMachine, DebugStackFrame, DebugStepKind};
+#[cfg(feature = "ota")]
 pub use deploy_plan::build_deploy_plan;
 pub use pipeline::{lower_to_sir, run_tests};
 pub use replay::{playback_mission, replay_mission};

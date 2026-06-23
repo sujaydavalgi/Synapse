@@ -12,7 +12,7 @@ homepage.workspace = true
 spanda-ast = { path = "../spanda-ast" }
 spanda-comm = { path = "../spanda-comm" }
 spanda-runtime = { path = "../spanda-runtime" }
-spanda-transport = { path = "../spanda-transport" }
+spanda-transport = { path = "../spanda-transport", default-features = false }
 spanda-transport-routing = { path = "../spanda-transport-routing" }
 spanda-transport-dds = { path = "../spanda-transport-dds" }
 spanda-transport-mqtt = { path = "../spanda-transport-mqtt" }

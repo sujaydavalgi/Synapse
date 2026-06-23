@@ -15,23 +15,28 @@ spanda-lexer = { path = "../spanda-lexer" }
 spanda-parser = { path = "../spanda-parser" }
 spanda-runtime-host = { path = "../spanda-runtime-host" }
 spanda-typecheck = { path = "../spanda-typecheck" }
-spanda-interpreter = { path = "../spanda-interpreter" }
-spanda-certify = { path = "../spanda-certify" }
-spanda-bridge = { path = "../spanda-bridge" }
+spanda-interpreter = { path = "../spanda-interpreter", default-features = false }
+spanda-certify = { path = "../spanda-certify", optional = true }
+spanda-bridge = { path = "../spanda-bridge", optional = true }
 spanda-debug = { path = "../spanda-debug" }
 spanda-hardware = { path = "../spanda-hardware" }
-spanda-ota = { path = "../spanda-ota" }
+spanda-ota = { path = "../spanda-ota", optional = true }
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-sir = { path = "../spanda-sir" }
 serde = { version = "1", features = ["derive"] }
 
 [features]
-default = []
+default = ["full"]
+full = ["certify", "bridge", "ota", "transport-tls"]
+certify = ["dep:spanda-certify"]
+bridge = ["dep:spanda-bridge"]
+ota = ["dep:spanda-ota", "certify"]
+transport-tls = ["spanda-interpreter/transport-tls"]
 live-mqtt = ["spanda-interpreter/live-mqtt"]
 live-websocket = ["spanda-interpreter/live-websocket"]
 live-dds = ["spanda-interpreter/live-dds"]
 live-transport = ["live-mqtt", "live-websocket", "live-dds"]
 live-iot = ["spanda-interpreter/live-iot"]
 live-ai = ["spanda-interpreter/live-ai"]
-cpp-native = ["spanda-bridge/cpp-native"]
-python-native = ["spanda-bridge/python-native"]
+cpp-native = ["bridge", "spanda-bridge/cpp-native"]
+python-native = ["bridge", "spanda-bridge/python-native"]

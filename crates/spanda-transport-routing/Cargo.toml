@@ -12,7 +12,7 @@ homepage.workspace = true
 spanda-comm = { path = "../spanda-comm" }
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-security = { path = "../spanda-security" }
-spanda-transport = { path = "../spanda-transport" }
+spanda-transport = { path = "../spanda-transport", default-features = false }
 spanda-transport-dds = { path = "../spanda-transport-dds" }
 spanda-transport-mqtt = { path = "../spanda-transport-mqtt" }
 spanda-transport-ros2 = { path = "../spanda-transport-ros2" }
@@ -20,7 +20,8 @@ spanda-transport-websocket = { path = "../spanda-transport-websocket" }
 
 [features]
 default = []
-live-mqtt = ["spanda-transport-mqtt/live"]
-live-websocket = ["spanda-transport-websocket/live"]
-live-dds = ["spanda-transport-dds/live"]
+transport-tls = ["spanda-transport/tls"]
+live-mqtt = ["spanda-transport-mqtt/live", "spanda-transport/tls"]
+live-websocket = ["spanda-transport-websocket/live", "spanda-transport/tls"]
+live-dds = ["spanda-transport-dds/live", "spanda-transport/tls"]
 live-transport = ["live-mqtt", "live-websocket", "live-dds"]

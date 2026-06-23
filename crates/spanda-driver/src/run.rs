@@ -1,7 +1,9 @@
 //! High-level run helpers from source through compile, certify, and interpreter.
 //!
 use spanda_ast::nodes::Program;
+#[cfg(feature = "bridge")]
 use spanda_bridge::default_ffi_registry;
+#[cfg(feature = "certify")]
 use spanda_certify::{certification_runtime_enabled_from_env, enforce_certification_runtime};
 use spanda_error::SpandaError;
 use spanda_interpreter::{run_program as interpreter_run_program, RunOptions, RunResult};
@@ -35,7 +37,8 @@ pub fn run(source: &str, options: RunOptions) -> Result<RunResult, SpandaError> 
 }
 
 /// Apply certify and FFI defaults, then execute a type-checked program.
-pub fn run_program(program: &Program, mut options: RunOptions) -> Result<RunResult, SpandaError> {
+pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, SpandaError> {
+    let mut options = options;
     // Wire default FFI bridges and certification gate before interpreter execution.
     //
     // Parameters:
@@ -51,9 +54,11 @@ pub fn run_program(program: &Program, mut options: RunOptions) -> Result<RunResu
     // Example:
     // let result = run_program(&program, RunOptions::default())?;
 
+    #[cfg(feature = "bridge")]
     if options.ffi_registry.is_none() {
         options.ffi_registry = Some(default_ffi_registry());
     }
+    #[cfg(feature = "certify")]
     if options.enforce_certify || certification_runtime_enabled_from_env() {
         enforce_certification_runtime(program, true)?;
     }

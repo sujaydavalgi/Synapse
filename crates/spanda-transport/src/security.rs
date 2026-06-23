@@ -1,5 +1,6 @@
 //! Transport-layer security policy validation and TLS session management.
 
+#[cfg(feature = "tls")]
 use crate::tls;
 use spanda_security::{
     AuthenticationMode, EncryptionMode, IntegrityMode, SecureCommPolicy, WireCryptoSession,
@@ -129,6 +130,7 @@ impl TlsTransportSession {
 
         if config.authentication == AuthenticationMode::Mutual {
             if let (Some(cert), Some(key), Some(url)) = (cert_file, key_file, broker_url) {
+                #[cfg(feature = "tls")]
                 if let Some(endpoint) = tls::parse_tls_endpoint(url) {
                     if endpoint.use_tls {
                         let client_cfg = tls::build_client_config(cert, key)?;
@@ -151,6 +153,8 @@ impl TlsTransportSession {
                         }
                     }
                 }
+                #[cfg(not(feature = "tls"))]
+                let _ = (cert, key, url);
             }
         }
 
@@ -250,15 +254,22 @@ fn parse_integrity(value: Option<&str>) -> Result<IntegrityMode, String> {
 
 fn validate_cert_pem(path: &str) -> Result<(), String> {
     // Parse a PEM certificate file to verify TLS credential material is present.
-    use std::fs::File;
-    use std::io::BufReader;
-    let file = File::open(path).map_err(|e| format!("open cert '{path}': {e}"))?;
-    let mut reader = BufReader::new(file);
-    let certs = rustls_pemfile::certs(&mut reader)
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("parse cert '{path}': {e}"))?;
-    if certs.is_empty() {
-        return Err(format!("no certificates found in '{path}'"));
+    #[cfg(feature = "tls")]
+    {
+        use std::fs::File;
+        use std::io::BufReader;
+        let file = File::open(path).map_err(|e| format!("open cert '{path}': {e}"))?;
+        let mut reader = BufReader::new(file);
+        let certs = rustls_pemfile::certs(&mut reader)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("parse cert '{path}': {e}"))?;
+        if certs.is_empty() {
+            return Err(format!("no certificates found in '{path}'"));
+        }
+    }
+    #[cfg(not(feature = "tls"))]
+    {
+        let _ = path;
     }
     Ok(())
 }

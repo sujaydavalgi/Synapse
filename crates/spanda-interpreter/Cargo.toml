@@ -29,13 +29,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-security = { path = "../spanda-security" }
-spanda-transport-routing = { path = "../spanda-transport-routing" }
-spanda-transport = { path = "../spanda-transport" }
+spanda-transport = { path = "../spanda-transport", default-features = false }
+spanda-transport-routing = { path = "../spanda-transport-routing", default-features = false }
 spanda-typecheck = { path = "../spanda-typecheck" }
 spanda-capability = { path = "../spanda-capability" }
 
 [features]
-default = []
+default = ["transport-tls"]
+transport-tls = ["spanda-transport/tls", "spanda-transport-routing/transport-tls"]
 live-iot = ["spanda-providers/live-iot"]
 live-ai = []
 live-mqtt = ["spanda-transport-routing/live-mqtt"]

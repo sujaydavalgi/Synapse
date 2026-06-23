@@ -2,6 +2,7 @@
 //!
 pub mod adapter;
 pub mod security;
+#[cfg(feature = "tls")]
 pub mod tls;
 pub mod wire;
 
@@ -12,6 +13,7 @@ pub use adapter::{
 pub use security::{
     effective_transport_policy, TlsTransportSession, TlsTransportStub, TransportSecurityConfig,
 };
+#[cfg(feature = "tls")]
 pub use tls::{
     build_client_config, parse_tls_endpoint, perform_mtls_handshake, MtlsHandshakeResult,
     TlsEndpoint,
