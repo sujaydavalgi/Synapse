@@ -9,8 +9,7 @@ use std::path::Path;
 #[test]
 fn official_packages_registered_in_framework_list() {
     let names: Vec<_> = framework_packages().iter().map(|p| p.name).collect();
-    let registry_root =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packages/registry");
+    let registry_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packages/registry");
     let hosted: Vec<String> = std::fs::read_dir(&registry_root)
         .expect("packages/registry")
         .filter_map(|entry| entry.ok())
