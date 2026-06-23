@@ -28,7 +28,13 @@ export function remoteFetch(url: string, init: RequestInit = {}): Promise<Respon
       clearTimeout(timeoutId);
       return Promise.reject(abortError);
     }
-    onAbort = () => controller.abort(upstreamSignal.reason);
+    onAbort = () => {
+      const reason =
+        upstreamSignal.reason === undefined
+          ? new DOMException("Remote fetch operation was aborted.", "AbortError")
+          : upstreamSignal.reason;
+      controller.abort(reason);
+    };
     upstreamSignal.addEventListener("abort", onAbort, { once: true });
   }
 
