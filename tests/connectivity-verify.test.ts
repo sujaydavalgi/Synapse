@@ -59,6 +59,28 @@ deploy R to Tiny;
     expect(items.some((i) => i.severity === "error")).toBe(true);
   });
 
+  it("passes when required cellular is present in profile", () => {
+    const program = parse(
+      tokenize(`
+requires_connectivity { cellular: required; }
+hardware Tiny { connectivity [ WiFi6, Cellular, GPS ]; }
+robot R { actuator wheels: DifferentialDrive; }
+deploy R to Tiny;
+`),
+    );
+    const firstHardwareProfile = program.hardwareProfiles[0];
+    if (!firstHardwareProfile) {
+      throw new Error("Expected program.hardwareProfiles[0] to be defined");
+    }
+    const profile = hardwareProfileFromDecl(firstHardwareProfile);
+    const requiresConnectivity = program.requiresConnectivity;
+    if (!requiresConnectivity) {
+      throw new Error("Expected program.requiresConnectivity to be defined");
+    }
+    const items = verifyRequiresConnectivity(requiresConnectivity, profile);
+    expect(items.some((i) => i.severity === "error")).toBe(false);
+  });
+
   it("passes rover_deploy against RoverV1 when using builtins", () => {
     const source = readFileSync(
       join(import.meta.dirname, "..", "examples/hardware/rover_deploy.sd"),
