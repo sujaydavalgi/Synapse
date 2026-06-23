@@ -155,7 +155,7 @@ export function evaluateReadinessTs(
   const issues: ReadinessIssue[] = [];
   const factors: ReadinessFactorScore[] = [];
 
-  const hwErrors = hw.items.filter((i: { severity: string }) => i.severity === "error");
+  const hwErrors = hw.items.filter((i) => i.severity === "error");
   const hwScore = hw.compatible && hwErrors.length === 0 ? 100 : hw.compatible ? 85 : 40;
   factors.push(factorRow("Hardware", hwScore, weightFor("Hardware")));
   for (const item of hwErrors) {
