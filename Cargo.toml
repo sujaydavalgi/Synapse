@@ -55,7 +55,7 @@ exclude = ["crates/spanda-ros2-rclrs-native"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.4.0"
 edition = "2021"
 repository = "https://github.com/Davalgi/Spanda"
 license = "Apache-2.0"

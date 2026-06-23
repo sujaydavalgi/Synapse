@@ -1242,8 +1242,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "spanda"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spanda-ast",
+ "spanda-capability",
+ "spanda-certify",
+ "spanda-codegen",
+ "spanda-debug",
+ "spanda-deploy-http",
+ "spanda-docs",
+ "spanda-driver",
+ "spanda-error",
+ "spanda-fleet",
+ "spanda-format",
+ "spanda-hardware",
+ "spanda-lexer",
+ "spanda-lint",
+ "spanda-llvm",
+ "spanda-modules",
+ "spanda-ota",
+ "spanda-package",
+ "spanda-parser",
+ "spanda-runtime",
+ "spanda-security",
+ "spanda-sir",
+ "spanda-typecheck",
+ "tempfile",
+]
+
+[[package]]
 name = "spanda-ai"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde_json",
  "spanda-ast",
@@ -1253,7 +1285,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-ast"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "regex",
  "serde",
@@ -1288,7 +1320,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-capability"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1302,7 +1334,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-certify"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "spanda-ast",
@@ -1310,43 +1342,11 @@ dependencies = [
  "spanda-error",
  "spanda-hardware",
  "spanda-ota",
-]
-
-[[package]]
-name = "spanda-cli"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "spanda-ast",
- "spanda-capability",
- "spanda-certify",
- "spanda-codegen",
- "spanda-debug",
- "spanda-deploy-http",
- "spanda-docs",
- "spanda-driver",
- "spanda-error",
- "spanda-fleet",
- "spanda-format",
- "spanda-hardware",
- "spanda-lexer",
- "spanda-lint",
- "spanda-llvm",
- "spanda-modules",
- "spanda-ota",
- "spanda-package",
- "spanda-parser",
- "spanda-runtime",
- "spanda-security",
- "spanda-sir",
- "spanda-typecheck",
- "tempfile",
 ]
 
 [[package]]
 name = "spanda-codegen"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde_json",
  "spanda-ast",
@@ -1359,7 +1359,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-comm"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-runtime",
@@ -1368,7 +1368,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-concurrency"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-error",
  "spanda-runtime",
@@ -1376,14 +1376,14 @@ dependencies = [
 
 [[package]]
 name = "spanda-connectivity"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "spanda-connectivity-runtime"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "spanda-ast",
@@ -1451,7 +1451,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-dap"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1462,7 +1462,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-debug"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "spanda-ast",
@@ -1470,7 +1470,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-deploy-http"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "rustls",
  "rustls-pemfile",
@@ -1479,7 +1479,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-docs"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-error",
@@ -1492,7 +1492,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-driver"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "spanda-ast",
@@ -1513,7 +1513,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-error"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-lexer",
@@ -1524,7 +1524,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-ffi"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-error",
@@ -1533,7 +1533,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-fleet"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "rustls",
  "serde",
@@ -1546,7 +1546,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-format"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-comm",
@@ -1558,7 +1558,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-hal"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-runtime",
@@ -1566,7 +1566,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-hardware"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "spanda-ast",
@@ -1579,7 +1579,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-interpreter"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1609,7 +1609,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-lexer"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1618,7 +1618,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-lib-registry"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-hal",
@@ -1627,7 +1627,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-lint"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "spanda-ast",
@@ -1650,7 +1650,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-modules"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-error",
@@ -1676,7 +1676,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-ota"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "hex",
  "rustls",
@@ -1691,7 +1691,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-package"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "flate2",
  "semver",
@@ -1708,7 +1708,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-parser"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-connectivity-runtime",
@@ -1720,7 +1720,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-providers"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "modbus",
  "serde_json",
@@ -1738,7 +1738,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-regex-lang"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-error",
@@ -1754,7 +1754,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-runtime"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1764,7 +1764,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-runtime-host"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ai",
  "spanda-ast",
@@ -1781,7 +1781,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-safety"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-runtime",
@@ -1808,7 +1808,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-sir"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1818,7 +1818,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-transport"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "hex",
  "rustls",
@@ -1835,7 +1835,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-transport-dds"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1847,7 +1847,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-transport-mqtt"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "rumqttc",
  "serde",
@@ -1860,7 +1860,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-transport-ros2"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "libloading",
  "serde",
@@ -1872,7 +1872,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-transport-routing"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "spanda-comm",
  "spanda-runtime",
@@ -1886,7 +1886,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-transport-websocket"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1899,7 +1899,7 @@ dependencies = [
 
 [[package]]
 name = "spanda-typecheck"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "spanda-ast",

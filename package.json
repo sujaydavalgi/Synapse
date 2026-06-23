@@ -1,6 +1,6 @@
 {
   "name": "spanda",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Spanda — the pulse of autonomous intelligence",
   "repository": {
     "type": "git",
@@ -26,7 +26,7 @@
     "test:rust": "cargo test --workspace",
     "test:watch": "vitest",
     "spanda": "node --import tsx src/cli/index.ts",
-    "spanda:native": "cargo run -p spanda-cli --",
+    "spanda:native": "cargo run -p spanda --",
     "web:dev": "npm run dev --workspace=@spanda/web",
     "web:build": "npm run build --workspace=@spanda/web"
   },

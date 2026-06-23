@@ -94,7 +94,7 @@ Spanda is an AI-native autonomous systems programming language. Source files use
 crates/                     Rust workspace — see crates/README.md for full index
   spanda-core/              Public facade (re-exports + thin shims)
   spanda-driver/            compile, check, run, verify, SIR, replay, debug
-  spanda-cli/               Native `spanda` binary
+  spanda-cli/               Native `spanda` binary (crate package name: `spanda`)
   spanda-interpreter/       Tree-walking runtime (~21 modules under src/runtime/)
   spanda-parser/            Parser (lexer → AST)
   spanda-ast/               AST nodes and foundation types

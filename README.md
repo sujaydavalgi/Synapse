@@ -395,7 +395,9 @@ Package guide: [docs/packages.md](docs/packages.md)
 
 ## Roadmap
 
-**v0.2.0 (current):** Stable interpreter, safety gate, hardware verify, simulation, package manager, showcase demos, `spanda demo`, verification & DX (Phases 27–35), docs site on GitHub Pages.
+**v0.4.0 (current):** Native deploy (`spanda deploy --target native`), `spanda ros2 check`, distributed fleet docs, bundled demos, `cargo install spanda`, LSP hover/quick-fixes, live IoT CI.
+
+**v0.3.0:** Tooling polish — package rename to `spanda`, showcase demos without clone, fleet multi-robot fix, verification & DX (Phases 27–35), docs site on GitHub Pages.
 
 **Next (v0.3):** VS Code Marketplace, expanded registry, IDE polish. **v0.4:** LLVM deploy path, distributed fleet. See [docs/roadmap.md](docs/roadmap.md).
 

@@ -20,13 +20,22 @@ Without `SPANDA_ROS2_LIVE`, transport calls log through the simulator (mock mode
 
 - ROS 2 **Humble** (or compatible distro) installed and sourced
 - Python 3 with **rclpy** available in the same environment
-- Spanda CLI built: `cargo build -p spanda-cli --release`
+- Spanda CLI built: `cargo build -p spanda --release`
 
 ```bash
 # Ubuntu 22.04 example
 source /opt/ros/humble/setup.bash
 python3 -c "import rclpy; print('rclpy OK')"
 ```
+
+## Step 0 — Validate environment
+
+```bash
+spanda ros2 check
+# or: spanda ros2 check --json
+```
+
+Fix `ROS_DISTRO` and `rclpy` before enabling live transport.
 
 ## Step 1 — Type-check the bridge program
 

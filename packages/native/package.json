@@ -1,6 +1,6 @@
 {
   "name": "@spanda/native",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Spanda Rust core bindings for Node.js",
   "repository": {
     "type": "git",

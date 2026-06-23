@@ -1,11 +1,21 @@
 # Feature Status
 
-Honest snapshot of Spanda capabilities as of **v0.2.0**. Use this document to understand what is production-ready, experimental, planned, or deprecated.
+Honest snapshot of Spanda capabilities as of **v0.4.0**. Use this document to understand what is production-ready, experimental, planned, or deprecated.
 
 **Stubbed** = syntax or API exists without full external integration.  
 **Broken** = known to fail or incomplete in current builds.
 
 ---
+
+## v0.4.0 — Deploy & tooling (current)
+
+| Area | Status |
+|------|--------|
+| **Native deploy** | `spanda deploy --target native`, `compile-native`, LLVM IR — Experimental (clang required) |
+| **ROS 2 interop** | `spanda ros2 check`, rclpy bridge with `SPANDA_ROS2_LIVE=1` — Experimental |
+| **Distributed fleet** | `fleet orchestrate --remote`, agent registry — Experimental |
+| **CLI install** | `cargo install --path crates/spanda-cli` → binary `spanda` — Stable |
+| **Bundled demos** | `spanda demo` without full clone — Stable |
 
 ## v0.2.0 — Officially Supported
 
@@ -184,7 +194,7 @@ See [tier-3-experimental.md](./tier-3-experimental.md) and [tier-3-golden-paths.
 | Kill switch remote_signed | Runtime + verify enforced | Requires `kill_switch_signature` JSON when `remote_signed` is set; verify reports **error** without signed comm |
 | MQTT / DDS / WebSocket live transport | Production wire + optional live brokers | AES-256-GCM wire frames; live MQTT/WebSocket/DDS via `--features live-transport` + `SPANDA_LIVE_MQTT=1` / `SPANDA_LIVE_WEBSOCKET=1` / `SPANDA_LIVE_DDS=1`; TypeScript mirrors the same env flags |
 | Secure comm live crypto | Production wire | AES-256-GCM for transport frames and `EncryptedMessage` payloads; session material from robot secrets |
-| Full native binary deploy | Stubbed | `spanda codegen` emits skeleton output |
+| Full native binary deploy | Experimental | `spanda deploy --target native`, `compile-native` (clang + llvm feature) |
 | Blockchain / ledger cloud | Stubbed | Audit records local; see `future-blockchain-support.md` |
 
 Nothing in the **Supported** list above is known broken in CI (`cargo test --workspace`, `npm test`, `cargo fmt`, `cargo clippy`, ROS2 rclrs native on Ubuntu 22.04).

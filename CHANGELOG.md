@@ -7,9 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-22
+
 ### Added
 
-- **Productization (credibility & demos):** `spanda demo {rover,safety,verify,fleet,health}`; showcase directories under `examples/showcase/{unsafe_ai,hardware_verification,capability_verification,health_monitoring,fleet_management,replay}`; `scripts/install.sh`, `scripts/benchmark.sh`, `scripts/showcase_smoke.sh`; docs [benchmarks.md](docs/benchmarks.md), [known-limitations.md](docs/known-limitations.md), [demo-script.md](docs/demo-script.md), [diagrams/](docs/diagrams/); README trust table; roadmap v0.2–v1.0; improved `SafeAction` type errors with hints; VS Code snippets; CI `showcase-smoke` job.
+- **Native deploy path:** `spanda deploy --target native` links LLVM binaries (same pipeline as `compile-native`); guide [native-deploy.md](docs/native-deploy.md).
+- **ROS 2 polish:** `spanda ros2 check [--json]` validates `ROS_DISTRO`, rclpy, and bridge script before live transport.
+- **Distributed fleet docs:** [fleet-distributed.md](docs/fleet-distributed.md) for `--remote` orchestration, agent registry, and OTA rollout.
+- **CI:** `live-iot-golden-path` job runs `scripts/live_iot_golden_path.sh`.
+
+## [0.3.0] - 2026-06-22
+
+### Added
+
+- **Install ergonomics:** crate renamed to `spanda` (`cargo install --path crates/spanda-cli` installs binary `spanda`); `spanda --version`; bundled showcase examples ship in the crate for `spanda demo` without a full clone; `scripts/sync_bundled_examples.sh`.
+- **Productization (credibility & demos):** `spanda demo {rover,safety,verify,fleet,health}`; showcase directories under `examples/showcase/`; `scripts/install.sh`, `scripts/benchmark.sh`, `scripts/showcase_smoke.sh`; docs [benchmarks.md](docs/benchmarks.md), [known-limitations.md](docs/known-limitations.md), [demo-script.md](docs/demo-script.md), [diagrams/](docs/diagrams/); README trust table; improved `SafeAction` type errors with hints; VS Code snippets; CI `showcase-smoke` job.
+- **LSP v0.3 polish:** keyword hover for `ActionProposal`, `SafeAction`, `safety.validate`, `deploy`, `health_check`, `kill_switch`; SafeAction quick-fix code action.
+
+### Changed
+
+- CI and golden-path scripts use `cargo build -p spanda` (package rename from `spanda-cli`).
 
 ### Fixed
 

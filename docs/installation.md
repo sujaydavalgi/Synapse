@@ -81,7 +81,7 @@ From a clone:
 ./scripts/install.sh
 ```
 
-This runs `cargo install --path crates/spanda-cli --locked` and installs the `spanda` binary to `~/.cargo/bin`.
+This runs `cargo install --path crates/spanda-cli --locked` and installs the **`spanda`** binary (crate name `spanda`) to `~/.cargo/bin`.
 
 ---
 
