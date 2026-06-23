@@ -28,6 +28,23 @@ function safeUrlForError(url: string): string {
   }
 }
 
+/**
+ * Performs an HTTP fetch with a bounded total lifetime and abort-signal propagation.
+ *
+ * This helper wraps `fetch` to enforce a maximum duration of
+ * `REMOTE_HTTP_TIMEOUT_MS` for the full request lifecycle. If the timeout elapses,
+ * the request is aborted via an internal `AbortController`.
+ *
+ * If `init.signal` is provided, its abort is forwarded to the internal controller.
+ * The forwarded abort reason is preserved when available; otherwise a default
+ * `AbortError` DOMException is used.
+ *
+ * @param url - The request URL to fetch.
+ * @param init - Standard fetch options. If `init.signal` is provided, abort events
+ * are propagated to this request.
+ * @returns A promise that resolves to the `Response` from `fetch`.
+ * @throws Rejected when the request fails, is aborted by `init.signal`, or times out.
+ */
 export function remoteFetch(url: string, init: RequestInit = {}): Promise<Response> {
   // Issue one HTTP request with a bounded wait for connect and response body.
   const controller = new AbortController();
