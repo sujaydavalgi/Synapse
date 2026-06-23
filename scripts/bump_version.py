@@ -28,16 +28,35 @@ NPM_ROOTS = [
 ]
 
 
+def _workspace_package_body(text: str) -> str | None:
+    lines = text.splitlines()
+    in_section = False
+    body: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "[workspace.package]":
+            in_section = True
+            body = []
+            continue
+        if in_section:
+            if stripped.startswith("[") and stripped.endswith("]"):
+                break
+            body.append(line)
+    if not in_section:
+        return None
+    return "\n".join(body)
+
+
 def read_workspace_version() -> str:
     text = CARGO_TOML.read_text(encoding="utf-8")
-    match = re.search(
-        r'^\[workspace\.package\]\s*\n(?:[^\[]*\n)*?^version\s*=\s*"([^"]+)"',
-        text,
-        re.MULTILINE,
-    )
-    if not match:
-        raise SystemExit(f"could not find [workspace.package].version in {CARGO_TOML}")
-    return match.group(1)
+    body = _workspace_package_body(text)
+    if body is None:
+        raise SystemExit(f"could not find [workspace.package] in {CARGO_TOML}")
+    for line in body.splitlines():
+        match = re.match(r'^version\s*=\s*"([^"]+)"\s*$', line)
+        if match:
+            return match.group(1)
+    raise SystemExit(f"could not find [workspace.package].version in {CARGO_TOML}")
 
 
 def bump_semver(current: str, component: str) -> str:
@@ -61,22 +80,50 @@ def bump_semver(current: str, component: str) -> str:
 
 def write_workspace_version(new_version: str) -> None:
     text = CARGO_TOML.read_text(encoding="utf-8")
-    pattern = re.compile(
-        r'(\[workspace\.package\]\s*\n(?:[^\[]*\n)*?^version\s*=\s*")([^"]+)(")',
-        re.MULTILINE,
-    )
-    updated, count = pattern.subn(rf"\g<1>{new_version}\g<3>", text, count=1)
-    if count != 1:
+    lines = text.splitlines(keepends=True)
+    in_section = False
+    replaced = False
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == "[workspace.package]":
+            in_section = True
+            continue
+        if in_section:
+            if stripped.startswith("[") and stripped.endswith("]"):
+                break
+            match = re.match(r'^(\s*version\s*=\s*")([^"]+)("\s*)$', line)
+            if match:
+                lines[index] = f'{match.group(1)}{new_version}{match.group(3)}'
+                if not lines[index].endswith("\n"):
+                    lines[index] += "\n"
+                replaced = True
+                break
+    if not replaced:
         raise SystemExit("failed to update [workspace.package].version in Cargo.toml")
-    CARGO_TOML.write_text(updated, encoding="utf-8")
+    CARGO_TOML.write_text("".join(lines), encoding="utf-8")
+
+
+def _unreleased_span(text: str) -> tuple[int, int]:
+    header = "## [Unreleased]"
+    start = text.find(header)
+    if start == -1:
+        raise SystemExit("CHANGELOG.md: missing ## [Unreleased] section")
+    body_start = start + len(header)
+    if body_start < len(text) and text[body_start] == "\n":
+        body_start += 1
+    next_section = text.find("\n## [", body_start)
+    end = len(text) if next_section == -1 else next_section
+    return start, end
 
 
 def read_unreleased_section(text: str) -> str:
-    pattern = re.compile(r"## \[Unreleased\]\s*\n(.*?)(?=\n## \[|\Z)", re.DOTALL)
-    match = pattern.search(text)
-    if not match:
-        raise SystemExit("CHANGELOG.md: missing ## [Unreleased] section")
-    return match.group(1)
+    _, end = _unreleased_span(text)
+    header = "## [Unreleased]"
+    start = text.find(header)
+    body_start = start + len(header)
+    if body_start < len(text) and text[body_start] == "\n":
+        body_start += 1
+    return text[body_start:end]
 
 
 def unreleased_has_content(text: str) -> bool:
@@ -93,12 +140,9 @@ def bump_changelog(new_version: str, release_date: str, *, allow_empty: bool) ->
         )
     if not unreleased:
         unreleased = "\n"
-    pattern = re.compile(r"(## \[Unreleased\]\s*\n)(.*?)(?=\n## \[|\Z)", re.DOTALL)
-    match = pattern.search(text)
-    if not match:
-        raise SystemExit("CHANGELOG.md: missing ## [Unreleased] section")
+    span_start, span_end = _unreleased_span(text)
     replacement = f"## [Unreleased]\n\n## [{new_version}] - {release_date}\n{unreleased}\n"
-    CHANGELOG.write_text(text[: match.start()] + replacement + text[match.end() :], encoding="utf-8")
+    CHANGELOG.write_text(text[:span_start] + replacement + text[span_end:], encoding="utf-8")
 
 
 def npm_package_json_paths() -> list[Path]:

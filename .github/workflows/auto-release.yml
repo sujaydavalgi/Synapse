@@ -15,16 +15,15 @@ on:
     types:
       - completed
 
-permissions:
-  contents: write
-  pull-requests: read
-
 jobs:
   detect:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     outputs:
       bump: ${{ steps.label.outputs.bump }}
@@ -77,6 +76,8 @@ jobs:
       needs.detect.result == 'success' &&
       needs.detect.outputs.skip != 'true' &&
       needs.detect.outputs.bump != ''
+    permissions:
+      contents: write
     uses: ./.github/workflows/release-bump.yml
     with:
       bump: ${{ needs.detect.outputs.bump }}

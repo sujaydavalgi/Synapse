@@ -33,8 +33,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: main
           fetch-depth: 0
+
+      - name: Verify bump ref matches main tip
+        run: |
+          REQUESTED="${{ inputs.ref }}"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "$REQUESTED" = "main" ] || [ "$REQUESTED" = "$HEAD_SHA" ]; then
+            echo "Bumping main at $HEAD_SHA"
+            exit 0
+          fi
+          echo "::error::Ref $REQUESTED is not current main ($HEAD_SHA); refusing privileged bump"
+          exit 1
 
       - uses: actions/setup-node@v4
         with:

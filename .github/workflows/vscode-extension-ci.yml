@@ -15,6 +15,9 @@ on:
       - 'scripts/bundle-vscode-extension.sh'
       - 'scripts/verify_vscode_vsix.sh'
 
+permissions:
+  contents: read
+
 jobs:
   vsix-build:
     runs-on: ubuntu-latest
