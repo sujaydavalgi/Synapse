@@ -142,30 +142,38 @@ export function parseProgramSource(source: string): Program {
 }
 
 export function lineColumnForFactor(program: Program, factor: string): { line: number; column: number } {
-  const robot = program.robots[0];
+  if (factor === "Health") {
+    const health = program.healthChecks[0];
+    if (health) {
+      return { line: health.span.start.line, column: health.span.start.column };
+    }
+  }
+  if (factor === "Capabilities" || factor === "Mission Requirements") {
+    const missionRobot = program.robots.find((r) => r.mission);
+    if (missionRobot?.mission) {
+      return {
+        line: missionRobot.mission.span.start.line,
+        column: missionRobot.mission.span.start.column,
+      };
+    }
+  }
+  if (factor === "Safety") {
+    const robot = program.robots[0];
+    if (robot?.safety) {
+      return { line: robot.safety.span.start.line, column: robot.safety.span.start.column };
+    }
+  }
+  if (factor === "Fleet") {
+    const fleet = program.fleets[0];
+    if (fleet) {
+      return { line: fleet.span.start.line, column: fleet.span.start.column };
+    }
+  }
   const deploy = program.deployments[0];
-  const health = program.healthChecks[0];
-  const fleet = program.fleets[0];
-  const missionRobot = program.robots.find((r) => r.mission);
-
-  if (factor === "Health" && health) {
-    return { line: health.span.start.line, column: health.span.start.column };
-  }
-  if ((factor === "Capabilities" || factor === "Mission Requirements") && missionRobot?.mission) {
-    return {
-      line: missionRobot.mission.span.start.line,
-      column: missionRobot.mission.span.start.column,
-    };
-  }
-  if (factor === "Safety" && robot?.safety) {
-    return { line: robot.safety.span.start.line, column: robot.safety.span.start.column };
-  }
-  if (factor === "Fleet" && fleet) {
-    return { line: fleet.span.start.line, column: fleet.span.start.column };
-  }
   if (deploy && deploy.kind === "DeployDecl") {
     return { line: deploy.span.start.line, column: deploy.span.start.column };
   }
+  const robot = program.robots[0];
   if (robot) {
     return { line: robot.span.start.line, column: robot.span.start.column };
   }
