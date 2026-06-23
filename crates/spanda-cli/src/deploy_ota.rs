@@ -4,7 +4,7 @@ use spanda_ast::nodes::Program;
 use spanda_deploy_http::{ensure_agent_auth, DeployAgentTls};
 use spanda_driver::{build_deploy_plan, compile};
 use spanda_fleet::{
-    agent_health as fleet_agent_health, default_fleet_agent_state_path, default_fleet_agents_path,
+    agent_health as fleet_agent_health, default_fleet_agents_path, fleet_agent_state_path_for,
     load_fleet_agent_registry, mesh_registry_path, orchestrate_fleets, orchestrate_fleets_mesh,
     orchestrate_fleets_remote, register_fleet_agent, run_fleet_agent_server,
     run_fleet_mesh_coordinator, save_fleet_agent_registry,
@@ -732,7 +732,7 @@ fn cmd_fleet_agent_start(args: &[String]) {
         &bind,
         &robot_name,
         token,
-        &default_fleet_agent_state_path(),
+        &fleet_agent_state_path_for(&robot_name),
         tls,
     ) {
         eprintln!("Fleet agent failed: {err}");

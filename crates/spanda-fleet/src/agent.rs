@@ -31,6 +31,12 @@ pub fn default_fleet_agent_state_path() -> PathBuf {
     PathBuf::from(".spanda/fleet-agent-state.json")
 }
 
+pub fn fleet_agent_state_path_for(robot_name: &str) -> PathBuf {
+    // Keep one state file per robot so concurrent agents do not clobber identity.
+    let safe_name = robot_name.replace(['/', '\\'], "_");
+    PathBuf::from(format!(".spanda/fleet-agent-state/{safe_name}.json"))
+}
+
 pub fn load_fleet_agent_state(path: &Path) -> FleetAgentState {
     if !path.exists() {
         return FleetAgentState::default();
@@ -208,9 +214,7 @@ pub fn run_fleet_agent_server(
 ) -> Result<(), String> {
     // Run the fleet peer relay agent until interrupted.
     let mut state = load_fleet_agent_state(state_path);
-    if state.robot_name.is_empty() {
-        state.robot_name = robot_name.to_string();
-    }
+    state.robot_name = robot_name.to_string();
     state.token = token.or(state.token);
     save_fleet_agent_state(state_path, &state)?;
     let listener = TcpListener::bind(bind).map_err(|e| format!("bind {bind} failed: {e}"))?;

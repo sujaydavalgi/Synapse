@@ -101,3 +101,60 @@ swarm ReconSwarm {
     assert_eq!(round_robin.remote_relayed, 1);
     assert!(round_robin.coordination_mode.ends_with("_mesh"));
 }
+
+#[test]
+fn swarm_leader_follow_relays_to_multiple_followers_via_mesh() {
+    let (port_b, _agent_b) = spawn_test_fleet_agent("ScoutB", None).expect("spawn ScoutB");
+    let (port_c, _agent_c) = spawn_test_fleet_agent("ScoutC", None).expect("spawn ScoutC");
+    let mut registry = FleetAgentRegistry::default();
+    register_fleet_agent(
+        &mut registry,
+        "ScoutB".into(),
+        format!("http://127.0.0.1:{port_b}"),
+        None,
+    )
+    .expect("register ScoutB");
+    register_fleet_agent(
+        &mut registry,
+        "ScoutC".into(),
+        format!("http://127.0.0.1:{port_c}"),
+        None,
+    )
+    .expect("register ScoutC");
+    let (mesh_port, _mesh) = spawn_test_fleet_mesh(&registry).expect("spawn mesh");
+    let source = r#"
+robot ScoutA {
+  mission Patrol { navigate; inspect; }
+}
+robot ScoutB {
+  mission Patrol { navigate; inspect; }
+}
+robot ScoutC {
+  mission Patrol { navigate; inspect; }
+}
+fleet Recon { ScoutA; ScoutB; ScoutC; }
+swarm ReconLeader {
+  fleet Recon;
+  policy leader_follow;
+}
+"#;
+    let program = compile(source).expect("compile").program;
+    thread::sleep(Duration::from_millis(30));
+    let mut state = SwarmState::default();
+    let result = coordinate_swarms_mesh(
+        &program,
+        "swarm_leader.sd",
+        &mut state,
+        &format!("http://127.0.0.1:{mesh_port}"),
+        None,
+    );
+    assert!(result.success);
+    let leader = result
+        .swarms
+        .iter()
+        .find(|swarm| swarm.policy == "leader_follow")
+        .expect("leader_follow swarm");
+    assert_eq!(leader.remote_relayed, 2);
+    assert_eq!(leader.remote_failed, 0);
+    assert!(leader.coordination_mode.ends_with("_mesh"));
+}
