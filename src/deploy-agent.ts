@@ -136,6 +136,20 @@ async function handleRequest(
     return;
   }
 
+  if (req.method === "POST" && path === "/v1/program") {
+    const body = await readBody(req);
+    const payload = JSON.parse(body) as { program?: string };
+    if (!payload.program) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "program field required" }));
+      return;
+    }
+    state.program = payload.program;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   if (req.method === "GET" && path === "/v1/status") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(

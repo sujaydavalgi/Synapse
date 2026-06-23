@@ -137,6 +137,17 @@ export async function agentReadiness(
   return (await response.json()) as { ok: boolean; mission_ready?: boolean; readiness?: unknown };
 }
 
+export async function agentUploadProgram(entry: DeployAgentEntry, program: string): Promise<void> {
+  const response = await agentFetch(entry, "POST", "/v1/program", JSON.stringify({ program }));
+  if (!response.ok) {
+    throw new Error(`agent program upload HTTP ${response.status}`);
+  }
+  const body = (await response.json()) as { ok?: boolean };
+  if (!body.ok) {
+    throw new Error("agent program upload failed");
+  }
+}
+
 export async function agentStatus(entry: DeployAgentEntry): Promise<AgentStatusResponse> {
   const response = await agentFetch(entry, "GET", "/v1/status");
   if (!response.ok) {

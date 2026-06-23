@@ -26,7 +26,7 @@ import {
   type VerifyResult,
 } from "../rust-bridge.js";
 import { securityCheck, securityAudit, reportHasErrors } from "../security/index.js";
-import { evaluateAgentReadinessJson, evaluateReadinessSource } from "../readiness.js";
+import { runOperationalCommand } from "../operational.js";
 import {
   applyRollout,
   buildDeployPlan,
@@ -48,9 +48,11 @@ import {
 } from "../deploy-bundle.js";
 import {
   agentHealth,
+  agentReadiness,
   defaultAgentsPath,
   executeRemoteRollback,
   executeRemoteRollout,
+  lookupAgent,
   readAgentRegistryFromDisk,
   registerAgent,
   writeAgentRegistryToDisk,
@@ -61,6 +63,8 @@ import { defaultFleetMeshUrl } from "../fleet-mesh.js";
 import {
   defaultFleetAgentsPath,
   fleetAgentHealth,
+  fleetAgentReadiness,
+  lookupFleetAgent,
   readFleetAgentRegistryFromDisk,
   registerFleetAgent,
   writeFleetAgentRegistryToDisk,
@@ -105,6 +109,7 @@ Usage:
   spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>] [--require-hash] [--require-certify]
   spanda deploy agent register <Robot@Hardware> <http(s)://host:port> [--token <t>]
   spanda deploy agent list [--json]
+  spanda deploy agent readiness <Robot@Hardware> [--runtime] [--inject-health-faults] [--json]
   spanda deploy --target wasm [--out <file.json>] <file.sd>
   spanda fleet run [--json] [--trace-*] <file.sd>
   spanda fleet orchestrate [--json] [--remote] [--mesh-url <url>] [--mesh-token <t>] <file.sd>
@@ -112,6 +117,7 @@ Usage:
   spanda fleet agent start [--bind <addr>] [--robot <name>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>]
   spanda fleet agent register <RobotName> <http(s)://host:port> [--token <t>]
   spanda fleet agent list [--json]
+  spanda fleet agent readiness <RobotName> [--runtime] [--inject-health-faults] [--json]
   spanda swarm coordinate [--json] [--mesh-url <url>] [--mesh-token <t>] <file.sd>
   spanda debug [--break <line>] <file.sd>
   spanda ir [--json] <file.sd>
@@ -299,7 +305,11 @@ async function main(): Promise<void> {
         break;
       case "verify":
       case "compatibility":
-        handleVerify(positional[0], json, flags);
+        if (positional[0] === "mission") {
+          handleReadinessNative("verify", positional, flags);
+        } else {
+          handleVerify(positional[0], json, flags);
+        }
         break;
       case "certify":
         handleCertify(positional, flags, json);
@@ -331,6 +341,17 @@ async function main(): Promise<void> {
         break;
       case "swarm":
         void handleSwarm(positional, flags, json);
+        break;
+      case "twin":
+        if (positional[0] === "readiness") {
+          handleReadinessNative("twin", positional, flags);
+        } else {
+          requireNative("Twin export requires the native Rust CLI.");
+          const result = runNativeCli(["twin", ...positional]);
+          if (result.stdout) process.stdout.write(result.stdout);
+          if (result.stderr) process.stderr.write(result.stderr);
+          process.exit(result.status ?? 1);
+        }
         break;
       case "debug":
         handleDebug(positional[0], flags);
@@ -1213,7 +1234,42 @@ function handleDeployAgent(subcommand: string | undefined, args: string[], json:
     })();
   }
 
-  console.error("Usage: spanda deploy agent start|register|list");
+  if (subcommand === "readiness") {
+    const target = args.find((arg) => !arg.startsWith("-") && arg !== args[args.indexOf("--token") + 1]);
+    if (!target) {
+      console.error("Usage: spanda deploy agent readiness <Robot@Hardware> [--runtime] [--inject-health-faults] [--json]");
+      process.exit(1);
+    }
+    const registry = readAgentRegistryFromDisk(agentsRegistryPath());
+    const entry = lookupAgent(registry, target);
+    if (!entry) {
+      console.error(`No deploy agent registered for target ${target}`);
+      process.exit(1);
+    }
+    return (async () => {
+      try {
+        const runtime = args.includes("--runtime") || args.includes("--inject-health-faults");
+        const inject = args.includes("--inject-health-faults");
+        const body = await agentReadiness(entry, runtime, inject);
+        if (json) {
+          console.log(JSON.stringify(body, null, 2));
+        } else {
+          const missionReady = body.mission_ready ?? body.readiness?.mission_ready;
+          const score = body.readiness?.score?.total ?? 0;
+          console.log(`Agent readiness for ${target}`);
+          console.log(`Mission Ready: ${missionReady ? "YES" : "NO"}`);
+          console.log(`Score: ${score}/100`);
+        }
+        const missionReady = body.mission_ready ?? (body.readiness as { mission_ready?: boolean } | undefined)?.mission_ready;
+        process.exit(missionReady ? 0 : 1);
+      } catch (err) {
+        console.error(String(err));
+        process.exit(1);
+      }
+    })();
+  }
+
+  console.error("Usage: spanda deploy agent start|register|list|readiness");
   process.exit(1);
 }
 
@@ -1375,7 +1431,44 @@ function handleFleetAgent(subcommand: string | undefined, args: string[], json: 
     })();
   }
 
-  console.error("Usage: spanda fleet agent start|register|list");
+  if (subcommand === "readiness") {
+    const robot = args.find((arg) => !arg.startsWith("-") && arg !== args[args.indexOf("--token") + 1]);
+    if (!robot) {
+      console.error("Usage: spanda fleet agent readiness <RobotName> [--runtime] [--inject-health-faults] [--json]");
+      process.exit(1);
+    }
+    const registry = readFleetAgentRegistryFromDisk(defaultFleetAgentsPath());
+    const entry = lookupFleetAgent(registry, robot);
+    if (!entry) {
+      console.error(`No fleet agent registered for robot ${robot}`);
+      process.exit(1);
+    }
+    return (async () => {
+      try {
+        const runtime = args.includes("--runtime") || args.includes("--inject-health-faults");
+        const inject = args.includes("--inject-health-faults");
+        const body = await fleetAgentReadiness(entry, runtime, inject);
+        if (json) {
+          console.log(JSON.stringify(body, null, 2));
+        } else {
+          const readiness = body.readiness as { mission_ready?: boolean; score?: { total?: number } } | undefined;
+          const missionReady = body.mission_ready ?? readiness?.mission_ready;
+          const score = readiness?.score?.total ?? 0;
+          console.log(`Fleet agent readiness for ${robot}`);
+          console.log(`Mission Ready: ${missionReady ? "YES" : "NO"}`);
+          console.log(`Score: ${score}/100`);
+        }
+        const readiness = body.readiness as { mission_ready?: boolean } | undefined;
+        const missionReady = body.mission_ready ?? readiness?.mission_ready;
+        process.exit(missionReady ? 0 : 1);
+      } catch (err) {
+        console.error(String(err));
+        process.exit(1);
+      }
+    })();
+  }
+
+  console.error("Usage: spanda fleet agent start|register|list|readiness");
   process.exit(1);
 }
 
@@ -1814,40 +1907,14 @@ function handleReadinessNative(
     process.exit(result.status ?? 1);
   }
 
-  if (command !== "readiness") {
-    console.error(`Native CLI required for: spanda ${command}`);
+  try {
+    const { exitCode, output } = runOperationalCommand(command, positional, flags);
+    console.log(output);
+    process.exit(exitCode);
+  } catch (err) {
+    console.error(String(err));
     process.exit(1);
   }
-
-  const file = positional[0];
-  if (!file) {
-    console.error("Missing file path");
-    process.exit(1);
-  }
-  const source = readFileSync(resolve(file), "utf-8");
-  const target = typeof flags.get("target") === "string" ? (flags.get("target") as string) : undefined;
-  const includeRuntime = flags.has("runtime") || flags.has("inject-health-faults");
-  const injectHealthFaults = flags.has("inject-health-faults");
-  const options = { target, includeRuntime, injectHealthFaults };
-
-  if (flags.has("agent-json")) {
-    const body = evaluateAgentReadinessJson(source, options);
-    console.log(body);
-    const parsed = JSON.parse(body) as { mission_ready?: boolean };
-    process.exit(parsed.mission_ready ? 0 : 1);
-  }
-
-  const report = evaluateReadinessSource(source, options);
-  if (flags.has("json")) {
-    console.log(JSON.stringify(report, null, 2));
-  } else {
-    console.log(`Mission Ready: ${report.mission_ready ? "YES" : "NO"}`);
-    console.log(`Score: ${report.score.total}/${report.score.maximum}`);
-    for (const issue of report.issues) {
-      console.log(`* ${issue.message}`);
-    }
-  }
-  process.exit(report.mission_ready ? 0 : 1);
 }
 
 function printError(err: unknown): void {
