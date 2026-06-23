@@ -174,7 +174,14 @@ export function evaluateReadinessTs(
   const factors: ReadinessFactorScore[] = [];
 
   const hwErrors = hw.items.filter((i) => i.severity === "error");
-  const hwScore = hw.compatible && hwErrors.length === 0 ? 100 : hw.compatible ? 85 : 40;
+  let hwScore: number;
+  if (hw.compatible && hwErrors.length === 0) {
+    hwScore = 100;
+  } else if (hw.compatible) {
+    hwScore = 85;
+  } else {
+    hwScore = 40;
+  }
   factors.push(factorRow("Hardware", hwScore, weightFor("Hardware")));
   for (const item of hwErrors) {
     issues.push({
