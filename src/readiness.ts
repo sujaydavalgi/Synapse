@@ -68,10 +68,6 @@ function defaultDeployTarget(program: Program): string | undefined {
   return first.targets[0];
 }
 
-function parseProgramSource(source: string): Program {
-  return parse(tokenize(source));
-}
-
 function lineColumnForFactor(program: Program, factor: string): { line: number; column: number } {
   const robot = program.robots[0];
   const deploy = program.deployments[0];
@@ -214,7 +210,7 @@ export function evaluateReadinessSource(
   source: string,
   options: ReadinessOptions = {},
 ): ReadinessReport {
-  const program = parseProgramSource(source);
+  const program = parse(tokenize(source));
   return evaluateReadinessTs(program, options);
 }
 
@@ -258,8 +254,8 @@ export function readinessDiagnostics(
   category: string;
   suggested_fix?: string;
 }> {
-  const program = parseProgramSource(source);
-  const report = evaluateReadinessSource(source, options);
+  const program = parse(tokenize(source));
+  const report = evaluateReadinessTs(program, options);
   return report.issues.map((issue) => {
     const span = lineColumnForFactor(program, issue.factor);
     return {
