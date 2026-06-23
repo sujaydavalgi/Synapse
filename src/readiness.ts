@@ -67,6 +67,7 @@ function defaultDeployTarget(program: Program): string | undefined {
   const deployments = program.deployments ?? [];
   const first = deployments[0];
   if (!first || first.kind !== "DeployDecl") return undefined;
+  if (!first.targets?.length) return undefined;
   return first.targets[0];
 }
 
