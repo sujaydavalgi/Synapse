@@ -1,0 +1,41 @@
+//! Operational readiness, mission verification, failure analysis, and safety reporting.
+//!
+//! Composes hardware verification, capability verification, health framework,
+//! fleet support, simulation/replay, safety validation, and traceability into
+//! unified operational intelligence.
+
+pub mod approval;
+pub mod auditor;
+pub mod dashboard;
+pub mod engine;
+pub mod failure;
+pub mod fleet;
+pub mod fleet_verify;
+pub mod mission;
+pub mod report;
+pub mod root_cause;
+pub mod safety_report;
+pub mod traceability;
+pub mod twin;
+pub mod types;
+
+pub use approval::{verify_approvals, verify_approvals_source, ApprovalVerifyReport};
+pub use auditor::{audit_program, audit_program_source, SafetyAuditReport};
+pub use dashboard::{FleetDashboard, HealthDashboard, MissionDashboard, ReadinessDashboard};
+pub use engine::{evaluate_readiness, evaluate_readiness_source};
+pub use failure::{analyze_failure, analyze_failure_source, FailureAnalysisReport};
+pub use fleet::evaluate_fleet_readiness;
+pub use fleet_verify::{verify_fleet, verify_fleet_source, FleetVerifyReport};
+pub use mission::{verify_mission, verify_mission_source, MissionVerificationReport};
+pub use report::{
+    format_audit, format_failure_analysis, format_fleet_readiness, format_mission_verification,
+    format_readiness, format_root_cause, format_safety_report, format_twin_readiness,
+};
+pub use root_cause::{diagnose_trace, RootCauseReport};
+pub use safety_report::{generate_safety_report, generate_safety_report_source, SafetyCaseReport};
+pub use traceability::{readiness_traceability, ReadinessTraceRow};
+pub use twin::evaluate_twin_readiness;
+pub use types::{
+    FleetReadinessReport, ReadinessIssue, ReadinessOptions, ReadinessPolicy, ReadinessReport,
+    ReadinessScore, ReadinessSeverity, ReadinessStatus, ReportFormat, TwinReadinessStatus,
+};

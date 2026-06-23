@@ -1301,6 +1301,7 @@ dependencies = [
  "spanda-ota",
  "spanda-package",
  "spanda-parser",
+ "spanda-readiness",
  "spanda-runtime",
  "spanda-security",
  "spanda-sir",
@@ -1769,6 +1770,24 @@ dependencies = [
  "spanda-transport-ros2",
  "spanda-transport-routing",
  "spanda-transport-websocket",
+]
+
+[[package]]
+name = "spanda-readiness"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spanda-ast",
+ "spanda-capability",
+ "spanda-certify",
+ "spanda-driver",
+ "spanda-error",
+ "spanda-hardware",
+ "spanda-lexer",
+ "spanda-parser",
+ "spanda-runtime",
+ "spanda-security",
 ]
 
 [[package]]
