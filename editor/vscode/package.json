@@ -2,7 +2,7 @@
   "name": "spanda-vscode",
   "displayName": "Spanda",
   "description": "VS Code support for Spanda (.sd) — syntax, LSP check/verify diagnostics, debug",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "spanda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -70,10 +70,14 @@
       {
         "type": "spanda",
         "label": "Spanda",
-        "languages": ["spanda"],
+        "languages": [
+          "spanda"
+        ],
         "configurationAttributes": {
           "launch": {
-            "required": ["program"],
+            "required": [
+              "program"
+            ],
             "properties": {
               "program": {
                 "type": "string",

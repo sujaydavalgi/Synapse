@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-23
 ### Added
 
 - **Documentation audit:** new guides [verification-diagnostics.md](docs/verification-diagnostics.md), [typed-handler-io.md](docs/typed-handler-io.md), [testing.md](docs/testing.md); expanded [fleet-health.md](docs/fleet-health.md), [swarm-health.md](docs/swarm-health.md), [kill-switch.md](docs/kill-switch.md), [capability-traceability.md](docs/capability-traceability.md), [agentic-programming.md](docs/agentic-programming.md); example indexes under [examples/hardware/README.md](examples/hardware/README.md), [examples/iot/README.md](examples/iot/README.md).
