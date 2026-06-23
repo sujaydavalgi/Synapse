@@ -5,7 +5,7 @@ description = "Minimal package for spanda publish mirror workflow"
 license = "Apache-2.0"
 
 [capabilities]
-required = ["telemetry.read"]
+required = ["lidar.read"]
 
 [safety]
 level = "experimental"

@@ -1,3 +1,5 @@
+module publish_mirror_demo;
+
 // Publish mirror demo — validate and mirror to registry/packages/
 //
 //   cd examples/packages/publish_mirror_project
@@ -9,7 +11,7 @@
 // Docs: docs/packages.md, docs/registry.md
 
 robot MirrorDemo {
-    sensor telemetry: GPS;
+    sensor lidar: Lidar;
     actuator wheels: DifferentialDrive;
 
     safety {
@@ -17,7 +19,7 @@ robot MirrorDemo {
     }
 
     behavior run() {
-        let _ = telemetry.read();
+        let _ = lidar.read();
         wheels.stop();
     }
 }
