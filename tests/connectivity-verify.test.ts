@@ -48,8 +48,10 @@ deploy R to Tiny;
     const firstHardwareProfile = program.hardwareProfiles[0];
     expect(firstHardwareProfile).toBeDefined();
     const profile = hardwareProfileFromDecl(firstHardwareProfile!);
-    expect(program.requiresConnectivity).toBeDefined();
-    const requiresConnectivity = program.requiresConnectivity!;
+    const requiresConnectivity = program.requiresConnectivity;
+    if (!requiresConnectivity) {
+      throw new Error("Expected program.requiresConnectivity to be defined");
+    }
     const items = verifyRequiresConnectivity(requiresConnectivity, profile);
     expect(items.some((i) => i.severity === "error")).toBe(true);
   });
