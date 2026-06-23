@@ -1,66 +1,102 @@
 # Spanda Roadmap
 
-## Completed (Rust core)
+Version plan for evaluators and contributors. Tiers: **Stable** (CI-backed, documented), **Experimental** (usable with caveats), **Future** (planned, not shipped).
 
-- Phase 1: `module`, `struct`, `enum`, `trait`, `match`
-- Phase 2: Extended `agent` with `skill`, existing robot/sensor/actuator model
-- Phase 3: `state_machine` parse + transition validation + `enter`
-- Phase 4: Autonomous primitives — `goal`, `memory` (`remember`/`recall`), behavioral `verify { }`, multi-task scheduler, `observe`/`fusion`
-- Phase 5: `can [ ... ]` capability checking (compile + runtime)
-- Phase 6: AI safety (`ActionProposal` / `SafeAction`) — enforced
-- Phase 7: Physical units — unit algebra
-- Phase 8: `requires` / `ensures` / `invariant` on behaviors and tasks (runtime enforcement)
-- Phase 9: `event` / `on` handlers
-- **Unified triggers**: `every`, `when`, `while`, message/safety/state/AI/verification/twin handlers, `TriggerRegistry`, storm limits, metrics
-- **Cooperative concurrency**: `spawn`, `join`, `parallel`, channels, `select`, per-task `budget { }`, runtime telemetry
-- **Fleet CLI**: `spanda fleet run` for in-process multi-robot simulation
-- **Real-time contracts**: deadline/jitter/priority tasks, latency pipelines, wall-clock scheduling (`--wall-clock`)
-- **Reliability runtime**: watchdogs, operating modes, recovery handlers, retry/fallback, topic QoS deadlines
-- **Mission trace replay**: `--record`, `spanda replay --deterministic` / `--playback`, v2 state snapshots
-- **First-class regex**: literals, `Regex` type, trigger/subscribe filters, validation rules
-- Phase 10: `twin` declarations with mirror/replay runtime
-- Phase 11: ROS2-style `topic` / `service` / `action`
-- **Hardware compatibility verification**: `hardware`, `deploy`, `requires_hardware`, `requires_network`, task `budget`, `mission`, `simulate_compatibility`, `spanda verify`, compatibility matrix, fault injection
-- Tooling: LSP with check + verify diagnostics, `spanda fmt`, full TypeScript CLI parity
-- FFI bridge import registry (`python.*`, `cpp.*`) — type-check only
-- N-API / WASM `verify` bindings
-- Incremental runtime: enum values, struct literals, trait impl binding
-- Phase 14: Example programs (`examples/types/`, `examples/hardware/`)
-- TypeScript parser mirror for hardware/deploy/requirements syntax
-- **Verification & DX (Phase 27):** `spanda-capability` crate; traceability matrices; hardware/robot capability exposure; minimum-hardware safety; health checks; kill switch syntax; hardened `spanda test`; IoT provider contracts; mdBook docs site
-- **Verification & DX (Phase 28):** `expect_compile_error` test blocks; module return type validation; TypeScript parser/typechecker parity for Phase 27 syntax; IoT protocol package stubs
-- **Verification & DX (Phase 29):** LSP verification diagnostics; runtime health wired to `HardwareMonitor`; `spanda check --verification-json`; kill-switch integration tests
-- **Verification & DX (Phase 30):** verification quick-fix hints; LSP code actions; continuous health polling in trigger loop; debug pause events for kill switch and critical health
-- **Verification & DX (Phase 31):** runtime health_policy reactions; behavior return types; agent SafeAction plan returns; IoT package dispatch; agent capability audit hooks
-- **Verification & DX (Phase 32):** in-memory IoT hub; task return types; agent can[] enforcement; VSIX verify script
-- **Verification & DX (Phase 33):** trigger handler return types; live Modbus/OPC-UA IoT paths; live OpenAI provider for ai_model
-- **Verification & DX (Phase 34):** event handler I/O verification; kill switch `remote_signed` enforcement and `on kill_switch` handlers; VS Code extension CI; IoT protocol dispatch; live Anthropic provider; fleet/swarm health runtime coordination
-- **Verification & DX (Phase 35):** TS build parity; live IoT bridges; fleet health requirements; ONNX provider; registry mirror publish; kill-switch verify errors; debugger every-task entry
+Current release line: **v0.2.0** (lean-core Phases 1–35 complete).
 
-## In progress
+---
 
-- VS Code Marketplace publish (VSIX CI + `verify_vscode_vsix.sh` complete; needs maintainer `VSCE_PAT`)
-- Digital twin live telemetry sync (replay buffer exists; twin cloud golden path only)
-- Advanced power models (dynamic load from behavior analysis)
-- Self-hosted compiler subset
-- Real Python/C++/ROS2 bridge linking (see `docs/ffi-and-ecosystem.md`)
-- Inline documentation coverage across remaining community packages
-- Expand hosted registry index beyond 20 curated packages (scaffolds exist under `packages/registry/`)
+## v0.2 — Credibility & onboarding (current)
 
-## Planned
+**Theme:** Professional OSS platform — trust table, showcase demos, docs site, one-command demos.
 
-- IDE: inline hardware profile picker, deploy target hints
-- Hardware adapter trait code generation
-- ROS2 adapter live node integration (stub exists)
-- Formal verification integration for safety constraints
-- Spanda IR + LLVM native backend (see `docs/compiler-backend-roadmap.md`)
+| Item | Status |
+|------|--------|
+| Feature status audit | **Stable** — [feature-status.md](./feature-status.md) |
+| Trust / capability matrix in README | **Stable** |
+| Architecture diagrams | **Stable** — [diagrams/](./diagrams/) |
+| Showcase library (`examples/showcase/*`) | **Stable** |
+| `spanda demo {rover,safety,verify,fleet,health}` | **Stable** |
+| Benchmark script + docs | **Stable** — [benchmarks.md](./benchmarks.md) |
+| Known limitations doc | **Stable** — [known-limitations.md](./known-limitations.md) |
+| `scripts/install.sh` + cargo install path | **Stable** |
+| mdBook GitHub Pages | **Stable** — `docs-site/` |
+| Improved SafeAction diagnostics | **Stable** |
+| CI showcase smoke tests | **Stable** |
 
-## Self-hosting compiler path
+---
+
+## v0.3 — Tooling polish
+
+**Theme:** IDE, diagnostics, registry growth.
+
+| Item | Tier |
+|------|------|
+| VS Code Marketplace publish | Experimental → Stable |
+| LSP verification quick-fixes in editor | Experimental |
+| Hover help + snippets coverage | Experimental |
+| Expand hosted registry beyond curated set | Experimental |
+| Package publish remote upload hardening | Experimental |
+| Live IoT golden paths in more CI jobs | Experimental |
+
+---
+
+## v0.4 — Deploy path
+
+**Theme:** Native binaries, ROS2, distributed fleet.
+
+| Item | Tier |
+|------|------|
+| LLVM backend as optional deploy path | Experimental |
+| ROS2 production adapter (zero-config goal) | Future |
+| Distributed multi-robot runtime | Experimental |
+| Hardware adapter trait codegen | Future |
+| Twin cloud SaaS | Future |
+| Formal verification integration | Future |
+
+---
+
+## v1.0 — Production positioning
+
+**Theme:** Trust for field deployment — not research features.
+
+| Item | Tier |
+|------|------|
+| Interpreter + sim as supported LTS runtime | Stable |
+| Safety gate + verify + replay as certified workflows | Stable |
+| Native codegen for selected HAL profiles | Experimental → Stable |
+| Self-hosting compiler subset | Future (not primary) |
+| Blockchain / cryptocurrency adapters | **Out of scope** |
+| Advanced swarm intelligence research | **Out of scope** |
+
+---
+
+## Completed foundation (Rust core)
+
+Phases 1–11: language core, agents, state machines, goals, capabilities, AI safety, units, contracts, events.
+
+Phases 12–26: triggers, concurrency, fleet CLI, real-time, reliability, replay, regex, twins, ROS2 comm, hardware verify, tooling.
+
+Phases 27–35: verification & DX — `spanda-capability`, health, kill switch, typed handler I/O, live AI/IoT, registry publish, debugger `every` entry.
+
+See [lean-core-roadmap.md](./lean-core-roadmap.md) for crate-level phase detail.
+
+---
+
+## Self-hosting compiler (future, optional)
 
 1. **Bootstrap** — Rust implements full language (current)
-2. **Spec stabilization** — grammar + API contract in `docs/`
-3. **Spanda subset in Spanda** — rewrite lexer/parser for a minimal `.sd` subset
-4. **Incremental migration** — type checker, then code generation, then full runtime
-5. **Rust becomes optional** — Spanda self-hosts; Rust retained for WASM/embedded targets
+2. **Spec stabilization** — grammar + API in `docs/`
+3. **Spanda subset in Spanda** — lexer/parser for minimal `.sd`
+4. **Incremental migration** — type checker, codegen, runtime
+5. **Rust optional** — retained for WASM/embedded
 
-Target: self-hosting type checker by milestone 3; full compiler by milestone 5.
+Target: self-hosting type checker before native v1.0 codegen promotion — not a blocker for v0.2–v0.4.
+
+---
+
+## Related
+
+- [feature-status.md](./feature-status.md) — honest capability matrix
+- [product-strategy.md](./product-strategy.md) — positioning
+- [compiler-backend-roadmap.md](./compiler-backend-roadmap.md) — LLVM evolution

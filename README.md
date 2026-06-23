@@ -81,6 +81,53 @@ Lean-core status: Phases 1–35 complete — [docs/lean-core-roadmap.md](docs/le
 
 ---
 
+## Trust & feature status
+
+Honest snapshot for evaluators ([full matrix](docs/feature-status.md)):
+
+| Feature | Status |
+|---------|--------|
+| Parser | **Stable** |
+| Type checker | **Stable** |
+| Safety validation (`ActionProposal` → `SafeAction`) | **Stable** |
+| Hardware verification (`spanda verify`) | **Stable** |
+| Simulation (`spanda run` / `spanda sim`) | **Stable** |
+| Mission replay (`--record`, `spanda replay`) | **Stable** |
+| Package loading (`spanda install`, registry) | **Stable** |
+| Connectivity (in-memory + optional live bridges) | **Stable** / live **Experimental** |
+| Encryption & secure comm | **Stable** (wire frames); live TLS **Experimental** |
+| Health framework | **Stable** |
+| Fleet runtime (in-process + HTTP agents) | **Stable** / distributed **Experimental** |
+| Debugger (DAP) | **Experimental** |
+| LLVM backend | **Experimental** |
+| LSP / VS Code extension | **Experimental** |
+| Live AI providers (OpenAI, Anthropic, ONNX) | **Experimental** |
+| ROS2 adapter | **Experimental** |
+
+Limitations: [docs/known-limitations.md](docs/known-limitations.md)
+
+---
+
+## Quick start (5 minutes)
+
+```bash
+# Install (from clone)
+./scripts/install.sh
+# Or: cargo install --path crates/spanda-cli --locked
+
+# Run flagship demo
+spanda demo rover
+
+# Or step by step:
+spanda check examples/showcase/killer_demo.sd      # type-check
+spanda verify examples/showcase/hardware_compatibility.sd  # hardware fit
+spanda sim examples/showcase/killer_demo.sd        # simulate
+```
+
+Video script: [docs/demo-script.md](docs/demo-script.md) · Architecture: [docs/diagrams/](docs/diagrams/)
+
+---
+
 ## Architecture overview
 
 Spanda uses a **lean-core, package-first** workspace (Phases 1–17 complete). `spanda-core` is the stable public facade; first-party apps import focused workspace crates directly.
@@ -204,6 +251,17 @@ More showcase demos: [`examples/showcase/README.md`](examples/showcase/README.md
 
 ## Installation
 
+### Quick install (from source)
+
+```bash
+git clone https://github.com/Davalgi/Spanda.git
+cd Spanda
+./scripts/install.sh
+spanda demo rover
+```
+
+Equivalent: `cargo install --path crates/spanda-cli --locked` (installs the `spanda` binary).
+
 ### Prebuilt packages (Linux, macOS, Windows)
 
 Download installable packages from [GitHub Releases](https://github.com/Davalgi/Spanda/releases):
@@ -259,6 +317,7 @@ npm run web:dev       # http://localhost:5173
 | `spanda sim <file.sd>` | Run simulation with detailed output |
 | `spanda fleet run <file.sd>` | Run multi-robot fleet simulation (in-process) |
 | `spanda replay <mission.trace>` | Inspect, verify, or play back a recorded mission trace |
+| `spanda demo <rover\|safety\|verify\|fleet\|health>` | One-command showcase demos |
 | `spanda test` | Run project tests |
 | `spanda fmt <file.sd>` | Format source |
 | `spanda lint <file.sd>` | Lint source |
@@ -336,9 +395,9 @@ Package guide: [docs/packages.md](docs/packages.md)
 
 ## Roadmap
 
-**v0.1.0-alpha (current):** Stable interpreter, safety gate, hardware verify, simulation, package manager, unified triggers, cooperative concurrency, real-time contracts, mission trace replay, first-class regex, verification & DX (Phases 27–35), live AI/IoT paths when configured, showcase examples.
+**v0.2.0 (current):** Stable interpreter, safety gate, hardware verify, simulation, package manager, showcase demos, `spanda demo`, verification & DX (Phases 27–35), docs site on GitHub Pages.
 
-**Next (v0.5 beta):** VS Code Marketplace publish (VSIX CI ready), LLVM production backend, distributed multi-robot runtime, twin cloud SaaS. Live OpenAI/Anthropic/ONNX and registry mirror publish landed in Phase 35. See [docs/product-strategy.md](docs/product-strategy.md).
+**Next (v0.3):** VS Code Marketplace, expanded registry, IDE polish. **v0.4:** LLVM deploy path, distributed fleet. See [docs/roadmap.md](docs/roadmap.md).
 
 Full roadmap: [docs/roadmap.md](docs/roadmap.md)  
 Feature status: [docs/feature-status.md](docs/feature-status.md)  
@@ -383,6 +442,10 @@ Rust and TypeScript sources use **inline API documentation** (inside function bo
 | [docs/packages.md](docs/packages.md) | Package manager, `spanda publish`, capabilities |
 | [docs/registry.md](docs/registry.md) | Hosted registry, signatures, golden path |
 | [docs/killer-demo.md](docs/killer-demo.md) | 5-minute safety + verify + sim walkthrough |
+| [docs/known-limitations.md](docs/known-limitations.md) | Honest platform constraints |
+| [docs/benchmarks.md](docs/benchmarks.md) | Reproducible timing commands |
+| [docs/demo-script.md](docs/demo-script.md) | 3-minute video walkthrough script |
+| [docs/diagrams/](docs/diagrams/) | Architecture Mermaid diagrams |
 | [docs/realtime.md](docs/realtime.md) | Deadline-aware tasks, wall-clock scheduling |
 | [docs/reliability.md](docs/reliability.md) | Pipelines, watchdogs, recovery, operating modes |
 | [docs/replay.md](docs/replay.md) | Mission trace record, deterministic replay, playback |

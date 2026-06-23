@@ -1,13 +1,13 @@
 # Feature Status
 
-Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document to understand what is production-ready, experimental, planned, or deprecated.
+Honest snapshot of Spanda capabilities as of **v0.2.0**. Use this document to understand what is production-ready, experimental, planned, or deprecated.
 
 **Stubbed** = syntax or API exists without full external integration.  
 **Broken** = known to fail or incomplete in current builds.
 
 ---
 
-## v0.1.0-alpha — Officially Supported
+## v0.2.0 — Officially Supported
 
 ### Supported (stable for public evaluation)
 
@@ -33,6 +33,7 @@ Honest snapshot of Spanda capabilities as of **v0.1.0-alpha**. Use this document
 | **Fleet mesh coordinator** | `spanda fleet mesh start` + `fleet orchestrate --mesh-url` — centralized multi-host peer relay |
 | **Adapter package verify** | `spanda verify-adapter` — validate `[adapter]` provides/requires against registry metadata |
 | **Tooling** | Native CLI (`check`, `verify`, `run`, `sim`, `fleet`, `deploy`, `fmt`, `lint`, `doc`), package manager (`init`, `build`, `test`, `install`), **prebuilt installable packages** (Linux/macOS/Windows via GitHub Releases) |
+| **Showcase demos** | `spanda demo {rover,safety,verify,fleet,health}`; `examples/showcase/*` |
 | **Security / audit** | Capabilities, secrets, signed messages, audit records |
 | **Secure communication** | `secure_comm`, encrypted buses, trusted-source publish/receive enforcement, AES-GCM wire frames, TLS session + rustls PEM validation, `spanda security check|audit`, TS runtime parity |
 | **Digital twins** | `twin`, mirror fields, replay buffer, `twin sync` telemetry |

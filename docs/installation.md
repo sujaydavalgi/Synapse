@@ -73,6 +73,18 @@ spanda check examples/hello_world.sd
 
 ---
 
+## Quick install script
+
+From a clone:
+
+```bash
+./scripts/install.sh
+```
+
+This runs `cargo install --path crates/spanda-cli --locked` and installs the `spanda` binary to `~/.cargo/bin`.
+
+---
+
 ## Build from source
 
 For contributors or unreleased builds:
