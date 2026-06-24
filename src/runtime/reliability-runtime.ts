@@ -6,6 +6,7 @@
 import type { RobotDecl, Stmt } from "../ast/nodes.js";
 import type { PipelineDecl, WatchdogDecl } from "../foundations.js";
 import { createMissionTrace, recordTraceFrame, type MissionTrace } from "../replay.js";
+import { recordTaskHeartbeat } from "../telemetry-store.js";
 
 const RUNTIME_TASK_COST_MS = 5;
 
@@ -98,6 +99,7 @@ export class ReliabilityRuntime {
 
   touchHeartbeat(taskName: string, simTimeMs: number): void {
     this.taskHeartbeats.set(taskName, simTimeMs);
+    recordTaskHeartbeat(taskName, simTimeMs);
   }
 
   checkWatchdogs(host: ReliabilityHost): void {

@@ -94,10 +94,11 @@ Usage:
   spanda verify [--json] [--target <Profile>] [--all-targets] [--simulate] [--strict-certify] <file.sd>
   spanda certify prove [--json] [--strict] [--out <file.json>] <file.sd>
   spanda compatibility [flags] <file.sd>     Alias for verify
-  spanda run [--json] [--verbose] [--secure] [--inject-security-faults] [--enforce-certify] <file.sd>
-  spanda sim [--json] [--inject-security-faults] [--enforce-certify] <file.sd>
+  spanda run [--json] [--verbose] [--secure] [--inject-security-faults] [--enforce-certify] [--persist-telemetry] <file.sd>
+  spanda sim [--json] [--inject-security-faults] [--enforce-certify] [--persist-telemetry] <file.sd>
   spanda security check [--json] <file.sd>
   spanda security audit [--json] <file.sd>
+  spanda telemetry list|latest|heartbeats|stats|export [flags]
   spanda fmt [--json] <file.sd>
   spanda lint [--json] <file.sd>
   spanda doc [--json] [--out <file.md>] <file.sd>
@@ -392,6 +393,9 @@ async function main(): Promise<void> {
         break;
       case "security":
         handleSecurity(positional, json);
+        break;
+      case "telemetry":
+        handleTelemetry(positional, flags, json);
         break;
       case "fmt":
         handleFmt(positional[0], json);
@@ -811,6 +815,42 @@ function handleSecurity(positional: string[], json: boolean): void {
   process.exit(reportHasErrors(report) ? 1 : 0);
 }
 
+function handleTelemetry(
+  positional: string[],
+  flags: Map<string, string | boolean>,
+  json: boolean,
+): void {
+  requireNative("Telemetry commands require the native Rust CLI.");
+  const sub = positional[0];
+  if (!sub) {
+    console.error(
+      "Usage: spanda telemetry list|latest|heartbeats|stats|export [flags]",
+    );
+    process.exit(1);
+  }
+  const args = ["telemetry", sub, ...positional.slice(1)];
+  if (json) {
+    args.push("--json");
+  }
+  for (const [key, value] of flags.entries()) {
+    if (key === "json") {
+      continue;
+    }
+    args.push(`--${key}`);
+    if (typeof value === "string") {
+      args.push(value);
+    }
+  }
+  const result = runNativeCli(args);
+  if (result.stdout) {
+    process.stdout.write(result.stdout);
+  }
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+  }
+  process.exit(result.status ?? 1);
+}
+
 function handleRun(
   filePath: string | undefined,
   verbose: boolean,
@@ -870,6 +910,7 @@ function handleRun(
     if (flags.get("secure")) args.push("--secure");
     if (flags.get("inject-security-faults")) args.push("--inject-security-faults");
     if (flags.get("enforce-certify")) args.push("--enforce-certify");
+    if (flagBool(flags, "persist-telemetry")) args.push("--persist-telemetry");
     const result = runNativeCli(args);
     console.log(result.stdout ?? "");
     process.exit(result.status === 0 ? 0 : 1);
@@ -940,6 +981,7 @@ function runSimulation(
     secure: flags.get("secure") === true,
     injectSecurityFaults: flags.get("inject-security-faults") === true,
     enforceCertify: flags.get("enforce-certify") === true,
+    persistTelemetry: flagBool(flags, "persist-telemetry"),
   });
   console.log("── Final State ──");
   console.log(`  Pose:     x=${state.pose.x.toFixed(3)} m, y=${state.pose.y.toFixed(3)} m, θ=${state.pose.theta.toFixed(3)} rad`);

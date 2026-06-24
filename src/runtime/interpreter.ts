@@ -55,6 +55,7 @@ import {
 } from "./values.js";
 import { callExternBridge } from "../ffi/subprocess-bridge.js";
 import { ConcurrencyRuntime } from "../concurrency.js";
+import { recordSensorReading, recordTaskHeartbeat } from "../telemetry-store.js";
 import type { ModuleRegistry } from "../modules/index.js";
 import type { ExternFnDecl, ModuleFnDecl, ResourceBudgetDecl, TaskDecl, TaskPriority } from "../foundations.js";
 import type { CaptureResult, RegexPattern } from "../regex.js";
@@ -183,6 +184,7 @@ export type InterpreterOptions = {
   officialPackages?: readonly string[];
   /** Optional domain provider registry; defaults to package-scoped bootstrap when unset. */
   providerRegistry?: ProviderRegistry;
+  persistTelemetry?: boolean;
 };
 
 export class Environment {
@@ -3684,6 +3686,12 @@ export class Interpreter {
         };
       }
     }
+    recordSensorReading(
+      target.name,
+      target.sensorType,
+      reading,
+      this.reliability.simTimeMs,
+    );
     return reading;
   }
 
