@@ -365,3 +365,29 @@ export function formatRecoveryReport(report: RecoveryReport): string {
     `Recovery Ready: ${report.readiness.recovery_ready ? "YES" : "NO"}`,
   ].join("\n");
 }
+
+/** Relay a fleet recovery command through the mesh when `SPANDA_FLEET_MESH_URL` is set. */
+export async function coordinateFleetRecoveryViaMesh(
+  action: string,
+  options: {
+    fleetName?: string;
+    fromRobot?: string;
+    members?: string[];
+  } = {},
+): Promise<{ relayed: number; failed: number } | null> {
+  const meshUrl = process.env.SPANDA_FLEET_MESH_URL;
+  if (!meshUrl) return null;
+  const { relayRecoveryViaMesh } = await import("./fleet-mesh.js");
+  const token = process.env.SPANDA_FLEET_MESH_TOKEN;
+  const response = await relayRecoveryViaMesh(
+    meshUrl,
+    {
+      action,
+      fleet_name: options.fleetName,
+      from_robot: options.fromRobot,
+      members: options.members,
+    },
+    token,
+  );
+  return { relayed: response.relayed, failed: response.failed };
+}
