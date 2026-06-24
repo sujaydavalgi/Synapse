@@ -11,6 +11,7 @@ import {
   verifyHardwareProgram,
   type VerifyHardwareTsOptions,
 } from "./hardware-verify.js";
+import { lineColumnForFactor } from "./readiness-spans.js";
 
 export type ReadinessSeverity = "Critical" | "High" | "Medium" | "Low" | "Info";
 export type ReadinessStatus = "Ready" | "Degraded" | "NotReady" | "Unknown";
@@ -85,36 +86,6 @@ function defaultDeployTarget(program: Program): string | undefined {
   }
   if (!first.targets?.length) return undefined;
   return first.targets[0];
-}
-
-function lineColumnForFactor(program: Program, factor: string): { line: number; column: number } {
-  const robot = program.robots?.[0];
-  const deploy = program.deployments?.[0];
-  const health = program.healthChecks?.[0];
-  const fleet = program.fleets?.[0];
-  const missionRobot = program.robots?.find((r) => r.mission);
-  if (factor === "Health" && health) {
-    return { line: health.span.start.line, column: health.span.start.column };
-  }
-  if ((factor === "Capabilities" || factor === "Mission Requirements") && missionRobot?.mission) {
-    return {
-      line: missionRobot.mission.span.start.line,
-      column: missionRobot.mission.span.start.column,
-    };
-  }
-  if (factor === "Safety" && robot?.safety) {
-    return { line: robot.safety.span.start.line, column: robot.safety.span.start.column };
-  }
-  if (factor === "Fleet" && fleet) {
-    return { line: fleet.span.start.line, column: fleet.span.start.column };
-  }
-  if (deploy && deploy.kind === "DeployDecl") {
-    return { line: deploy.span.start.line, column: deploy.span.start.column };
-  }
-  if (robot) {
-    return { line: robot.span.start.line, column: robot.span.start.column };
-  }
-  return { line: 1, column: 1 };
 }
 
 function factorRow(factor: string, score: number, weight: number): ReadinessFactorScore {
@@ -327,7 +298,7 @@ export function readinessDiagnostics(
 export function readinessDashboardFromReports(reports: ReadinessReport[]): ReadinessDashboard {
   const mission_ready_count = reports.filter((r) => r.mission_ready).length;
   const degraded_count = reports.filter((r) => r.status === "Degraded").length;
-  const not_ready_count = reports.length - mission_ready_count - degraded_count;
+  const not_ready_count = reports.filter((r) => r.status === "NotReady").length;
   const overall_score =
     reports.length === 0
       ? 0

@@ -119,6 +119,7 @@ export type RootCauseReport = {
 
 export type { ReadinessDashboard } from "./readiness.js";
 export { readinessDashboardFromReports } from "./readiness.js";
+export { lineColumnForFactor } from "./readiness-spans.js";
 
 const FAILURE_SCENARIOS: Array<[string, string, string, string]> = [
   ["GPS", "Navigation degraded; position uncertainty increases", "Switch to visual odometry", "High"],
@@ -133,45 +134,6 @@ const FAILURE_SCENARIOS: Array<[string, string, string, string]> = [
 
 export function parseProgramSource(source: string): Program {
   return parse(tokenize(source));
-}
-
-export function lineColumnForFactor(program: Program, factor: string): { line: number; column: number } {
-  if (factor === "Health") {
-    const health = program.healthChecks[0];
-    if (health) {
-      return { line: health.span.start.line, column: health.span.start.column };
-    }
-  }
-  if (factor === "Capabilities" || factor === "Mission Requirements") {
-    const missionRobot = program.robots.find((r) => r.mission);
-    if (missionRobot?.mission) {
-      return {
-        line: missionRobot.mission.span.start.line,
-        column: missionRobot.mission.span.start.column,
-      };
-    }
-  }
-  if (factor === "Safety") {
-    const robot = program.robots[0];
-    if (robot?.safety) {
-      return { line: robot.safety.span.start.line, column: robot.safety.span.start.column };
-    }
-  }
-  if (factor === "Fleet") {
-    const fleet = program.fleets[0];
-    if (fleet) {
-      return { line: fleet.span.start.line, column: fleet.span.start.column };
-    }
-  }
-  const deploy = program.deployments[0];
-  if (deploy && deploy.kind === "DeployDecl") {
-    return { line: deploy.span.start.line, column: deploy.span.start.column };
-  }
-  const robot = program.robots[0];
-  if (robot) {
-    return { line: robot.span.start.line, column: robot.span.start.column };
-  }
-  return { line: 1, column: 1 };
 }
 
 export function verifyMissionTs(program: Program, target?: string): MissionVerificationReport[] {
