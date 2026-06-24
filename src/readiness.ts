@@ -199,6 +199,7 @@ export function evaluateReadinessTs(
   let assuranceScore = 100;
   const assuranceCases = program.assuranceCases ?? [];
   const knowledgeModels = program.knowledgeModels ?? [];
+  const stateEstimators = program.stateEstimators ?? [];
   const anomalyDetectors = program.anomalyDetectors ?? [];
   const anomalyHandlers = program.anomalyHandlers ?? [];
   const mitigations = program.mitigations ?? [];
@@ -225,6 +226,17 @@ export function evaluateReadinessTs(
       severity: "Medium",
       message: "Knowledge model has empty components",
     });
+  }
+  for (const est of stateEstimators) {
+    if (est.inputs.length === 0) {
+      assuranceScore -= 15;
+      issues.push({
+        factor: "Assurance",
+        severity: "Medium",
+        message: `State estimator '${est.name}' has no inputs`,
+        suggested_action: "Add sensor inputs to state_estimator",
+      });
+    }
   }
   if (anomalyDetectors.length > 0) {
     const handlerNames = new Set(anomalyHandlers.map((h) => h.detector));

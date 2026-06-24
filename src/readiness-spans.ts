@@ -64,10 +64,23 @@ function firstMitigationSpan(program: Program): Spanned | undefined {
   return program.mitigations?.[0];
 }
 
+function firstStateEstimatorSpan(program: Program): Spanned | undefined {
+  return program.stateEstimators?.[0];
+}
+
+function firstEmptyStateEstimator(program: Program): Spanned | undefined {
+  return program.stateEstimators?.find((e) => e.inputs.length === 0);
+}
+
+function stateEstimatorSpan(program: Program, name: string): Spanned | undefined {
+  return program.stateEstimators?.find((e) => e.name === name);
+}
+
 function assuranceSpan(program: Program): { line: number; column: number } | undefined {
   const node =
     firstAssuranceCaseSpan(program) ??
     firstKnowledgeModelSpan(program) ??
+    firstStateEstimatorSpan(program) ??
     firstAnomalyDetectorSpan(program) ??
     firstMitigationSpan(program);
   return node ? atSpan(node) : undefined;
@@ -132,6 +145,15 @@ export function lineColumnForIssue(
     }
     if (issue.message.includes("Knowledge model")) {
       const decl = firstEmptyKnowledgeModel(program);
+      if (decl) return atSpan(decl);
+    }
+    const estimatorName = extractQuotedName(issue.message, "State estimator '");
+    if (estimatorName) {
+      const estimator = stateEstimatorSpan(program, estimatorName);
+      if (estimator) return atSpan(estimator);
+    }
+    if (issue.message.includes("State estimator")) {
+      const decl = firstEmptyStateEstimator(program);
       if (decl) return atSpan(decl);
     }
     const fallback = assuranceSpan(program);
