@@ -591,8 +591,10 @@ impl<B: RobotBackend> Interpreter<B> {
             return self.eval_twin_method(property, args, named_args, line);
         }
 
-        if matches!(target, RuntimeValue::SensorFusion { .. }) && property == "read" {
-            return self.read_fused_observation();
+        if let RuntimeValue::SensorFusion { ref sensors } = target {
+            if property == "read" {
+                return self.read_fused_observation(sensors);
+            }
         }
 
         if let RuntimeValue::MissionControl { mut runtime } = target {

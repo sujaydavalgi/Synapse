@@ -789,6 +789,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.program_safety_zones.speed_caps().clone(),
         )));
         self.load_reliability_config(robot)?;
+        self.setup_state_estimators();
         Ok(())
     }
 }

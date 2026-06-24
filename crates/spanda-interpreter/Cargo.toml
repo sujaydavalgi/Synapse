@@ -43,3 +43,7 @@ live-mqtt = ["spanda-transport-routing/live-mqtt"]
 live-websocket = ["spanda-transport-routing/live-websocket"]
 live-dds = ["spanda-transport-routing/live-dds"]
 live-transport = ["live-mqtt", "live-websocket", "live-dds"]
+
+[dev-dependencies]
+spanda-lexer = { path = "../spanda-lexer" }
+spanda-parser = { path = "../spanda-parser" }

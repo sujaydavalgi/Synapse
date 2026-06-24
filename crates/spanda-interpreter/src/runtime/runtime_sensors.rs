@@ -78,11 +78,15 @@ impl<B: RobotBackend> Interpreter<B> {
         Ok(reading)
     }
 
-    pub(super) fn read_fused_observation(&mut self) -> Result<RuntimeValue, SpandaError> {
+    pub(super) fn read_fused_observation(
+        &mut self,
+        sensors: &[String],
+    ) -> Result<RuntimeValue, SpandaError> {
         // Read fused observation.
         //
         // Parameters:
         // - `self` — method receiver
+        // - `sensors` — sensor names to fuse for this estimator
         //
         // Returns:
         // Success value on completion, or an error.
@@ -91,14 +95,12 @@ impl<B: RobotBackend> Interpreter<B> {
         // None.
         //
         // Example:
-        // let result = instance.read_fused_observation();
+        // let result = instance.read_fused_observation(sensors);
 
-        // Compute sensors for the following logic.
-        let sensors = self.fusion_sensors.clone();
         let mut fields = HashMap::new();
 
         // Process each sensor.
-        for sensor_name in &sensors {
+        for sensor_name in sensors {
             let sensor_val = self.env.get(sensor_name).cloned().ok_or_else(|| {
                 RuntimeError::new(format!("Unknown observe sensor '{sensor_name}'"), 0)
                     .into_spanda()

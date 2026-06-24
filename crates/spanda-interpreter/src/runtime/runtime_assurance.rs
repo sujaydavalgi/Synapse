@@ -1,11 +1,58 @@
-//! Runtime anomaly handler reactions wired to health polling.
+//! Runtime anomaly handler reactions and state estimator fusion wiring.
 
-use super::{Interpreter, RobotBackend};
-use spanda_ast::assurance_decl::AnomalyHandlerDecl;
+use super::{Interpreter, RobotBackend, RuntimeValue};
+use spanda_ast::assurance_decl::{AnomalyHandlerDecl, StateEstimatorDecl};
 use spanda_ast::nodes::Program;
 use spanda_capability::{HealthReport, HealthStatus};
 
+fn sensor_name_from_input(input: &str) -> String {
+    input.split('.').next().unwrap_or(input).to_string()
+}
+
 impl<B: RobotBackend> Interpreter<B> {
+    /// Register `state_estimator` declarations as fusion runtime bindings.
+    pub(super) fn setup_state_estimators(&mut self) {
+        let Some(program) = self.health_program.clone() else {
+            return;
+        };
+        let Program::Program {
+            state_estimators, ..
+        } = program;
+        if state_estimators.is_empty() {
+            return;
+        }
+
+        let fusion_already_bound = self.env.get("fusion").is_some();
+        for decl in &state_estimators {
+            let StateEstimatorDecl::StateEstimatorDecl {
+                name,
+                inputs,
+                output_type,
+                ..
+            } = decl;
+            let sensors: Vec<String> = inputs.iter().map(|i| sensor_name_from_input(i)).collect();
+            let fusion = RuntimeValue::SensorFusion {
+                sensors: sensors.clone(),
+            };
+            self.env.define(name.clone(), fusion);
+            self.log(format!(
+                "state_estimator '{name}': {} input(s) -> {output_type}",
+                inputs.len()
+            ));
+        }
+
+        if !fusion_already_bound && state_estimators.len() == 1 {
+            let StateEstimatorDecl::StateEstimatorDecl { inputs, .. } = &state_estimators[0];
+            let sensors: Vec<String> = inputs.iter().map(|i| sensor_name_from_input(i)).collect();
+            self.fusion_sensors = sensors.clone();
+            self.env.define(
+                "fusion",
+                RuntimeValue::SensorFusion { sensors },
+            );
+            self.log("state_estimator: aliased fusion binding".into());
+        }
+    }
+
     pub(super) fn apply_anomaly_handlers(&mut self, report: &HealthReport) {
         let Some(program) = self.health_program.clone() else {
             return;

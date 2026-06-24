@@ -27,12 +27,14 @@ impl<B: RobotBackend> Interpreter<B> {
             health_checks,
             health_policies,
             anomaly_handlers,
+            state_estimators,
             robots,
             ..
         } = program;
         let has_health = !health_checks.is_empty()
             || !health_policies.is_empty()
             || !anomaly_handlers.is_empty()
+            || !state_estimators.is_empty()
             || robots.iter().any(|robot| {
                 let RobotDecl::RobotDecl {
                     health_checks: robot_checks,
