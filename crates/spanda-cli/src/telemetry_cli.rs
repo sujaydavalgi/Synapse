@@ -4,7 +4,7 @@ use crate::replay_cli;
 use spanda_telemetry_store::{
     global_store, render_otlp_json, render_prometheus, resolve_store_path,
     run_telemetry_server, TelemetryEvent, TelemetryQuery, TelemetryServeOptions, TelemetrySessionSummary,
-    TelemetryStats,
+    TelemetryStats, TelemetryStoreInfo,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -23,6 +23,7 @@ pub fn cmd_telemetry(sub: &str, args: &[String]) {
         "serve" => cmd_serve(args),
         "sessions" => cmd_sessions(args),
         "replay" => cmd_replay(args),
+        "info" => cmd_info(args),
         other => {
             eprintln!("Unknown telemetry subcommand: {other}");
             usage();
@@ -44,7 +45,8 @@ fn usage() {
          spanda telemetry otlp [--out <file.json>]\n\
          spanda telemetry serve [--bind <addr>] [--once]\n\
          spanda telemetry sessions [--json]\n\
-         spanda telemetry replay --session <id> [--from T+mm:ss] [--deterministic] [--playback] [--json]"
+         spanda telemetry replay --session <id> [--from T+mm:ss] [--deterministic] [--playback] [--json]\n\
+         spanda telemetry info [--json]"
     );
 }
 
@@ -343,6 +345,31 @@ fn cmd_replay(args: &[String]) {
         process::exit(1);
     };
     replay_cli::human_replay(&trace_path, from.as_deref(), deterministic, playback, json);
+}
+
+fn cmd_info(args: &[String]) {
+    let json = args.iter().any(|arg| arg == "--json");
+    let store = global_store().lock().unwrap();
+    let info: TelemetryStoreInfo = store.info().unwrap_or_else(|error| {
+        eprintln!("telemetry info failed: {error}");
+        process::exit(1);
+    });
+    if json {
+        println!("{}", serde_json::to_string_pretty(&info).unwrap());
+        return;
+    }
+    println!("Backend: {}", info.backend);
+    println!("Store: {}", info.store_path);
+    if let Some(path) = &info.heartbeat_path {
+        println!("Heartbeat index: {path}");
+    }
+    println!("Events: {}", info.event_count);
+    if let Some(max) = info.max_events {
+        println!("Retention max: {max}");
+    }
+    if let Some(backup) = &info.migrated_jsonl_backup {
+        println!("Migrated JSONL backup: {backup}");
+    }
 }
 
 fn cmd_heartbeats(args: &[String]) {
