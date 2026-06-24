@@ -99,7 +99,7 @@ Usage:
   spanda sim [--json] [--inject-security-faults] [--enforce-certify] [--persist-telemetry] <file.sd>
   spanda security check [--json] <file.sd>
   spanda security audit [--json] <file.sd>
-  spanda telemetry list|latest|heartbeats|devices|stats|export [flags]
+  spanda telemetry list|latest|heartbeats|devices|stats|export|prometheus [flags]
   spanda fmt [--json] <file.sd>
   spanda lint [--json] <file.sd>
   spanda doc [--json] [--out <file.md>] <file.sd>

@@ -88,7 +88,7 @@ Guide: [mission-continuity.md](../mission-continuity.md) · [continuity-policies
 
 **Run / sim / fleet:** `--trace-scheduler`, `--trace-tasks`, `--trace-triggers`, `--trace-events`, `--trace-providers`, `--trace-realtime`, `--metrics-json`, `--record`, `--persist-telemetry`, `--wall-clock`
 
-**Telemetry store:** `spanda telemetry list|latest|heartbeats|devices|stats|export` — see [telemetry-store.md](../telemetry-store.md)
+**Telemetry store:** `spanda telemetry list|latest|heartbeats|devices|stats|export|prometheus` — see [telemetry-store.md](../telemetry-store.md)
 
 **Replay:** `--from T+mm:ss`, `--deterministic`, `--playback`
 

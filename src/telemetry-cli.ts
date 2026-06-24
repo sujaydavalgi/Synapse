@@ -287,6 +287,61 @@ function parseQueryArgs(args: string[]): { query: TelemetryQuery; json: boolean;
   return { query, json, metric };
 }
 
+function escapeLabel(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+}
+
+function writeMetric(
+  lines: string[],
+  name: string,
+  labels: Record<string, string>,
+  value: number,
+): void {
+  const labelText = Object.entries(labels)
+    .map(([key, labelValue]) => `${key}="${escapeLabel(labelValue)}"`)
+    .join(",");
+  const suffix = labelText.length > 0 ? `{${labelText}}` : "";
+  lines.push(`${name}${suffix} ${Number.isFinite(value) ? value : 0}`);
+}
+
+function renderPrometheus(): string {
+  const events = readAllEvents();
+  const index = readHeartbeatIndex();
+  const stats = computeStats();
+  const lines: string[] = [];
+
+  lines.push("# HELP spanda_telemetry_events_total Telemetry events in the persistent store by kind.");
+  lines.push("# TYPE spanda_telemetry_events_total gauge");
+  for (const [kind, count] of [
+    ["device", stats.device_events],
+    ["sensor", stats.sensor_events],
+    ["heartbeat", stats.heartbeat_events],
+    ["device_heartbeat", stats.device_heartbeat_events],
+    ["health", stats.health_events],
+    ["session", stats.session_events],
+    ["runtime_metrics", stats.runtime_metrics_events],
+  ] as const) {
+    writeMetric(lines, "spanda_telemetry_events_total", { kind }, count);
+  }
+
+  lines.push("# HELP spanda_task_heartbeat_last_timestamp_ms Latest task heartbeat timestamp in simulation milliseconds.");
+  lines.push("# TYPE spanda_task_heartbeat_last_timestamp_ms gauge");
+  for (const [task, timestamp] of Object.entries(index.tasks)) {
+    writeMetric(lines, "spanda_task_heartbeat_last_timestamp_ms", { task }, timestamp);
+  }
+
+  const latestMetrics = [...events].reverse().find((event) => event.kind === "runtime_metrics");
+  if (latestMetrics?.kind === "runtime_metrics") {
+    const metrics = latestMetrics.metrics as Record<string, unknown>;
+    const scheduler = metrics.scheduler as Record<string, number> | undefined;
+    lines.push("# HELP spanda_scheduler_ticks Scheduler ticks from the latest runtime_metrics snapshot.");
+    lines.push("# TYPE spanda_scheduler_ticks gauge");
+    writeMetric(lines, "spanda_scheduler_ticks", {}, scheduler?.scheduler_ticks ?? 0);
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
 export function runTelemetryCli(sub: string, args: string[]): number {
   try {
     switch (sub) {
@@ -430,6 +485,26 @@ export function runTelemetryCli(sub: string, args: string[]): number {
           copyFileSync(storePath, out);
         }
         console.log(`Exported telemetry to ${out}`);
+        return 0;
+      }
+      case "prometheus": {
+        let out: string | undefined;
+        for (let i = 0; i < args.length; i += 1) {
+          if (args[i] === "--out") {
+            out = args[++i];
+          }
+        }
+        const body = renderPrometheus();
+        if (out) {
+          const parent = dirname(out);
+          if (!existsSync(parent)) {
+            mkdirSync(parent, { recursive: true });
+          }
+          writeFileSync(out, body, "utf8");
+          console.log(`Exported Prometheus metrics to ${out}`);
+        } else {
+          process.stdout.write(body);
+        }
         return 0;
       }
       default:

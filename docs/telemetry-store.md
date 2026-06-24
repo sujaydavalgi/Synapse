@@ -59,6 +59,7 @@ spanda telemetry heartbeats [--json]
 spanda telemetry devices [--json]
 spanda telemetry stats [--json]
 spanda telemetry export [--out <file.jsonl>]
+spanda telemetry prometheus [--out <file.prom>]
 ```
 
 ## Example workflow
@@ -75,6 +76,17 @@ spanda telemetry devices
 ```
 
 Or run the scripted golden path: `./scripts/telemetry_store_golden_path.sh`
+
+## Prometheus export
+
+Scrape the store as Prometheus text exposition (no server required):
+
+```bash
+spanda telemetry prometheus
+spanda telemetry prometheus --out metrics.prom
+```
+
+Exports event totals, heartbeat timestamps, latest `runtime_metrics` scheduler/task counters, numeric device metrics, and health scores. Point Prometheus at a file written by `--out`, or pipe stdout into your collector.
 
 Device liveness is recorded when:
 - `iot.device.register` succeeds
