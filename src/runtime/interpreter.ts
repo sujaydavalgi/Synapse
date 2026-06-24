@@ -30,6 +30,7 @@ import { getSocProfile } from "../soc/index.js";
 import { RoutingCommBus, type TransportKind, TlsTransportSession, effectiveTransportPolicy, transportSecurityFromBusFields, resolveBrokerUrl, type SecureCommPolicy } from "../transport/index.js";
 import {
   bootstrapProvidersForPackages,
+  dispatchOfficialPackageCall,
   syncCommBusForOfficialPackages,
   type ProviderRegistry,
 } from "../providers/index.js";
@@ -333,6 +334,7 @@ export class Interpreter {
   private topicPathToMessageType = new Map<string, string>();
   private moduleFunctions = new Map<string, ModuleFnDecl>();
   private importedFunctions = new Map<string, ModuleFnDecl>();
+  private importedFunctionModules = new Map<string, string>();
   private externFunctions = new Map<string, ExternFnDecl>();
   private concurrency = new ConcurrencyRuntime();
   private taskMaxDurationMs = new Map<string, number>();
@@ -490,6 +492,7 @@ export class Interpreter {
     this.structDefs.clear();
     this.moduleFunctions.clear();
     this.importedFunctions.clear();
+    this.importedFunctionModules.clear();
     this.externFunctions.clear();
 
     // Process each function.
@@ -519,6 +522,7 @@ export class Interpreter {
           // Iterate over the collection.
           for (const [name, func] of exports.functions) {
             this.importedFunctions.set(name, func);
+            this.importedFunctionModules.set(name, imp.path);
           }
         }
       }
@@ -1889,13 +1893,31 @@ export class Interpreter {
     // continue when body.
     if (body) {
       this.options.onLog?.(`emit ${eventName}`);
+      const started = performance.now();
       this.executeBlock(body);
+      this.reliability.recordTriggerExecution(
+        eventName,
+        this.triggerCategoryForEvent(eventName),
+        "normal",
+        performance.now() - started,
+      );
 
     // Handle any remaining cases.
     } else {
       this.options.onLog?.(`emit ${eventName} (no handler)`);
     }
 }
+
+  private triggerCategoryForEvent(eventName: string): string {
+    if (eventName.startsWith("message:")) {
+      return "message";
+    }
+    const domain = eventName.split(".")[0];
+    if (domain === "gps" || domain === "wifi" || domain === "cellular" || domain === "ble") {
+      return "connectivity";
+    }
+    return "event";
+  }
 
   private executeEnter(stateName: string, line: number): void {
     // Description:
@@ -2589,8 +2611,20 @@ export class Interpreter {
     //     const result = callModuleFunction(func, args);
 
     // const result = callModuleFunction(func, args);
+    const argValues = args.map((arg) => this.evalExpr(arg));
+    const modulePath = this.importedFunctionModules.get(func.name);
+    if (modulePath) {
+      const dispatched = dispatchOfficialPackageCall(
+        this.providerRegistry,
+        modulePath,
+        func.name,
+        argValues,
+      );
+      if (dispatched !== null) {
+        return dispatched;
+      }
+    }
     if (func.isAsync) {
-      const argValues = args.map((arg) => this.evalExpr(arg));
       return { kind: "future", funcName: func.name, args: argValues, resolved: null };
     }
     const saved = this.env.clone();
@@ -2602,7 +2636,7 @@ export class Interpreter {
 
       // continue when param && arg.
       if (param && arg) {
-        this.env.define(param.name, this.evalExpr(arg));
+        this.env.define(param.name, argValues[i] ?? { kind: "void" });
       }
     }
     const result = this.executeBlockWithReturn(func.body);

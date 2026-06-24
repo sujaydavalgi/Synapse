@@ -5,6 +5,7 @@ import { compileWithRegistry, run } from "../src/compile.js";
 import { checkWithRegistry } from "../src/types/index.js";
 import { ModuleRegistry } from "../src/modules/index.js";
 import { createDefaultSimulator } from "../src/simulator/index.js";
+import { Interpreter } from "../src/runtime/interpreter.js";
 
 describe("TypeScript ModuleRegistry", () => {
   it("resolves cross-module export at type-check time", () => {
@@ -86,5 +87,43 @@ robot R {
     expect(() =>
       run(program, { backend: createDefaultSimulator(), maxLoopIterations: 1, moduleRegistry: registry }),
     ).not.toThrow();
+  });
+
+  it("dispatches official package imports through the provider registry", () => {
+    const gpsModule = `
+module positioning.gps;
+
+export fn read() -> GeoPoint {
+  return GeoPoint(lat: 0.0, lon: 0.0);
+}
+`;
+    const main = `
+module main;
+
+import positioning.gps;
+
+robot R {
+  actuator wheels: DifferentialDrive;
+  behavior run() {
+    let point = read();
+    let _ = point;
+    wheels.stop();
+  }
+}
+`;
+    const registry = new ModuleRegistry();
+    registry.register("positioning.gps", parse(tokenize(gpsModule)));
+    const { program } = compileWithRegistry(main, registry);
+    const interpreter = new Interpreter({
+      backend: createDefaultSimulator(),
+      maxLoopIterations: 1,
+      moduleRegistry: registry,
+      officialPackages: ["spanda-gps"],
+    });
+    interpreter.run(program);
+    const metrics = interpreter.collectRuntimeMetrics();
+    expect(
+      (metrics.providers as Record<string, { calls: number }>)["positioning.gps"]?.calls,
+    ).toBe(1);
   });
 });
