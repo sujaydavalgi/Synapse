@@ -706,6 +706,7 @@ impl Parser {
         let mut mission_plans = Vec::new();
         let mut resilience_policies = Vec::new();
         let mut recovery_policies = Vec::new();
+        let mut continuity_policies = Vec::new();
         let mut assurance_cases = Vec::new();
         let mut robots = Vec::new();
 
@@ -790,6 +791,8 @@ impl Parser {
                 resilience_policies.push(self.parse_resilience_policy()?);
             } else if self.check(TokenType::Ident) && self.peek().lexeme == "recovery_policy" {
                 recovery_policies.push(self.parse_recovery_policy()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "continuity_policy" {
+                continuity_policies.push(self.parse_continuity_policy()?);
             } else if self.check(TokenType::Ident) && self.peek().lexeme == "mission_plan" {
                 mission_plans.push(self.parse_mission_plan()?);
             } else if self.check(TokenType::Ident) && self.peek().lexeme == "operating_mode" {
@@ -844,6 +847,7 @@ impl Parser {
             mission_plans,
             resilience_policies,
             recovery_policies,
+            continuity_policies,
             assurance_cases,
             robots,
             span: self.span_from(&start, self.previous()),
@@ -9649,6 +9653,45 @@ impl Parser {
         }
         let end = self.expect(TokenType::Rbrace, "Expected '}' to close recovery_policy")?;
         Ok(RecoveryPolicyDecl::RecoveryPolicyDecl {
+            name,
+            branches,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_continuity_policy(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::ContinuityPolicyDecl, SpandaError> {
+        use spanda_ast::assurance_decl::{ContinuityPolicyBranch, ContinuityPolicyDecl};
+        let start = self.advance();
+        let name = self.parse_label("Expected continuity_policy name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after continuity_policy name")?;
+        let mut branches = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::On) {
+                self.advance();
+                let condition = self.parse_dotted_name("Expected continuity policy condition")?;
+                self.expect(TokenType::Lbrace, "Expected '{' after on condition")?;
+                let mut actions = Vec::new();
+                while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                    actions.push(self.parse_action_statement()?);
+                }
+                self.expect(TokenType::Rbrace, "Expected '}' to close on branch")?;
+                branches.push(ContinuityPolicyBranch {
+                    condition,
+                    actions,
+                    span: self.span_from(&start, self.previous()),
+                });
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected 'on' branch in continuity_policy".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close continuity_policy")?;
+        Ok(ContinuityPolicyDecl::ContinuityPolicyDecl {
             name,
             branches,
             span: self.span_from(&start, &end),

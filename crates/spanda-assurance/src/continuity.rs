@@ -249,6 +249,38 @@ impl Default for ContinuityContext {
     }
 }
 
+/// Continuity policy extracted from declarations.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ContinuityPolicySpec {
+    pub name: String,
+    pub triggers: Vec<(String, Vec<String>)>,
+}
+
+/// Extract continuity policies from program declarations.
+pub fn extract_continuity_policies(program: &Program) -> Vec<ContinuityPolicySpec> {
+    let Program::Program {
+        continuity_policies, ..
+    } = program;
+
+    continuity_policies
+        .iter()
+        .map(|decl| {
+            let spanda_ast::assurance_decl::ContinuityPolicyDecl::ContinuityPolicyDecl {
+                name,
+                branches,
+                ..
+            } = decl;
+            ContinuityPolicySpec {
+                name: name.clone(),
+                triggers: branches
+                    .iter()
+                    .map(|b| (b.condition.clone(), b.actions.clone()))
+                    .collect(),
+            }
+        })
+        .collect()
+}
+
 /// Mission continuity evaluation report.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MissionContinuityReport {
@@ -797,8 +829,11 @@ impl ContinuationDecisionEngine {
         }
     }
 
-    /// Infer takeover mode from trigger and progress.
-    pub fn infer_mode(context: &ContinuityContext, has_shadow: bool) -> TakeoverMode {
+    /// Infer takeover mode from trigger, progress, and declared continuity policies.
+    pub fn infer_mode(program: &Program, context: &ContinuityContext, has_shadow: bool) -> TakeoverMode {
+        if let Some(mode) = mode_from_policies(program, context) {
+            return mode;
+        }
         if matches!(context.trigger, ContinuityTrigger::BatteryCritical) {
             return TakeoverMode::HotTakeover;
         }
@@ -811,6 +846,67 @@ impl ContinuationDecisionEngine {
             TakeoverMode::Restart
         }
     }
+}
+
+fn mode_from_policies(program: &Program, context: &ContinuityContext) -> Option<TakeoverMode> {
+    let trigger_key = trigger_condition_key(context.trigger);
+    for policy in extract_continuity_policies(program) {
+        for (condition, actions) in &policy.triggers {
+            if condition_matches_trigger(condition, trigger_key) {
+                if let Some(mode) = mode_from_actions(actions) {
+                    return Some(mode);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn trigger_condition_key(trigger: ContinuityTrigger) -> &'static str {
+    match trigger {
+        ContinuityTrigger::RobotFailed => "robot.failed",
+        ContinuityTrigger::RobotDegraded => "robot.degraded",
+        ContinuityTrigger::DeviceDisconnected => "device.disconnected",
+        ContinuityTrigger::FleetMemberOffline => "fleet.failed",
+        ContinuityTrigger::SwarmMemberLost => "swarm.failed",
+        ContinuityTrigger::CommunicationInterrupted => "communication.interrupted",
+        ContinuityTrigger::BatteryCritical => "battery.critical",
+        ContinuityTrigger::HardwareCapabilityLost => "hardware.capability_lost",
+    }
+}
+
+fn condition_matches_trigger(condition: &str, trigger_key: &str) -> bool {
+    let c = condition.to_lowercase();
+    let t = trigger_key.to_lowercase();
+    c == t || c.contains(&t.replace('.', "")) || t.contains(&c.replace('.', ""))
+}
+
+fn mode_from_actions(actions: &[String]) -> Option<TakeoverMode> {
+    for action in actions {
+        let a = action.to_lowercase();
+        if a.contains("hot takeover") {
+            return Some(TakeoverMode::HotTakeover);
+        }
+        if a.contains("shadow") {
+            return Some(TakeoverMode::ShadowTakeover);
+        }
+        if a.contains("cold takeover") {
+            return Some(TakeoverMode::ColdTakeover);
+        }
+        if a.contains("human takeover") || a.contains("operator") {
+            return Some(TakeoverMode::HumanTakeover);
+        }
+        if a.contains("partial restart") {
+            return Some(TakeoverMode::PartialRestart);
+        }
+        if a.contains("restart") {
+            return Some(TakeoverMode::Restart);
+        }
+        if a.contains("resume") || a.contains("reassign mission") || a.contains("checkpoint") {
+            return Some(TakeoverMode::Resume);
+        }
+    }
+    None
 }
 
 /// Top-level mission continuity orchestrator.
@@ -828,7 +924,7 @@ impl MissionContinuityManager {
         let checkpoint =
             MissionCheckpointManager::nearest_checkpoint(&checkpoints, context.progress_percent);
 
-        let mode = ContinuationDecisionEngine::infer_mode(context, false);
+        let mode = ContinuationDecisionEngine::infer_mode(program, context, false);
         let takeover = successor.as_ref().map(|s| {
             TakeoverCoordinator::coordinate(program, context, s, mode)
         });
@@ -904,7 +1000,7 @@ pub fn plan_takeover(
     });
 
     let successor = selected.unwrap_or_else(|| "NoSuccessor".into());
-    let mode = ContinuationDecisionEngine::infer_mode(context, false);
+    let mode = ContinuationDecisionEngine::infer_mode(program, context, false);
     TakeoverCoordinator::coordinate(program, context, &successor, mode)
 }
 
@@ -1111,5 +1207,29 @@ robot ScannerGamma {
         let report = plan_takeover(&program, &context, Some("ScannerBeta"));
         assert!(report.safety_gates.iter().all(|g| g.passed));
         assert!(report.succeeded);
+    }
+
+    #[test]
+    fn continuity_policy_infers_resume_mode() {
+        let source = r#"
+continuity_policy TestContinuity {
+    on robot.failed {
+        resume from checkpoint;
+    }
+}
+robot R { behavior idle() {} }
+"#;
+        let program = parse_sd(source);
+        let policies = extract_continuity_policies(&program);
+        assert_eq!(policies.len(), 1);
+        let context = ContinuityContext {
+            trigger: ContinuityTrigger::RobotFailed,
+            progress_percent: 50.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            ContinuationDecisionEngine::infer_mode(&program, &context, false),
+            TakeoverMode::Resume
+        );
     }
 }

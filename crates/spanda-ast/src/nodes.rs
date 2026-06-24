@@ -552,6 +552,8 @@ pub enum Program {
         #[serde(default)]
         recovery_policies: Vec<crate::assurance_decl::RecoveryPolicyDecl>,
         #[serde(default)]
+        continuity_policies: Vec<crate::assurance_decl::ContinuityPolicyDecl>,
+        #[serde(default)]
         assurance_cases: Vec<crate::assurance_decl::AssuranceCaseDecl>,
         robots: Vec<RobotDecl>,
         span: Span,

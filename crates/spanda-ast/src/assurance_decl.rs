@@ -182,6 +182,25 @@ pub enum RecoveryPolicyDecl {
     },
 }
 
+/// Conditional branch inside a continuity policy (`on robot.failed { ... }`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ContinuityPolicyBranch {
+    pub condition: String,
+    pub actions: Vec<String>,
+    pub span: Span,
+}
+
+/// Continuity policy declaration for takeover, delegation, and succession.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum ContinuityPolicyDecl {
+    ContinuityPolicyDecl {
+        name: String,
+        branches: Vec<ContinuityPolicyBranch>,
+        span: Span,
+    },
+}
+
 /// Assurance case linking evidence sources.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]

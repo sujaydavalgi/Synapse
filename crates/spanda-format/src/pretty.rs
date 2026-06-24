@@ -370,6 +370,7 @@ impl PrettyPrinter {
             mission_plans,
             resilience_policies,
             recovery_policies,
+            continuity_policies,
             assurance_cases,
             kill_switches,
             health_checks,
@@ -518,6 +519,9 @@ impl PrettyPrinter {
             spanned_decls.push(span_of(decl));
         }
         for decl in recovery_policies {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in continuity_policies {
             spanned_decls.push(span_of(decl));
         }
         for decl in assurance_cases {
@@ -1844,23 +1848,18 @@ impl HasSpan for spanda_ast::assurance_decl::ResiliencePolicyDecl {
 
 impl HasSpan for spanda_ast::assurance_decl::RecoveryPolicyDecl {
     fn span(&self) -> &Span {
-        // Description:
-        //     Span.
-        //
-        // Inputs:
-        //     &self: input value
-        //         Caller-supplied &self.
-        //
-        // Outputs:
-        //     result: &Span
-        //         Return value from `span`.
-        //
-        // Example:
-
-        //     let result = spanda_format::pretty::span(&self);
-
         match self {
             spanda_ast::assurance_decl::RecoveryPolicyDecl::RecoveryPolicyDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::ContinuityPolicyDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::ContinuityPolicyDecl::ContinuityPolicyDecl { span, .. } => {
+                span
+            }
         }
     }
 }

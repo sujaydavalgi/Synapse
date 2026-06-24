@@ -22,14 +22,15 @@ pub mod types;
 
 pub use analyze::{assure_program, diagnosis_report, mitigation_report, MissionAssuranceSummary};
 pub use continuity::{
-    evaluate_continuity, plan_delegation, plan_succession, plan_takeover, parse_scope,
-    parse_trigger, ContinuationDecision, ContinuationDecisionEngine, ContinuityContext,
-    ContinuityEvidence, ContinuityTrigger, ContinuityTrustLevel, DelegationReport,
-    MissionCheckpoint, MissionCheckpointManager, MissionContinuityManager, MissionContinuityReport,
-    MissionContextTransfer, MissionDelegationManager, MissionRecoveryPlanner,
-    MissionStateSnapshot, MissionStateTransfer, MissionStateTransferManager, SuccessionPlanner,
-    SuccessionReport, SuccessionScope, SuccessorCandidate, SuccessorRanking,
-    SuccessorSelectionPolicy, TakeoverCoordinator, TakeoverMode, TakeoverReport,
+    evaluate_continuity, extract_continuity_policies, plan_delegation, plan_succession,
+    plan_takeover, parse_scope, parse_trigger, ContinuationDecision, ContinuationDecisionEngine,
+    ContinuityContext, ContinuityEvidence, ContinuityPolicySpec, ContinuityTrigger,
+    ContinuityTrustLevel, DelegationReport, MissionCheckpoint, MissionCheckpointManager,
+    MissionContinuityManager, MissionContinuityReport, MissionContextTransfer,
+    MissionDelegationManager, MissionRecoveryPlanner, MissionStateSnapshot, MissionStateTransfer,
+    MissionStateTransferManager, SuccessionPlanner, SuccessionReport, SuccessionScope,
+    SuccessorCandidate, SuccessorRanking, SuccessorSelectionPolicy, TakeoverCoordinator,
+    TakeoverMode, TakeoverReport,
 };
 pub use anomaly::{learned_models, scan_anomalies, AnomalyReport};
 pub use diagnosis::{diagnose_from_trace, diagnose_program, DiagnosisReport};
