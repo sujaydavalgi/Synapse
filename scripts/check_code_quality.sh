@@ -93,6 +93,7 @@ fi
 echo
 echo "Dashboard: https://github.com/${repo_slug}/security/code-quality"
 echo "AI findings: https://github.com/${repo_slug}/security (AI findings tab; not available via this script)"
+echo "After landing autofixes on main: ./scripts/close_stale_autofix_prs.sh --apply"
 
 if [[ "$WARN_ONLY" == "1" ]]; then
   exit 0
