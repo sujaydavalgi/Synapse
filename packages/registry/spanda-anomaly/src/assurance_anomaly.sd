@@ -1,8 +1,8 @@
 module assurance.anomaly;
 
 /** Package-backed learned anomaly scan scaffold (lean core delegates analysis). */
-export fn scan_learned(detector: String, observed: Float) -> Int {
-    if observed < 0.85 {
+export fn scan_learned(detector: String, observed: Float, volatility: Float) -> Int {
+    if observed < 0.85 || volatility > 0.25 {
         return 1;
     }
     return 0;

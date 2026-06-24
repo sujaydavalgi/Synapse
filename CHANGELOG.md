@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Readiness state estimation:** empty `state_estimator` inputs reduce Assurance factor score with span-aware IDE diagnostics.
 - **Assurance demo:** `spanda demo assurance` runs the full mission assurance CLI suite on `examples/showcase/assurance/rover.sd`.
 - **Learned anomaly runtime:** health polling invokes `assurance.anomaly::scan_learned` for detectors with `learned backend`; package stub scores observations below 0.85 as anomalies.
+- **Weighted sensor fusion:** runtime and `spanda state estimate` use type-weighted confidence; `fusion.read()` exposes `sources` and `state_estimate`.
+- **Learned anomaly EMA:** runtime tracks per-detector EMA volatility and passes it to `scan_learned` for drift detection.
 
 ### Fixed
 

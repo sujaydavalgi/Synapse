@@ -89,12 +89,24 @@ impl<B: RobotBackend> Interpreter<B> {
 
         for (detector, backend) in learned {
             let observed = observed_confidence(report, &detector);
+            let previous = self
+                .learned_anomaly_ema
+                .get(&detector)
+                .copied()
+                .unwrap_or(observed);
+            let ema = previous * 0.7 + observed * 0.3;
+            let volatility = (observed - ema).abs();
+            self.learned_anomaly_ema.insert(detector.clone(), ema);
             let args = vec![
                 RuntimeValue::String {
                     value: detector.clone(),
                 },
                 RuntimeValue::Number {
                     value: observed,
+                    unit: spanda_ast::nodes::UnitKind::None,
+                },
+                RuntimeValue::Number {
+                    value: volatility,
                     unit: spanda_ast::nodes::UnitKind::None,
                 },
             ];
@@ -128,7 +140,7 @@ impl<B: RobotBackend> Interpreter<B> {
             if value > 0.0 {
                 self.learned_anomaly_triggers.insert(detector.clone());
                 self.log(format!(
-                    "learned anomaly: {detector} via {backend} (observed={observed:.2})"
+                    "learned anomaly: {detector} via {backend} (observed={observed:.2}, ema={ema:.2})"
                 ));
                 self.record_debug_event(
                     1,
@@ -168,6 +180,7 @@ impl<B: RobotBackend> Interpreter<B> {
             let fusion = RuntimeValue::SensorFusion {
                 sensors: sensors.clone(),
                 estimator: Some(name.clone()),
+                fusion_inputs: inputs.clone(),
             };
             self.env.define(name.clone(), fusion);
             self.log(format!(
@@ -188,6 +201,13 @@ impl<B: RobotBackend> Interpreter<B> {
                         let StateEstimatorDecl::StateEstimatorDecl { name, .. } = decl;
                         name.clone()
                     }),
+                    fusion_inputs: state_estimators
+                        .first()
+                        .map(|decl| {
+                            let StateEstimatorDecl::StateEstimatorDecl { inputs, .. } = decl;
+                            inputs.clone()
+                        })
+                        .unwrap_or_default(),
                 },
             );
             self.log("state_estimator: aliased fusion binding".into());

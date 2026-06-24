@@ -528,7 +528,16 @@ pub fn dispatch_official_package_call(
             } else {
                 1.0
             };
-            let score = if observed < 0.85 { 1.0 } else { 0.0 };
+            let volatility = if args.len() > 2 {
+                number_arg(args, 2)
+            } else {
+                0.0
+            };
+            let score = if observed < 0.85 || volatility > 0.25 {
+                1.0
+            } else {
+                0.0
+            };
             record_call(
                 telemetry,
                 mission_trace,
