@@ -93,6 +93,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.record_debug_event(1, "health_critical", &[("overall", label.clone())]);
         }
         self.apply_health_policy_reactions(&report);
+        self.poll_learned_anomaly_detectors(&report);
         self.apply_anomaly_handlers(&report);
         self.apply_swarm_health_coordination(&report);
     }

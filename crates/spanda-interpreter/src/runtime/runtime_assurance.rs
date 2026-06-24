@@ -1,15 +1,149 @@
-//! Runtime anomaly handler reactions and state estimator fusion wiring.
+//! Runtime anomaly handler reactions, learned backends, and state estimator fusion wiring.
 
 use super::{Interpreter, RobotBackend, RuntimeValue};
-use spanda_ast::assurance_decl::{AnomalyHandlerDecl, StateEstimatorDecl};
+use spanda_ast::assurance_decl::{AnomalyDetectorDecl, AnomalyHandlerDecl, StateEstimatorDecl};
 use spanda_ast::nodes::Program;
 use spanda_capability::{HealthReport, HealthStatus};
+use spanda_providers::dispatch_official_package_call;
+use std::time::Instant;
 
 fn sensor_name_from_input(input: &str) -> String {
     input.split('.').next().unwrap_or(input).to_string()
 }
 
+fn collect_learned_detectors(program: &Program) -> Vec<(String, String)> {
+    let Program::Program {
+        imports,
+        anomaly_detectors,
+        ..
+    } = program;
+    let import_backend = imports.iter().find_map(|imp| {
+        let spanda_ast::nodes::ImportDecl::ImportDecl { path, .. } = imp;
+        if path.contains("assurance.anomaly") || path.ends_with("anomaly") {
+            Some(path.clone())
+        } else {
+            None
+        }
+    });
+    anomaly_detectors
+        .iter()
+        .filter_map(|decl| {
+            let AnomalyDetectorDecl::AnomalyDetectorDecl {
+                name,
+                learned_backend,
+                ..
+            } = decl;
+            let backend = learned_backend
+                .clone()
+                .or_else(|| import_backend.clone())?;
+            Some((name.clone(), backend))
+        })
+        .collect()
+}
+
+fn observed_confidence(report: &HealthReport, detector: &str) -> f64 {
+    for check in &report.checks {
+        if check.name == detector
+            || check.metric.contains("confidence")
+            || check.metric.contains("localization")
+        {
+            if !matches!(check.status, HealthStatus::Healthy | HealthStatus::Unknown) {
+                return 0.5;
+            }
+        }
+    }
+    if !matches!(
+        report.overall,
+        HealthStatus::Healthy | HealthStatus::Unknown
+    ) {
+        return 0.6;
+    }
+    0.95
+}
+
 impl<B: RobotBackend> Interpreter<B> {
+    /// Ensure the learned anomaly package is registered when detectors declare backends.
+    pub(super) fn ensure_learned_anomaly_package(&self) {
+        let mut registry = self.provider_registry.borrow_mut();
+        if registry.has_official_package("spanda-anomaly") {
+            registry.grant_capability("assurance.anomaly.scan");
+            return;
+        }
+        let mut names = registry.official_packages().to_vec();
+        names.push("spanda-anomaly".into());
+        registry.set_official_packages(names);
+        registry.grant_capability("assurance.anomaly.scan");
+    }
+
+    /// Poll optional learned anomaly backends during health transitions.
+    pub(super) fn poll_learned_anomaly_detectors(&mut self, report: &HealthReport) {
+        let Some(program) = self.health_program.clone() else {
+            return;
+        };
+        let learned = collect_learned_detectors(&program);
+        if learned.is_empty() {
+            return;
+        }
+        self.ensure_learned_anomaly_package();
+        self.learned_anomaly_triggers.clear();
+
+        for (detector, backend) in learned {
+            let observed = observed_confidence(report, &detector);
+            let args = vec![
+                RuntimeValue::String {
+                    value: detector.clone(),
+                },
+                RuntimeValue::Number {
+                    value: observed,
+                    unit: spanda_ast::nodes::UnitKind::None,
+                },
+            ];
+            let trace_providers = self.options.trace_providers;
+            let record_trace = self.options.record_trace;
+            let sim_time_ms = self.sim_time_ms;
+            let started = Instant::now();
+            let score = {
+                let mut registry = self.provider_registry.borrow_mut();
+                dispatch_official_package_call(
+                    &mut registry,
+                    &backend,
+                    "scan_learned",
+                    &args,
+                    if trace_providers {
+                        Some(&mut self.telemetry)
+                    } else {
+                        None
+                    },
+                    if record_trace {
+                        self.mission_trace.as_mut()
+                    } else {
+                        None
+                    },
+                    sim_time_ms,
+                )
+            };
+            let Some(RuntimeValue::Number { value, .. }) = score else {
+                continue;
+            };
+            if value > 0.0 {
+                self.learned_anomaly_triggers.insert(detector.clone());
+                self.log(format!(
+                    "learned anomaly: {detector} via {backend} (observed={observed:.2})"
+                ));
+                self.record_debug_event(
+                    1,
+                    "learned_anomaly_detected",
+                    &[
+                        ("detector", detector),
+                        ("backend", backend),
+                        ("score", format!("{value:.2}")),
+                    ],
+                );
+                let _ = started;
+            }
+        }
+    }
+
     /// Register `state_estimator` declarations as fusion runtime bindings.
     pub(super) fn setup_state_estimators(&mut self) {
         let Some(program) = self.health_program.clone() else {
@@ -77,7 +211,7 @@ impl<B: RobotBackend> Interpreter<B> {
             report.overall,
             HealthStatus::Healthy | HealthStatus::Unknown
         );
-        if !health_degraded {
+        if !health_degraded && self.learned_anomaly_triggers.is_empty() {
             self.applied_anomaly_handlers.clear();
             return;
         }
@@ -85,20 +219,18 @@ impl<B: RobotBackend> Interpreter<B> {
         let mut triggered: std::collections::HashSet<String> = anomaly_detectors
             .iter()
             .map(|det| {
-                let spanda_ast::assurance_decl::AnomalyDetectorDecl::AnomalyDetectorDecl {
-                    name,
-                    ..
-                } = det;
+                let AnomalyDetectorDecl::AnomalyDetectorDecl { name, .. } = det;
                 name.clone()
             })
             .collect();
+        triggered.extend(self.learned_anomaly_triggers.iter().cloned());
 
         for check in &report.checks {
             if matches!(check.status, HealthStatus::Healthy | HealthStatus::Unknown) {
                 continue;
             }
             for det in &anomaly_detectors {
-                let spanda_ast::assurance_decl::AnomalyDetectorDecl::AnomalyDetectorDecl {
+                let AnomalyDetectorDecl::AnomalyDetectorDecl {
                     name,
                     expected,
                     ..

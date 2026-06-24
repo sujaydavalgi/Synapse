@@ -522,6 +522,45 @@ pub fn dispatch_official_package_call(
                 unit: spanda_ast::nodes::UnitKind::None,
             })
         }
+        ("assurance.anomaly", "scan_learned") if registry.has_capability("assurance.anomaly.scan") => {
+            let observed = if args.len() > 1 {
+                number_arg(args, 1)
+            } else {
+                1.0
+            };
+            let score = if observed < 0.85 { 1.0 } else { 0.0 };
+            record_call(
+                telemetry,
+                mission_trace,
+                sim_time_ms,
+                &key,
+                "assurance",
+                module_path,
+                function_name,
+                started,
+                false,
+            );
+            Some(RuntimeValue::Number {
+                value: score,
+                unit: spanda_ast::nodes::UnitKind::None,
+            })
+        }
+        ("assurance.anomaly", "backend_name") if registry.has_capability("assurance.anomaly.scan") => {
+            record_call(
+                telemetry,
+                mission_trace,
+                sim_time_ms,
+                &key,
+                "assurance",
+                module_path,
+                function_name,
+                started,
+                false,
+            );
+            Some(RuntimeValue::String {
+                value: "assurance.anomaly".into(),
+            })
+        }
         _ => None,
     };
 

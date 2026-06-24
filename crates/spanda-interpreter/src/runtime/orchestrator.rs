@@ -386,6 +386,7 @@ pub struct Interpreter<B: RobotBackend> {
     last_health_overall: Option<String>,
     applied_health_reactions: std::collections::HashSet<String>,
     applied_anomaly_handlers: std::collections::HashSet<String>,
+    learned_anomaly_triggers: std::collections::HashSet<String>,
     kill_switch_defs: HashMap<String, spanda_ast::foundations::KillSwitchDecl>,
     program_swarms: Vec<spanda_ast::robotics_decl::SwarmDecl>,
 }
@@ -497,6 +498,7 @@ impl<B: RobotBackend> Interpreter<B> {
             last_health_overall: None,
             applied_health_reactions: std::collections::HashSet::new(),
             applied_anomaly_handlers: std::collections::HashSet::new(),
+            learned_anomaly_triggers: std::collections::HashSet::new(),
             kill_switch_defs: HashMap::new(),
             program_swarms: Vec::new(),
         }

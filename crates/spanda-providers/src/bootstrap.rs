@@ -188,6 +188,9 @@ pub fn bootstrap_providers_for_packages(package_names: &[&str]) -> ProviderRegis
         registry.grant_capability("iot.canbus");
         crate::iot_hub::seed_protocol_demos();
     }
+    if include_all || names.contains("spanda-anomaly") {
+        registry.grant_capability("assurance.anomaly.scan");
+    }
     if names.contains("spanda-zigbee")
         || names.contains("spanda-lora")
         || names.contains("spanda-matter")
