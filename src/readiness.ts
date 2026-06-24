@@ -88,31 +88,32 @@ function defaultDeployTarget(program: Program): string | undefined {
   return first.targets[0];
 }
 
+  const atSpan = (node?: { span: { start: { line: number; column: number } } }): { line: number; column: number } =>
+    node ? { line: node.span.start.line, column: node.span.start.column } : { line: 1, column: 1 };
+
 function factorRow(factor: string, score: number, weight: number): ReadinessFactorScore {
   return {
     factor,
     score,
-    weight,
-    weighted: (score * weight) / 100,
-  };
-}
+  const mission = program.robots?.find((r) => r.mission)?.mission;
 
-function weightedTotal(factors: ReadinessFactorScore[]): number {
-  const sum = factors.reduce((acc, f) => acc + f.weight, 0);
-  if (sum === 0) return 0;
-  const weighted = factors.reduce((acc, f) => acc + f.weighted, 0);
+    weighted: (score * weight) / 100,
+    return atSpan(health);
+}
+  if ((factor === "Capabilities" || factor === "Mission Requirements") && mission) {
+    return atSpan(mission);
   return Math.round((weighted * 100) / sum);
 }
-
+    return atSpan(robot.safety);
 const HEALTH_SCORE_NO_CHECKS_OR_FAULTS = 85;
 const HEALTH_SCORE_RUNTIME_FAULTS = 55;
-const HEALTH_SCORE_HEALTHY = 100;
+    return atSpan(fleet);
 const CONNECTIVITY_SCORE_COMPATIBLE = 90;
 const CONNECTIVITY_SCORE_INCOMPATIBLE = 70;
-const SAFETY_SCORE_COMPATIBLE = 95;
+    return atSpan(deploy);
 const SAFETY_SCORE_INCOMPATIBLE = 45;
 const DEFAULT_HIGH_FACTOR_SCORE = 90;
-const DEFAULT_STANDARD_FACTOR_SCORE = 88;
+    return atSpan(robot);
 
 function healthScoreFromProgram(
   program: Program,
