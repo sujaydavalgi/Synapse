@@ -298,6 +298,14 @@ function executePlan(
   };
 }
 
+function validateOperatingModes(program: Program): boolean {
+  const modes = program.operatingModes ?? [];
+  if (modes.length === 0) return true;
+  const hasSafe = modes.some((m) => /safe/i.test(m.modeKind));
+  const hasDegraded = modes.some((m) => /degraded/i.test(m.modeKind));
+  return hasSafe && hasDegraded;
+}
+
 export function evaluateRecoveryTs(
   program: Program,
   context?: RecoveryContext,
@@ -317,7 +325,10 @@ export function evaluateRecoveryTs(
   const plans = contexts.map((ctx) => planRecovery(program, ctx));
   const results = plans.map((plan) => executePlan(program, plan, options));
   const readinessScore = evaluateReadinessTs(program, options).score.total;
-  const passed = results.every((r) => r.status !== "Unsafe" && r.status !== "Failed");
+  const passed =
+    plans.length > 0 &&
+    results.every((r) => r.status !== "Unsafe" && r.status !== "Failed") &&
+    validateOperatingModes(program);
   return {
     policies,
     plans,

@@ -12,6 +12,7 @@ import {
   type VerifyHardwareTsOptions,
 } from "./hardware-verify.js";
 import { lineColumnForIssue } from "./readiness-spans.js";
+import { collectRecoveryDiagnostics } from "./recovery-diagnostics.js";
 
 export type ReadinessSeverity = "Critical" | "High" | "Medium" | "Low" | "Info";
 export type ReadinessStatus = "Ready" | "Degraded" | "NotReady" | "Unknown";
@@ -345,7 +346,7 @@ export function readinessDiagnostics(
 }> {
   const program = parse(tokenize(source));
   const report = evaluateReadinessTs(program, options);
-  return report.issues.map((issue) => {
+  const readinessItems = report.issues.map((issue) => {
     const span = lineColumnForIssue(program, issue);
     return {
       message: issue.message,
@@ -356,6 +357,7 @@ export function readinessDiagnostics(
       suggested_fix: issue.suggested_action,
     };
   });
+  return [...readinessItems, ...collectRecoveryDiagnostics(program)];
 }
 
 export function readinessDashboardFromReports(reports: ReadinessReport[]): ReadinessDashboard {
