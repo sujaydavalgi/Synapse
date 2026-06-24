@@ -77,6 +77,13 @@ impl<B: RobotBackend> Interpreter<B> {
         };
         self.hardware_monitor
             .record_sensor_reading(name, sensor_type, &reading);
+        let _ = spanda_telemetry_store::record_sensor_reading(
+            name,
+            sensor_type,
+            &reading,
+            self.sim_time_ms,
+            None,
+        );
         Ok(reading)
     }
 

@@ -389,6 +389,21 @@ pub fn publish_telemetry(telemetry: Telemetry) {
 
     //     let result = spanda_providers::iot_hub::publish_telemetry(elemetry);
 
+    if spanda_telemetry_store::persist_enabled() {
+        let Telemetry {
+            device_id,
+            metric,
+            value,
+            timestamp_ms,
+        } = &telemetry;
+        let _ = spanda_telemetry_store::record_device_telemetry(
+            device_id,
+            metric,
+            value,
+            *timestamp_ms,
+            None,
+        );
+    }
     hub().lock().unwrap().publish_telemetry(telemetry);
 }
 

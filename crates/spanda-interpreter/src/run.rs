@@ -31,6 +31,8 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
 
     //     let result = spanda_interpreter::run::run_program(progra, options);
 
+    spanda_telemetry_store::configure_session_persist(options.persist_telemetry);
+
     let obstacles: Vec<Obstacle> = options
         .obstacles
         .iter()

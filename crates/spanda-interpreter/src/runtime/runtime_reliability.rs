@@ -311,6 +311,12 @@ impl<B: RobotBackend> Interpreter<B> {
         // Store the current simulation time as the task heartbeat.
         self.task_heartbeats
             .insert(task_name.to_string(), self.sim_time_ms);
+        let _ = spanda_telemetry_store::record_task_heartbeat(
+            task_name,
+            self.sim_time_ms,
+            None,
+            5000.0,
+        );
     }
 
     pub(super) fn check_watchdogs(&mut self) -> Result<(), SpandaError> {

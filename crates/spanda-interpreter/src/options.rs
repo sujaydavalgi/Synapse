@@ -68,7 +68,10 @@ pub struct RunOptions {
     pub trigger_kill_switch: Option<String>,
     #[serde(default)]
     pub kill_switch_signature: Option<String>,
+    #[serde(default)]
     pub inject_health_faults: bool,
+    #[serde(default)]
+    pub persist_telemetry: bool,
 
     /// Inbound comm payloads queued before each recovery approval poll (test/sim hook).
     #[serde(default)]
