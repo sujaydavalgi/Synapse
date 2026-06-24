@@ -59,6 +59,8 @@
 | [debugging.md](./debugging.md) | **Debug `behavior`, `task every`, and `every` triggers in VS Code (DAP)** |
 | [health-checks.md](./health-checks.md) | **Health checks, fleet `require` clauses, and policies** |
 | [readiness.md](./readiness.md) | **Operational readiness engine and weighted go/no-go scoring** |
+| [mission-assurance.md](./mission-assurance.md) | **Mission assurance domains, CLI, and integration with readiness** |
+| [state-estimation.md](./state-estimation.md) | **State estimators, belief state, and `spanda state estimate`** |
 | [mission-verification.md](./mission-verification.md) | **Mission achievability and approval verification** |
 | [failure-analysis.md](./failure-analysis.md) | **Component failure impact and mitigations** |
 | [safety-reporting.md](./safety-reporting.md) | **Deployable safety case reports (JSON/Markdown/HTML)** |

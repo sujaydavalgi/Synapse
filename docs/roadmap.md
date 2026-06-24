@@ -21,6 +21,24 @@ Platform overview: [platform-overview.md](./platform-overview.md) · Feature tru
 | [Fleet](#fleet) | In-process + HTTP agents | Distributed orchestration polish |
 | [Packages](#packages) | 29 registry scaffolds, publish mirror | Curated remote registry growth |
 | [Tooling](#tooling) | CLI, demos, CI golden paths | VS Code Marketplace, LSP polish |
+| [Mission assurance](#mission-assurance) | Lean-core analysis + CLI | Package-backed ML anomaly backends |
+
+---
+
+## Mission assurance
+
+**NASA-style autonomous operations** — knowledge models, state estimation, anomaly detection, prognostics, mitigation, resilience, assurance cases.
+
+| Item | Status |
+|------|--------|
+| `spanda-assurance` crate (static analysis) | **Stable** |
+| Language declarations (`knowledge_model`, `state_estimator`, `anomaly_detector`, …) | **Stable** |
+| CLI (`assure`, `anomaly scan`, `state estimate`, `prognostics`, `mission verify`, `resilience check`) | **Stable** |
+| Runtime `state_estimator` → fusion bindings | **Experimental** |
+| Learned anomaly backends (`learned backend`, `spanda-anomaly`) | **Experimental** |
+| Full ML inference / advanced fusion algorithms | **Future** — package backends |
+
+See [mission-assurance.md](./mission-assurance.md), [state-estimation.md](./state-estimation.md).
 
 ---
 

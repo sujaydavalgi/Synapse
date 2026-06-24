@@ -35,6 +35,7 @@ At runtime, `state_estimator` wires `SensorFusion` bindings after robot sensors 
 ```bash
 spanda assure rover.sd
 spanda anomaly scan rover.sd
+spanda state estimate rover.sd
 spanda diagnose mission.trace    # or program .sd
 spanda prognostics rover.sd
 spanda mission verify mission.sd
@@ -76,6 +77,7 @@ Mission assurance **composes** with:
 ## Related docs
 
 - [Knowledge models](knowledge-models.md)
+- [State estimation](state-estimation.md)
 - [Anomaly detection](anomaly-detection.md)
 - [Diagnostics](diagnostics.md)
 - [Prognostics](prognostics.md)
