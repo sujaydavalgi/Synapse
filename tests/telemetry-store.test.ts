@@ -119,4 +119,22 @@ describe("runtime telemetry snapshot", () => {
     expect((snapshot.topics as Record<string, { last_elapsed_ms: number }>)["/telemetry"]?.last_elapsed_ms).toBe(0);
     expect((snapshot.providers as Record<string, { calls: number }>).nav2?.calls).toBe(1);
   });
+
+  it("records topic QoS deadline misses after publish gaps", () => {
+    const runtime = new ReliabilityRuntime();
+    const logs: string[] = [];
+    const host = {
+      executeBlock: () => {},
+      log: (message: string) => logs.push(message),
+      getSimTimeMs: () => runtime.simTimeMs,
+    };
+    runtime.registerTopicQos("/scan", 100);
+    runtime.simTimeMs = 10;
+    runtime.noteTopicPublish("/scan", 10);
+    runtime.simTimeMs = 250;
+    runtime.checkTopicQosDeadlines(host);
+    const snapshot = runtime.snapshotRuntimeMetrics();
+    expect((snapshot.topics as Record<string, { deadline_misses: number }>)["/scan"]?.deadline_misses).toBe(1);
+    expect(logs.some((line) => line.includes("deadline miss"))).toBe(true);
+  });
 });

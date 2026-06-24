@@ -103,6 +103,9 @@ export class ReliabilityRuntime {
   private triggerMetrics = new Map<string, TriggerMetricState>();
   private topicMetrics = new Map<string, TopicMetricState>();
   private providerMetrics = new Map<string, ProviderMetricState>();
+  private topicQos = new Map<string, { deadline_ms: number }>();
+  private topicLastPublishMs = new Map<string, number>();
+  private topicDeadlineMisses = new Map<string, number>();
 
   loadFromRobot(robot: RobotDecl, recordTrace: boolean, traceSource?: string): void {
 
@@ -129,6 +132,9 @@ export class ReliabilityRuntime {
     this.triggerMetrics.clear();
     this.topicMetrics.clear();
     this.providerMetrics.clear();
+    this.topicQos.clear();
+    this.topicLastPublishMs.clear();
+    this.topicDeadlineMisses.clear();
     this.activeMode = "normal";
     this.missionTrace = recordTrace ? createMissionTrace(traceSource ?? "program.sd") : null;
 
@@ -356,6 +362,43 @@ export class ReliabilityRuntime {
     existing.last_duration_ms = durationMs;
     existing.max_duration_ms = Math.max(existing.max_duration_ms, durationMs);
     this.providerMetrics.set(providerKey, existing);
+  }
+
+  registerTopicQos(path: string, deadlineMs: number | null | undefined): void {
+    if (deadlineMs != null && deadlineMs > 0) {
+      this.topicQos.set(path, { deadline_ms: deadlineMs });
+    }
+  }
+
+  noteTopicPublish(path: string, simTimeMs: number): void {
+    this.topicLastPublishMs.set(path, simTimeMs);
+    this.recordTopicPublish(path, 0);
+  }
+
+  checkTopicQosDeadlines(host: ReliabilityHost): void {
+    for (const [path, qos] of this.topicQos.entries()) {
+      const last = this.topicLastPublishMs.get(path) ?? 0;
+      if (last <= 0) {
+        continue;
+      }
+      const elapsed = host.getSimTimeMs() - last;
+      if (elapsed <= qos.deadline_ms) {
+        continue;
+      }
+      const misses = this.topicDeadlineMisses.get(path) ?? 0;
+      if (misses === 0 || elapsed > qos.deadline_ms * (misses + 1)) {
+        this.topicDeadlineMisses.set(path, misses + 1);
+        this.recordTopicPublish(path, elapsed, true);
+        this.recordMissionEvent(host, "topic_deadline_miss", {
+          topic: path,
+          elapsed_ms: elapsed,
+          deadline_ms: qos.deadline_ms,
+        });
+        host.log(
+          `topic '${path}': deadline miss (${elapsed.toFixed(1)}ms > ${qos.deadline_ms}ms)`,
+        );
+      }
+    }
   }
 
   snapshotRuntimeMetrics(replayFrames = 0): Record<string, unknown> {

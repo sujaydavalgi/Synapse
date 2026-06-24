@@ -4,6 +4,7 @@
  */
 
 import type { RuntimeValue } from "../runtime/interpreter.js";
+import { notifyProviderCall } from "../runtime/provider-observer.js";
 import type { ProviderRegistry } from "./registry.js";
 import { transportRegistryKey } from "./registry.js";
 
@@ -153,12 +154,18 @@ export function dispatchOfficialPackageCall(
     return null;
   }
 
+  const started = performance.now();
+  const finish = (failed: boolean): void => {
+    notifyProviderCall(modulePath, packageName, performance.now() - started, failed);
+  };
+
   // TODO: Wire project-scoped provider registry lookup via key for dispatch paths that need per-project backends.
   const key = projectProviderKey(packageName);
   void key;
 
   if (modulePath === "positioning.gps" && functionName === "read") {
     if (!registry.hasCapability("positioning.read")) return null;
+    finish(false);
     return {
       kind: "object",
       typeName: "GeoPoint",
@@ -170,6 +177,7 @@ export function dispatchOfficialPackageCall(
   }
   if (modulePath === "connectivity.wifi" && functionName === "connect") {
     if (!registry.hasCapability("connectivity.wifi")) return null;
+    finish(false);
     return okInt();
   }
   if (modulePath === "communication.mqtt" && functionName === "publish_topic") {
@@ -178,10 +186,12 @@ export function dispatchOfficialPackageCall(
     registry.withTransport(transportKey, (transport) => {
       transport.publish("/topic", "std_msgs/String", { kind: "string", value: "ok" });
     });
+    finish(false);
     return okInt();
   }
   if (modulePath === "navigation.slam" && functionName === "localize") {
     if (!registry.hasCapability("slam.localize")) return null;
+    finish(false);
     return { kind: "object", typeName: "LocalizationEstimate", fields: {} };
   }
   if (
@@ -189,6 +199,7 @@ export function dispatchOfficialPackageCall(
     functionName === "detect"
   ) {
     if (!registry.hasCapability("vision.detect")) return null;
+    finish(false);
     return { kind: "object", typeName: "Detections", fields: {} };
   }
   if (
@@ -196,10 +207,12 @@ export function dispatchOfficialPackageCall(
     functionName === "step"
   ) {
     if (!registry.hasCapability("simulation.step")) return null;
+    finish(false);
     return okInt();
   }
   if (modulePath === "provenance.ledger" && functionName === "append") {
     if (!registry.hasCapability("audit.append")) return null;
+    finish(false);
     return okInt();
   }
 

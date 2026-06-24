@@ -57,6 +57,7 @@ import { callExternBridge } from "../ffi/subprocess-bridge.js";
 import { ConcurrencyRuntime } from "../concurrency.js";
 import { recordSensorReading, recordTaskHeartbeat, recordTopicPublish } from "../telemetry-store.js";
 import type { MissionTrace, ReplayStateSnapshot } from "../replay.js";
+import { setProviderCallObserver } from "./provider-observer.js";
 import { createHealthPollState, pollRuntimeHealthChanges, type HealthPollState } from "./health-runtime.js";
 import type { ModuleRegistry } from "../modules/index.js";
 import type { ExternFnDecl, ModuleFnDecl, ResourceBudgetDecl, TaskDecl, TaskPriority } from "../foundations.js";
@@ -353,6 +354,9 @@ export class Interpreter {
     this.providerRegistry =
       options.providerRegistry ??
       bootstrapProvidersForPackages(options.officialPackages ?? []);
+    setProviderCallObserver((providerKey, category, durationMs, failed) => {
+      this.reliability.recordProviderCall(providerKey, category, durationMs, failed);
+    });
   }
 
   run(program: Program, entryBehavior?: string): RobotState {
@@ -1543,6 +1547,7 @@ export class Interpreter {
       );
       this.updateTwinSnapshot();
       this.reliability.checkWatchdogs(this.reliabilityHost());
+      this.reliability.checkTopicQosDeadlines(this.reliabilityHost());
       this.runConnectivityMaintenance();
       this.reliability.recordEvent(this.reliabilityHost(), "scheduler_tick", {
         simTimeMs: simTime,
@@ -2465,6 +2470,7 @@ export class Interpreter {
     }
     this.commBus.subscribe(path, topic.name);
     this.topicPathToMessageType.set(path, topic.messageType);
+    this.reliability.registerTopicQos(path, topic.qos?.deadlineMs ?? null);
     this.env.define(topic.name, {
       kind: "topic",
       name: topic.name,
@@ -2712,7 +2718,7 @@ export class Interpreter {
             value,
             this.reliability.simTimeMs,
           );
-          this.reliability.recordTopicPublish(topic.topicPath, 0);
+          this.reliability.noteTopicPublish(topic.topicPath, this.reliability.simTimeMs);
           this.reliability.recordMissionEvent(
             this.reliabilityHost(),
             "topic_publish",

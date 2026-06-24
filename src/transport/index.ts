@@ -29,6 +29,7 @@ import { LiveMqttBridge, liveMqttEnabled } from "./live-mqtt.js";
 import { LiveWebsocketBridge, liveWebsocketEnabled } from "./live-websocket.js";
 import { LiveDdsBridge, liveDdsEnabled } from "./live-dds.js";
 import type { ProviderRegistry, TransportProvider } from "../providers/registry.js";
+import { notifyProviderCall } from "../runtime/provider-observer.js";
 
 export type { TransportKind, SecureCommPolicy, TransportSecurityConfig, FullTransportConfig };
 export { TlsTransportSession, defaultTransportSecurity, transportSecurityFromBusFields, resolveBrokerUrl };
@@ -530,6 +531,8 @@ export class RoutingCommBus {
 
     this.memory.publish(topicPath, messageType, value, transport, sourceId);
     if (this.usesRegistryTransport(transport)) {
+      const started = performance.now();
+      let failed = false;
       this.withRegistryTransport(transport, (provider) => {
         if (provider.isConnected()) {
           try {
@@ -543,10 +546,12 @@ export class RoutingCommBus {
             );
             provider.publish(topicPath, messageType, wireValue);
           } catch {
+            failed = true;
             provider.publish(topicPath, messageType, value);
           }
         }
       });
+      notifyProviderCall(transport, "transport", performance.now() - started, failed);
       return;
     }
     const adapter = this.adapter(transport);
