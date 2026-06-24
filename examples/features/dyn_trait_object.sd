@@ -18,6 +18,17 @@ robot TraitObjectRover {
 
   impl Greeter for Nav {
     fn greet() -> Void {
+      // Description:
+      //     Performs a safe greet by stopping wheel motion.
+      //
+      // Inputs:
+      //     None.
+      //
+      // Outputs:
+      //     None.
+      //
+      // Example:
+      //     handler.greet();
       wheels.stop();
     }
   }

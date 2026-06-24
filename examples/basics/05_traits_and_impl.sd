@@ -25,6 +25,19 @@ robot PlannerRover {
 
   impl PathPlanner for Navigator {
     fn plan(goal: NavGoal) -> Path {
+      // Description:
+      //     Plans a path to the given navigation goal for the rover.
+      //
+      // Inputs:
+      //     goal: NavGoal
+      //         Target pose (x, y, heading) to reach.
+      //
+      // Outputs:
+      //     path: Path
+      //         Planned route; stops wheels as a safe placeholder.
+      //
+      // Example:
+      //     let route = Navigator.plan(goal);
       wheels.stop();
     }
   }

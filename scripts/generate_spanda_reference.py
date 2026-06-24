@@ -13,11 +13,230 @@ MAN_DIR = ROOT / "docs" / "man"
 
 
 def run(cmd: list[str]) -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Run.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    cmd: list[str]
+
+
+
+
+
+
+
+
+    Caller-supplied cmd.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = run(cmd)
+
+
+    """
     print("+", " ".join(cmd))
     subprocess.run(cmd, cwd=ROOT, check=True)
 
 
 def write_man_index() -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Write man index.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = write_man_index()
+
+
+    """
     rows = []
     for path in sorted(MAN_DIR.glob("spanda*.md")):
         if path.name == "README.md":
@@ -37,6 +256,111 @@ def write_man_index() -> None:
 
 
 def main() -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     run(
         [
             "cargo",

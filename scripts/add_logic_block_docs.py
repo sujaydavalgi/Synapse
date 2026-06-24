@@ -49,6 +49,111 @@ OLD_BLOCK_COMMENT = re.compile(
 
 
 def load_docs_module():
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Load docs module.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = load_docs_module()
+
+
+    """
     import sys
 
     path = Path(__file__).with_name("add_inline_docs.py")
@@ -62,6 +167,147 @@ def load_docs_module():
 
 
 def is_test_function(text: str, start: int) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Is test function.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    start: int
+
+
+
+
+
+
+
+
+    Caller-supplied start.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `is_test_function`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = is_test_function(text, start)
+
+
+    """
     prefix = text[max(0, start - 600) : start]
     if "#[test]" in prefix or "#[tokio::test]" in prefix:
         return True
@@ -72,11 +318,275 @@ def is_test_function(text: str, start: int) -> bool:
 
 
 def body_has_nested_function(body_lines: list[str], base_indent: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Body has nested function.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    body_lines: list[str]
+
+
+
+
+
+
+
+
+    Caller-supplied body lines.
+
+
+
+
+
+
+
+
+    base_indent: str
+
+
+
+
+
+
+
+
+    Caller-supplied base indent.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `body_has_nested_function`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = body_has_nested_function(body_lines, base_indent)
+
+
+    """
     nested = re.compile(rf"^{re.escape(base_indent)}(?:pub\s+)?fn\s+")
     return any(nested.match(line) for line in body_lines)
 
 
 def is_api_marker_line(line: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Is api marker line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    line: str
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `is_api_marker_line`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = is_api_marker_line(line)
+
+
+    """
     stripped = line.strip()
     if stripped in {"//", "// -"}:
         return True
@@ -89,10 +599,256 @@ EXAMPLE_USE_LINE = re.compile(r"^\s*// use (?:crate::|\w+::)")
 
 
 def is_example_use_line(line: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Is example use line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    line: str
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `is_example_use_line`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = is_example_use_line(line)
+
+
+    """
     return EXAMPLE_USE_LINE.match(line) is not None
 
 
 def is_generated_block_comment(line: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Is generated block comment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    line: str
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `is_generated_block_comment`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = is_generated_block_comment(line)
+
+
+    """
     stripped = line.strip()
     if not stripped.startswith("//"):
         return False
@@ -104,6 +860,129 @@ def is_generated_block_comment(line: str) -> bool:
 
 
 def precedes_block_comment(prev_line: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Precedes block comment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    prev_line: str
+
+
+
+
+
+
+
+
+    Caller-supplied prev line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `precedes_block_comment`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = precedes_block_comment(prev_line)
+
+
+    """
     stripped = prev_line.strip()
     if not stripped.startswith("//"):
         return True
@@ -113,6 +992,129 @@ def precedes_block_comment(prev_line: str) -> bool:
 
 
 def is_old_block_comment(line: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Is old block comment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    line: str
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `is_old_block_comment`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = is_old_block_comment(line)
+
+
+    """
     stripped = line.strip()
     if not stripped.startswith("//"):
         return False
@@ -122,6 +1124,120 @@ def is_old_block_comment(line: str) -> bool:
 
 
 def strip_logic_header(lines: list[str]) -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Strip logic header.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    lines: list[str]
+
+
+
+
+
+
+
+
+    Caller-supplied lines.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = strip_logic_header(lines)
+
+
+    """
     i = 0
     while i < len(lines):
         stripped = lines[i].strip()
@@ -193,6 +1309,129 @@ GENERIC_BLOCK_COMMENTS = {
 
 
 def is_generic_block_comment(text: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Is generic block comment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `is_generic_block_comment`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = is_generic_block_comment(text)
+
+
+    """
     text = text.strip()
     if not text.endswith("."):
         text += "."
@@ -200,6 +1439,129 @@ def is_generic_block_comment(text: str) -> bool:
 
 
 def humanize(name: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Humanize.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    name: str
+
+
+
+
+
+
+
+
+    Caller-supplied name.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `humanize`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = humanize(name)
+
+
+    """
     name = name.strip("_").strip()
     if not name:
         return "value"
@@ -207,6 +1569,129 @@ def humanize(name: str) -> str:
 
 
 def rust_tail(expr: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Rust tail.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    expr: str
+
+
+
+
+
+
+
+
+    Caller-supplied expr.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `rust_tail`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = rust_tail(expr)
+
+
+    """
     expr = expr.rstrip(" {;,").strip()
     expr = re.sub(r"^&mut\s+", "", expr)
     expr = re.sub(r"^&", "", expr)
@@ -220,6 +1705,129 @@ def rust_tail(expr: str) -> str:
 
 
 def describe_for_rust(s: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe for rust.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    s: str
+
+
+
+
+
+
+
+
+    Caller-supplied s.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_for_rust`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_for_rust(s)
+
+
+    """
     m = re.match(r"for\s+(.+?)\s+in\s+(.+)", s)
     if not m:
         return "Iterate over the collection."
@@ -272,6 +1880,129 @@ def describe_for_rust(s: str) -> str:
 
 
 def sentence(text: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Sentence.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `sentence`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = sentence(text)
+
+
+    """
     text = text.strip()
     if not text:
         return text
@@ -279,6 +2010,165 @@ def sentence(text: str) -> str:
 
 
 def describe_if_rust(s: str, *, otherwise: bool = False) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe if rust.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    s: str
+
+
+
+
+
+
+
+
+    Caller-supplied s.
+
+
+
+
+
+
+
+
+    *: input value
+
+
+
+
+
+
+
+
+    Caller-supplied *.
+
+
+
+
+
+
+
+
+    otherwise: bool
+
+
+
+
+
+
+
+
+    Caller-supplied otherwise.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_if_rust`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_if_rust(s, *, otherwise)
+
+
+    """
     prefix = "Otherwise, " if otherwise else ""
     body = re.sub(r"^else\s+", "", s).strip()
     body = re.sub(r"^if\s+", "", body).rstrip(" {").strip()
@@ -338,6 +2228,129 @@ def describe_if_rust(s: str, *, otherwise: bool = False) -> str:
 
 
 def describe_let_rust(s: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe let rust.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    s: str
+
+
+
+
+
+
+
+
+    Caller-supplied s.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_let_rust`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_let_rust(s)
+
+
+    """
     if "Program::Program" in s or "Program {" in s:
         if "tests" in s:
             return "Extract test blocks from the parsed program."
@@ -381,6 +2394,129 @@ def describe_let_rust(s: str) -> str:
 
 
 def describe_block_rust(line: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe block rust.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    line: str
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_block_rust`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_block_rust(line)
+
+
+    """
     s = line.strip()
     if s.startswith("else if let TriggerKind::Event"):
         return "Otherwise, index event triggers by name for fast lookup."
@@ -462,6 +2598,129 @@ def describe_block_rust(line: str) -> str:
 
 
 def ts_tail(expr: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Ts tail.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    expr: str
+
+
+
+
+
+
+
+
+    Caller-supplied expr.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `ts_tail`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = ts_tail(expr)
+
+
+    """
     expr = expr.rstrip(" {;,").strip()
     expr = re.sub(r"^this\.", "", expr)
     if "." in expr:
@@ -471,6 +2730,129 @@ def ts_tail(expr: str) -> str:
 
 
 def describe_for_ts(s: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe for ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    s: str
+
+
+
+
+
+
+
+
+    Caller-supplied s.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_for_ts`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_for_ts(s)
+
+
+    """
     m = re.search(r"for\s*\(\s*(?:const|let)\s+(\w+)\s+of\s+(.+?)\)", s)
     if m:
         var, src = m.group(1), ts_tail(m.group(2))
@@ -501,6 +2883,165 @@ def describe_for_ts(s: str) -> str:
 
 
 def describe_if_ts(s: str, *, otherwise: bool = False) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe if ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    s: str
+
+
+
+
+
+
+
+
+    Caller-supplied s.
+
+
+
+
+
+
+
+
+    *: input value
+
+
+
+
+
+
+
+
+    Caller-supplied *.
+
+
+
+
+
+
+
+
+    otherwise: bool
+
+
+
+
+
+
+
+
+    Caller-supplied otherwise.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_if_ts`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_if_ts(s, *, otherwise)
+
+
+    """
     prefix = "Otherwise, " if otherwise else ""
     body = s.strip()
     if body.startswith("} else if ("):
@@ -525,6 +3066,129 @@ def describe_if_ts(s: str, *, otherwise: bool = False) -> str:
 
 
 def describe_let_ts(s: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe let ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    s: str
+
+
+
+
+
+
+
+
+    Caller-supplied s.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_let_ts`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_let_ts(s)
+
+
+    """
     m = re.match(r"(?:const|let)\s+(\w+)", s)
     if m:
         name = m.group(1)
@@ -545,6 +3209,129 @@ def describe_let_ts(s: str) -> str:
 
 
 def describe_block_ts(line: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe block ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    line: str
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_block_ts`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_block_ts(line)
+
+
+    """
     s = line.strip()
     if "} else if (" in s or s.startswith("else if ("):
         return describe_if_ts(s, otherwise=True)
@@ -586,12 +3373,330 @@ def describe_block_ts(line: str) -> str:
 
 
 def describe_block(line: str, lang: str, is_control: bool) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe block.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    line: str
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+    is_control: bool
+
+
+
+
+
+
+
+
+    Caller-supplied is control.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_block`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_block(line, lang, is_control)
+
+
+    """
     if is_control:
         return describe_block_rust(line) if lang == "rust" else describe_block_ts(line)
     return describe_block_rust(line) if lang == "rust" else describe_block_ts(line)
 
 
 def annotate_body_lines(body_lines: list[str], base_indent: str, lang: str) -> int:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Annotate body lines.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    body_lines: list[str]
+
+
+
+
+
+
+
+
+    Caller-supplied body lines.
+
+
+
+
+
+
+
+
+    base_indent: str
+
+
+
+
+
+
+
+
+    Caller-supplied base indent.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int
+
+
+
+
+
+
+
+
+    Return value from `annotate_body_lines`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = annotate_body_lines(body_lines, base_indent, lang)
+
+
+    """
     strip_logic_header(body_lines)
 
     cleaned: list[str] = []
@@ -671,11 +3776,302 @@ def annotate_body_lines(body_lines: list[str], base_indent: str, lang: str) -> i
 
 
 def find_body_end(text: str, body_start: int) -> int | None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Find body end.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    body_start: int
+
+
+
+
+
+
+
+
+    Caller-supplied body start.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int | None
+
+
+
+
+
+
+
+
+    Return value from `find_body_end`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = find_body_end(text, body_start)
+
+
+    """
     docs = load_docs_module()
     return docs.scan_balanced(text, body_start - 1, "{", "}")
 
 
 def collect_functions(text: str, docs_mod, lang: str):
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Collect functions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    docs_mod: input value
+
+
+
+
+
+
+
+
+    Caller-supplied docs mod.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = collect_functions(text, docs_mod, lang)
+
+
+    """
     if lang == "rust":
         fns = docs_mod.find_rust_functions(text)
     else:
@@ -710,6 +4106,165 @@ def collect_functions(text: str, docs_mod, lang: str):
 
 
 def process_file(path: Path, docs_mod, lang: str) -> tuple[str, int]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Process file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    docs_mod: input value
+
+
+
+
+
+
+
+
+    Caller-supplied docs mod.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: tuple[str, int]
+
+
+
+
+
+
+
+
+    Return value from `process_file`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = process_file(path, docs_mod, lang)
+
+
+    """
     text = path.read_text(encoding="utf-8")
     spans = collect_functions(text, docs_mod, lang)
     updates: list[tuple[int, int, str]] = []
@@ -724,6 +4279,129 @@ def process_file(path: Path, docs_mod, lang: str) -> tuple[str, int]:
 
 
 def should_process(path: Path) -> str | None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Should process.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str | None
+
+
+
+
+
+
+
+
+    Return value from `should_process`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = should_process(path)
+
+
+    """
     if any(p in path.parts for p in SKIP_PATH_PARTS):
         return None
     if "editor" in path.parts:
@@ -738,6 +4416,120 @@ def should_process(path: Path) -> str | None:
 
 
 def main() -> int:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int
+
+
+
+
+
+
+
+
+    Return value from `main`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     docs_mod = load_docs_module()
     changed = 0
     total_fixes = 0

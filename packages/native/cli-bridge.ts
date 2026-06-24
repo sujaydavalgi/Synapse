@@ -12,18 +12,30 @@ import type { CheckResult, RunResult } from "./index.js";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 function cliPath(): string | null {
-  // CliPath.
+  // Description:
+  //     CliPath.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // Some value on success, otherwise none.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | null
+  //         Return value from `cliPath`.
   //
   // Example:
+  //     const result = cliPath();
+  // Description:
+  //     CliPath.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: string | null
+  //         Return value from `cliPath`.
+  //
+  // Example:
+  //     const result = cliPath();
 
   // const result = cliPath();
   const release = join(repoRoot, "target/release/spanda");
@@ -38,36 +50,62 @@ function cliPath(): string | null {
 }
 
 export function isCliAvailable(): boolean {
-  // IsCliAvailable.
+  // Description:
+  //     IsCliAvailable.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // true or false.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: boolean
+  //         Return value from `isCliAvailable`.
   //
   // Example:
+  //     const result = isCliAvailable();
+  // Description:
+  //     IsCliAvailable.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: boolean
+  //         Return value from `isCliAvailable`.
+  //
+  // Example:
+  //     const result = isCliAvailable();
 
   // const result = isCliAvailable();
   return cliPath() !== null;
 }
 
 export function checkViaCli(source: string): CheckResult {
-  // CheckViaCli.
+  // Description:
+  //     CheckViaCli.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // CheckResult.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: CheckResult
+  //         Return value from `checkViaCli`.
   //
   // Example:
+  //     const result = checkViaCli(source);
+  // Description:
+  //     CheckViaCli.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: CheckResult
+  //         Return value from `checkViaCli`.
+  //
+  // Example:
+  //     const result = checkViaCli(source);
 
   // const result = checkViaCli(source);
   const bin = cliPath();
@@ -98,18 +136,32 @@ export function checkViaCli(source: string): CheckResult {
 }
 
 export function runViaCli(source: string): RunResult {
-  // RunViaCli.
+  // Description:
+  //     RunViaCli.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // RunResult.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: RunResult
+  //         Return value from `runViaCli`.
   //
   // Example:
+  //     const result = runViaCli(source);
+  // Description:
+  //     RunViaCli.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: RunResult
+  //         Return value from `runViaCli`.
+  //
+  // Example:
+  //     const result = runViaCli(source);
 
   // const result = runViaCli(source);
   const bin = cliPath();

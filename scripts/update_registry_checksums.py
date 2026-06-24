@@ -15,6 +15,111 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     cmd = [
         "cargo",
         "run",

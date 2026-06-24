@@ -21,6 +21,129 @@ ORPHAN_DOC = re.compile(
 
 
 def repair_text(text: str) -> tuple[str, int]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Repair text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: tuple[str, int]
+
+
+
+
+
+
+
+
+    Return value from `repair_text`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = repair_text(text)
+
+
+    """
     fixes = 0
     lines = text.splitlines(keepends=True)
     out: list[str] = []
@@ -75,6 +198,120 @@ def repair_text(text: str) -> tuple[str, int]:
 
 
 def main() -> int:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int
+
+
+
+
+
+
+
+
+    Return value from `main`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     total_fixes = 0
     changed = 0
     for path in sorted((ROOT / "crates").rglob("*.rs")):

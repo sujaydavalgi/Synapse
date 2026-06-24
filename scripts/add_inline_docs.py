@@ -21,6 +21,147 @@ RUST_FN_HEAD = re.compile(
 
 
 def skip_string_literal(text: str, i: int) -> int:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Skip string literal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    i: int
+
+
+
+
+
+
+
+
+    Caller-supplied i.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int
+
+
+
+
+
+
+
+
+    Return value from `skip_string_literal`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = skip_string_literal(text, i)
+
+
+    """
     if i >= len(text):
         return i
     if text.startswith("r#", i):
@@ -56,6 +197,183 @@ def skip_string_literal(text: str, i: int) -> int:
 
 
 def scan_balanced(text: str, start: int, open_ch: str, close_ch: str) -> int | None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Scan balanced.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    start: int
+
+
+
+
+
+
+
+
+    Caller-supplied start.
+
+
+
+
+
+
+
+
+    open_ch: str
+
+
+
+
+
+
+
+
+    Caller-supplied open ch.
+
+
+
+
+
+
+
+
+    close_ch: str
+
+
+
+
+
+
+
+
+    Caller-supplied close ch.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int | None
+
+
+
+
+
+
+
+
+    Return value from `scan_balanced`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = scan_balanced(text, start, open_ch, close_ch)
+
+
+    """
     if start >= len(text) or text[start] != open_ch:
         return None
     depth = 0
@@ -88,6 +406,129 @@ def scan_balanced(text: str, start: int, open_ch: str, close_ch: str) -> int | N
 
 
 def find_rust_functions(text: str) -> list[FnMatch]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Find rust functions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[FnMatch]
+
+
+
+
+
+
+
+
+    Return value from `find_rust_functions`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = find_rust_functions(text)
+
+
+    """
     matches: list[FnMatch] = []
     for m in RUST_FN_HEAD.finditer(text):
         pos = m.end()
@@ -148,11 +589,257 @@ class FnMatch:
 
 
 def snake_to_words(name: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Snake to words.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    name: str
+
+
+
+
+
+
+
+
+    Caller-supplied name.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `snake_to_words`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = snake_to_words(name)
+
+
+    """
     parts = name.strip("_").split("_")
     return " ".join(parts) if parts else name
 
 
 def describe_name(name: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe name.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    name: str
+
+
+
+
+
+
+
+
+    Caller-supplied name.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_name`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_name(name)
+
+
+    """
     lower = name.lower()
     if name == "new":
         return "Create a new instance"
@@ -206,6 +893,129 @@ def describe_name(name: str) -> str:
 
 
 def parse_rust_params(raw: str) -> list[tuple[str, str]]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Parse rust params.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    raw: str
+
+
+
+
+
+
+
+
+    Caller-supplied raw.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[tuple[str, str]]
+
+
+
+
+
+
+
+
+    Return value from `parse_rust_params`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = parse_rust_params(raw)
+
+
+    """
     raw = raw.strip()
     if not raw:
         return []
@@ -242,6 +1052,129 @@ def parse_rust_params(raw: str) -> list[tuple[str, str]]:
 
 
 def parse_ts_params(raw: str) -> list[tuple[str, str]]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Parse ts params.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    raw: str
+
+
+
+
+
+
+
+
+    Caller-supplied raw.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[tuple[str, str]]
+
+
+
+
+
+
+
+
+    Return value from `parse_ts_params`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = parse_ts_params(raw)
+
+
+    """
     raw = raw.strip()
     if not raw:
         return []
@@ -270,6 +1203,147 @@ def parse_ts_params(raw: str) -> list[tuple[str, str]]:
 
 
 def describe_return(ret: str | None, lang: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Describe return.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    ret: str | None
+
+
+
+
+
+
+
+
+    Caller-supplied ret.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `describe_return`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = describe_return(ret, lang)
+
+
+    """
     if not ret:
         return "Nothing."
     ret = ret.strip()
@@ -293,6 +1367,147 @@ def describe_return(ret: str | None, lang: str) -> str:
 
 
 def has_inline_doc(text: str, body_start: int) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Has inline doc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    body_start: int
+
+
+
+
+
+
+
+
+    Caller-supplied body start.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `has_inline_doc`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = has_inline_doc(text, body_start)
+
+
+    """
     snippet = text[body_start : body_start + 800]
     return bool(
         re.search(r"^\s*//\s*Parameters:", snippet, re.M)
@@ -301,12 +1516,348 @@ def has_inline_doc(text: str, body_start: int) -> bool:
 
 
 def is_test_context(text: str, start: int, name: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Is test context.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    start: int
+
+
+
+
+
+
+
+
+    Caller-supplied start.
+
+
+
+
+
+
+
+
+    name: str
+
+
+
+
+
+
+
+
+    Caller-supplied name.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `is_test_context`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = is_test_context(text, start, name)
+
+
+    """
     # Document all functions including tests; only skip nested test helper decls in mod tests
     # when they are clearly private fixtures duplicated elsewhere.
     return False
 
 
 def example_lines(name: str, params: list[tuple[str, str]], module_hint: str, lang: str) -> list[str]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Example lines.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    name: str
+
+
+
+
+
+
+
+
+    Caller-supplied name.
+
+
+
+
+
+
+
+
+    params: list[tuple[str, str]]
+
+
+
+
+
+
+
+
+    Caller-supplied params.
+
+
+
+
+
+
+
+
+    module_hint: str
+
+
+
+
+
+
+
+
+    Caller-supplied module hint.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[str]
+
+
+
+
+
+
+
+
+    Return value from `example_lines`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = example_lines(name, params, module_hint, lang)
+
+
+    """
     call_params = ", ".join(p[0] for p in params if p[0] != "self")
     if lang == "rust":
         if name == "new":
@@ -322,6 +1873,129 @@ def example_lines(name: str, params: list[tuple[str, str]], module_hint: str, la
 
 
 def module_hint_from_path(path: Path) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Module hint from path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `module_hint_from_path`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = module_hint_from_path(path)
+
+
+    """
     parts = list(path.parts)
     if "crates" in parts:
         idx = parts.index("crates")
@@ -336,6 +2010,147 @@ def module_hint_from_path(path: Path) -> str:
 
 
 def module_purpose(path: Path, lang: str) -> str | None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Module purpose.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str | None
+
+
+
+
+
+
+
+
+    Return value from `module_purpose`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = module_purpose(path, lang)
+
+
+    """
     text = path.read_text(encoding="utf-8")
     if lang == "rust":
         if text.lstrip().startswith("//!"):
@@ -369,6 +2184,219 @@ def build_doc_block(
     module_hint: str,
     lang: str,
 ) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Build doc block.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    indent: str
+
+
+
+
+
+
+
+
+    Caller-supplied indent.
+
+
+
+
+
+
+
+
+    name: str
+
+
+
+
+
+
+
+
+    Caller-supplied name.
+
+
+
+
+
+
+
+
+    params: list[tuple[str, str]]
+
+
+
+
+
+
+
+
+    Caller-supplied params.
+
+
+
+
+
+
+
+
+    ret: str | None
+
+
+
+
+
+
+
+
+    Caller-supplied ret.
+
+
+
+
+
+
+
+
+    module_hint: str
+
+
+
+
+
+
+
+
+    Caller-supplied module hint.
+
+
+
+
+
+
+
+
+    lang: str
+
+
+
+
+
+
+
+
+    Caller-supplied lang.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `build_doc_block`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = build_doc_block(indent, name, params, ret, module_hint, lang)
+
+
+    """
     desc = describe_name(name)
     lines = [f"{indent}// {desc}."]
     lines.append(f"{indent}//")
@@ -397,6 +2425,129 @@ def build_doc_block(
 
 
 def process_rust(path: Path) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Process rust.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `process_rust`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = process_rust(path)
+
+
+    """
     text = path.read_text(encoding="utf-8")
     original = text
     module_doc = module_purpose(path, "rust")
@@ -426,6 +2577,147 @@ def process_rust(path: Path) -> bool:
 
 
 def find_ts_callables(text: str, is_method: bool) -> list[FnMatch]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Find ts callables.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+    is_method: bool
+
+
+
+
+
+
+
+
+    Caller-supplied is method.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[FnMatch]
+
+
+
+
+
+
+
+
+    Return value from `find_ts_callables`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = find_ts_callables(text, is_method)
+
+
+    """
     head = re.compile(
         r"(?m)^(?P<indent>\s+)"
         r"(?:(?:public|private|protected|static|async|readonly)\s+)+"
@@ -494,6 +2786,129 @@ TS_ARROW = re.compile(
 
 
 def process_ts(path: Path) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Process ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `process_ts`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = process_ts(path)
+
+
+    """
     text = path.read_text(encoding="utf-8")
     original = text
     module_doc = module_purpose(path, "ts")
@@ -541,6 +2956,129 @@ def process_ts(path: Path) -> bool:
 
 
 def should_process(path: Path) -> tuple[str | None, bool]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Should process.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: tuple[str | None, bool]
+
+
+
+
+
+
+
+
+    Return value from `should_process`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = should_process(path)
+
+
+    """
     if any(part in SKIP_PATH_PARTS for part in path.parts):
         return None, False
     if path.name in SKIP_FILES:
@@ -555,6 +3093,120 @@ def should_process(path: Path) -> tuple[str | None, bool]:
 
 
 def main() -> int:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int
+
+
+
+
+
+
+
+
+    Return value from `main`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     changed = 0
     for path in sorted(ROOT.rglob("*")):
         if not path.is_file():

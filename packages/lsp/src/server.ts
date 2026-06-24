@@ -37,6 +37,20 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 function repoRoot(): string {
+  // Description:
+  //     RepoRoot.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: string
+  //         Return value from `repoRoot`.
+  //
+  // Example:
+
+  //     const result = repoRoot();
+
   if (process.env.SPANDA_EXTENSION_ROOT?.trim()) {
     return process.env.SPANDA_EXTENSION_ROOT;
   }
@@ -54,18 +68,30 @@ type SpandaSymbol = {
 };
 
 function cliPath(): string | null {
-  // CliPath.
+  // Description:
+  //     CliPath.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // `Some` / non-null value on success, otherwise `None` / null.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | null
+  //         Return value from `cliPath`.
   //
   // Example:
+  //     const result = cliPath();
+  // Description:
+  //     CliPath.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: string | null
+  //         Return value from `cliPath`.
+  //
+  // Example:
+  //     const result = cliPath();
 
   // const result = cliPath();
   const release = join(repoRoot(), "target/release/spanda");
@@ -137,18 +163,32 @@ const symbolScript = join(repoRoot(), "scripts/lsp-symbols.mts");
 const symbolCache = new Map<string, SpandaSymbol[]>();
 
 function runSymbols(args: string[]): unknown {
-  // RunSymbols.
+  // Description:
+  //     RunSymbols.
   //
-  // Parameters:
-  // - `args` — input value
+  // Inputs:
+  //     args: string[]
+  //         Caller-supplied args.
   //
-  // Returns:
-  // `unknown`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: unknown
+  //         Return value from `runSymbols`.
   //
   // Example:
+  //     const result = runSymbols(args);
+  // Description:
+  //     RunSymbols.
+  //
+  // Inputs:
+  //     args: string[]
+  //         Caller-supplied args.
+  //
+  // Outputs:
+  //     result: unknown
+  //         Return value from `runSymbols`.
+  //
+  // Example:
+  //     const result = runSymbols(args);
 
   // const result = runSymbols(args);
   const result = spawnSync(process.execPath, ["--import", "tsx", symbolScript, ...args], {
@@ -170,19 +210,34 @@ function runSymbols(args: string[]): unknown {
 }
 
 function refreshSymbolCache(uri: string, source: string): void {
-  // RefreshSymbolCache.
+  // Description:
+  //     RefreshSymbolCache.
   //
-  // Parameters:
-  // - `uri` — input value
-  // - `source` — input value
+  // Inputs:
+  //     uri: string
+  //         Caller-supplied uri.
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // Nothing.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     None.
   //
   // Example:
+  //     const result = refreshSymbolCache(uri, source);
+  // Description:
+  //     RefreshSymbolCache.
+  //
+  // Inputs:
+  //     uri: string
+  //         Caller-supplied uri.
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     None.
+  //
+  // Example:
+  //     const result = refreshSymbolCache(uri, source);
 
   // const result = refreshSymbolCache(uri, source);
   const tmp = join(repoRoot(), ".spanda-lsp-symbols.sd");
@@ -199,21 +254,44 @@ function refreshSymbolCache(uri: string, source: string): void {
 }
 
 function lookupDefinition(uri: string, source: string, line: number, column: number): SpandaSymbol | null {
-  // LookupDefinition.
+  // Description:
+  //     LookupDefinition.
   //
-  // Parameters:
-  // - `uri` — input value
-  // - `source` — input value
-  // - `line` — input value
-  // - `column` — input value
+  // Inputs:
+  //     uri: string
+  //         Caller-supplied uri.
+  //     source: string
+  //         Caller-supplied source.
+  //     line: number
+  //         Caller-supplied line.
+  //     column: number
+  //         Caller-supplied column.
   //
-  // Returns:
-  // `Some` / non-null value on success, otherwise `None` / null.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: SpandaSymbol | null
+  //         Return value from `lookupDefinition`.
   //
   // Example:
+  //     const result = lookupDefinition(uri, source, line, column);
+  // Description:
+  //     LookupDefinition.
+  //
+  // Inputs:
+  //     uri: string
+  //         Caller-supplied uri.
+  //     source: string
+  //         Caller-supplied source.
+  //     line: number
+  //         Caller-supplied line.
+  //     column: number
+  //         Caller-supplied column.
+  //
+  // Outputs:
+  //     result: SpandaSymbol | null
+  //         Return value from `lookupDefinition`.
+  //
+  // Example:
+  //     const result = lookupDefinition(uri, source, line, column);
 
   // const result = lookupDefinition(uri, source, line, column);
   const tmp = join(repoRoot(), ".spanda-lsp-define.sd");
@@ -232,20 +310,40 @@ function lookupDefinition(uri: string, source: string, line: number, column: num
 }
 
 function lookupHover(source: string, line: number, column: number): string | null {
-  // LookupHover.
+  // Description:
+  //     LookupHover.
   //
-  // Parameters:
-  // - `source` — input value
-  // - `line` — input value
-  // - `column` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //     line: number
+  //         Caller-supplied line.
+  //     column: number
+  //         Caller-supplied column.
   //
-  // Returns:
-  // `Some` / non-null value on success, otherwise `None` / null.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | null
+  //         Return value from `lookupHover`.
   //
   // Example:
+  //     const result = lookupHover(source, line, column);
+  // Description:
+  //     LookupHover.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //     line: number
+  //         Caller-supplied line.
+  //     column: number
+  //         Caller-supplied column.
+  //
+  // Outputs:
+  //     result: string | null
+  //         Return value from `lookupHover`.
+  //
+  // Example:
+  //     const result = lookupHover(source, line, column);
 
   // const result = lookupHover(source, line, column);
   const tmp = join(repoRoot(), ".spanda-lsp-hover.sd");
@@ -264,18 +362,30 @@ function lookupHover(source: string, line: number, column: number): string | nul
 }
 
 function spanToRange(span: Span) {
-  // SpanToRange.
+  // Description:
+  //     SpanToRange.
   //
-  // Parameters:
-  // - `span` — input value
+  // Inputs:
+  //     span: Span
+  //         Caller-supplied span.
   //
-  // Returns:
-  // Nothing.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     None.
   //
   // Example:
+  //     const result = spanToRange(span);
+  // Description:
+  //     SpanToRange.
+  //
+  // Inputs:
+  //     span: Span
+  //         Caller-supplied span.
+  //
+  // Outputs:
+  //     None.
+  //
+  // Example:
+  //     const result = spanToRange(span);
 
   // const result = spanToRange(span);
   return {
@@ -285,19 +395,36 @@ function spanToRange(span: Span) {
 }
 
 function runCliJson(args: string[], source: string): unknown {
-  // RunCliJson.
+  // Description:
+  //     RunCliJson.
   //
-  // Parameters:
-  // - `args` — input value
-  // - `source` — input value
+  // Inputs:
+  //     args: string[]
+  //         Caller-supplied args.
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // `unknown`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: unknown
+  //         Return value from `runCliJson`.
   //
   // Example:
+  //     const result = runCliJson(args, source);
+  // Description:
+  //     RunCliJson.
+  //
+  // Inputs:
+  //     args: string[]
+  //         Caller-supplied args.
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: unknown
+  //         Return value from `runCliJson`.
+  //
+  // Example:
+  //     const result = runCliJson(args, source);
 
   // const result = runCliJson(args, source);
   const bin = cliPath();
@@ -328,18 +455,32 @@ function runCliJson(args: string[], source: string): unknown {
 }
 
 function checkSourceTs(source: string): CliDiagnostic[] {
-  // CheckSourceTs.
+  // Description:
+  //     CheckSourceTs.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // `CliDiagnostic[]`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: CliDiagnostic[]
+  //         Return value from `checkSourceTs`.
   //
   // Example:
+  //     const result = checkSourceTs(source);
+  // Description:
+  //     CheckSourceTs.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: CliDiagnostic[]
+  //         Return value from `checkSourceTs`.
+  //
+  // Example:
+  //     const result = checkSourceTs(source);
 
   // const result = checkSourceTs(source);
   const tmp = join(repoRoot(), ".spanda-lsp-ts-check.sd");
@@ -366,18 +507,32 @@ function checkSourceTs(source: string): CliDiagnostic[] {
 }
 
 function verificationSource(source: string): CompatItem[] {
-  // VerificationSource.
+  // Description:
+  //     VerificationSource.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // `CompatItem[]`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: CompatItem[]
+  //         Return value from `verificationSource`.
   //
   // Example:
+  //     const result = verificationSource(source);
+  // Description:
+  //     VerificationSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: CompatItem[]
+  //         Return value from `verificationSource`.
+  //
+  // Example:
+  //     const result = verificationSource(source);
 
   // const result = verificationSource(source);
   const parsed = runCliJson(["check", "--verification-json"], source) as {
@@ -399,6 +554,21 @@ function verificationSource(source: string): CompatItem[] {
 }
 
 function readinessSource(source: string): CompatItem[] {
+  // Description:
+  //     ReadinessSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: CompatItem[]
+  //         Return value from `readinessSource`.
+  //
+  // Example:
+
+  //     const result = readinessSource(source);
+
   const parsed = runCliJson(["check", "--readiness-json"], source) as {
     ok: boolean;
     readiness_diagnostics?: CompatItem[];
@@ -459,18 +629,32 @@ function readinessSource(source: string): CompatItem[] {
 }
 
 function checkSource(source: string): CliDiagnostic[] {
-  // CheckSource.
+  // Description:
+  //     CheckSource.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // `CliDiagnostic[]`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: CliDiagnostic[]
+  //         Return value from `checkSource`.
   //
   // Example:
+  //     const result = checkSource(source);
+  // Description:
+  //     CheckSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: CliDiagnostic[]
+  //         Return value from `checkSource`.
+  //
+  // Example:
+  //     const result = checkSource(source);
 
   // const result = checkSource(source);
   const parsed = runCliJson(["check"], source) as {
@@ -486,18 +670,32 @@ function checkSource(source: string): CliDiagnostic[] {
 }
 
 function formatSource(source: string): string | null {
-  // FormatSource.
+  // Description:
+  //     FormatSource.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // `Some` / non-null value on success, otherwise `None` / null.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | null
+  //         Return value from `formatSource`.
   //
   // Example:
+  //     const result = formatSource(source);
+  // Description:
+  //     FormatSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: string | null
+  //         Return value from `formatSource`.
+  //
+  // Example:
+  //     const result = formatSource(source);
 
   // const result = formatSource(source);
   const parsed = runCliJson(["fmt"], source) as {
@@ -508,18 +706,32 @@ function formatSource(source: string): string | null {
 }
 
 function symbolKindFor(kind: string): SymbolKind {
-  // SymbolKindFor.
+  // Description:
+  //     SymbolKindFor.
   //
-  // Parameters:
-  // - `kind` — input value
+  // Inputs:
+  //     kind: string
+  //         Caller-supplied kind.
   //
-  // Returns:
-  // `SymbolKind`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: SymbolKind
+  //         Return value from `symbolKindFor`.
   //
   // Example:
+  //     const result = symbolKindFor(kind);
+  // Description:
+  //     SymbolKindFor.
+  //
+  // Inputs:
+  //     kind: string
+  //         Caller-supplied kind.
+  //
+  // Outputs:
+  //     result: SymbolKind
+  //         Return value from `symbolKindFor`.
+  //
+  // Example:
+  //     const result = symbolKindFor(kind);
 
   // const result = symbolKindFor(kind);
   switch (kind) {
@@ -539,19 +751,36 @@ function symbolKindFor(kind: string): SymbolKind {
 }
 
 function documentSymbols(uri: string, _source: string): DocumentSymbol[] {
-  // DocumentSymbols.
+  // Description:
+  //     DocumentSymbols.
   //
-  // Parameters:
-  // - `uri` — input value
-  // - `_source` — input value
+  // Inputs:
+  //     uri: string
+  //         Caller-supplied uri.
+  //     _source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // `DocumentSymbol[]`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: DocumentSymbol[]
+  //         Return value from `documentSymbols`.
   //
   // Example:
+  //     const result = documentSymbols(uri, _source);
+  // Description:
+  //     DocumentSymbols.
+  //
+  // Inputs:
+  //     uri: string
+  //         Caller-supplied uri.
+  //     _source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: DocumentSymbol[]
+  //         Return value from `documentSymbols`.
+  //
+  // Example:
+  //     const result = documentSymbols(uri, _source);
 
   // const result = documentSymbols(uri, _source);
   const cached = symbolCache.get(uri) ?? [];
@@ -567,18 +796,32 @@ function documentSymbols(uri: string, _source: string): DocumentSymbol[] {
 }
 
 function verifySource(source: string): CompatItem[] {
-  // VerifySource.
+  // Description:
+  //     VerifySource.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // `CompatItem[]`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: CompatItem[]
+  //         Return value from `verifySource`.
   //
   // Example:
+  //     const result = verifySource(source);
+  // Description:
+  //     VerifySource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: CompatItem[]
+  //         Return value from `verifySource`.
+  //
+  // Example:
+  //     const result = verifySource(source);
 
   // const result = verifySource(source);
   const parsed = runCliJson(["verify"], source) as {
@@ -629,18 +872,32 @@ connection.onInitialize((_params: InitializeParams) => ({
 }));
 
 function validate(textDocument: TextDocument): Diagnostic[] {
-  // Validate input.
+  // Description:
+  //     Validate.
   //
-  // Parameters:
-  // - `textDocument` — input value
+  // Inputs:
+  //     textDocument: TextDocument
+  //         Caller-supplied textDocument.
   //
-  // Returns:
-  // `Diagnostic[]`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: Diagnostic[]
+  //         Return value from `validate`.
   //
   // Example:
+  //     const result = validate(textDocument);
+  // Description:
+  //     Validate.
+  //
+  // Inputs:
+  //     textDocument: TextDocument
+  //         Caller-supplied textDocument.
+  //
+  // Outputs:
+  //     result: Diagnostic[]
+  //         Return value from `validate`.
+  //
+  // Example:
+  //     const result = validate(textDocument);
 
   // const result = validate(textDocument);
   const source = textDocument.getText();
@@ -683,18 +940,30 @@ function validate(textDocument: TextDocument): Diagnostic[] {
 }
 
 function commCompletions(): CompletionItem[] {
-  // CommCompletions.
+  // Description:
+  //     CommCompletions.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // `CompletionItem[]`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: CompletionItem[]
+  //         Return value from `commCompletions`.
   //
   // Example:
+  //     const result = commCompletions();
+  // Description:
+  //     CommCompletions.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: CompletionItem[]
+  //         Return value from `commCompletions`.
+  //
+  // Example:
+  //     const result = commCompletions();
 
   // const result = commCompletions();
   const kwItems = COMM_KEYWORDS.map(
@@ -715,6 +984,23 @@ function commCompletions(): CompletionItem[] {
 }
 
 function hardwareProfileCompletions(doc: TextDocument, position: { line: number; character: number }): CompletionItem[] {
+  // Description:
+  //     HardwareProfileCompletions.
+  //
+  // Inputs:
+  //     doc: TextDocument
+  //         Caller-supplied doc.
+  //     position: { line: number; character: number }
+  //         Caller-supplied position.
+  //
+  // Outputs:
+  //     result: CompletionItem[]
+  //         Return value from `hardwareProfileCompletions`.
+  //
+  // Example:
+
+  //     const result = hardwareProfileCompletions(doc, position);
+
   const linePrefix = doc.getText({
     start: { line: position.line, character: 0 },
     end: { line: position.line, character: position.character },
@@ -786,6 +1072,25 @@ const KEYWORD_HOVER: Record<string, string> = {
 };
 
 function keywordHover(doc: TextDocument, line: number, column: number): string | null {
+  // Description:
+  //     KeywordHover.
+  //
+  // Inputs:
+  //     doc: TextDocument
+  //         Caller-supplied doc.
+  //     line: number
+  //         Caller-supplied line.
+  //     column: number
+  //         Caller-supplied column.
+  //
+  // Outputs:
+  //     result: string | null
+  //         Return value from `keywordHover`.
+  //
+  // Example:
+
+  //     const result = keywordHover(doc, line, column);
+
   const lines = doc.getText().split("\n");
   const text = lines[line] ?? "";
   const words = Object.keys(KEYWORD_HOVER).sort((a, b) => b.length - a.length);

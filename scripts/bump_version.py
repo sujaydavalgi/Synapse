@@ -28,6 +28,129 @@ NPM_ROOTS = [
 
 
 def _workspace_package_body(text: str) -> str | None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Workspace package body.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str | None
+
+
+
+
+
+
+
+
+    Return value from `_workspace_package_body`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _workspace_package_body(text)
+
+
+    """
     lines = text.splitlines()
     in_section = False
     body: list[str] = []
@@ -47,6 +170,120 @@ def _workspace_package_body(text: str) -> str | None:
 
 
 def read_workspace_version() -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Read workspace version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `read_workspace_version`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = read_workspace_version()
+
+
+    """
     text = CARGO_TOML.read_text(encoding="utf-8")
     body = _workspace_package_body(text)
     if body is None:
@@ -59,6 +296,147 @@ def read_workspace_version() -> str:
 
 
 def bump_semver(current: str, component: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Bump semver.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    current: str
+
+
+
+
+
+
+
+
+    Caller-supplied current.
+
+
+
+
+
+
+
+
+    component: str
+
+
+
+
+
+
+
+
+    Caller-supplied component.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `bump_semver`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = bump_semver(current, component)
+
+
+    """
     match = re.match(r"^(\d+)\.(\d+)\.(\d+)(.*)$", current)
     if not match:
         raise SystemExit(f"unsupported version format: {current!r}")
@@ -78,6 +456,120 @@ def bump_semver(current: str, component: str) -> str:
 
 
 def write_workspace_version(new_version: str) -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Write workspace version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    new_version: str
+
+
+
+
+
+
+
+
+    Caller-supplied new version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = write_workspace_version(new_version)
+
+
+    """
     text = CARGO_TOML.read_text(encoding="utf-8")
     lines = text.splitlines(keepends=True)
     in_section = False
@@ -103,6 +595,129 @@ def write_workspace_version(new_version: str) -> None:
 
 
 def _unreleased_span(text: str) -> tuple[int, int]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Unreleased span.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: tuple[int, int]
+
+
+
+
+
+
+
+
+    Return value from `_unreleased_span`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _unreleased_span(text)
+
+
+    """
     header = "## [Unreleased]"
     start = text.find(header)
     if start == -1:
@@ -116,6 +731,129 @@ def _unreleased_span(text: str) -> tuple[int, int]:
 
 
 def read_unreleased_section(text: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Read unreleased section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `read_unreleased_section`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = read_unreleased_section(text)
+
+
+    """
     _, end = _unreleased_span(text)
     header = "## [Unreleased]"
     start = text.find(header)
@@ -126,11 +864,302 @@ def read_unreleased_section(text: str) -> str:
 
 
 def unreleased_has_content(text: str) -> bool:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Unreleased has content.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: bool
+
+
+
+
+
+
+
+
+    Return value from `unreleased_has_content`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = unreleased_has_content(text)
+
+
+    """
     body = read_unreleased_section(text).strip()
     return bool(body)
 
 
 def bump_changelog(new_version: str, release_date: str, *, allow_empty: bool) -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Bump changelog.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    new_version: str
+
+
+
+
+
+
+
+
+    Caller-supplied new version.
+
+
+
+
+
+
+
+
+    release_date: str
+
+
+
+
+
+
+
+
+    Caller-supplied release date.
+
+
+
+
+
+
+
+
+    *: input value
+
+
+
+
+
+
+
+
+    Caller-supplied *.
+
+
+
+
+
+
+
+
+    allow_empty: bool
+
+
+
+
+
+
+
+
+    Caller-supplied allow empty.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = bump_changelog(new_version, release_date, *, allow_empty)
+
+
+    """
     text = CHANGELOG.read_text(encoding="utf-8")
     unreleased = read_unreleased_section(text).rstrip()
     if not unreleased.strip() and not allow_empty:
@@ -145,12 +1174,258 @@ def bump_changelog(new_version: str, release_date: str, *, allow_empty: bool) ->
 
 
 def npm_package_json_paths() -> list[Path]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Npm package json paths.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[Path]
+
+
+
+
+
+
+
+
+    Return value from `npm_package_json_paths`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = npm_package_json_paths()
+
+
+    """
     paths = [root / "package.json" for root in NPM_ROOTS]
     paths.extend(sorted((ROOT / "packages").glob("*/package.json")))
     return paths
 
 
 def refresh_npm_versions(new_version: str, dry_run: bool) -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Refresh npm versions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    new_version: str
+
+
+
+
+
+
+
+
+    Caller-supplied new version.
+
+
+
+
+
+
+
+
+    dry_run: bool
+
+
+
+
+
+
+
+
+    Caller-supplied dry run.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = refresh_npm_versions(new_version, dry_run)
+
+
+    """
     if dry_run:
         print("would refresh npm lockfiles with npm version")
         return
@@ -168,6 +1443,156 @@ def refresh_npm_versions(new_version: str, dry_run: bool) -> None:
 
 
 def write_github_output(path: str | None, key: str, value: str) -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Write github output.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: str | None
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    key: str
+
+
+
+
+
+
+
+
+    Caller-supplied key.
+
+
+
+
+
+
+
+
+    value: str
+
+
+
+
+
+
+
+
+    Caller-supplied value.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = write_github_output(path, key, value)
+
+
+    """
     if not path:
         return
     with open(path, "a", encoding="utf-8") as handle:
@@ -175,6 +1600,120 @@ def write_github_output(path: str | None, key: str, value: str) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Parse args.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: argparse.Namespace
+
+
+
+
+
+
+
+
+    Return value from `parse_args`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = parse_args()
+
+
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "component",
@@ -200,6 +1739,111 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     args = parse_args()
     current = read_workspace_version()
     new_version = bump_semver(current, args.component)

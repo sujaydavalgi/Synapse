@@ -12,6 +12,33 @@ type Props = {
 };
 
 function statusClass(status: string): string {
+
+  // Description:
+
+  //     StatusClass.
+
+  //
+
+  // Inputs:
+
+  //     status: string
+
+  //         Caller-supplied status.
+
+  //
+
+  // Outputs:
+
+  //     result: string
+
+  //         Return value from `statusClass`.
+
+  //
+
+  // Example:
+
+  //     const result = statusClass(status);
+
   const normalized = status.toLowerCase();
   if (normalized.includes("ready") && !normalized.includes("not")) return "ready";
   if (normalized.includes("degraded")) return "degraded";
@@ -19,6 +46,31 @@ function statusClass(status: string): string {
 }
 
 export function OperationsPanel({ source }: Props) {
+
+  // Description:
+
+  //     OperationsPanel.
+
+  //
+
+  // Inputs:
+
+  //     { source }: Props
+
+  //         Caller-supplied { source }.
+
+  //
+
+  // Outputs:
+
+  //     None.
+
+  //
+
+  // Example:
+
+  //     const result = OperationsPanel({ source });
+
   const [report, setReport] = useState<ReadinessReport | null>(null);
   const [dashboard, setDashboard] = useState<ReadinessDashboard | null>(null);
   const [agentUrl, setAgentUrl] = useState("");

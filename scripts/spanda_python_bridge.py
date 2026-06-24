@@ -21,6 +21,165 @@ Handler = Callable[..., Any]
 
 
 def _modbus_read_register(host: str, port: str, address: int) -> float:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Modbus read register.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    host: str
+
+
+
+
+
+
+
+
+    Caller-supplied host.
+
+
+
+
+
+
+
+
+    port: str
+
+
+
+
+
+
+
+
+    Caller-supplied port.
+
+
+
+
+
+
+
+
+    address: int
+
+
+
+
+
+
+
+
+    Caller-supplied address.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: float
+
+
+
+
+
+
+
+
+    Return value from `_modbus_read_register`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _modbus_read_register(host, port, address)
+
+
+    """
     try:
         from pymodbus.client import ModbusTcpClient
     except ImportError:
@@ -38,6 +197,147 @@ def _modbus_read_register(host: str, port: str, address: int) -> float:
 
 
 def _opcua_read_node(endpoint: str, node_id: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Opcua read node.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    endpoint: str
+
+
+
+
+
+
+
+
+    Caller-supplied endpoint.
+
+
+
+
+
+
+
+
+    node_id: str
+
+
+
+
+
+
+
+
+    Caller-supplied node id.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `_opcua_read_node`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _opcua_read_node(endpoint, node_id)
+
+
+    """
     try:
         from asyncua.sync import Client
     except ImportError:
@@ -50,22 +350,673 @@ def _opcua_read_node(endpoint: str, node_id: str) -> str:
 
 
 def _zigbee_read_attribute(device: str, cluster: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Zigbee read attribute.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    device: str
+
+
+
+
+
+
+
+
+    Caller-supplied device.
+
+
+
+
+
+
+
+
+    cluster: str
+
+
+
+
+
+
+
+
+    Caller-supplied cluster.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `_zigbee_read_attribute`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _zigbee_read_attribute(device, cluster)
+
+
+    """
     return f"mock-zigbee:{device}:{cluster}"
 
 
 def _lora_read_payload(device_id: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Lora read payload.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    device_id: str
+
+
+
+
+
+
+
+
+    Caller-supplied device id.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `_lora_read_payload`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _lora_read_payload(device_id)
+
+
+    """
     return f"mock-lora:{device_id}"
 
 
 def _matter_read_cluster(node: str, cluster: str) -> float:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Matter read cluster.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    node: str
+
+
+
+
+
+
+
+
+    Caller-supplied node.
+
+
+
+
+
+
+
+
+    cluster: str
+
+
+
+
+
+
+
+
+    Caller-supplied cluster.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: float
+
+
+
+
+
+
+
+
+    Return value from `_matter_read_cluster`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _matter_read_cluster(node, cluster)
+
+
+    """
     return float((hash(f"{node}:{cluster}") % 100) + 1)
 
 
 def _canbus_read_frame(can_id: int) -> float:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Canbus read frame.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    can_id: int
+
+
+
+
+
+
+
+
+    Caller-supplied can id.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: float
+
+
+
+
+
+
+
+
+    Return value from `_canbus_read_frame`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _canbus_read_frame(can_id)
+
+
+    """
     return float(can_id & 0xFF)
 
 
 def _onnx_anomaly_infer(features_json: str) -> float:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Onnx anomaly infer.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    features_json: str
+
+
+
+
+
+
+
+
+    Caller-supplied features json.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: float
+
+
+
+
+
+
+
+
+    Return value from `_onnx_anomaly_infer`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _onnx_anomaly_infer(features_json)
+
+
+    """
     import json
     import os
 
@@ -98,6 +1049,129 @@ def _onnx_anomaly_infer(features_json: str) -> float:
 
 
 def _onnx_complete(prompt: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Onnx complete.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    prompt: str
+
+
+
+
+
+
+
+
+    Caller-supplied prompt.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `_onnx_complete`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _onnx_complete(prompt)
+
+
+    """
     import os
 
     model_path = os.environ.get("SPANDA_ONNX_MODEL_PATH")
@@ -117,6 +1191,129 @@ def _onnx_complete(prompt: str) -> str:
 
 
 def _anthropic_complete(prompt: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Anthropic complete.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    prompt: str
+
+
+
+
+
+
+
+
+    Caller-supplied prompt.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `_anthropic_complete`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _anthropic_complete(prompt)
+
+
+    """
     import os
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -153,6 +1350,129 @@ def _anthropic_complete(prompt: str) -> str:
 
 
 def _openai_complete(prompt: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Openai complete.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    prompt: str
+
+
+
+
+
+
+
+
+    Caller-supplied prompt.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `_openai_complete`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _openai_complete(prompt)
+
+
+    """
     import os
 
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -184,6 +1504,147 @@ def _openai_complete(prompt: str) -> str:
 
 
 def _ros2_publish(topic: str, data: Any) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Ros2 publish.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    topic: str
+
+
+
+
+
+
+
+
+    Caller-supplied topic.
+
+
+
+
+
+
+
+
+    data: Any
+
+
+
+
+
+
+
+
+    Caller-supplied data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `_ros2_publish`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _ros2_publish(topic, data)
+
+
+    """
     try:
         import rclpy
         from rclpy.node import Node
@@ -204,6 +1665,129 @@ def _ros2_publish(topic: str, data: Any) -> dict[str, Any]:
 
 
 def _ros2_subscribe(topic: str) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Ros2 subscribe.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    topic: str
+
+
+
+
+
+
+
+
+    Caller-supplied topic.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `_ros2_subscribe`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _ros2_subscribe(topic)
+
+
+    """
     try:
         import rclpy
         from rclpy.node import Node
@@ -221,6 +1805,165 @@ def _ros2_subscribe(topic: str) -> dict[str, Any]:
 
 
 def _ros2_service_call(service: str, service_type: str, request: str) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Ros2 service call.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    service: str
+
+
+
+
+
+
+
+
+    Caller-supplied service.
+
+
+
+
+
+
+
+
+    service_type: str
+
+
+
+
+
+
+
+
+    Caller-supplied service type.
+
+
+
+
+
+
+
+
+    request: str
+
+
+
+
+
+
+
+
+    Caller-supplied request.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `_ros2_service_call`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _ros2_service_call(service, service_type, request)
+
+
+    """
     try:
         import rclpy
         from rclpy.node import Node
@@ -242,6 +1985,147 @@ def _ros2_service_call(service: str, service_type: str, request: str) -> dict[st
 
 
 def _mqtt_publish(topic: str, payload: Any) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Mqtt publish.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    topic: str
+
+
+
+
+
+
+
+
+    Caller-supplied topic.
+
+
+
+
+
+
+
+
+    payload: Any
+
+
+
+
+
+
+
+
+    Caller-supplied payload.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `_mqtt_publish`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _mqtt_publish(topic, payload)
+
+
+    """
     try:
         import paho.mqtt.client as mqtt
     except ImportError:
@@ -284,6 +2168,120 @@ HANDLERS: dict[str, Handler] = {
 
 
 def main() -> int:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int
+
+
+
+
+
+
+
+
+    Return value from `main`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     try:
         req = json.load(sys.stdin)
     except json.JSONDecodeError as exc:

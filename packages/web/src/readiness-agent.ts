@@ -21,6 +21,25 @@ export async function fetchAgentReadiness(
   runtime = true,
   injectHealthFaults = false,
 ): Promise<AgentReadinessResponse> {
+  // Description:
+  //     FetchAgentReadiness.
+  //
+  // Inputs:
+  //     agentUrl: string
+  //         Caller-supplied agentUrl.
+  //     runtime = true: input value
+  //         Caller-supplied runtime = true.
+  //     injectHealthFaults = false: input value
+  //         Caller-supplied injectHealthFaults = false.
+  //
+  // Outputs:
+  //     result: Promise<AgentReadinessResponse>
+  //         Return value from `fetchAgentReadiness`.
+  //
+  // Example:
+
+  //     const result = fetchAgentReadiness(agentUrl, runtime = true, injectHealthFaults = false);
+
   const base = agentUrl.replace(/\/$/, "");
   const query = new URLSearchParams();
   if (runtime) query.set("runtime", "true");

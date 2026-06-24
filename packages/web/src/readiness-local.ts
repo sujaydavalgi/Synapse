@@ -20,6 +20,79 @@ export function evaluateReadinessSource(
     injectHealthFaults?: boolean;
   } = {},
 ): ReadinessReport {
+
+  // Description:
+
+  //     EvaluateReadinessSource.
+
+  //
+
+  // Inputs:
+
+  //     source: string
+
+  //         Caller-supplied source.
+
+  //     options: { target?: string; includeRuntime?: boolean; injectHealthFaults?: boolean; } = {}
+
+  //         Caller-supplied options.
+
+  //
+
+  // Outputs:
+
+  //     result: ReadinessReport
+
+  //         Return value from `evaluateReadinessSource`.
+
+  //
+
+  // Example:
+
+  //     const result = evaluateReadinessSource(source, options);
+
+  // Description:
+  //     EvaluateReadinessSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+
+    // options: {
+    target?: string;
+    includeRuntime?: boolean;
+    injectHealthFaults?: boolean;
+  } = {}
+  //         Caller-supplied options.
+  //
+  // Outputs:
+  //     result: ReadinessReport
+  //         Return value from `evaluateReadinessSource`.
+  //
+  // Example:
+  //     const result = evaluateReadinessSource(source, options);
+  // Description:
+  //     EvaluateReadinessSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+
+    // options: {
+    target?: string;
+    includeRuntime?: boolean;
+    injectHealthFaults?: boolean;
+  } = {}
+  //         Caller-supplied options.
+  //
+  // Outputs:
+  //     result: ReadinessReport
+  //         Return value from `evaluateReadinessSource`.
+  //
+  // Example:
+
+  //     const result = evaluateReadinessSource(source, options);
+
   const program = parse(tokenize(source));
   return evaluateReadinessTs(program, options);
 }

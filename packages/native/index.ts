@@ -90,18 +90,30 @@ let native: SpandaNative | null = null;
 let loadAttempted = false;
 
 export function isNativeAvailable(): boolean {
-  // IsNativeAvailable.
+  // Description:
+  //     IsNativeAvailable.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // true or false.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: boolean
+  //         Return value from `isNativeAvailable`.
   //
   // Example:
+  //     const result = isNativeAvailable();
+  // Description:
+  //     IsNativeAvailable.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: boolean
+  //         Return value from `isNativeAvailable`.
+  //
+  // Example:
+  //     const result = isNativeAvailable();
 
   // const result = isNativeAvailable();
   loadNative();
@@ -109,18 +121,28 @@ export function isNativeAvailable(): boolean {
 }
 
 function loadNative(): void {
-  // LoadNative.
+  // Description:
+  //     LoadNative.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // Nothing.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     None.
   //
   // Example:
+  //     const result = loadNative();
+  // Description:
+  //     LoadNative.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     None.
+  //
+  // Example:
+  //     const result = loadNative();
 
   // const result = loadNative();
   if (loadAttempted) return;
@@ -136,18 +158,32 @@ function loadNative(): void {
 }
 
 export function checkSource(source: string): CheckResult | null {
-  // CheckSource.
+  // Description:
+  //     CheckSource.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // Some value on success, otherwise none.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: CheckResult | null
+  //         Return value from `checkSource`.
   //
   // Example:
+  //     const result = checkSource(source);
+  // Description:
+  //     CheckSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: CheckResult | null
+  //         Return value from `checkSource`.
+  //
+  // Example:
+  //     const result = checkSource(source);
 
   // const result = checkSource(source);
   loadNative();
@@ -158,19 +194,36 @@ export function checkSource(source: string): CheckResult | null {
 }
 
 export function runSource(source: string, options?: RunOptions): RunResult | null {
-  // RunSource.
+  // Description:
+  //     RunSource.
   //
-  // Parameters:
-  // - `source` — input value
-  // - `options?` — optional input
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //     options?: RunOptions
+  //         Caller-supplied options?.
   //
-  // Returns:
-  // Some value on success, otherwise none.
-  //
-  // Options:
-  // - `options?` — optional parameter
+  // Outputs:
+  //     result: RunResult | null
+  //         Return value from `runSource`.
   //
   // Example:
+  //     const result = runSource(source, options?);
+  // Description:
+  //     RunSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //     options?: RunOptions
+  //         Caller-supplied options?.
+  //
+  // Outputs:
+  //     result: RunResult | null
+  //         Return value from `runSource`.
+  //
+  // Example:
+  //     const result = runSource(source, options?);
 
   // const result = runSource(source, options?);
   loadNative();
@@ -181,18 +234,30 @@ export function runSource(source: string, options?: RunOptions): RunResult | nul
 }
 
 export function coreVersion(): string | null {
-  // CoreVersion.
+  // Description:
+  //     CoreVersion.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // Some value on success, otherwise none.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | null
+  //         Return value from `coreVersion`.
   //
   // Example:
+  //     const result = coreVersion();
+  // Description:
+  //     CoreVersion.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: string | null
+  //         Return value from `coreVersion`.
+  //
+  // Example:
+  //     const result = coreVersion();
 
   // const result = coreVersion();
   loadNative();

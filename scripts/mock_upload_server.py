@@ -11,6 +11,19 @@ class UploadHandler(BaseHTTPRequestHandler):
     outfile: str
 
     def do_POST(self) -> None:  # noqa: N802
+        """
+        Description:
+            Handle one POST upload and write the body to the configured outfile.
+
+        Inputs:
+            None.
+
+        Outputs:
+            None.
+
+        Example:
+            Used internally by HTTPServer; not called directly.
+        """
         length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(length)
         with open(self.outfile, "wb") as handle:
@@ -22,10 +35,39 @@ class UploadHandler(BaseHTTPRequestHandler):
         raise SystemExit(0)
 
     def log_message(self, format: str, *args: object) -> None:
+        """
+        Description:
+            Suppress default HTTP server stderr logging during tests.
+
+        Inputs:
+            format: str
+                Log format string (ignored).
+            args: object
+                Format arguments (ignored).
+
+        Outputs:
+            None.
+
+        Example:
+            Called by BaseHTTPRequestHandler; intentionally no-op.
+        """
         return
 
 
 def main() -> None:
+    """
+    Description:
+        Start a one-shot HTTP server that records one POST body and exits.
+
+    Inputs:
+        None.
+
+    Outputs:
+        None.
+
+    Example:
+        python3 scripts/mock_upload_server.py /tmp/body.bin 18080
+    """
     if len(sys.argv) != 3:
         print("usage: mock_upload_server.py <outfile> <port>", file=sys.stderr)
         raise SystemExit(2)

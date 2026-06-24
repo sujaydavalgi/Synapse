@@ -192,15 +192,438 @@ class ModuleDoc:
 
 
 def anchor(text: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Anchor.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    text: str
+
+
+
+
+
+
+
+
+    Caller-supplied text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `anchor`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = anchor(text)
+
+
+    """
     return re.sub(r"[^\w\-]", "", text.lower().replace("_", "-").replace("/", "-"))
 
 
 def link(path: Path, line: int, label: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Link.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    line: int
+
+
+
+
+
+
+
+
+    Caller-supplied line.
+
+
+
+
+
+
+
+
+    label: str
+
+
+
+
+
+
+
+
+    Caller-supplied label.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `link`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = link(path, line, label)
+
+
+    """
     rel = path.relative_to(ROOT).as_posix()
     return f"[{label}](../{rel}#L{line})"
 
 
 def module_label_from_rust(path: Path, crate_root: Path) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Module label from rust.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    crate_root: Path
+
+
+
+
+
+
+
+
+    Caller-supplied crate root.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `module_label_from_rust`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = module_label_from_rust(path, crate_root)
+
+
+    """
     rel = path.relative_to(crate_root / "src")
     stem = rel.with_suffix("")
     if stem.name == "lib" or stem.name == "main":
@@ -214,6 +637,147 @@ def module_label_from_rust(path: Path, crate_root: Path) -> str:
 
 
 def module_label_from_ts(path: Path, ts_root: Path) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Module label from ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    ts_root: Path
+
+
+
+
+
+
+
+
+    Caller-supplied ts root.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `module_label_from_ts`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = module_label_from_ts(path, ts_root)
+
+
+    """
     rel = path.relative_to(ts_root)
     if rel.name == "index.ts":
         parent = rel.parent
@@ -222,6 +786,147 @@ def module_label_from_ts(path: Path, ts_root: Path) -> str:
 
 
 def parse_rust_file(path: Path, crate_root: Path) -> ModuleDoc:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Parse rust file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    crate_root: Path
+
+
+
+
+
+
+
+
+    Caller-supplied crate root.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: ModuleDoc
+
+
+
+
+
+
+
+
+    Return value from `parse_rust_file`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = parse_rust_file(path, crate_root)
+
+
+    """
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
     rel = path.relative_to(ROOT).as_posix()
@@ -263,6 +968,147 @@ def parse_rust_file(path: Path, crate_root: Path) -> ModuleDoc:
 
 
 def parse_ts_file(path: Path, ts_root: Path) -> ModuleDoc:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Parse ts file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    path: Path
+
+
+
+
+
+
+
+
+    Caller-supplied path.
+
+
+
+
+
+
+
+
+    ts_root: Path
+
+
+
+
+
+
+
+
+    Caller-supplied ts root.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: ModuleDoc
+
+
+
+
+
+
+
+
+    Return value from `parse_ts_file`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = parse_ts_file(path, ts_root)
+
+
+    """
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
     rel = path.relative_to(ROOT).as_posix()
@@ -294,6 +1140,147 @@ def parse_ts_file(path: Path, ts_root: Path) -> ModuleDoc:
 
 
 def collect_rust(crate_rel: str, crate_name: str) -> list[ModuleDoc]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Collect rust.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    crate_rel: str
+
+
+
+
+
+
+
+
+    Caller-supplied crate rel.
+
+
+
+
+
+
+
+
+    crate_name: str
+
+
+
+
+
+
+
+
+    Caller-supplied crate name.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[ModuleDoc]
+
+
+
+
+
+
+
+
+    Return value from `collect_rust`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = collect_rust(crate_rel, crate_name)
+
+
+    """
     crate_root = ROOT / crate_rel
     src = crate_root / "src"
     if not src.exists():
@@ -307,6 +1294,147 @@ def collect_rust(crate_rel: str, crate_name: str) -> list[ModuleDoc]:
 
 
 def collect_ts(ts_rel: str, _label: str) -> list[ModuleDoc]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Collect ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    ts_rel: str
+
+
+
+
+
+
+
+
+    Caller-supplied ts rel.
+
+
+
+
+
+
+
+
+    _label: str
+
+
+
+
+
+
+
+
+    Caller-supplied label.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[ModuleDoc]
+
+
+
+
+
+
+
+
+    Return value from `collect_ts`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = collect_ts(ts_rel, _label)
+
+
+    """
     ts_root = ROOT / ts_rel
     if not ts_root.exists():
         return []
@@ -321,6 +1449,129 @@ def collect_ts(ts_rel: str, _label: str) -> list[ModuleDoc]:
 
 
 def kind_icon(kind: str) -> str:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Kind icon.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    kind: str
+
+
+
+
+
+
+
+
+    Caller-supplied kind.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: str
+
+
+
+
+
+
+
+
+    Return value from `kind_icon`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = kind_icon(kind)
+
+
+    """
     return {
         "fn": "fn",
         "method": "method",
@@ -340,6 +1591,165 @@ def kind_icon(kind: str) -> str:
 def render_module_section(
     doc: ModuleDoc, heading_level: int, section_id: str
 ) -> list[str]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Render module section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    doc: ModuleDoc
+
+
+
+
+
+
+
+
+    Caller-supplied doc.
+
+
+
+
+
+
+
+
+    heading_level: int
+
+
+
+
+
+
+
+
+    Caller-supplied heading level.
+
+
+
+
+
+
+
+
+    section_id: str
+
+
+
+
+
+
+
+
+    Caller-supplied section id.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[str]
+
+
+
+
+
+
+
+
+    Return value from `render_module_section`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = render_module_section(doc, heading_level, section_id)
+
+
+    """
     if not doc.items and doc.submodule is None:
         return []
     h = "#" * heading_level
@@ -384,6 +1794,147 @@ def render_module_section(
 
 
 def render_toc(entries: list[tuple[str, str]], level: int = 0) -> list[str]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Render toc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    entries: list[tuple[str, str]]
+
+
+
+
+
+
+
+
+    Caller-supplied entries.
+
+
+
+
+
+
+
+
+    level: int
+
+
+
+
+
+
+
+
+    Caller-supplied level.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: list[str]
+
+
+
+
+
+
+
+
+    Return value from `render_toc`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = render_toc(entries, level)
+
+
+    """
     indent = "  " * level
     out: list[str] = []
     for label, anchor_id in entries:
@@ -392,6 +1943,111 @@ def render_toc(entries: list[tuple[str, str]], level: int = 0) -> list[str]:
 
 
 def main() -> None:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     lines: list[str] = []
     lines.append("# API Reference")
     lines.append("")
@@ -484,6 +2140,66 @@ def main() -> None:
     lines.append("")
 
     def render_crate(crate_rel: str, crate_name: str) -> None:
+
+        """
+
+    
+
+        Description:
+
+    
+
+        Render crate.
+
+    
+
+    
+
+    
+
+        Inputs:
+
+    
+
+        crate_rel: str
+
+    
+
+        Caller-supplied crate rel.
+
+    
+
+        crate_name: str
+
+    
+
+        Caller-supplied crate name.
+
+    
+
+    
+
+    
+
+        Outputs:
+
+    
+
+        None.
+
+    
+
+    
+
+    
+
+        Example:
+
+    
+
+        result = render_crate(crate_rel, crate_name)
+
+        """
         docs = collect_rust(crate_rel, crate_name)
         if not docs:
             return

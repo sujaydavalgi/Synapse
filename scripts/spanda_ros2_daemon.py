@@ -13,6 +13,111 @@ from typing import Any
 
 
 def _ensure_rclpy():
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Ensure rclpy.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _ensure_rclpy()
+
+
+    """
     import rclpy
     from rclpy.node import Node
 
@@ -22,6 +127,147 @@ def _ensure_rclpy():
 
 
 def _publish(topic: str, data: Any) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Publish.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    topic: str
+
+
+
+
+
+
+
+
+    Caller-supplied topic.
+
+
+
+
+
+
+
+
+    data: Any
+
+
+
+
+
+
+
+
+    Caller-supplied data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `_publish`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _publish(topic, data)
+
+
+    """
     try:
         rclpy, Node = _ensure_rclpy()
         from std_msgs.msg import String
@@ -43,6 +289,129 @@ def _publish(topic: str, data: Any) -> dict[str, Any]:
 
 
 def _subscribe(topic: str) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Subscribe.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    topic: str
+
+
+
+
+
+
+
+
+    Caller-supplied topic.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `_subscribe`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _subscribe(topic)
+
+
+    """
     try:
         rclpy, Node = _ensure_rclpy()
         from std_msgs.msg import String
@@ -61,6 +430,165 @@ def _subscribe(topic: str) -> dict[str, Any]:
 
 
 def _service_call(service: str, service_type: str, request: str) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Service call.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    service: str
+
+
+
+
+
+
+
+
+    Caller-supplied service.
+
+
+
+
+
+
+
+
+    service_type: str
+
+
+
+
+
+
+
+
+    Caller-supplied service type.
+
+
+
+
+
+
+
+
+    request: str
+
+
+
+
+
+
+
+
+    Caller-supplied request.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `_service_call`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = _service_call(service, service_type, request)
+
+
+    """
     try:
         import rclpy
         from rclpy.node import Node
@@ -92,6 +620,129 @@ HANDLERS = {
 
 
 def handle(req: dict[str, Any]) -> dict[str, Any]:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Handle.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    req: dict[str, Any]
+
+
+
+
+
+
+
+
+    Caller-supplied req.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: dict[str, Any]
+
+
+
+
+
+
+
+
+    Return value from `handle`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = handle(req)
+
+
+    """
     op = req.get("op")
     args = req.get("args", [])
     if not isinstance(op, str):
@@ -112,6 +763,120 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
 
 
 def main() -> int:
+
+
+    """
+
+
+
+
+
+
+
+
+    Description:
+
+
+
+
+
+
+
+
+    Main.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Inputs:
+
+
+
+
+
+
+
+
+    None.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Outputs:
+
+
+
+
+
+
+
+
+    result: int
+
+
+
+
+
+
+
+
+    Return value from `main`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Example:
+
+
+
+
+
+
+
+
+    result = main()
+
+
+    """
     for line in sys.stdin:
         line = line.strip()
         if not line:

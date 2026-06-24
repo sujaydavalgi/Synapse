@@ -29,36 +29,60 @@ type SpandaWasmBindings = {
 let wasmModule: SpandaWasmBindings | null = null;
 
 export function isWasmLoaded(): boolean {
-  // IsWasmLoaded.
+  // Description:
+  //     IsWasmLoaded.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // `true` or `false`.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: boolean
+  //         Return value from `isWasmLoaded`.
   //
   // Example:
+  //     const result = isWasmLoaded();
+  // Description:
+  //     IsWasmLoaded.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: boolean
+  //         Return value from `isWasmLoaded`.
+  //
+  // Example:
+  //     const result = isWasmLoaded();
 
   // const result = isWasmLoaded();
   return wasmModule !== null;
 }
 
 async function ensureWasm(): Promise<void> {
-  // EnsureWasm.
+  // Description:
+  //     EnsureWasm.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // Success value on completion, or an error.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: Promise<void>
+  //         Return value from `ensureWasm`.
   //
   // Example:
+  //     const result = ensureWasm();
+  // Description:
+  //     EnsureWasm.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: Promise<void>
+  //         Return value from `ensureWasm`.
+  //
+  // Example:
+  //     const result = ensureWasm();
 
   // const result = ensureWasm();
   if (wasmModule) return;
@@ -77,18 +101,32 @@ async function ensureWasm(): Promise<void> {
 }
 
 export async function checkSource(source: string): Promise<CheckResponse> {
-  // CheckSource.
+  // Description:
+  //     CheckSource.
   //
-  // Parameters:
-  // - `source` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
   //
-  // Returns:
-  // Success value on completion, or an error.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: Promise<CheckResponse>
+  //         Return value from `checkSource`.
   //
   // Example:
+  //     const result = checkSource(source);
+  // Description:
+  //     CheckSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //
+  // Outputs:
+  //     result: Promise<CheckResponse>
+  //         Return value from `checkSource`.
+  //
+  // Example:
+  //     const result = checkSource(source);
 
   // const result = checkSource(source);
   await ensureWasm();
@@ -101,19 +139,36 @@ export async function checkSource(source: string): Promise<CheckResponse> {
 }
 
 export async function runSource(source: string, maxLoopIterations: number): Promise<RunResponse> {
-  // RunSource.
+  // Description:
+  //     RunSource.
   //
-  // Parameters:
-  // - `source` — input value
-  // - `maxLoopIterations` — input value
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //     maxLoopIterations: number
+  //         Caller-supplied maxLoopIterations.
   //
-  // Returns:
-  // Success value on completion, or an error.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: Promise<RunResponse>
+  //         Return value from `runSource`.
   //
   // Example:
+  //     const result = runSource(source, maxLoopIterations);
+  // Description:
+  //     RunSource.
+  //
+  // Inputs:
+  //     source: string
+  //         Caller-supplied source.
+  //     maxLoopIterations: number
+  //         Caller-supplied maxLoopIterations.
+  //
+  // Outputs:
+  //     result: Promise<RunResponse>
+  //         Return value from `runSource`.
+  //
+  // Example:
+  //     const result = runSource(source, maxLoopIterations);
 
   // const result = runSource(source, maxLoopIterations);
   await ensureWasm();

@@ -19,23 +19,52 @@ let client: LanguageClient | undefined;
 const BUILTIN_PROFILES = ["RoverV1", "RoverV2", "JetsonOrin", "RaspberryPi5", "ESP32"];
 
 function bundledServerModule(context: vscode.ExtensionContext): string {
+  // Description:
+  //     BundledServerModule.
+  //
+  // Inputs:
+  //     context: vscode.ExtensionContext
+  //         Caller-supplied context.
+  //
+  // Outputs:
+  //     result: string
+  //         Return value from `bundledServerModule`.
+  //
+  // Example:
+
+  //     const result = bundledServerModule(context);
+
   return path.join(context.extensionPath, "server", "dist", "server.js");
 }
 
 function resolveServerModule(context: vscode.ExtensionContext): string | null {
-  // ResolveServerModule.
+  // Description:
+  //     ResolveServerModule.
   //
-  // Parameters:
-  // - `context` — input value
+  // Inputs:
+  //     context: vscode.ExtensionContext
+  //         Caller-supplied context.
   //
-  // Returns:
-  // `Some` / non-null value on success, otherwise `None` / null.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | null
+  //         Return value from `resolveServerModule`.
   //
   // Example:
-  // const result = resolveServerModule(context);
+  //     const result = resolveServerModule(context);
+  // Description:
+  //     ResolveServerModule.
+  //
+  // Inputs:
+  //     context: vscode.ExtensionContext
+  //         Caller-supplied context.
+  //
+  // Outputs:
+  //     result: string | null
+  //         Return value from `resolveServerModule`.
+  //
+  // Example:
+
+  //     const result = resolveServerModule(context);
 
   const bundled = bundledServerModule(context);
   if (fs.existsSync(bundled)) {
@@ -60,19 +89,31 @@ function resolveServerModule(context: vscode.ExtensionContext): string | null {
 }
 
 function resolveCliPath(): string | undefined {
-  // ResolveCliPath.
+  // Description:
+  //     ResolveCliPath.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // Absolute path to `spanda` CLI when found.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | undefined
+  //         Return value from `resolveCliPath`.
   //
   // Example:
-  // const result = resolveCliPath();
+  //     const result = resolveCliPath();
+  // Description:
+  //     ResolveCliPath.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: string | undefined
+  //         Return value from `resolveCliPath`.
+  //
+  // Example:
+
+  //     const result = resolveCliPath();
 
   const cfg = vscode.workspace.getConfiguration("spanda");
   const configured = cfg.get<string>("cliPath");
@@ -100,19 +141,33 @@ function resolveCliPath(): string | undefined {
 }
 
 function resolveDapPath(cliPath?: string): string | undefined {
-  // ResolveDapPath.
+  // Description:
+  //     ResolveDapPath.
   //
-  // Parameters:
-  // - `cliPath` — optional sibling `spanda` binary path
+  // Inputs:
+  //     cliPath?: string
+  //         Caller-supplied cliPath?.
   //
-  // Returns:
-  // Absolute path to `spanda-dap` when found.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: string | undefined
+  //         Return value from `resolveDapPath`.
   //
   // Example:
-  // const result = resolveDapPath(cliPath);
+  //     const result = resolveDapPath(cliPath?);
+  // Description:
+  //     ResolveDapPath.
+  //
+  // Inputs:
+  //     cliPath?: string
+  //         Caller-supplied cliPath?.
+  //
+  // Outputs:
+  //     result: string | undefined
+  //         Return value from `resolveDapPath`.
+  //
+  // Example:
+
+  //     const result = resolveDapPath(cliPath?);
 
   if (cliPath) {
     const sibling = path.join(path.dirname(cliPath), "spanda-dap");
@@ -141,19 +196,33 @@ function resolveDapPath(cliPath?: string): string | undefined {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  // Activate.
+  // Description:
+  //     Activate.
   //
-  // Parameters:
-  // - `context` — input value
+  // Inputs:
+  //     context: vscode.ExtensionContext
+  //         Caller-supplied context.
   //
-  // Returns:
-  // Success value on completion, or an error.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: Promise<void>
+  //         Return value from `activate`.
   //
   // Example:
-  // const result = activate(context);
+  //     const result = activate(context);
+  // Description:
+  //     Activate.
+  //
+  // Inputs:
+  //     context: vscode.ExtensionContext
+  //         Caller-supplied context.
+  //
+  // Outputs:
+  //     result: Promise<void>
+  //         Return value from `activate`.
+  //
+  // Example:
+
+  //     const result = activate(context);
 
   const serverModule = resolveServerModule(context);
   if (!serverModule) {
@@ -275,19 +344,31 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 export async function deactivate(): Promise<void> {
-  // Deactivate.
+  // Description:
+  //     Deactivate.
   //
-  // Parameters:
-  // None.
+  // Inputs:
+  //     None.
   //
-  // Returns:
-  // Success value on completion, or an error.
-  //
-  // Options:
-  // None.
+  // Outputs:
+  //     result: Promise<void>
+  //         Return value from `deactivate`.
   //
   // Example:
-  // const result = deactivate();
+  //     const result = deactivate();
+  // Description:
+  //     Deactivate.
+  //
+  // Inputs:
+  //     None.
+  //
+  // Outputs:
+  //     result: Promise<void>
+  //         Return value from `deactivate`.
+  //
+  // Example:
+
+  //     const result = deactivate();
 
   if (client) {
     await client.stop();
