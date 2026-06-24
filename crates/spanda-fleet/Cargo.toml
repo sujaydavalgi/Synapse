@@ -15,6 +15,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 spanda-ast = { path = "../spanda-ast" }
 spanda-assurance = { path = "../spanda-assurance" }
 spanda-deploy-http = { path = "../spanda-deploy-http" }
+spanda-interpreter = { path = "../spanda-interpreter", default-features = false, features = ["transport-tls"] }
 spanda-lexer = { path = "../spanda-lexer" }
 spanda-parser = { path = "../spanda-parser" }
 spanda-readiness = { path = "../spanda-readiness" }

@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct FleetAgentState {
     pub robot_name: String,
     #[serde(default)]
@@ -40,6 +40,12 @@ pub struct FleetAgentState {
     pub recovery_validation: Option<String>,
     #[serde(default)]
     pub last_recovery_evidence: Option<serde_json::Value>,
+    #[serde(default)]
+    pub recovery_speed_cap: Option<f64>,
+    #[serde(default)]
+    pub recovery_engine: Option<String>,
+    #[serde(default)]
+    pub last_recovery_runtime_logs: Vec<String>,
 }
 
 pub fn default_fleet_agent_state_path() -> PathBuf {
@@ -90,6 +96,9 @@ fn clear_fleet_agent_on_identity_change(state: &mut FleetAgentState, new_robot_n
         state.recovery_mode = None;
         state.recovery_validation = None;
         state.last_recovery_evidence = None;
+        state.recovery_speed_cap = None;
+        state.recovery_engine = None;
+        state.last_recovery_runtime_logs.clear();
     }
 }
 
@@ -167,6 +176,9 @@ pub fn handle_fleet_agent_request(
             state.recovery_mode = None;
             state.recovery_validation = None;
             state.last_recovery_evidence = None;
+            state.recovery_speed_cap = None;
+            state.recovery_engine = None;
+            state.last_recovery_runtime_logs.clear();
             HttpResponse {
                 status: 200,
                 body: r#"{"ok":true}"#.into(),
@@ -198,6 +210,8 @@ pub fn handle_fleet_agent_request(
                     "ok": true,
                     "recovery_active": state.recovery_active,
                     "recovery_validation": state.recovery_validation,
+                    "recovery_engine": state.recovery_engine,
+                    "recovery_speed_cap": state.recovery_speed_cap,
                     "recovery_actions_applied": state.recovery_actions_applied,
                     "mission_paused": state.mission_paused,
                     "recovery_mode": state.recovery_mode,
@@ -236,6 +250,9 @@ pub fn handle_fleet_agent_request(
                 "mission_paused": state.mission_paused,
                 "recovery_mode": state.recovery_mode,
                 "recovery_validation": state.recovery_validation,
+                "recovery_engine": state.recovery_engine,
+                "recovery_speed_cap": state.recovery_speed_cap,
+                "last_recovery_runtime_logs": state.last_recovery_runtime_logs,
                 "last_recovery_evidence": state.last_recovery_evidence,
                 "has_program": state.program.is_some(),
                 "healthy": true,

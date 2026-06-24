@@ -1,6 +1,7 @@
 //! Multi-host fleet mesh coordinator for centralized peer relay routing.
 //!
-use crate::recovery_mesh::{handle_fleet_recovery_post, FleetRecoveryResponse};
+use crate::recovery_mesh::handle_fleet_recovery_post;
+use spanda_deploy_http::FleetRecoveryResponse;
 use crate::remote::{
     default_fleet_agents_path, load_fleet_agent_registry, relay_peer_deliveries, FleetAgentRegistry,
 };

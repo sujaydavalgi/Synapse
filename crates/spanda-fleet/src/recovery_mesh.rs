@@ -2,30 +2,9 @@
 //!
 use crate::remote::{lookup_fleet_agent, relay_peer_deliveries, FleetAgentRegistry};
 use crate::PeerDelivery;
-use serde::{Deserialize, Serialize};
-use spanda_deploy_http::{http_request, parse_http_url, HttpResponse};
+use spanda_deploy_http::HttpResponse;
 
-/// Recovery command posted to the fleet mesh coordinator.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FleetRecoveryRequest {
-    pub action: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fleet_name: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub from_robot: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub members: Vec<String>,
-}
-
-/// Result of broadcasting a recovery command to fleet agents.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FleetRecoveryResponse {
-    pub ok: bool,
-    pub relayed: u32,
-    pub failed: u32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
-}
+pub use spanda_deploy_http::{relay_recovery_via_mesh, FleetRecoveryRequest, FleetRecoveryResponse};
 
 /// Build peer deliveries for a fleet recovery command.
 pub fn recovery_deliveries_for_request(request: &FleetRecoveryRequest) -> Vec<PeerDelivery> {
@@ -103,29 +82,6 @@ pub fn handle_fleet_recovery_post(body: &str, registry: &FleetAgentRegistry) -> 
     }
     let response = relay_fleet_recovery(&request, registry);
     recovery_http_response(&response)
-}
-
-/// Post a recovery command to a running fleet mesh coordinator.
-pub fn relay_recovery_via_mesh(
-    mesh_url: &str,
-    request: &FleetRecoveryRequest,
-    token: Option<&str>,
-) -> Result<FleetRecoveryResponse, String> {
-    // Send a recovery command to the mesh coordinator HTTP endpoint.
-    let parsed = parse_http_url(mesh_url)?;
-    let url = format!(
-        "{}://{}:{}/v1/fleet/recovery",
-        parsed.scheme, parsed.host, parsed.port
-    );
-    let payload = serde_json::to_string(request).map_err(|e| e.to_string())?;
-    let response = http_request("POST", &url, Some(&payload), token)?;
-    if response.status >= 400 {
-        return Err(format!(
-            "fleet mesh recovery HTTP {}: {}",
-            response.status, response.body
-        ));
-    }
-    serde_json::from_str(&response.body).map_err(|e| format!("invalid fleet recovery JSON: {e}"))
 }
 
 /// Return fleet members with registered remote agents.

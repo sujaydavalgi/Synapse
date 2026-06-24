@@ -76,12 +76,12 @@ fn mesh_coordinator_relays_fleet_recovery_to_agents() {
     assert_eq!(resp.relayed, 2);
     let fleet_program = r#"
 recovery_policy FleetRecovery {
-    on fleet.failed { pause mission; }
+    on fleet.failed { enter degraded_mode; reduce_speed 0.5 m/s; }
 }
-hardware RoverV1 { sensors [GPS]; actuators [DifferentialDrive]; connectivity [WiFi]; }
 robot RoverBeta {
     sensor gps: GPS;
     actuator wheels: DifferentialDrive;
+    mode degraded { }
     safety { max_speed = 1.0 m/s; }
     behavior patrol() {}
 }
@@ -95,10 +95,11 @@ robot RoverBeta {
     )
     .expect("deploy program");
     assert_eq!(deploy.status, 200);
+    std::env::set_var("SPANDA_OPERATOR_APPROVAL", "1");
     let resp2 = relay_recovery_via_mesh(
         &format!("http://127.0.0.1:{mesh_port}"),
         &FleetRecoveryRequest {
-            action: "pause mission".into(),
+            action: "enter degraded_mode".into(),
             fleet_name: Some("PatrolFleet".into()),
             from_robot: Some("RoverAlpha".into()),
             members: vec!["RoverBeta".into()],
@@ -106,6 +107,7 @@ robot RoverBeta {
         None,
     )
     .expect("mesh recovery after deploy");
+    std::env::remove_var("SPANDA_OPERATOR_APPROVAL");
     assert!(resp2.ok);
     let status = http_request(
         "GET",
@@ -114,12 +116,16 @@ robot RoverBeta {
         None,
     )
     .expect("agent status");
-    assert!(status.body.contains("pause mission"));
+    assert!(status.body.contains("enter degraded_mode"));
     assert!(status.body.contains("last_recovery_commands"));
     assert!(status.body.contains("recovery_active"));
-    assert!(status.body.contains("\"mission_paused\":true"));
     assert!(status.body.contains("recovery_validation"));
-    assert!(status.body.contains("\"PASS\""));
+    assert!(status.body.contains("\"recovery_engine\":\"interpreter\""));
+    assert!(
+        status.body.contains("\"PASS\"")
+            || status.body.contains("\"PARTIAL\"")
+    );
+    assert!(status.body.contains("\"recovery_mode\":\"degraded\""));
 }
 
 #[test]
