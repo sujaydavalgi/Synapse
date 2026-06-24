@@ -221,6 +221,12 @@ Three primary stories for new visitors. Other demos (`fleet`, `health`, `readine
 - Try mission continuity: `spanda demo continuity` — takeover, delegation, and succession when robots fail mid-mission
 - Read traceability and safety: [docs/mission-assurance.md](docs/mission-assurance.md) · [docs/mission-continuity.md](docs/mission-continuity.md) · [docs/capability-traceability.md](docs/capability-traceability.md) · [docs/safety-reporting.md](docs/safety-reporting.md)
 
+**For Quality Assurance or Test Engineers**
+
+- Try in-language tests and the rover demo: `spanda test examples/basics/07_in_language_tests.sd` and `spanda demo rover` (verify → sim → record/replay)
+- Try fault injection and health checks: `spanda demo health`
+- Read testing and verification: [docs/testing.md](docs/testing.md) · [docs/replay.md](docs/replay.md) · [docs/ci-verify.md](docs/ci-verify.md) · [docs/mission-verification.md](docs/mission-verification.md)
+
 **For fleet operators**
 
 - Try self-healing and continuity: `spanda demo self-healing` and `spanda demo continuity`
