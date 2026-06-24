@@ -425,17 +425,7 @@ export class Interpreter {
   }
 
   collectRuntimeMetrics(traceFrameCount = 0): Record<string, unknown> {
-    const tasks = [...this.reliability.taskHeartbeats.entries()].map(([name, lastMs]) => ({
-      name,
-      last_timestamp_ms: lastMs,
-    }));
-    return {
-      scheduler: {
-        sim_time_ms: this.reliability.simTimeMs,
-      },
-      tasks,
-      replay_frames: traceFrameCount,
-    };
+    return this.reliability.snapshotRuntimeMetrics(traceFrameCount);
   }
 
   runTests(program: Program): void {
@@ -1355,6 +1345,7 @@ export class Interpreter {
         // continue when kind.
         if (kind) {
           this.options.onLog?.(`task '${name}': ${kind} budget exceeded — skipping tick`);
+          this.reliability.recordTaskTick(name, priority, intervalMs, 0, { skipped: true });
           return true;
         }
       }
@@ -1372,6 +1363,9 @@ export class Interpreter {
         this.options.onLog?.(`task '${name}': ${kind} budget exceeded (${durationMs.toFixed(2)}ms)`);
       }
     }
+    this.reliability.recordTaskTick(name, priority, intervalMs, durationMs, {
+      budgetViolation: Boolean(budget && this.taskBudgetViolation(budget, durationMs, intervalMs)),
+    });
     this.reliability.touchHeartbeat(name, this.reliability.simTimeMs, this.currentRobot?.name);
     return continueRunning;
 }
@@ -1486,6 +1480,7 @@ export class Interpreter {
       budget: task.budget,
     }));
     const baseTick = Math.max(1, Math.min(...schedules.map((task) => task.intervalMs)));
+    this.reliability.configureScheduler(schedules.length, baseTick);
     this.options.onLog?.(
       `scheduler: multiplexing ${schedules.length} task(s) with base tick ${baseTick}ms`,
     );
@@ -1546,6 +1541,7 @@ export class Interpreter {
         simTimeMs: simTime,
         iteration: i + 1,
       });
+      this.reliability.recordSchedulerTick();
 
       // continue when this.safetyMonitor?.isEmergencyStop().
       if (this.safetyMonitor?.isEmergencyStop()) break;
@@ -2799,6 +2795,7 @@ export class Interpreter {
         this.safetyMonitor?.setEmergencyStop(true);
         this.options.backend.setEmergencyStop?.(true);
         this.options.backend.executeMotion({ kind: "stop", actuator: "all" });
+        this.reliability.recordEmergencyStop();
         this.options.onLog?.("EMERGENCY STOP triggered");
         break;
       case "ResetEmergencyStopStmt":
@@ -2862,6 +2859,7 @@ export class Interpreter {
       case "SpawnStmt": {
         const { funcName, args } = this.evalSpawnTarget(stmt.callee, stmt.args, stmt.span.start.line);
         this.concurrency.queueFireAndForget(funcName, args);
+        this.reliability.recordSpawn(true);
         this.options.onLog?.(`spawn ${funcName}()`);
         break;
       }
@@ -2885,6 +2883,7 @@ export class Interpreter {
         const saved = this.env.clone();
         const pendingHandles: Array<[string | null, number]> = [];
         const results: Record<string, RuntimeValue> = {};
+        this.reliability.recordParallelBlock();
         this.options.onLog?.(`parallel: executing ${stmt.body.length} branch(es) cooperatively`);
 
         // Iterate over body.
@@ -4248,6 +4247,7 @@ export class Interpreter {
       }
       case "join": {
         const handle = expr.args[0] ? this.evalExpr(expr.args[0]) : { kind: "void" as const };
+        this.reliability.recordJoin();
 
         // continue when kind equals "future".
         if (handle.kind === "future") {

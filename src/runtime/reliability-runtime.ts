@@ -16,6 +16,20 @@ export type ReliabilityHost = {
   getSimTimeMs(): number;
 };
 
+type TaskMetricState = {
+  name: string;
+  priority: string;
+  interval_ms: number;
+  ticks: number;
+  skipped: number;
+  missed_deadlines: number;
+  budget_violations: number;
+  last_duration_ms: number;
+  max_duration_ms: number;
+  max_jitter_ms: number;
+  jitter_violations: number;
+};
+
 export class ReliabilityRuntime {
   activeMode = "normal";
   simTimeMs = 0;
@@ -30,6 +44,19 @@ export class ReliabilityRuntime {
   }> = [];
   taskHeartbeats = new Map<string, number>();
   missionTrace: MissionTrace | null = null;
+  private taskMetrics = new Map<string, TaskMetricState>();
+  private schedulerMetrics = {
+    multiplexed_tasks: 0,
+    scheduler_ticks: 0,
+    base_tick_ms: 0,
+    emergency_stops: 0,
+  };
+  private executionMetrics = {
+    spawns: 0,
+    joins: 0,
+    parallel_blocks: 0,
+    fire_and_forget_spawns: 0,
+  };
 
   loadFromRobot(robot: RobotDecl, recordTrace: boolean, traceSource?: string): void {
 
@@ -38,6 +65,19 @@ export class ReliabilityRuntime {
     this.modes.clear();
     this.watchdogs = [];
     this.taskHeartbeats.clear();
+    this.taskMetrics.clear();
+    this.schedulerMetrics = {
+      multiplexed_tasks: 0,
+      scheduler_ticks: 0,
+      base_tick_ms: 0,
+      emergency_stops: 0,
+    };
+    this.executionMetrics = {
+      spawns: 0,
+      joins: 0,
+      parallel_blocks: 0,
+      fire_and_forget_spawns: 0,
+    };
     this.activeMode = "normal";
     this.missionTrace = recordTrace ? createMissionTrace(traceSource ?? "program.sd") : null;
 
@@ -100,6 +140,86 @@ export class ReliabilityRuntime {
   touchHeartbeat(taskName: string, simTimeMs: number, robotId?: string): void {
     this.taskHeartbeats.set(taskName, simTimeMs);
     recordTaskHeartbeat(taskName, simTimeMs, robotId);
+  }
+
+  configureScheduler(multiplexedTasks: number, baseTickMs: number): void {
+    this.schedulerMetrics.multiplexed_tasks = multiplexedTasks;
+    this.schedulerMetrics.base_tick_ms = baseTickMs;
+  }
+
+  recordSchedulerTick(): void {
+    this.schedulerMetrics.scheduler_ticks += 1;
+  }
+
+  recordEmergencyStop(): void {
+    this.schedulerMetrics.emergency_stops += 1;
+  }
+
+  recordTaskTick(
+    name: string,
+    priority: string,
+    intervalMs: number,
+    durationMs: number,
+    options?: { skipped?: boolean; budgetViolation?: boolean },
+  ): void {
+    const existing = this.taskMetrics.get(name) ?? {
+      name,
+      priority,
+      interval_ms: intervalMs,
+      ticks: 0,
+      skipped: 0,
+      missed_deadlines: 0,
+      budget_violations: 0,
+      last_duration_ms: 0,
+      max_duration_ms: 0,
+      max_jitter_ms: 0,
+      jitter_violations: 0,
+    };
+    if (options?.skipped) {
+      existing.skipped += 1;
+    } else {
+      existing.ticks += 1;
+      existing.last_duration_ms = durationMs;
+      existing.max_duration_ms = Math.max(existing.max_duration_ms, durationMs);
+      const jitter = Math.abs(durationMs - intervalMs);
+      existing.max_jitter_ms = Math.max(existing.max_jitter_ms, jitter);
+      if (durationMs > intervalMs) {
+        existing.missed_deadlines += 1;
+      }
+    }
+    if (options?.budgetViolation) {
+      existing.budget_violations += 1;
+    }
+    this.taskMetrics.set(name, existing);
+  }
+
+  recordSpawn(fireAndForget = false): void {
+    this.executionMetrics.spawns += 1;
+    if (fireAndForget) {
+      this.executionMetrics.fire_and_forget_spawns += 1;
+    }
+  }
+
+  recordJoin(): void {
+    this.executionMetrics.joins += 1;
+  }
+
+  recordParallelBlock(): void {
+    this.executionMetrics.parallel_blocks += 1;
+  }
+
+  snapshotRuntimeMetrics(replayFrames = 0): Record<string, unknown> {
+    const tasks: Record<string, Omit<TaskMetricState, "name">> = {};
+    for (const [name, body] of this.taskMetrics.entries()) {
+      const { name: _ignored, ...metrics } = body;
+      tasks[name] = metrics;
+    }
+    return {
+      tasks,
+      scheduler: { ...this.schedulerMetrics, sim_time_ms: this.simTimeMs },
+      execution: { ...this.executionMetrics },
+      replay_frames: replayFrames,
+    };
   }
 
   checkWatchdogs(host: ReliabilityHost): void {

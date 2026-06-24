@@ -10,6 +10,7 @@ import {
   readAllEvents,
   recordSensorReading,
 } from "../src/telemetry-store.js";
+import { ReliabilityRuntime } from "../src/runtime/reliability-runtime.js";
 
 const ENV_KEYS = [
   "SPANDA_TELEMETRY_STORE",
@@ -83,5 +84,29 @@ describe("telemetry store", () => {
       .trim()
       .split("\n");
     expect(lines.length).toBeLessThanOrEqual(2);
+  });
+});
+
+describe("runtime telemetry snapshot", () => {
+  it("matches the Rust RuntimeTelemetry JSON shape", () => {
+    const runtime = new ReliabilityRuntime();
+    runtime.configureScheduler(2, 10);
+    runtime.recordSchedulerTick();
+    runtime.recordTaskTick("driver", "normal", 10, 5);
+    runtime.recordSpawn(true);
+    runtime.recordParallelBlock();
+    const snapshot = runtime.snapshotRuntimeMetrics(4);
+    expect(snapshot.scheduler).toMatchObject({
+      multiplexed_tasks: 2,
+      scheduler_ticks: 1,
+      base_tick_ms: 10,
+    });
+    expect(snapshot.execution).toMatchObject({
+      spawns: 1,
+      fire_and_forget_spawns: 1,
+      parallel_blocks: 1,
+    });
+    expect(snapshot.replay_frames).toBe(4);
+    expect((snapshot.tasks as Record<string, { ticks: number }>).driver?.ticks).toBe(1);
   });
 });
