@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`spanda-fusion` package:** `assurance.fusion` import path with `weight_for_sensor` and `confidence_for_types` provider dispatch (extends lean-core weighted fusion).
 - **ONNX anomaly inference:** `SPANDA_ANOMALY_ONNX_MODEL_PATH` (or `SPANDA_ONNX_MODEL_PATH`) enables ONNX-backed `scan_learned` via Python bridge; showcase rover links learned anomaly + fusion packages.
 - **Documentation sync:** README, getting-started, platform-overview, tutorials index, examples library, mission-assurance guides, and registry catalog updated for mission assurance features and examples (37 hosted packages).
+- **README split:** Slim root [README.md](README.md); expanded content moved to [docs/overview/](docs/overview/README.md) subpages.
 
 ### Fixed
 

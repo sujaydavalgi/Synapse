@@ -8,6 +8,8 @@
 
 **Start here:** [platform-overview.md](./platform-overview.md) — platform vs language, component map, and workflow.
 
+**Project home (expanded README):** [overview/README.md](./overview/README.md) — philosophy, differentiators, CLI, code samples, demos.
+
 ## Tutorials
 
 **[Tutorials index](./tutorials/README.md)** — all learning paths: For Dummies, Spanda 101, topic guides, walkthroughs, and example libraries.
@@ -20,7 +22,13 @@
 | [platform-positioning-migration.md](./platform-positioning-migration.md) | **Messaging migration — taglines, GitHub metadata, branding** |
 | [tutorials/README.md](./tutorials/README.md) | **Master index — all tutorials, walkthroughs, and example paths** |
 | [../examples/README.md](../examples/README.md) | **Runnable examples library — ladder, topics, CI** |
-| [../README.md](../README.md) | Project overview, philosophy, quick start, and examples |
+| [../README.md](../README.md) | Project landing page (links to overview subpages) |
+| [overview/README.md](./overview/README.md) | **Expanded project home — philosophy, differentiators, CLI, examples** |
+| [overview/philosophy.md](./overview/philosophy.md) | Vision, why Spanda, minimal code sample |
+| [overview/differentiators.md](./overview/differentiators.md) | Capability matrix and pillars |
+| [overview/code-samples.md](./overview/code-samples.md) | Flagship `.sd` examples |
+| [overview/cli.md](./overview/cli.md) | CLI quick reference |
+| [overview/demos-and-examples.md](./overview/demos-and-examples.md) | `spanda demo` and examples library |
 | [getting-started.md](./getting-started.md) | **First robot in 10 minutes** |
 | [spanda-for-dummies/README.md](./spanda-for-dummies/README.md) | **Spanda for Dummies — plain-English no-jargon guide** |
 | [spanda-101/README.md](./spanda-101/README.md) | **Spanda 101 — 10-lesson tutorial series (basics → end-to-end)** |
@@ -67,7 +75,6 @@
 | [prognostics.md](./prognostics.md) | **Prognostics, RUL, and degradation warnings** |
 | [resilience.md](./resilience.md) | **Resilience policies and recovery** |
 | [assurance-cases.md](./assurance-cases.md) | **Assurance cases and evidence linking** |
-| [mission-verification.md](./mission-verification.md) | **Mission achievability and approval verification** |
 | [mission-verification.md](./mission-verification.md) | **Mission achievability and approval verification** |
 | [failure-analysis.md](./failure-analysis.md) | **Component failure impact and mitigations** |
 | [safety-reporting.md](./safety-reporting.md) | **Deployable safety case reports (JSON/Markdown/HTML)** |
