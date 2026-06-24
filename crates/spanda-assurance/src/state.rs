@@ -4,6 +4,28 @@ use crate::types::{BeliefState, Confidence, SensorFusionState, StateEstimate};
 use spanda_ast::assurance_decl::StateEstimatorDecl;
 use spanda_ast::nodes::Program;
 
+/// State estimation assurance report.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct StateAssuranceReport {
+    pub estimators: Vec<SensorFusionState>,
+    pub belief: BeliefState,
+    pub issues: Vec<String>,
+    pub passed: bool,
+}
+
+/// Evaluate state estimator declarations and synthesize belief state.
+pub fn evaluate_state_assurance(program: &Program) -> StateAssuranceReport {
+    let estimators = extract_sensor_fusion(program);
+    let belief = build_belief_state(program);
+    let issues = validate_state_estimators(program);
+    StateAssuranceReport {
+        estimators,
+        belief,
+        issues: issues.clone(),
+        passed: issues.is_empty(),
+    }
+}
+
 /// Extract state estimators and synthesize fusion state snapshots.
 pub fn extract_sensor_fusion(program: &Program) -> Vec<SensorFusionState> {
     let Program::Program {

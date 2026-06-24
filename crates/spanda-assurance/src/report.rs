@@ -9,6 +9,7 @@ use crate::mission::MissionAssuranceReport;
 use crate::mitigation::MitigationReport;
 use crate::prognostics::PrognosticsReport;
 use crate::resilience::ResilienceReport;
+use crate::state::StateAssuranceReport;
 
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -163,5 +164,40 @@ pub fn format_resilience(report: &ResilienceReport, format: ReportFormat) -> Str
             "Resilience Report\nPassed: {}\nReadiness score: {}\n",
             report.passed, report.readiness_score
         ),
+    }
+}
+
+/// Format state estimation assurance report.
+pub fn format_state(report: &StateAssuranceReport, format: ReportFormat) -> String {
+    match format {
+        ReportFormat::Json => serde_json::to_string_pretty(report).unwrap_or_default(),
+        ReportFormat::Markdown => format!(
+            "# State Estimation Report\n\n**Passed:** {}\n\n**Estimators:** {}\n\n**Belief estimates:** {}\n",
+            report.passed,
+            report.estimators.len(),
+            report.belief.estimates.len()
+        ),
+        ReportFormat::Html => format!(
+            "<!DOCTYPE html><html><body><h1>State Estimation</h1><p>Passed: {}</p></body></html>",
+            report.passed
+        ),
+        ReportFormat::Text => {
+            let mut out = format!(
+                "State Estimation Report\nPassed: {}\nEstimators: {}\n",
+                report.passed,
+                report.estimators.len()
+            );
+            for est in &report.estimators {
+                out.push_str(&format!(
+                    "* {} inputs [{}]\n",
+                    est.estimator,
+                    est.inputs.join(", ")
+                ));
+            }
+            for issue in &report.issues {
+                out.push_str(&format!("! {issue}\n"));
+            }
+            out
+        }
     }
 }

@@ -1464,6 +1464,12 @@ fn main() {
         return;
     }
 
+    if command == "state" {
+        assurance_cli::state_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
     if command == "readiness" {
         readiness_cli::readiness_dispatch(&args[2..]);
         let _ = io::stdout().flush();

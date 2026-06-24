@@ -529,6 +529,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 "fusion",
                 RuntimeValue::SensorFusion {
                     sensors: sensors.clone(),
+                    estimator: None,
                 },
             );
             self.log(format!(

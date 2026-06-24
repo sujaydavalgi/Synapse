@@ -33,6 +33,7 @@ impl<B: RobotBackend> Interpreter<B> {
             let sensors: Vec<String> = inputs.iter().map(|i| sensor_name_from_input(i)).collect();
             let fusion = RuntimeValue::SensorFusion {
                 sensors: sensors.clone(),
+                estimator: Some(name.clone()),
             };
             self.env.define(name.clone(), fusion);
             self.log(format!(
@@ -47,7 +48,13 @@ impl<B: RobotBackend> Interpreter<B> {
             self.fusion_sensors = sensors.clone();
             self.env.define(
                 "fusion",
-                RuntimeValue::SensorFusion { sensors },
+                RuntimeValue::SensorFusion {
+                    sensors,
+                    estimator: state_estimators.first().map(|decl| {
+                        let StateEstimatorDecl::StateEstimatorDecl { name, .. } = decl;
+                        name.clone()
+                    }),
+                },
             );
             self.log("state_estimator: aliased fusion binding".into());
         }

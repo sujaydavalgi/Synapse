@@ -28,8 +28,11 @@ pub use modes::{extract_operating_modes, validate_modes};
 pub use prognostics::{evaluate_prognostics, PrognosticsReport};
 pub use report::{
     format_anomaly, format_assurance, format_diagnosis, format_mission_assurance,
-    format_mitigation, format_prognostics, format_resilience,
+    format_mitigation, format_prognostics, format_resilience, format_state,
 };
 pub use resilience::{check_resilience, ResilienceReport};
-pub use state::{build_belief_state, extract_sensor_fusion, validate_state_estimators};
+pub use state::{
+    build_belief_state, evaluate_state_assurance, extract_sensor_fusion,
+    validate_state_estimators, StateAssuranceReport,
+};
 pub use types::*;

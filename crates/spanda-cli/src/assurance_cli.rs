@@ -2,8 +2,9 @@
 
 use spanda_assurance::{
     assure_program, check_resilience, diagnose_from_trace, diagnose_program, evaluate_prognostics,
-    format_anomaly, format_assurance, format_diagnosis, format_mission_assurance,
-    format_prognostics, format_resilience, scan_anomalies, verify_mission_assurance,
+    evaluate_state_assurance, format_anomaly, format_assurance, format_diagnosis,
+    format_mission_assurance, format_prognostics, format_resilience, format_state, scan_anomalies,
+    verify_mission_assurance,
 };
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
@@ -185,6 +186,31 @@ pub fn cmd_mitigation_plan(args: &[String]) {
     let program = parse_program(&source);
     let report = spanda_assurance::mitigation_report(&program);
     println!("{}", spanda_assurance::format_mitigation(&report, format));
+}
+
+/// `spanda state estimate <file.sd> [--json|--markdown|--html]`
+pub fn cmd_state_estimate(args: &[String]) {
+    let format = parse_format(args);
+    let file = file_arg(args);
+    let source = read_file(&file);
+    let program = parse_program(&source);
+    let report = evaluate_state_assurance(&program);
+    println!("{}", format_state(&report, format));
+    if !report.passed {
+        process::exit(1);
+    }
+}
+
+/// Dispatch `spanda state` subcommands.
+pub fn state_dispatch(args: &[String]) {
+    let sub = args.first().map(String::as_str).unwrap_or("");
+    match sub {
+        "estimate" => cmd_state_estimate(&args[1..]),
+        _ => {
+            eprintln!("Usage: spanda state estimate <file.sd>");
+            process::exit(1);
+        }
+    }
 }
 
 /// Dispatch `spanda mitigation` subcommands.

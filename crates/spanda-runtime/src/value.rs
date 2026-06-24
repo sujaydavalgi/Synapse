@@ -153,6 +153,7 @@ pub enum RuntimeValue {
     },
     SensorFusion {
         sensors: Vec<String>,
+        estimator: Option<String>,
     },
     MissionControl {
         runtime: MissionRuntime,

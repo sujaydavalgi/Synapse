@@ -81,6 +81,7 @@ impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn read_fused_observation(
         &mut self,
         sensors: &[String],
+        estimator: Option<&str>,
     ) -> Result<RuntimeValue, SpandaError> {
         // Read fused observation.
         //
@@ -117,6 +118,14 @@ impl<B: RobotBackend> Interpreter<B> {
                 unit: UnitKind::None,
             },
         );
+        if let Some(name) = estimator {
+            fields.insert(
+                "estimator".into(),
+                RuntimeValue::String {
+                    value: name.to_string(),
+                },
+            );
+        }
         let confidence = if sensors.is_empty() {
             0.0
         } else {

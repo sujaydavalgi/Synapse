@@ -187,3 +187,27 @@ robot R {
     let report = scan_anomalies(&program);
     assert_eq!(report.learned.len(), 1);
 }
+
+#[test]
+fn state_assurance_evaluates_estimators() {
+    use spanda_assurance::evaluate_state_assurance;
+    let source = r#"
+state_estimator RoverState {
+    inputs [gps.fix, lidar.read];
+    output StateEstimate;
+}
+
+robot R {
+    sensor gps: GPS;
+    sensor lidar: Lidar;
+    actuator w: DifferentialDrive;
+    safety { max_speed = 1 m/s; }
+    behavior b() {}
+}
+"#;
+    let program = parse_source(source);
+    let report = evaluate_state_assurance(&program);
+    assert_eq!(report.estimators.len(), 1);
+    assert!(report.passed);
+    assert_eq!(report.belief.estimates.len(), 1);
+}

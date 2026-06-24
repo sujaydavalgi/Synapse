@@ -11,7 +11,7 @@ use crate::mitigation::extract_mitigations;
 use crate::modes::validate_modes;
 use crate::prognostics::{evaluate_prognostics, PrognosticsReport};
 use crate::resilience::{check_resilience, ResilienceReport};
-use crate::state::validate_state_estimators;
+use crate::state::{evaluate_state_assurance, StateAssuranceReport};
 
 /// Composite mission assurance summary.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -21,6 +21,7 @@ pub struct MissionAssuranceSummary {
     pub prognostics: PrognosticsReport,
     pub resilience: ResilienceReport,
     pub mission: MissionAssuranceReport,
+    pub state: StateAssuranceReport,
     pub issues: Vec<String>,
     pub passed: bool,
 }
@@ -32,10 +33,11 @@ pub fn assure_program(program: &Program, source_label: &str) -> MissionAssurance
     let prognostics = evaluate_prognostics(program);
     let resilience = check_resilience(program);
     let mission = verify_mission_assurance(program);
+    let state = evaluate_state_assurance(program);
 
     let mut issues = Vec::new();
     issues.extend(validate_knowledge_models(program));
-    issues.extend(validate_state_estimators(program));
+    issues.extend(state.issues.clone());
     issues.extend(validate_modes(program));
 
     let passed = assurance.passed
@@ -43,6 +45,7 @@ pub fn assure_program(program: &Program, source_label: &str) -> MissionAssurance
         && prognostics.passed
         && resilience.passed
         && mission.passed
+        && state.passed
         && issues.is_empty();
 
     MissionAssuranceSummary {
@@ -51,6 +54,7 @@ pub fn assure_program(program: &Program, source_label: &str) -> MissionAssurance
         prognostics,
         resilience,
         mission,
+        state,
         issues,
         passed,
     }
