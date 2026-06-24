@@ -64,7 +64,7 @@ These are non-negotiable differentiators. Protect them in every release decision
 | Real-time drivers | C++/Rust | Call via FFI; don't rewrite |
 | Communication at scale | ROS2 | Bridge, don't replace |
 | Physics simulation | Gazebo/Isaac/Mujoco | Physics-lite sim for safety testing only |
-| Package ecosystem | PyPI/crates.io/ROS | Hosted index + in-repo mirror via `spanda publish`; 29 scaffolds |
+| Package ecosystem | PyPI/crates.io/ROS | Hosted index + in-repo mirror via `spanda publish`; 37 official packages |
 | Native performance | Rust/C++ | Interpreter first; LLVM deferred |
 
 ### Differentiation ratings

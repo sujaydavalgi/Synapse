@@ -19,7 +19,7 @@ Platform overview: [platform-overview.md](./platform-overview.md) · Feature tru
 | [Simulation](#simulation) | `spanda sim`, twins, fault injection | Deeper package bridges (Gazebo/Webots scaffolds) |
 | [Health](#health) | health_check, fleet require | Swarm quorum hardening |
 | [Fleet](#fleet) | In-process + HTTP agents | Distributed orchestration polish |
-| [Packages](#packages) | 29 registry scaffolds, publish mirror | Curated remote registry growth |
+| [Packages](#packages) | 37 official registry packages, publish mirror | Curated remote registry growth |
 | [Tooling](#tooling) | CLI, demos, CI golden paths | VS Code Marketplace, LSP polish |
 | [Mission assurance](#mission-assurance) | Lean-core analysis + CLI | Package-backed ML anomaly backends |
 
@@ -166,7 +166,7 @@ Foundation: Phases 1–35 complete — [lean-core-roadmap.md](./lean-core-roadma
 | Item | Status |
 |------|--------|
 | `spanda install` / `update` / `publish` | **Stable** |
-| Hosted registry index (29 scaffolds) | **Stable** — [registry.md](./registry.md) |
+| Hosted registry index (37 packages) | **Stable** — [registry.md](./registry.md) |
 | Provider dispatch + `--trace-providers` | **Stable** |
 | Official packages (ROS2, MQTT, GPS, vision, …) | **Stable** scaffolds / live **Experimental** |
 | Live AI providers (OpenAI, Anthropic, ONNX) | **Experimental** — [live-ai-provider.md](./live-ai-provider.md) |
@@ -214,7 +214,7 @@ CLI, LSP, debugger, docs site, and contributor ergonomics.
 | Item | Status |
 |------|--------|
 | Crate rename → `spanda`, bundled demos | **Stable** |
-| Hosted registry (29 scaffolds) | **Stable** |
+| Hosted registry (37 packages) | **Stable** |
 | LSP + showcase CI smoke | **Stable** |
 
 ### v0.2 — Credibility & onboarding (complete)

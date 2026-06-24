@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Overview doc dedup:** Overview subpages link to canonical guides instead of repeating prose and tables; README and docs index consolidate navigation through [docs/overview/README.md](docs/overview/README.md).
+- **Roadmap sync:** Package count updated to 37 across roadmap and product strategy (matches hosted registry index).
 
 ### Fixed
 
