@@ -54,6 +54,8 @@ Set `SPANDA_TELEMETRY_BACKEND=sqlite` to use an indexed SQLite database instead 
 
 Heartbeat liveness is stored in the `heartbeat_liveness` table (no JSON sidecar in SQLite mode).
 
+On first open, an empty SQLite database automatically imports a sibling `telemetry-store.jsonl` (and `telemetry-heartbeats.json` beside it), then renames the JSONL file to `telemetry-store.jsonl.bak`.
+
 Override paths:
 
 | Variable | Purpose |
