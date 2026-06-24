@@ -1,7 +1,9 @@
-//! Append-only JSONL telemetry store with a heartbeat index sidecar.
+//! Append-only telemetry store with JSONL or SQLite backends.
 
 use crate::error::{TelemetryStoreError, TelemetryStoreResult};
 use crate::record::{HeartbeatIndex, TelemetryEvent};
+use crate::sqlite;
+use rusqlite::Connection;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 use spanda_runtime::serialize::runtime_to_json_string;
@@ -160,10 +162,14 @@ pub fn persist_enabled() -> bool {
 /// Shared process-global store handle.
 pub fn global_store() -> &'static Mutex<PersistentTelemetryStore> {
     GLOBAL_STORE.get_or_init(|| {
-        Mutex::new(PersistentTelemetryStore::open(
-            resolve_store_path(),
-            resolve_heartbeat_index_path(&resolve_store_path()),
-        ))
+        let (store_path, heartbeat_path) = if sqlite::env_backend_sqlite() {
+            let path = sqlite::resolve_sqlite_path();
+            (path.clone(), resolve_heartbeat_index_path(&path))
+        } else {
+            let path = resolve_store_path();
+            (path.clone(), resolve_heartbeat_index_path(&path))
+        };
+        Mutex::new(PersistentTelemetryStore::open(store_path, heartbeat_path))
     })
 }
 
@@ -322,8 +328,7 @@ pub struct TelemetryStats {
     pub tracked_devices: usize,
 }
 
-/// Append-only JSONL store with heartbeat index sidecar.
-#[derive(Debug)]
+/// Append-only store with JSONL or SQLite backend and heartbeat index.
 pub struct PersistentTelemetryStore {
     store_path: PathBuf,
     heartbeat_path: PathBuf,
@@ -331,6 +336,8 @@ pub struct PersistentTelemetryStore {
     last_heartbeat_history: HashMap<String, f64>,
     last_device_heartbeat_history: HashMap<String, f64>,
     max_events: Option<usize>,
+    sqlite_backend: bool,
+    sqlite: Option<Connection>,
 }
 
 impl PersistentTelemetryStore {
@@ -343,7 +350,20 @@ impl PersistentTelemetryStore {
         heartbeat_path: PathBuf,
         max_events: Option<usize>,
     ) -> Self {
-        let heartbeat_index = read_heartbeat_index(&heartbeat_path).unwrap_or_default();
+        let sqlite_backend = sqlite::env_backend_sqlite();
+        let sqlite = if sqlite_backend {
+            Some(
+                sqlite::open_connection(&store_path)
+                    .expect("failed to open sqlite telemetry store"),
+            )
+        } else {
+            None
+        };
+        let heartbeat_index = if let Some(conn) = &sqlite {
+            sqlite::read_heartbeat_index(conn).unwrap_or_default()
+        } else {
+            read_heartbeat_index(&heartbeat_path).unwrap_or_default()
+        };
         Self {
             store_path,
             heartbeat_path,
@@ -351,7 +371,14 @@ impl PersistentTelemetryStore {
             last_heartbeat_history: HashMap::new(),
             last_device_heartbeat_history: HashMap::new(),
             max_events,
+            sqlite_backend,
+            sqlite,
         }
+    }
+
+    /// Return true when this store uses the SQLite backend.
+    pub fn sqlite_backend(&self) -> bool {
+        self.sqlite_backend
     }
 
     pub fn store_path(&self) -> &Path {
@@ -363,6 +390,13 @@ impl PersistentTelemetryStore {
     }
 
     pub fn append(&mut self, event: TelemetryEvent) -> TelemetryStoreResult<()> {
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                sqlite::append_event(conn, &event)?;
+            }
+            self.maybe_compact()?;
+            return Ok(());
+        }
         if let Some(parent) = self.store_path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -381,6 +415,15 @@ impl PersistentTelemetryStore {
         let Some(max_events) = self.max_events else {
             return Ok(());
         };
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                let count = sqlite::read_all(conn)?.len();
+                if count > max_events {
+                    sqlite::compact(conn, max_events)?;
+                }
+            }
+            return Ok(());
+        }
         let events = self.read_all()?;
         if events.len() <= max_events {
             return Ok(());
@@ -414,7 +457,7 @@ impl PersistentTelemetryStore {
         self.heartbeat_index
             .tasks
             .insert(task_name.to_string(), timestamp_ms);
-        write_heartbeat_index(&self.heartbeat_path, &self.heartbeat_index)?;
+        self.persist_heartbeat_index(task_name, timestamp_ms, "task")?;
 
         let last = self
             .last_heartbeat_history
@@ -447,7 +490,7 @@ impl PersistentTelemetryStore {
         self.heartbeat_index
             .devices
             .insert(device_id.to_string(), timestamp_ms);
-        write_heartbeat_index(&self.heartbeat_path, &self.heartbeat_index)?;
+        self.persist_heartbeat_index(device_id, timestamp_ms, "device")?;
 
         let last = self
             .last_device_heartbeat_history
@@ -471,6 +514,12 @@ impl PersistentTelemetryStore {
     }
 
     pub fn read_all(&self) -> TelemetryStoreResult<Vec<TelemetryEvent>> {
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                return sqlite::read_all(conn);
+            }
+            return Ok(Vec::new());
+        }
         if !self.store_path.exists() {
             return Ok(Vec::new());
         }
@@ -491,6 +540,12 @@ impl PersistentTelemetryStore {
     }
 
     pub fn query(&self, query: &TelemetryQuery) -> TelemetryStoreResult<Vec<TelemetryEvent>> {
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                return sqlite::query(conn, query);
+            }
+            return Ok(Vec::new());
+        }
         let all = self.read_all()?;
         let session_window = query
             .session_id
@@ -531,6 +586,12 @@ impl PersistentTelemetryStore {
         device_id: &str,
         metric: &str,
     ) -> TelemetryStoreResult<Option<TelemetryEvent>> {
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                return sqlite::latest_device(conn, device_id, metric);
+            }
+            return Ok(None);
+        }
         Ok(self.read_all()?.into_iter().rev().find(|event| {
             matches!(
                 event,
@@ -544,6 +605,12 @@ impl PersistentTelemetryStore {
     }
 
     pub fn latest_sensor(&self, sensor_id: &str) -> TelemetryStoreResult<Option<TelemetryEvent>> {
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                return sqlite::latest_sensor(conn, sensor_id);
+            }
+            return Ok(None);
+        }
         Ok(self.read_all()?.into_iter().rev().find(|event| {
             matches!(
                 event,
@@ -559,6 +626,12 @@ impl PersistentTelemetryStore {
     }
 
     pub fn stats(&self) -> TelemetryStoreResult<TelemetryStats> {
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                return sqlite::stats(conn, &self.heartbeat_index);
+            }
+            return Ok(TelemetryStats::default());
+        }
         let events = self.read_all()?;
         let mut stats = TelemetryStats {
             total_events: events.len(),
@@ -578,6 +651,21 @@ impl PersistentTelemetryStore {
             }
         }
         Ok(stats)
+    }
+
+    fn persist_heartbeat_index(
+        &self,
+        target_id: &str,
+        timestamp_ms: f64,
+        target_kind: &str,
+    ) -> TelemetryStoreResult<()> {
+        if self.sqlite_backend {
+            if let Some(conn) = &self.sqlite {
+                sqlite::upsert_heartbeat(conn, target_kind, target_id, timestamp_ms)?;
+            }
+            return Ok(());
+        }
+        write_heartbeat_index(&self.heartbeat_path, &self.heartbeat_index)
     }
 }
 
@@ -613,7 +701,7 @@ fn resolve_max_events() -> Option<usize> {
         .filter(|max| *max > 0)
 }
 
-fn session_time_window(events: &[TelemetryEvent], session_id: &str) -> Option<(f64, f64)> {
+pub(crate) fn session_time_window(events: &[TelemetryEvent], session_id: &str) -> Option<(f64, f64)> {
     let mut start_ms = None;
     let mut end_ms = None;
     for event in events {
@@ -637,7 +725,7 @@ fn session_time_window(events: &[TelemetryEvent], session_id: &str) -> Option<(f
     Some((start_ms?, end_ms?))
 }
 
-fn matches_query(event: &TelemetryEvent, query: &TelemetryQuery) -> bool {
+pub(crate) fn matches_query(event: &TelemetryEvent, query: &TelemetryQuery) -> bool {
     if let Some(since_ms) = query.since_ms {
         if event.timestamp_ms() < since_ms {
             return false;

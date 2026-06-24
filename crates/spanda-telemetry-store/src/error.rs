@@ -9,6 +9,8 @@ pub enum TelemetryStoreError {
     Io(#[from] std::io::Error),
     #[error("serialization error: {0}")]
     Serialization(String),
+    #[error("database error: {0}")]
+    Database(String),
 }
 
 pub type TelemetryStoreResult<T> = Result<T, TelemetryStoreError>;

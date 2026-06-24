@@ -316,9 +316,10 @@ mod tests {
                 metric: "battery".into(),
                 value: serde_json::json!({"kind":"number","value":82.0}),
                 timestamp_ms: 1.0,
-                robot_id: Some("Rover".into()),
-            })
-            .unwrap();
+            robot_id: Some("Rover".into()),
+            session_id: None,
+        })
+        .unwrap();
         store
             .append(TelemetryEvent::RuntimeMetrics {
                 session_id: "run-1".into(),
