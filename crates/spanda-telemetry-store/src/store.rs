@@ -328,6 +328,17 @@ pub struct TelemetryStats {
     pub tracked_devices: usize,
 }
 
+/// Summary of a persisted run session linked to telemetry events.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct TelemetrySessionSummary {
+    pub session_id: String,
+    pub source: Option<String>,
+    pub start_ms: f64,
+    pub end_ms: Option<f64>,
+    pub mission_trace_path: Option<String>,
+    pub event_count: usize,
+}
+
 /// Append-only store with JSONL or SQLite backend and heartbeat index.
 pub struct PersistentTelemetryStore {
     store_path: PathBuf,
@@ -623,6 +634,78 @@ impl PersistentTelemetryStore {
 
     pub fn heartbeat_index(&self) -> &HeartbeatIndex {
         &self.heartbeat_index
+    }
+
+    pub fn list_sessions(&self) -> TelemetryStoreResult<Vec<TelemetrySessionSummary>> {
+        let events = self.read_all()?;
+        let mut summaries: HashMap<String, TelemetrySessionSummary> = HashMap::new();
+        for event in &events {
+            if let TelemetryEvent::Session {
+                session_id,
+                phase,
+                source,
+                mission_trace_path,
+                timestamp_ms,
+            } = event
+            {
+                let entry = summaries
+                    .entry(session_id.clone())
+                    .or_insert_with(|| TelemetrySessionSummary {
+                        session_id: session_id.clone(),
+                        source: None,
+                        start_ms: *timestamp_ms,
+                        end_ms: None,
+                        mission_trace_path: None,
+                        event_count: 0,
+                    });
+                if phase == "start" {
+                    entry.start_ms = *timestamp_ms;
+                    entry.source = source.clone();
+                } else if phase == "end" {
+                    entry.end_ms = Some(*timestamp_ms);
+                    if mission_trace_path.is_some() {
+                        entry.mission_trace_path = mission_trace_path.clone();
+                    }
+                }
+            }
+        }
+
+        for summary in summaries.values_mut() {
+            let query = TelemetryQuery {
+                session_id: Some(summary.session_id.clone()),
+                ..TelemetryQuery::default()
+            };
+            summary.event_count = self.query(&query)?.len();
+        }
+
+        let mut sessions: Vec<TelemetrySessionSummary> = summaries.into_values().collect();
+        sessions.sort_by(|left, right| {
+            right
+                .start_ms
+                .partial_cmp(&left.start_ms)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        Ok(sessions)
+    }
+
+    pub fn mission_trace_for_session(
+        &self,
+        session_id: &str,
+    ) -> TelemetryStoreResult<Option<String>> {
+        for event in self.read_all()? {
+            if let TelemetryEvent::Session {
+                session_id: id,
+                phase,
+                mission_trace_path,
+                ..
+            } = event
+            {
+                if id == session_id && phase == "end" {
+                    return Ok(mission_trace_path.clone());
+                }
+            }
+        }
+        Ok(None)
     }
 
     pub fn stats(&self) -> TelemetryStoreResult<TelemetryStats> {

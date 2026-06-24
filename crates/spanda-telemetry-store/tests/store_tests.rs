@@ -352,3 +352,52 @@ fn append_stamps_active_session_id_on_recorded_events() {
     configure_session_persist(false);
     std::env::remove_var("SPANDA_TELEMETRY_STORE_PATH");
 }
+
+#[test]
+fn list_sessions_links_mission_trace_and_event_counts() {
+    let dir = tempdir().unwrap();
+    let store_path = dir.path().join("telemetry.jsonl");
+    let heartbeat_path = dir.path().join("heartbeats.json");
+    let mut store = PersistentTelemetryStore::open(store_path, heartbeat_path);
+    store
+        .append(TelemetryEvent::Session {
+            session_id: "run-42".into(),
+            phase: "start".into(),
+            source: Some("rover.sd".into()),
+            mission_trace_path: None,
+            timestamp_ms: 1.0,
+        })
+        .unwrap();
+    store
+        .append(TelemetryEvent::Sensor {
+            sensor_id: "lidar".into(),
+            sensor_type: "Lidar".into(),
+            value: serde_json::json!({}),
+            timestamp_ms: 2.0,
+            robot_id: None,
+            session_id: Some("run-42".into()),
+        })
+        .unwrap();
+    store
+        .append(TelemetryEvent::Session {
+            session_id: "run-42".into(),
+            phase: "end".into(),
+            source: None,
+            mission_trace_path: Some("mission.trace".into()),
+            timestamp_ms: 3.0,
+        })
+        .unwrap();
+
+    let sessions = store.list_sessions().unwrap();
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(sessions[0].session_id, "run-42");
+    assert_eq!(
+        sessions[0].mission_trace_path.as_deref(),
+        Some("mission.trace")
+    );
+    assert_eq!(sessions[0].event_count, 3);
+    assert_eq!(
+        store.mission_trace_for_session("run-42").unwrap().as_deref(),
+        Some("mission.trace")
+    );
+}

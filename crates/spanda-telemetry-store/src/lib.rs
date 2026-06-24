@@ -23,6 +23,7 @@ pub use store::{
     default_store_path, end_run_session, env_persist_enabled, global_store, is_heartbeat_metric,
     persist_enabled, record_device_heartbeat, record_device_telemetry, record_health_event,
     record_sensor_reading, record_task_heartbeat, record_topic_publish, resolve_heartbeat_index_path,
-    resolve_store_path, wall_timestamp_ms, PersistentTelemetryStore, TelemetryQuery, TelemetryStats,
+    resolve_store_path, wall_timestamp_ms, PersistentTelemetryStore, TelemetryQuery, TelemetrySessionSummary,
+    TelemetryStats,
 };
 pub use sqlite::{default_sqlite_store_path, env_backend_sqlite, resolve_sqlite_path};
