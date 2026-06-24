@@ -1,5 +1,6 @@
 use spanda_telemetry_store::{
-    configure_session_persist, env_persist_enabled, persist_enabled, PersistentTelemetryStore,
+    begin_run_session, configure_session_persist, end_run_session, env_persist_enabled,
+    persist_enabled, record_sensor_reading, resolve_store_path, PersistentTelemetryStore,
     TelemetryEvent, TelemetryQuery,
 };
 use tempfile::tempdir;
@@ -18,6 +19,7 @@ fn append_and_query_device_and_sensor_events() {
             value: serde_json::json!({"kind":"number","value":82.0}),
             timestamp_ms: 1000.0,
             robot_id: Some("Rover".into()),
+            session_id: None,
         })
         .unwrap();
     store
@@ -27,6 +29,7 @@ fn append_and_query_device_and_sensor_events() {
             value: serde_json::json!({"kind":"scan","nearest_distance":1.2}),
             timestamp_ms: 1100.0,
             robot_id: Some("Rover".into()),
+            session_id: None,
         })
         .unwrap();
 
@@ -83,6 +86,8 @@ fn persist_enabled_respects_session_and_env() {
     configure_session_persist(false);
     std::env::set_var("SPANDA_TELEMETRY_STORE", "1");
     assert!(persist_enabled());
+    std::env::set_var("SPANDA_TELEMETRY_STORE", "true");
+    assert!(env_persist_enabled());
     std::env::remove_var("SPANDA_TELEMETRY_STORE");
     assert!(!persist_enabled());
 }
@@ -98,6 +103,7 @@ fn record_health_event_appends_to_store() {
             target: "overall".into(),
             status: "Degraded".into(),
             timestamp_ms: 1500.0,
+            session_id: None,
         })
         .unwrap();
     let events = store.read_all().unwrap();
@@ -108,6 +114,7 @@ fn record_health_event_appends_to_store() {
             target,
             status,
             timestamp_ms,
+            ..
         } if target == "overall" && status == "Degraded" && *timestamp_ms == 1500.0
     ));
 }
@@ -162,6 +169,7 @@ fn record_topic_publish_stores_device_event() {
             value: serde_json::json!({"kind":"string","value":"ok"}),
             timestamp_ms: 1200.0,
             robot_id: Some("Rover".into()),
+            session_id: None,
         })
         .unwrap();
     let latest = store.latest_device("Rover", "/telemetry").unwrap().unwrap();
@@ -174,13 +182,6 @@ fn record_topic_publish_stores_device_event() {
             ..
         } if device_id == "Rover" && metric == "/telemetry" && rid == "Rover"
     ));
-}
-
-#[test]
-fn env_persist_enabled_accepts_true_literal() {
-    std::env::set_var("SPANDA_TELEMETRY_STORE", "true");
-    assert!(env_persist_enabled());
-    std::env::remove_var("SPANDA_TELEMETRY_STORE");
 }
 
 #[test]
@@ -205,6 +206,7 @@ fn session_query_filters_events_to_run_window() {
             value: serde_json::json!({}),
             timestamp_ms: 150.0,
             robot_id: None,
+            session_id: Some("run-1".into()),
         })
         .unwrap();
     store
@@ -214,6 +216,7 @@ fn session_query_filters_events_to_run_window() {
             value: serde_json::json!({}),
             timestamp_ms: 250.0,
             robot_id: None,
+            session_id: Some("other-run".into()),
         })
         .unwrap();
     store
@@ -238,6 +241,51 @@ fn session_query_filters_events_to_run_window() {
 }
 
 #[test]
+fn session_query_falls_back_to_timestamp_window_for_legacy_events() {
+    let dir = tempdir().unwrap();
+    let store_path = dir.path().join("telemetry.jsonl");
+    let heartbeat_path = dir.path().join("heartbeats.json");
+    let mut store = PersistentTelemetryStore::open(store_path, heartbeat_path);
+    store
+        .append(TelemetryEvent::Session {
+            session_id: "legacy-1".into(),
+            phase: "start".into(),
+            source: None,
+            mission_trace_path: None,
+            timestamp_ms: 100.0,
+        })
+        .unwrap();
+    store
+        .append(TelemetryEvent::Sensor {
+            sensor_id: "lidar".into(),
+            sensor_type: "Lidar".into(),
+            value: serde_json::json!({}),
+            timestamp_ms: 150.0,
+            robot_id: None,
+            session_id: None,
+        })
+        .unwrap();
+    store
+        .append(TelemetryEvent::Session {
+            session_id: "legacy-1".into(),
+            phase: "end".into(),
+            source: None,
+            mission_trace_path: None,
+            timestamp_ms: 200.0,
+        })
+        .unwrap();
+    let events = store
+        .query(&TelemetryQuery {
+            session_id: Some("legacy-1".into()),
+            kind: Some("sensor".into()),
+            ..TelemetryQuery::default()
+        })
+        .unwrap();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(events[0], TelemetryEvent::Sensor { .. }));
+}
+
+#[test]
 fn max_events_env_trims_oldest_entries() {
     let dir = tempdir().unwrap();
     let store_path = dir.path().join("telemetry.jsonl");
@@ -253,6 +301,7 @@ fn max_events_env_trims_oldest_entries() {
                 target: format!("check-{index}"),
                 status: "Ok".into(),
                 timestamp_ms: index as f64,
+                session_id: None,
             })
             .unwrap();
     }
@@ -262,4 +311,44 @@ fn max_events_env_trims_oldest_entries() {
         &events[0],
         TelemetryEvent::Health { target, .. } if target == "check-1"
     ));
+}
+
+#[test]
+fn append_stamps_active_session_id_on_recorded_events() {
+    let dir = tempdir().unwrap();
+    std::env::set_var(
+        "SPANDA_TELEMETRY_STORE_PATH",
+        dir.path()
+            .join("telemetry.jsonl")
+            .to_string_lossy()
+            .to_string(),
+    );
+    configure_session_persist(true);
+    let session_id = begin_run_session(Some("rover.sd")).unwrap();
+    record_sensor_reading(
+        "lidar",
+        "Lidar",
+        &spanda_runtime::value::RuntimeValue::String {
+            value: "ok".into(),
+        },
+        10.0,
+        Some("Rover"),
+    )
+    .unwrap();
+    end_run_session(None, None, 20.0).unwrap();
+    let store = PersistentTelemetryStore::open(
+        resolve_store_path(),
+        dir.path().join("heartbeats.json"),
+    );
+    let sensor = store
+        .query(&TelemetryQuery {
+            kind: Some("sensor".into()),
+            session_id: Some(session_id.clone()),
+            ..TelemetryQuery::default()
+        })
+        .unwrap();
+    assert_eq!(sensor.len(), 1);
+    assert_eq!(sensor[0].session_id(), Some(session_id.as_str()));
+    configure_session_persist(false);
+    std::env::remove_var("SPANDA_TELEMETRY_STORE_PATH");
 }

@@ -116,6 +116,28 @@ pub fn end_run_session(
     Ok(())
 }
 
+fn active_session_id() -> Option<String> {
+    active_session_slot().lock().unwrap().clone()
+}
+
+fn stamp_active_session_id(event: &mut TelemetryEvent) {
+    let Some(session_id) = active_session_id() else {
+        return;
+    };
+    match event {
+        TelemetryEvent::Device { session_id: slot, .. }
+        | TelemetryEvent::Sensor { session_id: slot, .. }
+        | TelemetryEvent::Heartbeat { session_id: slot, .. }
+        | TelemetryEvent::DeviceHeartbeat { session_id: slot, .. }
+        | TelemetryEvent::Health { session_id: slot, .. } => {
+            if slot.is_none() {
+                *slot = Some(session_id);
+            }
+        }
+        TelemetryEvent::Session { .. } | TelemetryEvent::RuntimeMetrics { .. } => {}
+    }
+}
+
 fn clear_active_session() {
     if let Some(slot) = ACTIVE_SESSION_ID.get() {
         *slot.lock().unwrap() = None;
@@ -146,10 +168,11 @@ pub fn global_store() -> &'static Mutex<PersistentTelemetryStore> {
 }
 
 /// Append an event when persistence is enabled.
-pub fn append_event(event: TelemetryEvent) -> TelemetryStoreResult<()> {
+pub fn append_event(mut event: TelemetryEvent) -> TelemetryStoreResult<()> {
     if !persist_enabled() {
         return Ok(());
     }
+    stamp_active_session_id(&mut event);
     global_store().lock().unwrap().append(event)
 }
 
@@ -171,6 +194,7 @@ pub fn record_device_telemetry(
         value,
         timestamp_ms,
         robot_id: robot_id.map(str::to_string),
+        session_id: None,
     })
 }
 
@@ -192,6 +216,7 @@ pub fn record_sensor_reading(
         value,
         timestamp_ms,
         robot_id: robot_id.map(str::to_string),
+        session_id: None,
     })
 }
 
@@ -250,6 +275,7 @@ pub fn record_health_event(
         target: target.into(),
         status: status.into(),
         timestamp_ms,
+        session_id: None,
     })
 }
 
@@ -398,11 +424,14 @@ impl PersistentTelemetryStore {
         if timestamp_ms - last >= history_interval_ms {
             self.last_heartbeat_history
                 .insert(task_name.to_string(), timestamp_ms);
-            self.append(TelemetryEvent::Heartbeat {
+            let mut event = TelemetryEvent::Heartbeat {
                 task_name: task_name.to_string(),
                 timestamp_ms,
                 robot_id: robot_id.map(str::to_string),
-            })?;
+                session_id: None,
+            };
+            stamp_active_session_id(&mut event);
+            self.append(event)?;
         }
         Ok(())
     }
@@ -428,12 +457,15 @@ impl PersistentTelemetryStore {
         if timestamp_ms - last >= history_interval_ms {
             self.last_device_heartbeat_history
                 .insert(device_id.to_string(), timestamp_ms);
-            self.append(TelemetryEvent::DeviceHeartbeat {
+            let mut event = TelemetryEvent::DeviceHeartbeat {
                 device_id: device_id.to_string(),
                 timestamp_ms,
                 robot_id: robot_id.map(str::to_string),
                 protocol: protocol.map(str::to_string),
-            })?;
+                session_id: None,
+            };
+            stamp_active_session_id(&mut event);
+            self.append(event)?;
         }
         Ok(())
     }
@@ -467,10 +499,19 @@ impl PersistentTelemetryStore {
         let mut events: Vec<TelemetryEvent> = all
             .into_iter()
             .filter(|event| {
-                if let Some((start_ms, end_ms)) = session_window {
-                    let ts = event.timestamp_ms();
-                    if ts < start_ms || ts > end_ms {
-                        return false;
+                if let Some(expected) = &query.session_id {
+                    match event.session_id() {
+                        Some(actual) if actual == expected => {}
+                        Some(_) => return false,
+                        None => {
+                            let Some((start_ms, end_ms)) = session_window else {
+                                return false;
+                            };
+                            let ts = event.timestamp_ms();
+                            if ts < start_ms || ts > end_ms {
+                                return false;
+                            }
+                        }
                     }
                 }
                 matches_query(event, query)

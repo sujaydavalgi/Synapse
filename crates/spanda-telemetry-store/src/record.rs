@@ -15,6 +15,8 @@ pub enum TelemetryEvent {
         timestamp_ms: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         robot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        session_id: Option<String>,
     },
     /// Robot sensor reading.
     #[serde(rename = "sensor")]
@@ -25,6 +27,8 @@ pub enum TelemetryEvent {
         timestamp_ms: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         robot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        session_id: Option<String>,
     },
     /// Task heartbeat sample (throttled in the runtime).
     #[serde(rename = "heartbeat")]
@@ -33,6 +37,8 @@ pub enum TelemetryEvent {
         timestamp_ms: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         robot_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        session_id: Option<String>,
     },
     /// IoT device or fleet agent liveness sample.
     #[serde(rename = "device_heartbeat")]
@@ -43,6 +49,8 @@ pub enum TelemetryEvent {
         robot_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         protocol: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        session_id: Option<String>,
     },
     /// Health status transition.
     #[serde(rename = "health")]
@@ -50,6 +58,8 @@ pub enum TelemetryEvent {
         target: String,
         status: String,
         timestamp_ms: f64,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        session_id: Option<String>,
     },
     /// Run session boundary (start/end) linking source and mission trace.
     #[serde(rename = "session")]
@@ -81,6 +91,19 @@ impl TelemetryEvent {
             | Self::Health { timestamp_ms, .. }
             | Self::Session { timestamp_ms, .. }
             | Self::RuntimeMetrics { timestamp_ms, .. } => *timestamp_ms,
+        }
+    }
+
+    pub fn session_id(&self) -> Option<&str> {
+        match self {
+            Self::Device { session_id, .. }
+            | Self::Sensor { session_id, .. }
+            | Self::Heartbeat { session_id, .. }
+            | Self::DeviceHeartbeat { session_id, .. }
+            | Self::Health { session_id, .. } => session_id.as_deref(),
+            Self::Session { session_id, .. } | Self::RuntimeMetrics { session_id, .. } => {
+                Some(session_id.as_str())
+            }
         }
     }
 }

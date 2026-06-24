@@ -106,6 +106,7 @@ fn cmd_latest(args: &[String]) {
                     timestamp_ms,
                     robot_id: None,
                     protocol: None,
+                    session_id: None,
                 })
         }
     } else if let Some(sensor_id) = &parsed.sensor_id {
@@ -119,6 +120,7 @@ fn cmd_latest(args: &[String]) {
             task_name: task_name.clone(),
             timestamp_ms,
             robot_id: None,
+            session_id: None,
         })
     } else {
         eprintln!("telemetry latest requires --device, --sensor, or --task");
@@ -317,6 +319,10 @@ fn parse_query_args(args: &[String]) -> ParsedQueryArgs {
 }
 
 fn print_event(event: &TelemetryEvent) {
+    let session = event
+        .session_id()
+        .map(|id| format!(" session={id}"))
+        .unwrap_or_default();
     match event {
         TelemetryEvent::Device {
             device_id,
@@ -324,8 +330,9 @@ fn print_event(event: &TelemetryEvent) {
             value,
             timestamp_ms,
             robot_id,
+            ..
         } => println!(
-            "[device] {timestamp_ms}ms {device_id} {metric} = {value}{}",
+            "[device] {timestamp_ms}ms {device_id} {metric} = {value}{}{session}",
             robot_id
                 .as_ref()
                 .map(|id| format!(" robot={id}"))
@@ -337,8 +344,9 @@ fn print_event(event: &TelemetryEvent) {
             value,
             timestamp_ms,
             robot_id,
+            ..
         } => println!(
-            "[sensor] {timestamp_ms}ms {sensor_id} ({sensor_type}) = {value}{}",
+            "[sensor] {timestamp_ms}ms {sensor_id} ({sensor_type}) = {value}{}{session}",
             robot_id
                 .as_ref()
                 .map(|id| format!(" robot={id}"))
@@ -348,8 +356,9 @@ fn print_event(event: &TelemetryEvent) {
             task_name,
             timestamp_ms,
             robot_id,
+            ..
         } => println!(
-            "[heartbeat] {timestamp_ms}ms task={task_name}{}",
+            "[heartbeat] {timestamp_ms}ms task={task_name}{}{session}",
             robot_id
                 .as_ref()
                 .map(|id| format!(" robot={id}"))
@@ -360,8 +369,9 @@ fn print_event(event: &TelemetryEvent) {
             timestamp_ms,
             robot_id,
             protocol,
+            ..
         } => println!(
-            "[device_heartbeat] {timestamp_ms}ms device={device_id}{}",
+            "[device_heartbeat] {timestamp_ms}ms device={device_id}{}{session}",
             [
                 robot_id.as_ref().map(|id| format!(" robot={id}")),
                 protocol.as_ref().map(|name| format!(" protocol={name}")),
@@ -375,7 +385,8 @@ fn print_event(event: &TelemetryEvent) {
             target,
             status,
             timestamp_ms,
-        } => println!("[health] {timestamp_ms}ms {target} -> {status}"),
+            ..
+        } => println!("[health] {timestamp_ms}ms {target} -> {status}{session}"),
         TelemetryEvent::Session {
             session_id,
             phase,
