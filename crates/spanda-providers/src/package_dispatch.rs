@@ -49,6 +49,13 @@ pub fn official_package_for_module(module_path: &str) -> Option<&'static str> {
         "iot.lora" => Some("spanda-lora"),
         "iot.matter" => Some("spanda-matter"),
         "iot.canbus" => Some("spanda-canbus"),
+        "assurance.evidence" => Some("spanda-assurance"),
+        "assurance.knowledge" => Some("spanda-knowledge-model"),
+        "assurance.anomaly" => Some("spanda-anomaly"),
+        "assurance.diagnosis" => Some("spanda-diagnosis"),
+        "assurance.prognostics" => Some("spanda-prognostics"),
+        "assurance.mission" => Some("spanda-mission-planning"),
+        "assurance.resilience" => Some("spanda-resilience"),
         _ => None,
     }
 }

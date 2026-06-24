@@ -1,0 +1,5 @@
+import assurance.prognostics;
+
+test smoke {
+    assert true;
+}

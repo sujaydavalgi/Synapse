@@ -1,0 +1,5 @@
+import assurance.knowledge-model;
+
+test smoke {
+    assert true;
+}

@@ -1,0 +1,5 @@
+module assurance.diagnosis;
+
+export fn diagnose() -> Int {
+  return 1;
+}

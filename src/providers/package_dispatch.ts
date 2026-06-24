@@ -44,6 +44,20 @@ export function officialPackageForModule(modulePath: string): string | null {
       return "spanda-openai";
     case "provenance.ledger":
       return "spanda-ledger";
+    case "assurance.evidence":
+      return "spanda-assurance";
+    case "assurance.knowledge":
+      return "spanda-knowledge-model";
+    case "assurance.anomaly":
+      return "spanda-anomaly";
+    case "assurance.diagnosis":
+      return "spanda-diagnosis";
+    case "assurance.prognostics":
+      return "spanda-prognostics";
+    case "assurance.mission":
+      return "spanda-mission-planning";
+    case "assurance.resilience":
+      return "spanda-resilience";
     default:
       return null;
   }

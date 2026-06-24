@@ -1,0 +1,5 @@
+import assurance.diagnosis;
+
+test smoke {
+    assert true;
+}

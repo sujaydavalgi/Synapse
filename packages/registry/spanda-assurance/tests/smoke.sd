@@ -1,0 +1,5 @@
+import assurance.assurance;
+
+test smoke {
+    assert true;
+}

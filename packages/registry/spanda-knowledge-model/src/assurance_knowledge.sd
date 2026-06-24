@@ -1,0 +1,5 @@
+module assurance.knowledge;
+
+export fn model() -> Int {
+  return 1;
+}

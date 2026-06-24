@@ -274,6 +274,48 @@ pub fn framework_packages() -> &'static [FrameworkPackage] {
             category: super::category::PackageCategory::Hardware,
             import_paths: &["iot.canbus"],
         },
+        FrameworkPackage {
+            name: "spanda-assurance",
+            description: "Assurance evidence and safety case scaffolds",
+            category: super::category::PackageCategory::Robotics,
+            import_paths: &["assurance.evidence"],
+        },
+        FrameworkPackage {
+            name: "spanda-knowledge-model",
+            description: "System knowledge models and dependency graphs",
+            category: super::category::PackageCategory::Robotics,
+            import_paths: &["assurance.knowledge"],
+        },
+        FrameworkPackage {
+            name: "spanda-anomaly",
+            description: "Anomaly detection backends",
+            category: super::category::PackageCategory::Robotics,
+            import_paths: &["assurance.anomaly"],
+        },
+        FrameworkPackage {
+            name: "spanda-diagnosis",
+            description: "Fault diagnosis and root cause analysis",
+            category: super::category::PackageCategory::Robotics,
+            import_paths: &["assurance.diagnosis"],
+        },
+        FrameworkPackage {
+            name: "spanda-prognostics",
+            description: "Prognostics and remaining useful life",
+            category: super::category::PackageCategory::Robotics,
+            import_paths: &["assurance.prognostics"],
+        },
+        FrameworkPackage {
+            name: "spanda-mission-planning",
+            description: "Mission planning and execution assurance",
+            category: super::category::PackageCategory::Robotics,
+            import_paths: &["assurance.mission"],
+        },
+        FrameworkPackage {
+            name: "spanda-resilience",
+            description: "Resilience and recovery policies",
+            category: super::category::PackageCategory::Robotics,
+            import_paths: &["assurance.resilience"],
+        },
     ]
 }
 

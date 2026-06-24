@@ -1,0 +1,5 @@
+module assurance.resilience;
+
+export fn check() -> Int {
+  return 1;
+}

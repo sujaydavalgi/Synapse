@@ -1,0 +1,14 @@
+[package]
+name = "spanda-prognostics"
+version = "0.1.0"
+description = "Mission assurance: prognostics"
+license = "Apache-2.0"
+
+[safety]
+level = "robotics"
+
+[capabilities]
+required = ["assurance.prognostics"]
+
+[hardware]
+requirements = []

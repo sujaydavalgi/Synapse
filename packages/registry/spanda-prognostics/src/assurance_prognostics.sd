@@ -1,0 +1,5 @@
+module assurance.prognostics;
+
+export fn predict() -> Int {
+  return 1;
+}

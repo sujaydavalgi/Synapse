@@ -1,0 +1,5 @@
+import assurance.resilience;
+
+test smoke {
+    assert true;
+}

@@ -1,0 +1,5 @@
+module assurance.evidence;
+
+export fn case_report() -> Int {
+  return 1;
+}

@@ -1,0 +1,14 @@
+[package]
+name = "spanda-resilience"
+version = "0.1.0"
+description = "Mission assurance: resilience"
+license = "Apache-2.0"
+
+[safety]
+level = "robotics"
+
+[capabilities]
+required = ["assurance.resilience"]
+
+[hardware]
+requirements = []

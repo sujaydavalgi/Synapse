@@ -1,0 +1,5 @@
+module assurance.anomaly;
+
+export fn scan() -> Int {
+  return 1;
+}

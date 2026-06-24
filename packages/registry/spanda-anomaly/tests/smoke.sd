@@ -1,0 +1,5 @@
+import assurance.anomaly;
+
+test smoke {
+    assert true;
+}

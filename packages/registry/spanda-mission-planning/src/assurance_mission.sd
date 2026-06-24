@@ -1,0 +1,5 @@
+module assurance.mission;
+
+export fn verify() -> Int {
+  return 1;
+}
