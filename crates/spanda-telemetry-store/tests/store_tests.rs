@@ -1,6 +1,6 @@
 use spanda_telemetry_store::{
-    configure_session_persist, env_persist_enabled, persist_enabled, PersistentTelemetryStore,
-    TelemetryEvent, TelemetryQuery,
+    configure_session_persist, env_persist_enabled, persist_enabled, record_health_event,
+    resolve_store_path, PersistentTelemetryStore, TelemetryEvent, TelemetryQuery,
 };
 use tempfile::tempdir;
 
@@ -85,6 +85,33 @@ fn persist_enabled_respects_session_and_env() {
     assert!(persist_enabled());
     std::env::remove_var("SPANDA_TELEMETRY_STORE");
     assert!(!persist_enabled());
+}
+
+#[test]
+fn record_health_event_appends_to_store() {
+    let dir = tempdir().unwrap();
+    std::env::set_var(
+        "SPANDA_TELEMETRY_STORE_PATH",
+        dir.path().join("telemetry.jsonl").to_string_lossy().to_string(),
+    );
+    configure_session_persist(true);
+    record_health_event("overall", "Degraded", 1500.0).unwrap();
+    let store = PersistentTelemetryStore::open(
+        resolve_store_path(),
+        dir.path().join("heartbeats.json"),
+    );
+    let events = store.read_all().unwrap();
+    assert_eq!(events.len(), 1);
+    assert!(matches!(
+        &events[0],
+        TelemetryEvent::Health {
+            target,
+            status,
+            timestamp_ms,
+        } if target == "overall" && status == "Degraded" && *timestamp_ms == 1500.0
+    ));
+    configure_session_persist(false);
+    std::env::remove_var("SPANDA_TELEMETRY_STORE_PATH");
 }
 
 #[test]

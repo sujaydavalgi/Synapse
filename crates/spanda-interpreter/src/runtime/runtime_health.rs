@@ -49,6 +49,7 @@ impl<B: RobotBackend> Interpreter<B> {
             });
         self.health_program = has_health.then(|| program.clone());
         self.last_health_overall = None;
+        self.last_health_checks.clear();
         self.applied_health_reactions.clear();
     }
 
@@ -75,10 +76,36 @@ impl<B: RobotBackend> Interpreter<B> {
         let mut report = evaluate_runtime_health(&faults, &events, &program);
         spanda_capability::apply_fleet_health_checks(&mut report, &program, &self.fleets, &faults);
         let label = format!("{:?}", report.overall);
-        if self.last_health_overall.as_deref() == Some(label.as_str()) {
+        let mut any_change = false;
+
+        if self.last_health_overall.as_deref() != Some(label.as_str()) {
+            any_change = true;
+            let _ = spanda_telemetry_store::record_health_event(
+                "overall",
+                &label,
+                self.sim_time_ms,
+            );
+            self.last_health_overall = Some(label.clone());
+        }
+
+        for check in &report.checks {
+            let status = format!("{:?}", check.status);
+            let key = format!("{}:{}", check.target, check.name);
+            if self.last_health_checks.get(&key) != Some(&status) {
+                any_change = true;
+                let _ = spanda_telemetry_store::record_health_event(
+                    format!("{}:{}", check.target, check.name),
+                    &status,
+                    self.sim_time_ms,
+                );
+                self.last_health_checks.insert(key, status);
+            }
+        }
+
+        if !any_change {
             return;
         }
-        self.last_health_overall = Some(label.clone());
+
         self.poll_recovery_approvals();
         self.log(format!(
             "health: overall {label} (monitor={})",

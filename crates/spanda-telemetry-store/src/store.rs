@@ -138,6 +138,19 @@ pub fn record_task_heartbeat(
     store.touch_heartbeat(&task_name, timestamp_ms, history_interval_ms, robot_id)
 }
 
+/// Record a health status transition when persistence is enabled.
+pub fn record_health_event(
+    target: impl Into<String>,
+    status: impl Into<String>,
+    timestamp_ms: f64,
+) -> TelemetryStoreResult<()> {
+    append_event(TelemetryEvent::Health {
+        target: target.into(),
+        status: status.into(),
+        timestamp_ms,
+    })
+}
+
 /// Query filters for listing stored events.
 #[derive(Debug, Clone, Default)]
 pub struct TelemetryQuery {
