@@ -12,7 +12,7 @@ use spanda_assurance::{
 };
 use spanda_ast::nodes::{Program, RobotDecl};
 use spanda_comm::CommBus;
-use spanda_deploy_http::{
+use crate::fleet_http::{
     relay_continuity_via_mesh, relay_recovery_via_mesh, FleetContinuityRequest,
     FleetRecoveryRequest,
 };

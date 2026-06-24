@@ -35,12 +35,13 @@ spanda-transport-routing = { path = "../spanda-transport-routing", default-featu
 spanda-typecheck = { path = "../spanda-typecheck" }
 spanda-capability = { path = "../spanda-capability" }
 spanda-assurance = { path = "../spanda-assurance" }
-spanda-deploy-http = { path = "../spanda-deploy-http" }
+spanda-deploy-http = { path = "../spanda-deploy-http", optional = true }
 
 [features]
 default = ["transport-tls"]
 transport-tls = ["spanda-transport/tls", "spanda-transport-routing/transport-tls"]
 telemetry-sqlite = ["spanda-telemetry-store/sqlite"]
+fleet-http = ["dep:spanda-deploy-http"]
 live-iot = ["spanda-providers/live-iot"]
 live-ai = []
 live-mqtt = ["spanda-transport-routing/live-mqtt"]

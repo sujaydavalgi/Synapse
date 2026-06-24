@@ -9,7 +9,9 @@ use spanda_assurance::{
 };
 use spanda_ast::nodes::Program;
 use spanda_comm::CommBus;
-use spanda_deploy_http::{relay_continuity_via_mesh, FleetContinuityRequest};
+use crate::fleet_http::{
+    relay_continuity_via_mesh, FleetContinuityRequest,
+};
 use spanda_error::SpandaError;
 use spanda_runtime::robotics::MissionState;
 use spanda_runtime::value::RuntimeValue;

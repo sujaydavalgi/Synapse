@@ -71,6 +71,19 @@ jobs:
           export PATH="${{ github.workspace }}/target/release:$PATH"
           ./examples/robotics/golden_path_deploy.sh
 
+  telemetry-golden-path:
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p spanda --release
+      - run: chmod +x scripts/telemetry_store_golden_path.sh
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          ./scripts/telemetry_store_golden_path.sh
+
   mqtt-golden-path:
     runs-on: ubuntu-latest
     needs: rust
@@ -348,6 +361,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: rustup target add wasm32-unknown-unknown
       - run: cargo check -p spanda-telemetry-store --target wasm32-unknown-unknown --no-default-features
+      - run: cargo check -p spanda-wasm --target wasm32-unknown-unknown
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: npm run build:wasm
       - uses: actions/setup-node@v4

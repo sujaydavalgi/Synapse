@@ -27,7 +27,7 @@ serde = { version = "1", features = ["derive"] }
 
 [features]
 default = ["full"]
-full = ["certify", "bridge", "ota", "transport-tls", "spanda-interpreter/telemetry-sqlite"]
+full = ["certify", "bridge", "ota", "transport-tls", "spanda-interpreter/telemetry-sqlite", "spanda-interpreter/fleet-http"]
 certify = ["dep:spanda-certify"]
 bridge = ["dep:spanda-bridge"]
 ota = ["dep:spanda-ota", "certify"]

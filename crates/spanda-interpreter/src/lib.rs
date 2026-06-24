@@ -1,5 +1,6 @@
 //! Spanda interpreter — native runtime tree and run API.
 //!
+mod fleet_http;
 pub mod options;
 pub mod run;
 pub mod runtime;
