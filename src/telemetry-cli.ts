@@ -6,7 +6,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import { dirname } from "node:path";
-import { remoteFetch } from "./http-fetch.js";
 import {
   loadMissionTrace,
   parseReplayOffset,
@@ -24,6 +23,13 @@ import {
   usesSqliteBackend,
 } from "./telemetry-store.js";
 import { envBackendSqlite, sqliteBackendAvailable } from "./telemetry-sqlite.js";
+import { renderOtlpJson } from "./telemetry-otlp.js";
+import {
+  envOtlpEndpoint,
+  envOtlpToken,
+  envPushIntervalMs,
+  runOtlpPushLoop,
+} from "./telemetry-push.js";
 
 export type TelemetryEvent =
   | {
@@ -363,57 +369,23 @@ function renderPrometheus(): string {
 }
 
 function renderOtlp(): string {
-  const stats = computeStats();
-  const index = readHeartbeatIndex();
-  const nowNano = `${Date.now()}000000`;
-  const metrics = [
-    ...[
-      ["device", stats.device_events],
-      ["sensor", stats.sensor_events],
-      ["heartbeat", stats.heartbeat_events],
-      ["device_heartbeat", stats.device_heartbeat_events],
-      ["health", stats.health_events],
-      ["session", stats.session_events],
-      ["runtime_metrics", stats.runtime_metrics_events],
-    ].map(([kind, count]) => ({
-      name: "spanda.telemetry.events",
-      gauge: {
-        dataPoints: [{
-          asDouble: count,
-          attributes: [{ key: "kind", value: { stringValue: kind } }],
-          timeUnixNano: nowNano,
-        }],
-      },
-    })),
-  ];
-  for (const [task, timestamp] of Object.entries(index.tasks)) {
-    metrics.push({
-      name: "spanda.task.heartbeat.last_timestamp_ms",
-      gauge: {
-        dataPoints: [{
-          asDouble: timestamp,
-          attributes: [{ key: "task", value: { stringValue: task } }],
-          timeUnixNano: nowNano,
-        }],
-      },
-    });
-  }
-  return JSON.stringify({
-    resourceMetrics: [{
-      resource: { attributes: [{ key: "service.name", value: { stringValue: "spanda" } }] },
-      scopeMetrics: [{ scope: { name: "spanda.telemetry" }, metrics }],
-    }],
-  }, null, 2);
+  return renderOtlpJson();
 }
 
 export async function runTelemetryPush(args: string[]): Promise<number> {
-  let endpoint = process.env.SPANDA_OTLP_ENDPOINT;
-  let token: string | undefined;
+  let endpoint = envOtlpEndpoint();
+  let token = envOtlpToken();
+  let watch = false;
+  let intervalMs: number | undefined;
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] === "--endpoint") {
       endpoint = args[++i];
     } else if (args[i] === "--token") {
       token = args[++i];
+    } else if (args[i] === "--watch") {
+      watch = true;
+    } else if (args[i] === "--interval") {
+      intervalMs = Number(args[++i]);
     } else {
       throw new Error(`Unknown telemetry push flag: ${args[i]}`);
     }
@@ -422,27 +394,37 @@ export async function runTelemetryPush(args: string[]): Promise<number> {
     console.error("telemetry push requires --endpoint <url> or SPANDA_OTLP_ENDPOINT");
     return 1;
   }
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (watch) {
+    const resolvedInterval = intervalMs ?? envPushIntervalMs();
+    console.error(
+      `Watching telemetry store; pushing OTLP every ${resolvedInterval}ms (Ctrl+C to stop)`,
+    );
+    try {
+      await runOtlpPushLoop({
+        endpoint,
+        token,
+        intervalMs: resolvedInterval,
+        once: false,
+      });
+      return 0;
+    } catch (error) {
+      console.error(`telemetry push failed: ${error instanceof Error ? error.message : error}`);
+      return 1;
+    }
   }
-  const response = await remoteFetch(endpoint, {
-    method: "POST",
-    headers,
-    body: renderOtlp(),
-  });
-  if (response.ok) {
+  try {
+    await runOtlpPushLoop({
+      endpoint,
+      token,
+      intervalMs: intervalMs ?? envPushIntervalMs(),
+      once: true,
+    });
     console.log(`Pushed OTLP metrics to ${endpoint}`);
     return 0;
+  } catch (error) {
+    console.error(`telemetry push failed: ${error instanceof Error ? error.message : error}`);
+    return 1;
   }
-  const body = await response.text();
-  console.error(`telemetry push failed: HTTP ${response.status} from ${endpoint}`);
-  if (body) {
-    console.error(body);
-  }
-  return 1;
 }
 
 function parseReplayArgs(args: string[]): {

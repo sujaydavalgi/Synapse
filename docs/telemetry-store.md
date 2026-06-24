@@ -81,7 +81,7 @@ spanda telemetry replay --session <id> [--from T+mm:ss] [--deterministic] [--pla
 spanda telemetry export [--out <file.jsonl>]
 spanda telemetry prometheus [--out <file.prom>]
 spanda telemetry otlp [--out <file.json>]
-spanda telemetry push --endpoint <url> [--token <t>]
+spanda telemetry push --endpoint <url> [--token <t>] [--watch] [--interval <ms>]
 spanda telemetry serve [--bind <addr>] [--once]
 ```
 
@@ -136,7 +136,22 @@ POST the current store snapshot to an OpenTelemetry HTTP collector:
 export SPANDA_OTLP_ENDPOINT=http://collector:4318/v1/metrics
 spanda telemetry push
 spanda telemetry push --endpoint https://collector.example/v1/metrics --token "$OTEL_TOKEN"
+spanda telemetry push --watch --interval 15000
 ```
+
+### Auto-push after each run
+
+When a run ends with persistent telemetry enabled, push OTLP metrics automatically:
+
+```bash
+export SPANDA_TELEMETRY_STORE=1
+export SPANDA_OTLP_AUTO_PUSH=1
+export SPANDA_OTLP_ENDPOINT=http://collector:4318/v1/metrics
+# optional: SPANDA_OTLP_TOKEN, SPANDA_OTLP_PUSH_INTERVAL_MS (watch mode default 30000)
+spanda run examples/demo.sd
+```
+
+`--watch` runs a blocking push loop (default interval from `SPANDA_OTLP_PUSH_INTERVAL_MS`, 30s). Auto-push fires once per session end on both Rust and TypeScript run paths.
 
 The payload matches `spanda telemetry otlp` (OTLP/JSON `resourceMetrics` shape). Use with `spanda telemetry serve` for local collector testing.
 

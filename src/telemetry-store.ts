@@ -179,6 +179,7 @@ export function endRunSession(
     });
   }
   activeSessionId = undefined;
+  void import("./telemetry-push.js").then(({ maybeAutoPushAfterSession }) => maybeAutoPushAfterSession());
 }
 
 export function persistEnabled(): boolean {
