@@ -362,6 +362,20 @@ impl PrettyPrinter {
             requires_network,
             simulate_compatibility,
             messages,
+            knowledge_models,
+            state_estimators,
+            anomaly_detectors,
+            anomaly_handlers,
+            prognostics,
+            mitigations,
+            operating_modes,
+            mission_plans,
+            resilience_policies,
+            assurance_cases,
+            kill_switches,
+            health_checks,
+            health_policies,
+            requires_capabilities,
             robots,
             ..
         } = program;
@@ -457,39 +471,71 @@ impl PrettyPrinter {
             }
         }
 
-        // Process each hardware profile.
+        // Emit span-backed top-level declarations in source order.
+        let mut spanned_decls: Vec<&Span> = Vec::new();
         for hw in hardware_profiles {
-            self.emit_source_span(source, span_of(hw));
-            self.newline();
+            spanned_decls.push(span_of(hw));
         }
-
-        // Emit output when requires hardware provides a req.
         if let Some(req) = requires_hardware {
-            self.emit_source_span(source, span_of(req));
-            self.newline();
+            spanned_decls.push(span_of(req));
         }
-
-        // Emit output when requires network provides a req.
         if let Some(req) = requires_network {
-            self.emit_source_span(source, span_of(req));
-            self.newline();
+            spanned_decls.push(span_of(req));
         }
-
-        // Emit output when simulate compatibility provides a sim.
         if let Some(sim) = simulate_compatibility {
-            self.emit_source_span(source, span_of(sim));
-            self.newline();
+            spanned_decls.push(span_of(sim));
         }
-
-        // Process each message.
         for msg in messages {
-            self.emit_source_span(source, span_of(msg));
-            self.newline();
+            spanned_decls.push(span_of(msg));
         }
-
-        // Resolve each dependency specification.
         for dep in deployments {
-            self.emit_source_span(source, span_of(dep));
+            spanned_decls.push(span_of(dep));
+        }
+        for decl in knowledge_models {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in state_estimators {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in anomaly_detectors {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in anomaly_handlers {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in prognostics {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in mitigations {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in operating_modes {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in mission_plans {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in resilience_policies {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in assurance_cases {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in kill_switches {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in health_checks {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in health_policies {
+            spanned_decls.push(span_of(decl));
+        }
+        for decl in requires_capabilities {
+            spanned_decls.push(span_of(decl));
+        }
+        spanned_decls.sort_by_key(|span| span.start.offset);
+        for span in spanned_decls {
+            self.emit_source_span(source, span);
             self.newline();
         }
 
@@ -1578,6 +1624,118 @@ impl HasSpan for spanda_comm::MessageDecl {
         match self {
             spanda_comm::MessageDecl::MessageDecl { span, .. } => span,
         }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::KnowledgeModelDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::KnowledgeModelDecl::KnowledgeModelDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::StateEstimatorDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::StateEstimatorDecl::StateEstimatorDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::AnomalyDetectorDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::AnomalyDetectorDecl::AnomalyDetectorDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::AnomalyHandlerDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::AnomalyHandlerDecl::AnomalyHandlerDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::PrognosticsDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::PrognosticsDecl::PrognosticsDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::MitigationDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::MitigationDecl::MitigationDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::OperatingModeDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::OperatingModeDecl::OperatingModeDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::MissionPlanDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::MissionPlanDecl::MissionPlanDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::ResiliencePolicyDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::ResiliencePolicyDecl::ResiliencePolicyDecl { span, .. } => {
+                span
+            }
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::assurance_decl::AssuranceCaseDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::assurance_decl::AssuranceCaseDecl::AssuranceCaseDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::foundations::KillSwitchDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::foundations::KillSwitchDecl::KillSwitchDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::foundations::HealthCheckDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::foundations::HealthCheckDecl::HealthCheckDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::foundations::HealthPolicyDecl {
+    fn span(&self) -> &Span {
+        match self {
+            spanda_ast::foundations::HealthPolicyDecl::HealthPolicyDecl { span, .. } => span,
+        }
+    }
+}
+
+impl HasSpan for spanda_ast::foundations::RequiresCapabilityDecl {
+    fn span(&self) -> &Span {
+        &self.span
     }
 }
 
