@@ -1639,6 +1639,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spanda-ai",
+ "spanda-assurance",
  "spanda-ast",
  "spanda-audit",
  "spanda-capability",
