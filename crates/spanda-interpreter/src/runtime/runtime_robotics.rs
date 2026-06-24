@@ -135,7 +135,7 @@ impl<B: RobotBackend> Interpreter<B> {
     }
 
     pub(super) fn eval_mission_method(
-        &self,
+        &mut self,
         runtime: &mut spanda_runtime::robotics::MissionRuntime,
         property: &str,
         line: u32,
@@ -143,6 +143,9 @@ impl<B: RobotBackend> Interpreter<B> {
         // Dispatch mission lifecycle methods on the active mission controller.
         match property {
             "start" => {
+                if let Some(step) = runtime.steps.first() {
+                    self.ensure_mission_operator_approval(step, line)?;
+                }
                 runtime.start();
                 Ok(RuntimeValue::String {
                     value: runtime.state.as_str().into(),
@@ -155,12 +158,18 @@ impl<B: RobotBackend> Interpreter<B> {
                 })
             }
             "resume" => {
+                if let Some(step) = runtime.current_step() {
+                    self.ensure_mission_operator_approval(step, line)?;
+                }
                 runtime.resume();
                 Ok(RuntimeValue::String {
                     value: runtime.state.as_str().into(),
                 })
             }
             "advance" => {
+                if let Some(step) = runtime.steps.get(runtime.step_index).map(|s| s.as_str()) {
+                    self.ensure_mission_operator_approval(step, line)?;
+                }
                 let step = runtime.advance().unwrap_or_default();
                 Ok(RuntimeValue::String { value: step })
             }

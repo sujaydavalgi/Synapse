@@ -396,6 +396,7 @@ pub struct Interpreter<B: RobotBackend> {
     program_swarms: Vec<spanda_ast::robotics_decl::SwarmDecl>,
     pending_recovery_approvals: std::collections::HashSet<String>,
     granted_recovery_approvals: std::collections::HashSet<String>,
+    mission_approval_actions: std::collections::HashSet<String>,
     recovery_knowledge_path: std::path::PathBuf,
     recovery_speed_cap: Option<f64>,
 }
@@ -513,6 +514,7 @@ impl<B: RobotBackend> Interpreter<B> {
             program_swarms: Vec::new(),
             pending_recovery_approvals: std::collections::HashSet::new(),
             granted_recovery_approvals: std::collections::HashSet::new(),
+            mission_approval_actions: std::collections::HashSet::new(),
             recovery_knowledge_path: spanda_assurance::default_knowledge_store_path(),
             recovery_speed_cap: None,
         }

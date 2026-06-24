@@ -555,8 +555,15 @@ impl<B: RobotBackend> Interpreter<B> {
                 name,
                 duration_hours,
                 steps,
+                required_approvals,
                 ..
             } = mission_decl;
+            self.mission_approval_actions.clear();
+            for approval in required_approvals {
+                for action in &approval.actions {
+                    self.mission_approval_actions.insert(action.clone());
+                }
+            }
             let runtime = spanda_runtime::robotics::MissionRuntime::new(
                 name.clone(),
                 steps.clone(),
