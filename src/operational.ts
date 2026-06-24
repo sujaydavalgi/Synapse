@@ -24,6 +24,7 @@ import {
   verifyMissionAssuranceTs,
   extractMitigationsTs,
   diagnoseProgramTs,
+  evaluateStateAssuranceTs,
   formatAssuranceReport,
   formatAnomalyReport,
   formatPrognosticsReport,
@@ -31,6 +32,7 @@ import {
   formatMissionAssuranceReport,
   formatMitigationReport,
   formatDiagnosisReport,
+  formatStateReport,
 } from "./assurance.js";
 
 export type MissionVerificationReport = {
@@ -560,6 +562,17 @@ export function runOperationalCommand(
     return {
       exitCode: 0,
       output: json ? JSON.stringify(report, null, 2) : formatMitigationReport(report),
+    };
+  }
+
+  if (command === "state" && positional[0] === "estimate") {
+    const file = positional[1];
+    if (!file) throw new Error("Missing file path");
+    const program = parseProgramSource(readFileSync(file, "utf-8"));
+    const report = evaluateStateAssuranceTs(program);
+    return {
+      exitCode: report.passed ? 0 : 1,
+      output: json ? JSON.stringify(report, null, 2) : formatStateReport(report),
     };
   }
 

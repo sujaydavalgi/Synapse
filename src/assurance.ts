@@ -106,12 +106,26 @@ export type DiagnosisReport = {
   passed: boolean;
 };
 
+export type StateAssuranceReport = {
+  estimators: Array<{
+    estimator: string;
+    inputs: string[];
+    fused: { name: string; value: string; confidence: number; sources: string[] } | null;
+  }>;
+  belief: {
+    estimates: Array<{ name: string; value: string; confidence: number; sources: string[] }>;
+  };
+  issues: string[];
+  passed: boolean;
+};
+
 export type MissionAssuranceSummary = {
   assurance: AssuranceReport;
   anomalies: AnomalyReport;
   prognostics: PrognosticsReport;
   resilience: ResilienceReport;
   mission: MissionAssuranceReport;
+  state: StateAssuranceReport;
   issues: string[];
   passed: boolean;
 };
@@ -488,18 +502,33 @@ function validateModes(program: Program): string[] {
   return issues;
 }
 
+export function evaluateStateAssuranceTs(program: Program): StateAssuranceReport {
+  const estimators = (program.stateEstimators ?? []).map((decl) => ({
+    estimator: decl.name,
+    inputs: decl.inputs,
+    fused: {
+      name: decl.outputType,
+      value: "synthetic",
+      confidence: 0.85,
+      sources: decl.inputs,
+    },
+  }));
+  const belief = {
+    estimates: estimators.flatMap((e) => (e.fused ? [e.fused] : [])),
+  };
+  const issues = validateStateEstimators(program);
+  return { estimators, belief, issues, passed: issues.length === 0 };
+}
+
 export function assureProgramTs(program: Program, sourceLabel: string): MissionAssuranceSummary {
   const assurance = buildAssuranceReport(program, sourceLabel);
   const anomalies = scanAnomaliesTs(program);
   const prognostics = evaluatePrognosticsTs(program);
   const resilience = checkResilienceTs(program);
   const mission = verifyMissionAssuranceTs(program);
+  const state = evaluateStateAssuranceTs(program);
 
-  const issues = [
-    ...validateKnowledgeModels(program),
-    ...validateStateEstimators(program),
-    ...validateModes(program),
-  ];
+  const issues = [...validateKnowledgeModels(program), ...state.issues, ...validateModes(program)];
 
   const passed =
     assurance.passed &&
@@ -507,6 +536,7 @@ export function assureProgramTs(program: Program, sourceLabel: string): MissionA
     prognostics.passed &&
     resilience.passed &&
     mission.passed &&
+    state.passed &&
     issues.length === 0;
 
   return {
@@ -515,6 +545,7 @@ export function assureProgramTs(program: Program, sourceLabel: string): MissionA
     prognostics,
     resilience,
     mission,
+    state,
     issues,
     passed,
   };
@@ -542,6 +573,13 @@ export function formatPrognosticsReport(report: PrognosticsReport): string {
 
 export function formatResilienceReport(report: ResilienceReport): string {
   return `Resilience Report\nPassed: ${report.passed}\nPolicies: ${report.policies.length}\nReadiness score: ${report.readiness_score}\n`;
+}
+
+export function formatStateReport(report: StateAssuranceReport): string {
+  const lines = report.estimators.map(
+    (e) => `* ${e.estimator} inputs [${e.inputs.join(", ")}]`,
+  );
+  return `State Estimation Report\nPassed: ${report.passed}\nEstimators: ${report.estimators.length}\n${lines.join("\n")}\n`;
 }
 
 export function formatMissionAssuranceReport(report: MissionAssuranceReport): string {
