@@ -1,6 +1,6 @@
 //! Man-page lookup and optional roff generation for Spanda CLI commands.
 
-use crate::language_reference::{generate_cli_man_pages, CLI_COMMAND_NAMES};
+use crate::language_reference::generate_cli_man_pages;
 
 /// Look up a man page by command name (`run`, `spanda-run`, or `spanda run`).
 pub fn lookup_man_page(query: &str) -> Option<(String, String)> {
@@ -62,9 +62,9 @@ pub fn markdown_man_to_roff(markdown: &str, page_name: &str) -> String {
             out.push_str(&format!(".SH {}\n", rest.to_uppercase()));
         } else if let Some(rest) = line.strip_prefix("# ") {
             out.push_str(&format!(".SH {}\n", rest.to_uppercase()));
-        } else if line.starts_with("- ") {
+        } else if let Some(rest) = line.strip_prefix("- ") {
             out.push_str(".IP \\(bu 2\n");
-            out.push_str(&roff_escape(&line[2..]));
+            out.push_str(&roff_escape(rest));
             out.push('\n');
         } else if !line.is_empty() {
             out.push_str(&roff_escape(line));
@@ -93,6 +93,7 @@ fn roff_escape(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::language_reference::CLI_COMMAND_NAMES;
 
     #[test]
     fn registered_commands_match_man_pages() {

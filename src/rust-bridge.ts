@@ -389,7 +389,15 @@ export function docViaCli(source: string): DocResult {
   if (!result.stdout?.trim()) {
     return { ok: false, markdown: "" };
   }
-  return JSON.parse(result.stdout) as DocResult;
+  const parsed = JSON.parse(result.stdout) as {
+    ok: boolean;
+    markdown?: string;
+    content?: string;
+  };
+  return {
+    ok: parsed.ok,
+    markdown: parsed.markdown ?? parsed.content ?? "",
+  };
 }
 
 export function codegenViaCli(source: string, target: CodegenTarget = "native"): string {

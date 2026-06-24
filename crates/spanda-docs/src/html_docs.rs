@@ -65,21 +65,21 @@ fn render_markdown_fragment(md: &str) -> String {
             out.push('\n');
             continue;
         }
-        if line.starts_with("### ") {
+        if let Some(rest) = line.strip_prefix("### ") {
             close_list(&mut out, &mut list_open);
-            out.push_str(&format!("<h3>{}</h3>\n", inline_md(&line[4..])));
-        } else if line.starts_with("## ") {
+            out.push_str(&format!("<h3>{}</h3>\n", inline_md(rest)));
+        } else if let Some(rest) = line.strip_prefix("## ") {
             close_list(&mut out, &mut list_open);
-            out.push_str(&format!("<h2>{}</h2>\n", inline_md(&line[3..])));
-        } else if line.starts_with("# ") {
+            out.push_str(&format!("<h2>{}</h2>\n", inline_md(rest)));
+        } else if let Some(rest) = line.strip_prefix("# ") {
             close_list(&mut out, &mut list_open);
-            out.push_str(&format!("<h1>{}</h1>\n", inline_md(&line[2..])));
-        } else if line.starts_with("- ") {
+            out.push_str(&format!("<h1>{}</h1>\n", inline_md(rest)));
+        } else if let Some(rest) = line.strip_prefix("- ") {
             if !list_open {
                 out.push_str("<ul>\n");
                 list_open = true;
             }
-            out.push_str(&format!("<li>{}</li>\n", inline_md(&line[2..])));
+            out.push_str(&format!("<li>{}</li>\n", inline_md(rest)));
         } else if line.is_empty() {
             close_list(&mut out, &mut list_open);
         } else {
@@ -104,6 +104,7 @@ fn close_list(out: &mut String, list_open: &mut bool) {
     }
 }
 
+#[allow(clippy::while_let_on_iterator)]
 fn inline_md(text: &str) -> String {
     let mut out = String::new();
     let mut chars = text.chars().peekable();
