@@ -11,6 +11,8 @@ pub enum TelemetryStoreError {
     Serialization(String),
     #[error("database error: {0}")]
     Database(String),
+    #[error("telemetry store lock poisoned")]
+    LockPoisoned,
 }
 
 pub type TelemetryStoreResult<T> = Result<T, TelemetryStoreError>;

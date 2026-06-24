@@ -164,8 +164,12 @@ Device liveness is recorded when:
 
 ## Crate
 
-Implementation: `crates/spanda-telemetry-store` (`TelemetryEvent`, `PersistentTelemetryStore`).
+Implementation: `crates/spanda-telemetry-store` (`TelemetryEvent`, `PersistentTelemetryStore`, in-memory `MemoryTelemetryStore` for WASM).
 
-TypeScript mirror: `src/telemetry-store.ts` records sensor reads, topic publishes, task/device heartbeats, health transitions, session boundaries, and `runtime_metrics` (scheduler, task, execution, pipeline, watchdog, trigger, topic, and provider counters) when `persistTelemetry` is set on `run()` or `SPANDA_TELEMETRY_STORE=1`. With `SPANDA_TELEMETRY_BACKEND=sqlite`, Node.js 22+ (`node:sqlite`) is required for the TS path; otherwise use the native Rust CLI. `spanda telemetry` tries the native Rust CLI first, then falls back to `src/telemetry-cli.ts` (including `serve`, `push`, `replay --session` inspect/playback/**deterministic verification**, and `info`). Mission traces written by the Rust CLI use snake_case JSON fields; the TS replay loader normalizes them for inspect and verify.
+TypeScript mirror: `src/telemetry-store.ts` records sensor reads, topic publishes, task/device heartbeats, health transitions, session boundaries, and `runtime_metrics` (scheduler, task, execution, pipeline, watchdog, trigger, topic QoS deadline misses, and provider-call counters) when `persistTelemetry` is set on `run()` or `SPANDA_TELEMETRY_STORE=1`. With `SPANDA_TELEMETRY_BACKEND=sqlite`, Node.js 22+ (`node:sqlite`) is required for the TS path; otherwise use the native Rust CLI. `spanda telemetry` tries the native Rust CLI first, then falls back to `src/telemetry-cli.ts` (including `serve`, `push`, `replay --session` inspect/playback/**deterministic verification**, and `info`). Mission traces written by the Rust CLI use snake_case JSON fields; the TS replay loader normalizes them for inspect and verify.
+
+### WASM (browser)
+
+`spanda-wasm` exposes an in-memory telemetry buffer (no filesystem) via `wasm_telemetry_clear`, `wasm_telemetry_append` (JSONL line), `wasm_telemetry_stats`, `wasm_telemetry_prometheus`, and `wasm_telemetry_otlp`. TypeScript wrappers live in `packages/web/src/spanda-wasm.ts` (`telemetryClear`, `telemetryAppend`, `telemetryStats`, `telemetryPrometheus`, `telemetryOtlp`). The WASM crate depends on `spanda-telemetry-store` with `default-features = false` (no SQLite/rusqlite).
 
 See also [iot.md](./iot.md), [watchdogs.md](./watchdogs.md), [replay.md](./replay.md).

@@ -2,7 +2,9 @@
 
 use crate::error::{TelemetryStoreError, TelemetryStoreResult};
 use crate::record::{HeartbeatIndex, TelemetryEvent};
+#[cfg(feature = "sqlite")]
 use crate::sqlite;
+#[cfg(feature = "sqlite")]
 use rusqlite::Connection;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -162,15 +164,19 @@ pub fn persist_enabled() -> bool {
 /// Shared process-global store handle.
 pub fn global_store() -> &'static Mutex<PersistentTelemetryStore> {
     GLOBAL_STORE.get_or_init(|| {
-        let (store_path, heartbeat_path) = if sqlite::env_backend_sqlite() {
-            let path = sqlite::resolve_sqlite_path();
-            (path.clone(), resolve_heartbeat_index_path(&path))
-        } else {
-            let path = resolve_store_path();
-            (path.clone(), resolve_heartbeat_index_path(&path))
-        };
+        let (store_path, heartbeat_path) = resolve_store_paths();
         Mutex::new(PersistentTelemetryStore::open(store_path, heartbeat_path))
     })
+}
+
+fn resolve_store_paths() -> (PathBuf, PathBuf) {
+    #[cfg(feature = "sqlite")]
+    if sqlite::env_backend_sqlite() {
+        let path = sqlite::resolve_sqlite_path();
+        return (path.clone(), resolve_heartbeat_index_path(&path));
+    }
+    let path = resolve_store_path();
+    (path.clone(), resolve_heartbeat_index_path(&path))
 }
 
 /// Append an event when persistence is enabled.
@@ -328,6 +334,28 @@ pub struct TelemetryStats {
     pub tracked_devices: usize,
 }
 
+/// Compute aggregate counts for an event slice and heartbeat index.
+pub fn stats_from_events(events: &[TelemetryEvent], index: &HeartbeatIndex) -> TelemetryStats {
+    let mut stats = TelemetryStats {
+        total_events: events.len(),
+        tracked_tasks: index.tasks.len(),
+        tracked_devices: index.devices.len(),
+        ..TelemetryStats::default()
+    };
+    for event in events {
+        match event {
+            TelemetryEvent::Device { .. } => stats.device_events += 1,
+            TelemetryEvent::Sensor { .. } => stats.sensor_events += 1,
+            TelemetryEvent::Heartbeat { .. } => stats.heartbeat_events += 1,
+            TelemetryEvent::DeviceHeartbeat { .. } => stats.device_heartbeat_events += 1,
+            TelemetryEvent::Health { .. } => stats.health_events += 1,
+            TelemetryEvent::Session { .. } => stats.session_events += 1,
+            TelemetryEvent::RuntimeMetrics { .. } => stats.runtime_metrics_events += 1,
+        }
+    }
+    stats
+}
+
 /// Summary of a persisted run session linked to telemetry events.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct TelemetrySessionSummary {
@@ -359,6 +387,7 @@ pub struct PersistentTelemetryStore {
     last_device_heartbeat_history: HashMap<String, f64>,
     max_events: Option<usize>,
     sqlite_backend: bool,
+    #[cfg(feature = "sqlite")]
     sqlite: Option<Connection>,
 }
 
@@ -372,7 +401,11 @@ impl PersistentTelemetryStore {
         heartbeat_path: PathBuf,
         max_events: Option<usize>,
     ) -> Self {
+        #[cfg(feature = "sqlite")]
         let sqlite_backend = sqlite::env_backend_sqlite();
+        #[cfg(not(feature = "sqlite"))]
+        let sqlite_backend = false;
+        #[cfg(feature = "sqlite")]
         let sqlite = if sqlite_backend {
             Some(
                 sqlite::open_connection(&store_path)
@@ -381,11 +414,14 @@ impl PersistentTelemetryStore {
         } else {
             None
         };
+        #[cfg(feature = "sqlite")]
         let heartbeat_index = if let Some(conn) = &sqlite {
             sqlite::read_heartbeat_index(conn).unwrap_or_default()
         } else {
             read_heartbeat_index(&heartbeat_path).unwrap_or_default()
         };
+        #[cfg(not(feature = "sqlite"))]
+        let heartbeat_index = read_heartbeat_index(&heartbeat_path).unwrap_or_default();
         Self {
             store_path,
             heartbeat_path,
@@ -394,6 +430,7 @@ impl PersistentTelemetryStore {
             last_device_heartbeat_history: HashMap::new(),
             max_events,
             sqlite_backend,
+            #[cfg(feature = "sqlite")]
             sqlite,
         }
     }
@@ -412,11 +449,8 @@ impl PersistentTelemetryStore {
     }
 
     pub fn append(&mut self, event: TelemetryEvent) -> TelemetryStoreResult<()> {
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                sqlite::append_event(conn, &event)?;
-            }
-            self.maybe_compact()?;
+        #[cfg(feature = "sqlite")]
+        if self.append_sqlite(&event)? {
             return Ok(());
         }
         if let Some(parent) = self.store_path.parent() {
@@ -437,13 +471,8 @@ impl PersistentTelemetryStore {
         let Some(max_events) = self.max_events else {
             return Ok(());
         };
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                let count = sqlite::read_all(conn)?.len();
-                if count > max_events {
-                    sqlite::compact(conn, max_events)?;
-                }
-            }
+        #[cfg(feature = "sqlite")]
+        if self.maybe_compact_sqlite(max_events)? {
             return Ok(());
         }
         let events = self.read_all()?;
@@ -536,11 +565,9 @@ impl PersistentTelemetryStore {
     }
 
     pub fn read_all(&self) -> TelemetryStoreResult<Vec<TelemetryEvent>> {
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                return sqlite::read_all(conn);
-            }
-            return Ok(Vec::new());
+        #[cfg(feature = "sqlite")]
+        if let Some(events) = self.read_all_sqlite()? {
+            return Ok(events);
         }
         if !self.store_path.exists() {
             return Ok(Vec::new());
@@ -562,11 +589,9 @@ impl PersistentTelemetryStore {
     }
 
     pub fn query(&self, query: &TelemetryQuery) -> TelemetryStoreResult<Vec<TelemetryEvent>> {
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                return sqlite::query(conn, query);
-            }
-            return Ok(Vec::new());
+        #[cfg(feature = "sqlite")]
+        if let Some(events) = self.query_sqlite(query)? {
+            return Ok(events);
         }
         let all = self.read_all()?;
         let session_window = query
@@ -608,11 +633,9 @@ impl PersistentTelemetryStore {
         device_id: &str,
         metric: &str,
     ) -> TelemetryStoreResult<Option<TelemetryEvent>> {
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                return sqlite::latest_device(conn, device_id, metric);
-            }
-            return Ok(None);
+        #[cfg(feature = "sqlite")]
+        if let Some(event) = self.latest_device_sqlite(device_id, metric)? {
+            return Ok(event);
         }
         Ok(self.read_all()?.into_iter().rev().find(|event| {
             matches!(
@@ -627,11 +650,9 @@ impl PersistentTelemetryStore {
     }
 
     pub fn latest_sensor(&self, sensor_id: &str) -> TelemetryStoreResult<Option<TelemetryEvent>> {
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                return sqlite::latest_sensor(conn, sensor_id);
-            }
-            return Ok(None);
+        #[cfg(feature = "sqlite")]
+        if let Some(event) = self.latest_sensor_sqlite(sensor_id)? {
+            return Ok(event);
         }
         Ok(self.read_all()?.into_iter().rev().find(|event| {
             matches!(
@@ -750,31 +771,12 @@ impl PersistentTelemetryStore {
     }
 
     pub fn stats(&self) -> TelemetryStoreResult<TelemetryStats> {
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                return sqlite::stats(conn, &self.heartbeat_index);
-            }
-            return Ok(TelemetryStats::default());
+        #[cfg(feature = "sqlite")]
+        if let Some(stats) = self.stats_sqlite()? {
+            return Ok(stats);
         }
         let events = self.read_all()?;
-        let mut stats = TelemetryStats {
-            total_events: events.len(),
-            tracked_tasks: self.heartbeat_index.tasks.len(),
-            tracked_devices: self.heartbeat_index.devices.len(),
-            ..TelemetryStats::default()
-        };
-        for event in events {
-            match event {
-                TelemetryEvent::Device { .. } => stats.device_events += 1,
-                TelemetryEvent::Sensor { .. } => stats.sensor_events += 1,
-                TelemetryEvent::Heartbeat { .. } => stats.heartbeat_events += 1,
-                TelemetryEvent::DeviceHeartbeat { .. } => stats.device_heartbeat_events += 1,
-                TelemetryEvent::Health { .. } => stats.health_events += 1,
-                TelemetryEvent::Session { .. } => stats.session_events += 1,
-                TelemetryEvent::RuntimeMetrics { .. } => stats.runtime_metrics_events += 1,
-            }
-        }
-        Ok(stats)
+        Ok(stats_from_events(&events, &self.heartbeat_index))
     }
 
     fn persist_heartbeat_index(
@@ -783,13 +785,113 @@ impl PersistentTelemetryStore {
         timestamp_ms: f64,
         target_kind: &str,
     ) -> TelemetryStoreResult<()> {
-        if self.sqlite_backend {
-            if let Some(conn) = &self.sqlite {
-                sqlite::upsert_heartbeat(conn, target_kind, target_id, timestamp_ms)?;
-            }
+        #[cfg(feature = "sqlite")]
+        if self.persist_heartbeat_index_sqlite(target_id, timestamp_ms, target_kind)? {
             return Ok(());
         }
         write_heartbeat_index(&self.heartbeat_path, &self.heartbeat_index)
+    }
+}
+
+#[cfg(feature = "sqlite")]
+impl PersistentTelemetryStore {
+    fn append_sqlite(&mut self, event: &TelemetryEvent) -> TelemetryStoreResult<bool> {
+        if !self.sqlite_backend {
+            return Ok(false);
+        }
+        if let Some(conn) = &self.sqlite {
+            sqlite::append_event(conn, event)?;
+        }
+        self.maybe_compact()?;
+        Ok(true)
+    }
+
+    fn maybe_compact_sqlite(&mut self, max_events: usize) -> TelemetryStoreResult<bool> {
+        if !self.sqlite_backend {
+            return Ok(false);
+        }
+        if let Some(conn) = &self.sqlite {
+            let count = sqlite::read_all(conn)?.len();
+            if count > max_events {
+                sqlite::compact(conn, max_events)?;
+            }
+        }
+        Ok(true)
+    }
+
+    fn read_all_sqlite(&self) -> TelemetryStoreResult<Option<Vec<TelemetryEvent>>> {
+        if !self.sqlite_backend {
+            return Ok(None);
+        }
+        if let Some(conn) = &self.sqlite {
+            return sqlite::read_all(conn).map(Some);
+        }
+        Ok(Some(Vec::new()))
+    }
+
+    fn query_sqlite(
+        &self,
+        query: &TelemetryQuery,
+    ) -> TelemetryStoreResult<Option<Vec<TelemetryEvent>>> {
+        if !self.sqlite_backend {
+            return Ok(None);
+        }
+        if let Some(conn) = &self.sqlite {
+            return sqlite::query(conn, query).map(Some);
+        }
+        Ok(Some(Vec::new()))
+    }
+
+    fn latest_device_sqlite(
+        &self,
+        device_id: &str,
+        metric: &str,
+    ) -> TelemetryStoreResult<Option<Option<TelemetryEvent>>> {
+        if !self.sqlite_backend {
+            return Ok(None);
+        }
+        if let Some(conn) = &self.sqlite {
+            return sqlite::latest_device(conn, device_id, metric).map(Some);
+        }
+        Ok(Some(None))
+    }
+
+    fn latest_sensor_sqlite(
+        &self,
+        sensor_id: &str,
+    ) -> TelemetryStoreResult<Option<Option<TelemetryEvent>>> {
+        if !self.sqlite_backend {
+            return Ok(None);
+        }
+        if let Some(conn) = &self.sqlite {
+            return sqlite::latest_sensor(conn, sensor_id).map(Some);
+        }
+        Ok(Some(None))
+    }
+
+    fn stats_sqlite(&self) -> TelemetryStoreResult<Option<TelemetryStats>> {
+        if !self.sqlite_backend {
+            return Ok(None);
+        }
+        if let Some(conn) = &self.sqlite {
+            return sqlite::stats(conn, &self.heartbeat_index).map(Some);
+        }
+        Ok(Some(TelemetryStats::default()))
+    }
+
+    fn persist_heartbeat_index_sqlite(
+        &self,
+        target_id: &str,
+        timestamp_ms: f64,
+        target_kind: &str,
+    ) -> TelemetryStoreResult<bool> {
+        if !self.sqlite_backend {
+            return Ok(false);
+        }
+        if let Some(conn) = &self.sqlite {
+            sqlite::upsert_heartbeat(conn, target_kind, target_id, timestamp_ms)?;
+        }
+        Ok(true)
     }
 }
 

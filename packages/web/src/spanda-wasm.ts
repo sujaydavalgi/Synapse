@@ -21,9 +21,34 @@ export type RunResponse = {
   diagnostics?: Diagnostic[];
 };
 
+export type TelemetryStats = {
+  total_events: number;
+  device_events: number;
+  sensor_events: number;
+  heartbeat_events: number;
+  device_heartbeat_events: number;
+  health_events: number;
+  session_events: number;
+  runtime_metrics_events: number;
+  tracked_tasks: number;
+  tracked_devices: number;
+};
+
+export type TelemetryResponse = {
+  ok: boolean;
+  error?: string;
+  stats?: TelemetryStats;
+  body?: string;
+};
+
 type SpandaWasmBindings = {
   wasm_check: (source: string) => unknown;
   wasm_run: (source: string, max: number) => unknown;
+  wasm_telemetry_clear: () => unknown;
+  wasm_telemetry_append: (line: string) => unknown;
+  wasm_telemetry_stats: () => unknown;
+  wasm_telemetry_prometheus: () => unknown;
+  wasm_telemetry_otlp: () => unknown;
 };
 
 let wasmModule: SpandaWasmBindings | null = null;
@@ -94,6 +119,11 @@ async function ensureWasm(): Promise<void> {
     wasmModule = {
       wasm_check: (source) => init.wasm_check(source),
       wasm_run: (source, max) => init.wasm_run(source, max),
+      wasm_telemetry_clear: () => init.wasm_telemetry_clear(),
+      wasm_telemetry_append: (line) => init.wasm_telemetry_append(line),
+      wasm_telemetry_stats: () => init.wasm_telemetry_stats(),
+      wasm_telemetry_prometheus: () => init.wasm_telemetry_prometheus(),
+      wasm_telemetry_otlp: () => init.wasm_telemetry_otlp(),
     };
   } catch {
     wasmModule = null;
@@ -178,4 +208,38 @@ export async function runSource(source: string, maxLoopIterations: number): Prom
     return { ok: false, diagnostics: [{ message: "WASM module not loaded", line: 1, column: 1 }] };
   }
   return wasmModule.wasm_run(source, maxLoopIterations) as RunResponse;
+}
+
+function telemetryUnavailable(): TelemetryResponse {
+  return { ok: false, error: "WASM module not loaded" };
+}
+
+export async function telemetryClear(): Promise<TelemetryResponse> {
+  await ensureWasm();
+  if (!wasmModule) return telemetryUnavailable();
+  return wasmModule.wasm_telemetry_clear() as TelemetryResponse;
+}
+
+export async function telemetryAppend(line: string): Promise<TelemetryResponse> {
+  await ensureWasm();
+  if (!wasmModule) return telemetryUnavailable();
+  return wasmModule.wasm_telemetry_append(line) as TelemetryResponse;
+}
+
+export async function telemetryStats(): Promise<TelemetryResponse> {
+  await ensureWasm();
+  if (!wasmModule) return telemetryUnavailable();
+  return wasmModule.wasm_telemetry_stats() as TelemetryResponse;
+}
+
+export async function telemetryPrometheus(): Promise<TelemetryResponse> {
+  await ensureWasm();
+  if (!wasmModule) return telemetryUnavailable();
+  return wasmModule.wasm_telemetry_prometheus() as TelemetryResponse;
+}
+
+export async function telemetryOtlp(): Promise<TelemetryResponse> {
+  await ensureWasm();
+  if (!wasmModule) return telemetryUnavailable();
+  return wasmModule.wasm_telemetry_otlp() as TelemetryResponse;
 }

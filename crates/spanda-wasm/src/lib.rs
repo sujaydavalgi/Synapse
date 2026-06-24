@@ -5,6 +5,10 @@ use spanda_driver::{check, lower_to_sir, run, verify_compatibility, RunOptions, 
 use spanda_error::Diagnostic;
 use spanda_format::format_source;
 use spanda_hardware::{CompatItem, CompatSeverity, VerifyOptions};
+use spanda_telemetry_store::{
+    memory_append_json_line, memory_clear, memory_render_otlp_json, memory_render_prometheus,
+    memory_stats,
+};
 use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, Deserialize)]
@@ -223,4 +227,114 @@ pub fn wasm_verify(source: &str) -> JsValue {
         },
     };
     to_js(&resp)
+}
+
+#[derive(Serialize, Deserialize)]
+struct WasmTelemetryStats {
+    total_events: usize,
+    device_events: usize,
+    sensor_events: usize,
+    heartbeat_events: usize,
+    device_heartbeat_events: usize,
+    health_events: usize,
+    session_events: usize,
+    runtime_metrics_events: usize,
+    tracked_tasks: usize,
+    tracked_devices: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct WasmTelemetryResponse {
+    ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stats: Option<WasmTelemetryStats>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    body: Option<String>,
+}
+
+fn telemetry_error(message: impl Into<String>) -> JsValue {
+    to_js(&WasmTelemetryResponse {
+        ok: false,
+        error: Some(message.into()),
+        stats: None,
+        body: None,
+    })
+}
+
+#[wasm_bindgen]
+pub fn wasm_telemetry_clear() -> JsValue {
+    match memory_clear() {
+        Ok(()) => to_js(&WasmTelemetryResponse {
+            ok: true,
+            error: None,
+            stats: None,
+            body: None,
+        }),
+        Err(error) => telemetry_error(error.to_string()),
+    }
+}
+
+#[wasm_bindgen]
+pub fn wasm_telemetry_append(line: &str) -> JsValue {
+    match memory_append_json_line(line) {
+        Ok(()) => to_js(&WasmTelemetryResponse {
+            ok: true,
+            error: None,
+            stats: None,
+            body: None,
+        }),
+        Err(error) => telemetry_error(error.to_string()),
+    }
+}
+
+#[wasm_bindgen]
+pub fn wasm_telemetry_stats() -> JsValue {
+    match memory_stats() {
+        Ok(stats) => to_js(&WasmTelemetryResponse {
+            ok: true,
+            error: None,
+            stats: Some(WasmTelemetryStats {
+                total_events: stats.total_events,
+                device_events: stats.device_events,
+                sensor_events: stats.sensor_events,
+                heartbeat_events: stats.heartbeat_events,
+                device_heartbeat_events: stats.device_heartbeat_events,
+                health_events: stats.health_events,
+                session_events: stats.session_events,
+                runtime_metrics_events: stats.runtime_metrics_events,
+                tracked_tasks: stats.tracked_tasks,
+                tracked_devices: stats.tracked_devices,
+            }),
+            body: None,
+        }),
+        Err(error) => telemetry_error(error.to_string()),
+    }
+}
+
+#[wasm_bindgen]
+pub fn wasm_telemetry_prometheus() -> JsValue {
+    match memory_render_prometheus() {
+        Ok(body) => to_js(&WasmTelemetryResponse {
+            ok: true,
+            error: None,
+            stats: None,
+            body: Some(body),
+        }),
+        Err(error) => telemetry_error(error.to_string()),
+    }
+}
+
+#[wasm_bindgen]
+pub fn wasm_telemetry_otlp() -> JsValue {
+    match memory_render_otlp_json() {
+        Ok(body) => to_js(&WasmTelemetryResponse {
+            ok: true,
+            error: None,
+            stats: None,
+            body: Some(body),
+        }),
+        Err(error) => telemetry_error(error.to_string()),
+    }
 }

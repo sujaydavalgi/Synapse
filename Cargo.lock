@@ -2092,6 +2092,7 @@ dependencies = [
  "spanda-error",
  "spanda-format",
  "spanda-hardware",
+ "spanda-telemetry-store",
  "wasm-bindgen",
 ]
 

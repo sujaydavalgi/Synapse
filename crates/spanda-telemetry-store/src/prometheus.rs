@@ -1,8 +1,8 @@
 //! Prometheus text exposition for the persistent telemetry store.
 
 use crate::error::TelemetryStoreResult;
-use crate::record::TelemetryEvent;
-use crate::store::{PersistentTelemetryStore, TelemetryStats};
+use crate::record::{HeartbeatIndex, TelemetryEvent};
+use crate::store::{stats_from_events, PersistentTelemetryStore, TelemetryStats};
 use serde_json::Value;
 
 /// Render store contents in Prometheus text exposition format.
@@ -10,15 +10,33 @@ pub fn render_prometheus(store: &PersistentTelemetryStore) -> TelemetryStoreResu
     let stats = store.stats()?;
     let index = store.heartbeat_index();
     let events = store.read_all()?;
+    Ok(render_prometheus_from_events(&events, &stats, &index))
+}
+
+/// Render Prometheus text exposition for an in-memory event slice.
+pub fn render_prometheus_from_events(
+    events: &[TelemetryEvent],
+    stats: &TelemetryStats,
+    index: &HeartbeatIndex,
+) -> String {
     let mut out = String::new();
 
-    append_event_totals(&mut out, &stats);
+    append_event_totals(&mut out, stats);
     append_heartbeat_gauges(&mut out, index);
-    append_latest_runtime_metrics(&mut out, &events);
-    append_latest_device_metrics(&mut out, &events);
-    append_health_gauges(&mut out, &events);
+    append_latest_runtime_metrics(&mut out, events);
+    append_latest_device_metrics(&mut out, events);
+    append_health_gauges(&mut out, events);
 
-    Ok(out)
+    out
+}
+
+/// Render Prometheus text exposition using stats derived from events.
+pub fn render_prometheus_stats_from_events(
+    events: &[TelemetryEvent],
+    index: &HeartbeatIndex,
+) -> String {
+    let stats = stats_from_events(events, index);
+    render_prometheus_from_events(events, &stats, index)
 }
 
 fn append_event_totals(out: &mut String, stats: &TelemetryStats) {

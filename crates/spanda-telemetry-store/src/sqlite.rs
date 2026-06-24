@@ -1,4 +1,5 @@
 //! SQLite-backed telemetry storage with indexed queries.
+#![cfg(feature = "sqlite")]
 
 use crate::error::{TelemetryStoreError, TelemetryStoreResult};
 use crate::record::{HeartbeatIndex, TelemetryEvent};

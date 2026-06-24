@@ -1,8 +1,8 @@
 //! OTLP/JSON metrics export for the persistent telemetry store.
 
 use crate::error::TelemetryStoreResult;
-use crate::record::TelemetryEvent;
-use crate::store::{PersistentTelemetryStore, TelemetryStats};
+use crate::record::{HeartbeatIndex, TelemetryEvent};
+use crate::store::{stats_from_events, PersistentTelemetryStore, TelemetryStats};
 use serde_json::{json, Value};
 
 /// Render store metrics as OTLP/JSON (`ExportMetricsServiceResponse` shape).
@@ -10,10 +10,25 @@ pub fn render_otlp_json(store: &PersistentTelemetryStore) -> TelemetryStoreResul
     let stats = store.stats()?;
     let index = store.heartbeat_index();
     let events = store.read_all()?;
+    render_otlp_from_events(
+        &events,
+        &stats,
+        &index,
+        store.store_path().to_string_lossy().as_ref(),
+    )
+}
+
+/// Render OTLP/JSON metrics for an in-memory event slice.
+pub fn render_otlp_from_events(
+    events: &[TelemetryEvent],
+    stats: &TelemetryStats,
+    index: &HeartbeatIndex,
+    store_path: &str,
+) -> TelemetryStoreResult<String> {
     let now_nano = wall_nanos();
 
     let mut metrics: Vec<Value> = Vec::new();
-    for (kind, count) in event_kind_counts(&stats) {
+    for (kind, count) in event_kind_counts(stats) {
         metrics.push(gauge_metric(
             "spanda.telemetry.events",
             &[("kind", kind)],
@@ -49,15 +64,15 @@ pub fn render_otlp_json(store: &PersistentTelemetryStore) -> TelemetryStoreResul
             now_nano,
         ));
     }
-    append_runtime_metrics(&mut metrics, &events, now_nano);
-    append_health_metrics(&mut metrics, &events, now_nano);
+    append_runtime_metrics(&mut metrics, events, now_nano);
+    append_health_metrics(&mut metrics, events, now_nano);
 
     let body = json!({
         "resourceMetrics": [{
             "resource": {
                 "attributes": [
                     attr("service.name", "spanda"),
-                    attr("spanda.store.path", store.store_path().to_string_lossy().as_ref()),
+                    attr("spanda.store.path", store_path),
                 ]
             },
             "scopeMetrics": [{
@@ -68,6 +83,16 @@ pub fn render_otlp_json(store: &PersistentTelemetryStore) -> TelemetryStoreResul
     });
     serde_json::to_string_pretty(&body)
         .map_err(|error| crate::error::TelemetryStoreError::Serialization(error.to_string()))
+}
+
+/// Render OTLP/JSON metrics using stats derived from events.
+pub fn render_otlp_stats_from_events(
+    events: &[TelemetryEvent],
+    index: &HeartbeatIndex,
+    store_path: &str,
+) -> TelemetryStoreResult<String> {
+    let stats = stats_from_events(events, index);
+    render_otlp_from_events(events, &stats, index, store_path)
 }
 
 fn event_kind_counts(stats: &TelemetryStats) -> [(&'static str, usize); 7] {
