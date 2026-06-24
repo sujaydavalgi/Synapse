@@ -385,6 +385,7 @@ pub struct Interpreter<B: RobotBackend> {
     health_program: Option<Program>,
     last_health_overall: Option<String>,
     applied_health_reactions: std::collections::HashSet<String>,
+    applied_anomaly_handlers: std::collections::HashSet<String>,
     kill_switch_defs: HashMap<String, spanda_ast::foundations::KillSwitchDecl>,
     program_swarms: Vec<spanda_ast::robotics_decl::SwarmDecl>,
 }
@@ -495,6 +496,7 @@ impl<B: RobotBackend> Interpreter<B> {
             health_program: None,
             last_health_overall: None,
             applied_health_reactions: std::collections::HashSet::new(),
+            applied_anomaly_handlers: std::collections::HashSet::new(),
             kill_switch_defs: HashMap::new(),
             program_swarms: Vec::new(),
         }
@@ -1504,6 +1506,8 @@ use runtime_decl_extensions::*;
 
 #[path = "runtime_actuators.rs"]
 mod runtime_actuators;
+#[path = "runtime_assurance.rs"]
+mod runtime_assurance;
 #[path = "runtime_audit.rs"]
 mod runtime_audit;
 #[path = "runtime_builtins.rs"]

@@ -26,11 +26,13 @@ impl<B: RobotBackend> Interpreter<B> {
         let Program::Program {
             health_checks,
             health_policies,
+            anomaly_handlers,
             robots,
             ..
         } = program;
         let has_health = !health_checks.is_empty()
             || !health_policies.is_empty()
+            || !anomaly_handlers.is_empty()
             || robots.iter().any(|robot| {
                 let RobotDecl::RobotDecl {
                     health_checks: robot_checks,
@@ -89,6 +91,7 @@ impl<B: RobotBackend> Interpreter<B> {
             self.record_debug_event(1, "health_critical", &[("overall", label.clone())]);
         }
         self.apply_health_policy_reactions(&report);
+        self.apply_anomaly_handlers(&report);
         self.apply_swarm_health_coordination(&report);
     }
 
