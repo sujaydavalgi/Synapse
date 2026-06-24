@@ -33,7 +33,7 @@ Platform overview: [platform-overview.md](./platform-overview.md) · Feature tru
 |------|--------|
 | `spanda-assurance` crate (static analysis) | **Stable** |
 | Language declarations (`knowledge_model`, `state_estimator`, `anomaly_detector`, …) | **Stable** |
-| CLI (`assure`, `anomaly scan`, `state estimate`, `prognostics`, `mission verify`, `resilience check`) | **Stable** |
+| CLI (`assure`, `anomaly scan`, `state estimate`, `prognostics`, `mission verify`, `resilience check`, `mitigation plan`) | **Stable** |
 | Runtime `state_estimator` → fusion bindings | **Experimental** |
 | Learned anomaly backends (`learned backend`, `spanda-anomaly`) | **Experimental** |
 | Full ML inference / advanced fusion algorithms | **Future** — package backends |

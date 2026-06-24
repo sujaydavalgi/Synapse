@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs:** [mission-assurance.md](docs/mission-assurance.md), [knowledge-models.md](docs/knowledge-models.md), [anomaly-detection.md](docs/anomaly-detection.md), [diagnostics.md](docs/diagnostics.md), [prognostics.md](docs/prognostics.md), [resilience.md](docs/resilience.md), [assurance-cases.md](docs/assurance-cases.md).
 - **Learned anomaly detectors:** `learned backend <module>;` on `anomaly_detector`; anomaly scan reports include learned model metadata.
 - **State estimation CLI:** `spanda state estimate` reports estimators and belief state; included in `spanda assure` summary.
+- **Readiness state estimation:** empty `state_estimator` inputs reduce Assurance factor score with span-aware IDE diagnostics.
 
 - **Readiness polish:** CI smoke (`scripts/readiness_smoke.sh`), agent `/v1/readiness` integration tests, `spanda deploy|fleet agent readiness` CLI, TypeScript fallbacks for all operational commands (`src/operational.ts`), span-aware LSP readiness diagnostics, `POST /v1/program` on deploy agents, bundled `root_cause_analysis` example, and fleet dashboard aggregates in the web Operations panel.
 

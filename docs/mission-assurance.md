@@ -19,8 +19,6 @@ Core defines **interfaces and data models**. Heavy algorithms (ML anomaly detect
 |-----------|---------|
 | `knowledge_model` | System model, components, dependencies |
 | `state_estimator` | Sensor fusion inputs and estimate type |
-
-At runtime, `state_estimator` wires `SensorFusion` bindings after robot sensors are registered. One estimator also aliases `fusion` for parity with `observe { }` programs.
 | `anomaly_detector` | Expected behavior bounds |
 | `on anomaly …` | Automated reactions |
 | `prognostics` | RUL prediction and degradation warnings |
@@ -29,6 +27,8 @@ At runtime, `state_estimator` wires `SensorFusion` bindings after robot sensors 
 | `mission_plan` | Steps and constraints |
 | `resilience_policy` | Fault tolerance strategies |
 | `assurance_case` | Links evidence sources |
+
+At runtime, `state_estimator` wires `SensorFusion` bindings after robot sensors are registered. One estimator also aliases `fusion` for parity with `observe { }` programs.
 
 ## CLI
 
@@ -40,6 +40,7 @@ spanda diagnose mission.trace    # or program .sd
 spanda prognostics rover.sd
 spanda mission verify mission.sd
 spanda resilience check rover.sd
+spanda mitigation plan rover.sd
 ```
 
 All commands support `--json`, `--markdown`, and `--html`.
@@ -48,6 +49,7 @@ All commands support `--json`, `--markdown`, and `--html`.
 
 - **Assurance report** — evidence, verification, traceability
 - **Anomaly report** — detectors, violations, handler coverage
+- **State estimation report** — estimators, belief state, fusion inputs
 - **Diagnosis report** — root cause, causal graph, trace timeline
 - **Prognostics report** — RUL, degradation warnings
 - **Mitigation plan** — recovery actions and mode transitions

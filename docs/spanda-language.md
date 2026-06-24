@@ -586,7 +586,7 @@ assurance_case RoverSafetyCase {
 }
 ```
 
-CLI: `spanda assure`, `spanda anomaly scan`, `spanda diagnose`, `spanda prognostics`, `spanda mission verify`, `spanda resilience check`, `spanda mitigation plan`.
+CLI: `spanda assure`, `spanda anomaly scan`, `spanda state estimate`, `spanda diagnose`, `spanda prognostics`, `spanda mission verify`, `spanda resilience check`, `spanda mitigation plan`.
 
 Compile-fail tests inside `test` blocks:
 

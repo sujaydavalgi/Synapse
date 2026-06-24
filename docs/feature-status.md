@@ -56,7 +56,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Lean-core workspace** | 50+ focused Rust crates; `spanda-core` facade; CLI/bindings use workspace deps directly ([crates/README.md](../crates/README.md)) |
 | **Verification & DX** | `spanda-capability` — traceability, minimum-hardware, health analysis; `spanda-readiness` — operational readiness, mission verification, safety reports; `spanda check --verification-json`; LSP verification diagnostics and quick-fixes |
 | **Health & kill switch** | `health_check`, `health_policy`, fleet `require` runtime; `kill_switch`, `remote_signed`, `on kill_switch` handlers |
-| **Mission assurance** | `knowledge_model`, `state_estimator`, `anomaly_detector`, `on anomaly`, `prognostics`, `mitigation`, `resilience_policy`, `assurance_case`; CLI `assure`, `anomaly scan`, `diagnose`, `state estimate`, `prognostics`, `mission verify`, `resilience check` |
+| **Mission assurance** | `knowledge_model`, `state_estimator`, `anomaly_detector`, `on anomaly`, `prognostics`, `mitigation`, `resilience_policy`, `assurance_case`; CLI `assure`, `anomaly scan`, `diagnose`, `state estimate`, `prognostics`, `mission verify`, `resilience check`, `mitigation plan` |
 | **Typed handler I/O** | Return types on behavior, task, trigger, event, and agent plan handlers (Rust + TS mirror) |
 
 ### Experimental (usable with caveats)
