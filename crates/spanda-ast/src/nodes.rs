@@ -531,6 +531,26 @@ pub enum Program {
         health_policies: Vec<crate::foundations::HealthPolicyDecl>,
         #[serde(default)]
         requires_capabilities: Vec<crate::foundations::RequiresCapabilityDecl>,
+        #[serde(default)]
+        knowledge_models: Vec<crate::assurance_decl::KnowledgeModelDecl>,
+        #[serde(default)]
+        state_estimators: Vec<crate::assurance_decl::StateEstimatorDecl>,
+        #[serde(default)]
+        anomaly_detectors: Vec<crate::assurance_decl::AnomalyDetectorDecl>,
+        #[serde(default)]
+        anomaly_handlers: Vec<crate::assurance_decl::AnomalyHandlerDecl>,
+        #[serde(default)]
+        prognostics: Vec<crate::assurance_decl::PrognosticsDecl>,
+        #[serde(default)]
+        mitigations: Vec<crate::assurance_decl::MitigationDecl>,
+        #[serde(default)]
+        operating_modes: Vec<crate::assurance_decl::OperatingModeDecl>,
+        #[serde(default)]
+        mission_plans: Vec<crate::assurance_decl::MissionPlanDecl>,
+        #[serde(default)]
+        resilience_policies: Vec<crate::assurance_decl::ResiliencePolicyDecl>,
+        #[serde(default)]
+        assurance_cases: Vec<crate::assurance_decl::AssuranceCaseDecl>,
         robots: Vec<RobotDecl>,
         span: Span,
     },

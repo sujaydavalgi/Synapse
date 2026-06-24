@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/spanda-core",
+    "crates/spanda-assurance",
     "crates/spanda-audit",
     "crates/spanda-security",
     "crates/spanda-package",

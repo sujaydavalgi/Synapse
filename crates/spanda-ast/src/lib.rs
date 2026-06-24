@@ -1,5 +1,6 @@
 //! Spanda language AST, foundation declarations, and comm declaration types.
 //!
+pub mod assurance_decl;
 pub mod comm_decl;
 pub mod foundations;
 pub mod nodes;

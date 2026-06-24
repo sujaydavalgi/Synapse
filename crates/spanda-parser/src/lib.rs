@@ -611,6 +611,16 @@ impl Parser {
         let mut health_checks = Vec::new();
         let mut health_policies = Vec::new();
         let mut requires_capabilities = Vec::new();
+        let mut knowledge_models = Vec::new();
+        let mut state_estimators = Vec::new();
+        let mut anomaly_detectors = Vec::new();
+        let mut anomaly_handlers = Vec::new();
+        let mut prognostics = Vec::new();
+        let mut mitigations = Vec::new();
+        let mut operating_modes = Vec::new();
+        let mut mission_plans = Vec::new();
+        let mut resilience_policies = Vec::new();
+        let mut assurance_cases = Vec::new();
         let mut robots = Vec::new();
 
         // Repeat while self.check(TokenType::Import).
@@ -671,6 +681,26 @@ impl Parser {
                 health_policies.push(self.parse_health_policy()?);
             } else if self.check(TokenType::Ident) && self.peek().lexeme == "requires_capability" {
                 requires_capabilities.push(self.parse_requires_capability()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "knowledge_model" {
+                knowledge_models.push(self.parse_knowledge_model()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "state_estimator" {
+                state_estimators.push(self.parse_state_estimator()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "anomaly_detector" {
+                anomaly_detectors.push(self.parse_anomaly_detector()?);
+            } else if self.check(TokenType::On) && self.is_anomaly_handler() {
+                anomaly_handlers.push(self.parse_anomaly_handler()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "prognostics" {
+                prognostics.push(self.parse_prognostics()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "mitigation" {
+                mitigations.push(self.parse_mitigation()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "assurance_case" {
+                assurance_cases.push(self.parse_assurance_case()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "resilience_policy" {
+                resilience_policies.push(self.parse_resilience_policy()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "mission_plan" {
+                mission_plans.push(self.parse_mission_plan()?);
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "operating_mode" {
+                operating_modes.push(self.parse_operating_mode()?);
             } else if self.check(TokenType::Robot) {
                 robots.push(self.parse_robot()?);
             } else {
@@ -711,6 +741,16 @@ impl Parser {
             health_checks,
             health_policies,
             requires_capabilities,
+            knowledge_models,
+            state_estimators,
+            anomaly_detectors,
+            anomaly_handlers,
+            prognostics,
+            mitigations,
+            operating_modes,
+            mission_plans,
+            resilience_policies,
+            assurance_cases,
             robots,
             span: self.span_from(&start, self.previous()),
         })
@@ -1065,39 +1105,21 @@ impl Parser {
             if self.check(TokenType::Ident) && self.peek().lexeme == "check" {
                 self.advance();
                 let metric = self.parse_dotted_name("Expected metric path")?;
-                let op = if self.check(TokenType::Gt) {
-                    self.advance();
-                    if self.check(TokenType::Eq) {
-                        self.advance();
-                        ">=".into()
-                    } else {
-                        ">".into()
-                    }
-                } else if self.check(TokenType::Lt) {
-                    self.advance();
-                    if self.check(TokenType::Eq) {
-                        self.advance();
-                        "<=".into()
-                    } else {
-                        "<".into()
-                    }
-                } else if self.check(TokenType::Eq) {
-                    self.advance();
-                    "==".into()
-                } else {
-                    return Err(SpandaError::Parse {
-                        message: "Expected comparison operator in health check".into(),
-                        line: self.peek().line,
-                        column: self.peek().column,
-                    });
-                };
+                let op = self.parse_comparison_op().map_err(|_| SpandaError::Parse {
+                    message: "Expected comparison operator in health check".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                })?;
                 let mut threshold = if self.check(TokenType::True) {
                     self.advance();
                     "true".into()
                 } else if self.check(TokenType::False) {
                     self.advance();
                     "false".into()
-                } else if self.check(TokenType::Ident) || self.check(TokenType::Number) {
+                } else if self.check(TokenType::Number)
+                    || self.check(TokenType::UnitLiteral)
+                    || self.check(TokenType::Ident)
+                {
                     self.advance().lexeme.clone()
                 } else {
                     self.parse_label("Expected threshold value")?
@@ -8291,6 +8313,467 @@ impl Parser {
         } else {
             Ok(self.advance().lexeme)
         }
+    }
+
+    fn is_anomaly_handler(&self) -> bool {
+        self.tokens
+            .get(self.pos + 1)
+            .map(|t| t.lexeme == "anomaly")
+            .unwrap_or(false)
+    }
+
+    fn parse_comparison_op(&mut self) -> Result<String, SpandaError> {
+        if self.check(TokenType::Gte) {
+            self.advance();
+            Ok(">=".into())
+        } else if self.check(TokenType::Gt) {
+            self.advance();
+            Ok(">".into())
+        } else if self.check(TokenType::Lte) {
+            self.advance();
+            Ok("<=".into())
+        } else if self.check(TokenType::Lt) {
+            self.advance();
+            Ok("<".into())
+        } else if self.check(TokenType::Eq) {
+            self.advance();
+            Ok("==".into())
+        } else {
+            Err(SpandaError::Parse {
+                message: "Expected comparison operator".into(),
+                line: self.peek().line,
+                column: self.peek().column,
+            })
+        }
+    }
+
+    fn parse_threshold_value(&mut self) -> Result<String, SpandaError> {
+        let mut threshold = if self.check(TokenType::True) {
+            self.advance();
+            "true".into()
+        } else if self.check(TokenType::False) {
+            self.advance();
+            "false".into()
+        } else if self.check(TokenType::Number)
+            || self.check(TokenType::UnitLiteral)
+            || self.check(TokenType::Ident)
+        {
+            self.advance().lexeme.clone()
+        } else {
+            return Err(SpandaError::Parse {
+                message: "Expected threshold value".into(),
+                line: self.peek().line,
+                column: self.peek().column,
+            });
+        };
+
+        if self.check(TokenType::Ident) {
+            threshold.push(' ');
+            threshold.push_str(&self.advance().lexeme);
+            if self.check(TokenType::Slash) {
+                threshold.push('/');
+                self.advance();
+                if self.check(TokenType::Ident) {
+                    threshold.push_str(&self.advance().lexeme);
+                }
+            }
+        } else if self.check(TokenType::Percent) {
+            self.advance();
+            threshold.push('%');
+        }
+        Ok(threshold)
+    }
+
+    fn parse_bracket_name_list(&mut self) -> Result<Vec<String>, SpandaError> {
+        self.expect(TokenType::Lbracket, "Expected '['")?;
+        let mut items = Vec::new();
+        while !self.check(TokenType::Rbracket) && !self.check(TokenType::Eof) {
+            items.push(self.parse_dotted_name("Expected name in list")?);
+            if self.check(TokenType::Comma) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        self.expect(TokenType::Rbracket, "Expected ']'")?;
+        Ok(items)
+    }
+
+    fn parse_action_statement(&mut self) -> Result<String, SpandaError> {
+        let mut parts = Vec::new();
+        while !self.check(TokenType::Semicolon)
+            && !self.check(TokenType::Rbrace)
+            && !self.check(TokenType::Eof)
+        {
+            let tok = self.advance();
+            parts.push(tok.lexeme);
+            if self.check(TokenType::Dot) {
+                parts.push(self.advance().lexeme);
+            }
+            if self.check(TokenType::Lparen) {
+                parts.push(self.advance().lexeme);
+                while !self.check(TokenType::Rparen) && !self.check(TokenType::Eof) {
+                    parts.push(self.advance().lexeme);
+                }
+                if self.check(TokenType::Rparen) {
+                    parts.push(self.advance().lexeme);
+                }
+            }
+        }
+        if self.check(TokenType::Semicolon) {
+            self.advance();
+        }
+        Ok(parts.join(""))
+    }
+
+    fn parse_knowledge_model(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::KnowledgeModelDecl, SpandaError> {
+        use spanda_ast::assurance_decl::{
+            KnowledgeComponent, KnowledgeDependency, KnowledgeModelDecl,
+        };
+        let start = self.advance();
+        let name = self.parse_label("Expected knowledge model name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after knowledge_model name")?;
+        let mut components = Vec::new();
+        let mut dependencies = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::Ident) && self.peek().lexeme == "component" {
+                self.advance();
+                let comp = self.parse_label("Expected component name")?;
+                self.expect(TokenType::Semicolon, "Expected ';' after component")?;
+                components.push(KnowledgeComponent {
+                    name: comp,
+                    span: self.span_from(&start, self.previous()),
+                });
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "dependency" {
+                self.advance();
+                let capability = self.parse_label("Expected dependency capability")?;
+                self.expect(TokenType::Requires, "Expected 'requires' in dependency")?;
+                let requires = self.parse_bracket_name_list()?;
+                self.expect(TokenType::Semicolon, "Expected ';' after dependency")?;
+                dependencies.push(KnowledgeDependency {
+                    capability,
+                    requires,
+                    span: self.span_from(&start, self.previous()),
+                });
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected component or dependency in knowledge_model".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close knowledge_model")?;
+        Ok(KnowledgeModelDecl::KnowledgeModelDecl {
+            name,
+            components,
+            dependencies,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_state_estimator(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::StateEstimatorDecl, SpandaError> {
+        use spanda_ast::assurance_decl::StateEstimatorDecl;
+        let start = self.advance();
+        let name = self.parse_label("Expected state_estimator name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after state_estimator name")?;
+        let mut inputs = Vec::new();
+        let mut output_type = String::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::Ident) && self.peek().lexeme == "inputs" {
+                self.advance();
+                inputs = self.parse_bracket_name_list()?;
+                self.expect(TokenType::Semicolon, "Expected ';' after inputs")?;
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "output" {
+                self.advance();
+                output_type = self.parse_label("Expected output type")?;
+                self.expect(TokenType::Semicolon, "Expected ';' after output")?;
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected inputs or output in state_estimator".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close state_estimator")?;
+        Ok(StateEstimatorDecl::StateEstimatorDecl {
+            name,
+            inputs,
+            output_type,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_anomaly_detector(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::AnomalyDetectorDecl, SpandaError> {
+        use spanda_ast::assurance_decl::{AnomalyDetectorDecl, ExpectedBehavior};
+        let start = self.advance();
+        let name = self.parse_label("Expected anomaly_detector name")?;
+        self.expect(
+            TokenType::Lbrace,
+            "Expected '{' after anomaly_detector name",
+        )?;
+        let mut expected = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::Ident) && self.peek().lexeme == "expected" {
+                self.advance();
+                let metric = self.parse_dotted_name("Expected metric path")?;
+                let op = self.parse_comparison_op()?;
+                let threshold = self.parse_threshold_value()?;
+                self.expect(TokenType::Semicolon, "Expected ';' after expected rule")?;
+                expected.push(ExpectedBehavior {
+                    metric,
+                    operator: op,
+                    threshold,
+                    span: self.span_from(&start, self.previous()),
+                });
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected 'expected' rule in anomaly_detector".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close anomaly_detector")?;
+        Ok(AnomalyDetectorDecl::AnomalyDetectorDecl {
+            name,
+            expected,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_anomaly_handler(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::AnomalyHandlerDecl, SpandaError> {
+        use spanda_ast::assurance_decl::AnomalyHandlerDecl;
+        let start = self.advance(); // on
+        self.expect(TokenType::Ident, "Expected 'anomaly' after on")?;
+        let detector = self.parse_label("Expected anomaly detector name")?;
+        self.expect(TokenType::Ident, "Expected 'severity'")?;
+        let severity = self.parse_label("Expected severity level")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after anomaly handler")?;
+        let mut actions = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            actions.push(self.parse_action_statement()?);
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close anomaly handler")?;
+        Ok(AnomalyHandlerDecl::AnomalyHandlerDecl {
+            detector,
+            severity,
+            actions,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_prognostics(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::PrognosticsDecl, SpandaError> {
+        use spanda_ast::assurance_decl::{PrognosticRule, PrognosticsDecl};
+        let start = self.advance();
+        let name = self.parse_label("Expected prognostics name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after prognostics name")?;
+        let mut rules = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            let kind = self.parse_label("Expected prognostic rule kind")?;
+            let target = if kind == "predict" || kind == "warn_if" {
+                self.parse_dotted_name("Expected prognostic target")?
+            } else {
+                self.parse_label("Expected prognostic target")?
+            };
+            let mut threshold = None;
+            if kind == "warn_if" {
+                self.expect(TokenType::Lt, "Expected '<' in warn_if")?;
+                threshold = Some(self.parse_threshold_value()?);
+            }
+            self.expect(TokenType::Semicolon, "Expected ';' after prognostic rule")?;
+            rules.push(PrognosticRule {
+                kind,
+                target,
+                threshold,
+                span: self.span_from(&start, self.previous()),
+            });
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close prognostics")?;
+        Ok(PrognosticsDecl::PrognosticsDecl {
+            name,
+            rules,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_mitigation(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::MitigationDecl, SpandaError> {
+        use spanda_ast::assurance_decl::{MitigationBranch, MitigationDecl};
+        let start = self.advance();
+        let name = self.parse_label("Expected mitigation name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after mitigation name")?;
+        let mut branches = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::If) {
+                self.advance();
+                let condition = self.parse_dotted_name("Expected mitigation condition")?;
+                self.expect(TokenType::Lbrace, "Expected '{' after if condition")?;
+                let mut actions = Vec::new();
+                while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+                    actions.push(self.parse_action_statement()?);
+                }
+                self.expect(TokenType::Rbrace, "Expected '}' to close if branch")?;
+                branches.push(MitigationBranch {
+                    condition,
+                    actions,
+                    span: self.span_from(&start, self.previous()),
+                });
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected 'if' branch in mitigation".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close mitigation")?;
+        Ok(MitigationDecl::MitigationDecl {
+            name,
+            branches,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_assurance_case(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::AssuranceCaseDecl, SpandaError> {
+        use spanda_ast::assurance_decl::AssuranceCaseDecl;
+        let start = self.advance();
+        let name = self.parse_label("Expected assurance_case name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after assurance_case name")?;
+        let mut evidence = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::Ident) && self.peek().lexeme == "evidence" {
+                self.advance();
+                evidence.push(self.parse_dotted_name("Expected evidence source")?);
+                self.expect(TokenType::Semicolon, "Expected ';' after evidence")?;
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected evidence in assurance_case".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close assurance_case")?;
+        Ok(AssuranceCaseDecl::AssuranceCaseDecl {
+            name,
+            evidence,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_resilience_policy(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::ResiliencePolicyDecl, SpandaError> {
+        use spanda_ast::assurance_decl::ResiliencePolicyDecl;
+        let start = self.advance();
+        let name = self.parse_label("Expected resilience_policy name")?;
+        self.expect(
+            TokenType::Lbrace,
+            "Expected '{' after resilience_policy name",
+        )?;
+        let mut strategies = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::Ident) && self.peek().lexeme == "strategy" {
+                self.advance();
+                strategies.push(self.parse_label("Expected strategy name")?);
+                self.expect(TokenType::Semicolon, "Expected ';' after strategy")?;
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected strategy in resilience_policy".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close resilience_policy")?;
+        Ok(ResiliencePolicyDecl::ResiliencePolicyDecl {
+            name,
+            strategies,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_mission_plan(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::MissionPlanDecl, SpandaError> {
+        use spanda_ast::assurance_decl::{MissionConstraintDecl, MissionPlanDecl, MissionStepDecl};
+        let start = self.advance();
+        let name = self.parse_label("Expected mission_plan name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after mission_plan name")?;
+        let mut steps = Vec::new();
+        let mut constraints = Vec::new();
+        while !self.check(TokenType::Rbrace) && !self.check(TokenType::Eof) {
+            if self.check(TokenType::Ident) && self.peek().lexeme == "step" {
+                self.advance();
+                let step_name = self.parse_label("Expected step name")?;
+                self.expect(TokenType::Semicolon, "Expected ';' after step")?;
+                steps.push(MissionStepDecl {
+                    name: step_name,
+                    span: self.span_from(&start, self.previous()),
+                });
+            } else if self.check(TokenType::Ident) && self.peek().lexeme == "constraint" {
+                self.advance();
+                let mut parts = Vec::new();
+                while !self.check(TokenType::Semicolon) && !self.check(TokenType::Eof) {
+                    parts.push(self.advance().lexeme);
+                }
+                self.expect(TokenType::Semicolon, "Expected ';' after constraint")?;
+                constraints.push(MissionConstraintDecl {
+                    constraint: parts.join(" "),
+                    span: self.span_from(&start, self.previous()),
+                });
+            } else {
+                return Err(SpandaError::Parse {
+                    message: "Expected step or constraint in mission_plan".into(),
+                    line: self.peek().line,
+                    column: self.peek().column,
+                });
+            }
+        }
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close mission_plan")?;
+        Ok(MissionPlanDecl::MissionPlanDecl {
+            name,
+            steps,
+            constraints,
+            span: self.span_from(&start, &end),
+        })
+    }
+
+    fn parse_operating_mode(
+        &mut self,
+    ) -> Result<spanda_ast::assurance_decl::OperatingModeDecl, SpandaError> {
+        use spanda_ast::assurance_decl::OperatingModeDecl;
+        let start = self.advance();
+        let name = self.parse_label("Expected operating_mode name")?;
+        self.expect(TokenType::Lbrace, "Expected '{' after operating_mode name")?;
+        let mode_kind = if self.check(TokenType::Ident) {
+            let k = self.advance().lexeme.clone();
+            self.expect(TokenType::Semicolon, "Expected ';' after mode kind")?;
+            k
+        } else {
+            "normal".into()
+        };
+        let end = self.expect(TokenType::Rbrace, "Expected '}' to close operating_mode")?;
+        Ok(OperatingModeDecl::OperatingModeDecl {
+            name,
+            mode_kind,
+            span: self.span_from(&start, &end),
+        })
     }
 }
 
