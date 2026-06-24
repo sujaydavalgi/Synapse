@@ -1,0 +1,427 @@
+{
+  "version": 2,
+  "source": "examples/end_to_end/validated_telemetry.sd",
+  "deterministic": true,
+  "frames": [
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    },
+    {
+      "sim_time_ms": 0.0,
+      "event": "topic_publish",
+      "payload": {
+        "topic": "/telemetry"
+      },
+      "state": {
+        "pose": {
+          "x": 0.0,
+          "y": 0.0,
+          "theta": 0.0,
+          "z": 0.0
+        },
+        "velocity": {
+          "linear": 0.0,
+          "angular": 0.0
+        },
+        "emergency_stop": false,
+        "active_mode": "normal"
+      }
+    }
+  ]
+}
