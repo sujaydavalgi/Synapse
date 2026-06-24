@@ -14,6 +14,7 @@ pub fn cmd_telemetry(sub: &str, args: &[String]) {
         "export" => cmd_export(args),
         "stats" => cmd_stats(args),
         "heartbeats" => cmd_heartbeats(args),
+        "devices" => cmd_devices(args),
         other => {
             eprintln!("Unknown telemetry subcommand: {other}");
             usage();
@@ -25,11 +26,12 @@ pub fn cmd_telemetry(sub: &str, args: &[String]) {
 fn usage() {
     eprintln!(
         "Usage:\n\
-         spanda telemetry list [--device <id>] [--sensor <id>] [--task <name>] [--kind device|sensor|heartbeat|health] [--since <ms>] [--limit <n>] [--json]\n\
-         spanda telemetry latest [--device <id> --metric <name> | --sensor <id> | --task <name>] [--json]\n\
+         spanda telemetry list [--device <id>] [--sensor <id>] [--task <name>] [--kind device|sensor|heartbeat|device_heartbeat|health] [--since <ms>] [--limit <n>] [--json]\n\
+         spanda telemetry latest [--device <id> [--metric <name>] | --sensor <id> | --task <name>] [--json]\n\
          spanda telemetry export [--out <file.jsonl>]\n\
          spanda telemetry stats [--json]\n\
-         spanda telemetry heartbeats [--json]"
+         spanda telemetry heartbeats [--json]\n\
+         spanda telemetry devices [--json]"
     );
 }
 
@@ -56,13 +58,27 @@ fn cmd_list(args: &[String]) {
 fn cmd_latest(args: &[String]) {
     let parsed = parse_query_args(args);
     let store = global_store().lock().unwrap();
-    let event = if let (Some(device_id), Some(metric)) = (&parsed.device_id, &parsed.metric) {
-        store
-            .latest_device(device_id, metric)
-            .unwrap_or_else(|error| {
-                eprintln!("telemetry latest failed: {error}");
-                process::exit(1);
-            })
+    let event: Option<TelemetryEvent> = if let Some(device_id) = &parsed.device_id {
+        if let Some(metric) = &parsed.metric {
+            store
+                .latest_device(device_id, metric)
+                .unwrap_or_else(|error| {
+                    eprintln!("telemetry latest failed: {error}");
+                    process::exit(1);
+                })
+        } else {
+            store
+                .heartbeat_index()
+                .devices
+                .get(device_id)
+                .copied()
+                .map(|timestamp_ms| TelemetryEvent::DeviceHeartbeat {
+                    device_id: device_id.clone(),
+                    timestamp_ms,
+                    robot_id: None,
+                    protocol: None,
+                })
+        }
     } else if let Some(sensor_id) = &parsed.sensor_id {
         store.latest_sensor(sensor_id).unwrap_or_else(|error| {
             eprintln!("telemetry latest failed: {error}");
@@ -76,7 +92,7 @@ fn cmd_latest(args: &[String]) {
             robot_id: None,
         })
     } else {
-        eprintln!("telemetry latest requires --device and --metric, --sensor, or --task");
+        eprintln!("telemetry latest requires --device, --sensor, or --task");
         process::exit(1);
     };
     if parsed.json {
@@ -143,8 +159,27 @@ fn cmd_stats(args: &[String]) {
     println!("Device events: {}", stats.device_events);
     println!("Sensor events: {}", stats.sensor_events);
     println!("Heartbeat events: {}", stats.heartbeat_events);
+    println!("Device heartbeat events: {}", stats.device_heartbeat_events);
     println!("Health events: {}", stats.health_events);
     println!("Tracked tasks: {}", stats.tracked_tasks);
+    println!("Tracked devices: {}", stats.tracked_devices);
+}
+
+fn cmd_devices(args: &[String]) {
+    let json = args.iter().any(|arg| arg == "--json");
+    let store = global_store().lock().unwrap();
+    let index = store.heartbeat_index();
+    if json {
+        println!("{}", serde_json::to_string_pretty(&index.devices).unwrap());
+        return;
+    }
+    if index.devices.is_empty() {
+        println!("No device heartbeats recorded");
+        return;
+    }
+    for (device, timestamp_ms) in &index.devices {
+        println!("{device}: {timestamp_ms} ms");
+    }
 }
 
 fn cmd_heartbeats(args: &[String]) {
@@ -155,12 +190,21 @@ fn cmd_heartbeats(args: &[String]) {
         println!("{}", serde_json::to_string_pretty(index).unwrap());
         return;
     }
-    if index.tasks.is_empty() {
+    if index.tasks.is_empty() && index.devices.is_empty() {
         println!("No task heartbeats recorded");
         return;
     }
-    for (task, timestamp_ms) in &index.tasks {
-        println!("{task}: {timestamp_ms} ms");
+    if !index.tasks.is_empty() {
+        println!("Tasks:");
+        for (task, timestamp_ms) in &index.tasks {
+            println!("  {task}: {timestamp_ms} ms");
+        }
+    }
+    if !index.devices.is_empty() {
+        println!("Devices:");
+        for (device, timestamp_ms) in &index.devices {
+            println!("  {device}: {timestamp_ms} ms");
+        }
     }
 }
 
@@ -275,6 +319,22 @@ fn print_event(event: &TelemetryEvent) {
                 .as_ref()
                 .map(|id| format!(" robot={id}"))
                 .unwrap_or_default()
+        ),
+        TelemetryEvent::DeviceHeartbeat {
+            device_id,
+            timestamp_ms,
+            robot_id,
+            protocol,
+        } => println!(
+            "[device_heartbeat] {timestamp_ms}ms device={device_id}{}",
+            [
+                robot_id.as_ref().map(|id| format!(" robot={id}")),
+                protocol.as_ref().map(|name| format!(" protocol={name}")),
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+            .join("")
         ),
         TelemetryEvent::Health {
             target,
