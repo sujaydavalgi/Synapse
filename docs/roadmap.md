@@ -94,6 +94,7 @@ See [mission-assurance.md](./mission-assurance.md), [state-estimation.md](./stat
 | Runtime dispatch (modes, speed caps, connectivity, mission pause) | **Experimental** |
 | Operator approval (env, Approval topics, mission `requires approval`) | **Experimental** |
 | Fleet mesh recovery (`POST /v1/fleet/recovery`, `SPANDA_FLEET_MESH_URL`) | **Experimental** |
+| Recovery reassign → continuity mesh relay | **Experimental** |
 | Fleet agent assurance recovery (`POST /v1/recovery/execute`, deployed program) | **Experimental** |
 | Fleet agent interpreter recovery (`execute_recovery_on_program`, `recovery_engine`) | **Experimental** |
 | TypeScript recovery diagnostics (LSP fallback) | **Stable** |
@@ -113,7 +114,12 @@ See [self-healing.md](./self-healing.md), [recovery-policies.md](./recovery-poli
 | Takeover modes (resume, restart, partial, shadow, hot, cold, human) | **Stable** |
 | State transfer (`MissionStateSnapshot`, `MissionContextTransfer`) | **Stable** |
 | CLI (`continuity`, `takeover`, `delegate`, `succession`) | **Stable** |
+| Continuity diagnostics (`spanda check --readiness-json`) | **Stable** |
+| TypeScript continuity diagnostics (LSP fallback) | **Stable** |
+| `spanda demo continuity` + showcase examples | **Stable** |
+| Official package `spanda-mission-continuity` (`assurance.continuity`) | **Stable** |
 | Runtime takeover dispatch on fleet agents | **Experimental** |
+| Recovery reassign → continuity mesh relay | **Experimental** |
 | Language `continuity_policy` declarations | **Experimental** |
 
 See [mission-continuity.md](./mission-continuity.md).
@@ -243,7 +249,7 @@ Foundation: Phases 1–35 complete — [lean-core-roadmap.md](./lean-core-roadma
 | Item | Status |
 |------|--------|
 | `spanda install` / `update` / `publish` | **Stable** |
-| Hosted registry index (37 packages) | **Stable** — [registry.md](./registry.md) |
+| Hosted registry index (38 packages) | **Stable** — [registry.md](./registry.md) |
 | Provider dispatch + `--trace-providers` | **Stable** |
 | Official packages (ROS2, MQTT, GPS, vision, …) | **Stable** scaffolds / live **Experimental** |
 | Live AI providers (OpenAI, Anthropic, ONNX) | **Experimental** — [live-ai-provider.md](./live-ai-provider.md) |
@@ -260,7 +266,7 @@ CLI, LSP, debugger, docs site, and contributor ergonomics.
 |------|--------|
 | Native CLI (`check`, `verify`, `run`, `sim`, `fleet`, `fmt`, `lint`) | **Stable** |
 | `cargo install spanda` | **Stable** |
-| Bundled `spanda demo {rover,safety,verify,fleet,health,readiness,assurance}` | **Stable** |
+| Bundled `spanda demo {rover,safety,verify,fleet,health,readiness,assurance,self-healing,continuity}` | **Stable** |
 | Operations dashboard (`packages/web` Operations view) | **Experimental** |
 | mdBook GitHub Pages | **Stable** |
 | LSP hover + SafeAction quick-fix | **Stable** |
@@ -291,7 +297,7 @@ CLI, LSP, debugger, docs site, and contributor ergonomics.
 | Item | Status |
 |------|--------|
 | Crate rename → `spanda`, bundled demos | **Stable** |
-| Hosted registry (37 packages) | **Stable** |
+| Hosted registry (38 packages) | **Stable** |
 | LSP + showcase CI smoke | **Stable** |
 
 ### v0.2 — Credibility & onboarding (complete)

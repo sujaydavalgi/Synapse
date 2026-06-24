@@ -548,6 +548,29 @@ spanda analyze-failure examples/showcase/self_healing/rover.sd --with-recovery
 
 ---
 
+## Mission continuity (optional)
+
+Checkpoint resume, takeover, delegation, and succession when a robot or fleet member fails mid-mission. Pair `continuity_policy` with fleet programs for takeover mode inference and successor ranking.
+
+```bash
+spanda demo continuity
+```
+
+Or step through the warehouse showcase:
+
+```bash
+spanda continuity examples/showcase/continuity/warehouse.sd \
+  --failed ScannerAlpha --progress 72 --trigger robot_failed
+spanda takeover examples/showcase/takeover/patrol.sd --failed RoverA
+spanda delegate examples/showcase/delegation/survey.sd --failed SurveyBot --to RelayBot
+spanda succession examples/showcase/fleet_succession/delivery.sd --scope fleet
+spanda check examples/showcase/continuity/warehouse.sd --readiness-json
+```
+
+Guide: [mission-continuity.md](./mission-continuity.md) · Package: `spanda-mission-continuity` (`assurance.continuity`) · Examples: [`examples/showcase/continuity/`](../examples/showcase/continuity/)
+
+---
+
 ## Documentation
 
 Generate API docs from `.sd` source (JavaDoc-style `///` comments are included):

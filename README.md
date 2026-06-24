@@ -8,7 +8,7 @@
 
 *Build. Verify. Simulate. Deploy. Operate.*
 
-Spanda is an autonomous systems platform centered on the **Spanda Language** (`.sd` files): typed robot programs, safety gates, hardware verification, simulation, replay, fleet operations, mission assurance, and **37** official packages.
+Spanda is an autonomous systems platform centered on the **Spanda Language** (`.sd` files): typed robot programs, safety gates, hardware verification, simulation, replay, fleet operations, mission assurance, mission continuity, and **38** official packages.
 
 **Spanda focuses on Readiness, Assurance, and Diagnosis for safety-critical autonomous systems.**
 
@@ -106,6 +106,7 @@ cd Spanda && ./scripts/install.sh
 spanda demo rover          # flagship platform demo
 spanda demo assurance      # mission assurance CLI suite
 spanda demo self-healing   # recovery policies, heal/recover/sim
+spanda demo continuity     # takeover, delegation, succession
 
 # Or step by step:
 spanda check examples/showcase/killer_demo.sd      # type-check
@@ -150,7 +151,7 @@ Install on `PATH` instead: `./scripts/install.sh` or `cargo install --path crate
 
 ## Flagship Demos
 
-Three primary stories for new visitors. Other demos (`fleet`, `health`, `readiness`, `assurance`, `self-healing`, and more) remain in [Quick start](#quick-start) and [docs/overview/demos-and-examples.md](docs/overview/demos-and-examples.md).
+Three primary stories for new visitors. Other demos (`fleet`, `health`, `readiness`, `assurance`, `self-healing`, `continuity`, and more) remain in [Quick start](#quick-start) and [docs/overview/demos-and-examples.md](docs/overview/demos-and-examples.md).
 
 ### 1. Safety-Typed AI
 
@@ -297,7 +298,7 @@ One-line pointers — details in [docs/platform-overview.md](docs/platform-overv
 | | | |
 |---|---|---|
 | **Language (.sd)** | **Safety validation** | **Hardware verify** |
-| **Simulation & replay** | **Mission assurance** | **Packages (37)** |
+| **Simulation & replay** | **Mission assurance** | **Packages (38)** |
 | **Health & readiness** | **Fleet & OTA** | **ROS2 / IoT / AI bridges** |
 
 More samples: [docs/overview/code-samples.md](docs/overview/code-samples.md) · Demos: [docs/overview/demos-and-examples.md](docs/overview/demos-and-examples.md)

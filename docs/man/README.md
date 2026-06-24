@@ -7,6 +7,7 @@ Man-page style CLI reference (markdown). Regenerate with `python3 scripts/genera
 | [spanda-assure](./spanda-assure.md) | `spanda assure` |
 | [spanda-check](./spanda-check.md) | `spanda check` |
 | [spanda-codegen](./spanda-codegen.md) | `spanda codegen` |
+| [spanda-continuity](./spanda-continuity.md) | `spanda continuity` |
 | [spanda-debug](./spanda-debug.md) | `spanda debug` |
 | [spanda-diagnose](./spanda-diagnose.md) | `spanda diagnose` |
 | [spanda-doc](./spanda-doc.md) | `spanda doc` |

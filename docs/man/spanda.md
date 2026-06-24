@@ -26,6 +26,7 @@ The Spanda CLI drives the autonomous systems platform: check, verify, simulate, 
 - **assure** — Run assurance workflows: anomaly coverage, prognostics, and assurance cases.
 - **diagnose** — Diagnose failures from static analysis and optional mission traces.
 - **heal** — Execute self-healing and recovery policies declared in the program.
+- **continuity** — Mission continuity, takeover, delegation, and succession planning.
 - **fleet** — Run a multi-robot fleet program with peer communication.
 - **package** — Manage Spanda packages: manifests, dependencies, builds, and registry operations.
 - **trace** — Record scheduler, task, trigger, and event traces from a program run.

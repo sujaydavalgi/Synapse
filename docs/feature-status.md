@@ -56,8 +56,8 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Lean-core workspace** | 50+ focused Rust crates; `spanda-core` facade; CLI/bindings use workspace deps directly ([crates/README.md](../crates/README.md)) |
 | **Verification & DX** | `spanda-capability` — traceability, minimum-hardware, health analysis; `spanda-readiness` — operational readiness, mission verification, safety reports; `spanda check --verification-json`; LSP verification diagnostics and quick-fixes |
 | **Health & kill switch** | `health_check`, `health_policy`, fleet `require` runtime; `kill_switch`, `remote_signed`, `on kill_switch` handlers |
-| **Self-healing & recovery** | `recovery_policy`, recovery planner, validation gates, audit/traceability; runtime dispatch (modes, speed caps, fleet mesh relay); CLI `heal`, `recover`, `recovery-report`, `recovery knowledge`, `sim --inject-failure`; fleet agent interpreter + assurance recovery; mission operator approval gating |
-| **Mission continuity** | Checkpoint resume, state transfer, succession ranking, takeover/delegation; CLI `continuity`, `takeover`, `delegate`, `succession`; readiness/trust/safety integration |
+| **Self-healing & recovery** | `recovery_policy`, recovery planner, validation gates, audit/traceability; runtime dispatch (modes, speed caps, fleet mesh relay, reassign → continuity mesh); CLI `heal`, `recover`, `recovery-report`, `recovery knowledge`, `sim --inject-failure`; fleet agent interpreter + assurance recovery; mission operator approval gating |
+| **Mission continuity** | Checkpoint resume, state transfer, succession ranking, takeover/delegation; CLI `continuity`, `takeover`, `delegate`, `succession`; `continuity_policy`; diagnostics in `spanda check --readiness-json`; `spanda demo continuity`; official `spanda-mission-continuity` package |
 | **Mission assurance** | `knowledge_model`, `state_estimator`, `anomaly_detector`, `on anomaly`, `prognostics`, `mitigation`, `resilience_policy`, `assurance_case`; CLI `assure`, `anomaly scan`, `diagnose`, `state estimate`, `prognostics`, `mission verify`, `resilience check`, `mitigation plan`; `spanda demo assurance` |
 | **Weighted sensor fusion** | `observe { }`, `state_estimator`, `fusion.read()` with type-weighted confidence; `spanda-fusion` package |
 | **Learned anomaly runtime** | `learned backend assurance.anomaly`; EMA volatility; optional ONNX (`SPANDA_ANOMALY_ONNX_MODEL_PATH`) |
@@ -86,7 +86,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **WASM / web playground** | Browser check/run/verify | Limited surface vs native CLI |
 | **Live AI providers** | OpenAI, Anthropic, ONNX via Python bridge | Requires API keys or `SPANDA_ONNX_MODEL_PATH`; mock fallback by default |
 | **Live IoT bridges** | Modbus TCP, OPC-UA, zigbee, lora, matter, canbus | Env-gated (`SPANDA_LIVE_*=1`); in-memory hub fallback |
-| **Package publish** | `spanda publish`, registry search, mirror to `registry/packages/` | Remote upload via `SPANDA_REGISTRY_URL`; hosted index lists **37** packages after `build-registry.sh` |
+| **Package publish** | `spanda publish`, registry search, mirror to `registry/packages/` | Remote upload via `SPANDA_REGISTRY_URL`; hosted index lists **38** packages after `build-registry.sh` |
 
 ### Planned (v0.5 beta and beyond)
 
@@ -155,9 +155,11 @@ See [tier-3-experimental.md](./tier-3-experimental.md) and [tier-3-golden-paths.
 | observe / fusion | **Stable** | Weighted fusion by sensor type; `state_estimator` runtime bindings |
 | mission assurance (static + CLI) | **Stable** | `spanda-assurance` crate; 8 official packages |
 | self-healing & recovery (static + CLI) | **Stable** | Recovery planner, validation gates, audit, knowledge store |
-| mission continuity runtime dispatch | **Experimental** | Fleet agent interpreter + assurance takeover on `/v1/continuity/execute` and `fleet_takeover` peer topic; mesh `POST /v1/fleet/continuity` |
+| mission continuity (static + CLI + diagnostics) | **Stable** | `spanda-assurance` continuity module; CLI `continuity`, `takeover`, `delegate`, `succession`; `continuity:*` diagnostics in check JSON and LSP |
+| mission continuity runtime dispatch | **Experimental** | Fleet agent interpreter + assurance takeover on `/v1/continuity/execute` and `fleet_takeover` peer topic; mesh `POST /v1/fleet/continuity`; recovery reassign also relays continuity |
 | self-healing runtime dispatch | **Experimental** | Assurance-gated actions, Approval polling, fleet mesh relay (`SPANDA_FLEET_MESH_URL`), mission approval gating, fleet agent interpreter + assurance recovery on deployed programs (`recovery_engine` on `/v1/status`) |
 | recovery diagnostics (CLI + LSP) | **Stable** | `spanda check --readiness-json` merges `recovery:*` categories; TS mirror in `scripts/lsp-readiness.mts` |
+| continuity diagnostics (CLI + LSP) | **Stable** | `spanda check --readiness-json` merges `continuity:*` categories; TS mirror in `src/continuity-diagnostics.ts` |
 | learned anomaly backends | **Experimental** | Runtime `scan_learned`; ONNX optional |
 | verify { } behavioral assertions | **Stable** | |
 | hardware / deploy | **Stable** | Rust verify CLI |

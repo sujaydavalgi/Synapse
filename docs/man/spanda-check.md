@@ -17,6 +17,7 @@ Type-check and parse a Spanda program or project.
 ## OPTIONS
 
 `--json` — machine-readable diagnostics
+`--readiness-json` — readiness + recovery + continuity policy hints
 `--project` — check all modules in the current project
 
 ## EXAMPLES
@@ -36,4 +37,4 @@ spanda check --project
 
 ## SEE ALSO
 
-spanda-verify(1), spanda-run(1), [spanda(1)](./spanda.md), [spanda-reference.md](../spanda-reference.md)
+spanda-verify(1), spanda-run(1), spanda-continuity(1), [spanda(1)](./spanda.md), [spanda-reference.md](../spanda-reference.md)

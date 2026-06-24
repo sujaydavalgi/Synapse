@@ -1653,14 +1653,6 @@ Vendor sensor drivers registered in the runtime. Each sensor type exposes `read(
 
 ### Adafruit
 
-#### `adafruit.veml6075` — veml6075 v1.0.0
-
-Adafruit VEML6075 UV index sensor
-
-| Sensor type | Model | Interfaces |
-|-------------|-------|------------|
-| `AdafruitVEML6075` | VEML6075 | i2c |
-
 #### `adafruit.vl53l0x` — vl53l0x v1.0.0
 
 Adafruit VL53L0X time-of-flight distance sensor
@@ -1668,6 +1660,14 @@ Adafruit VL53L0X time-of-flight distance sensor
 | Sensor type | Model | Interfaces |
 |-------------|-------|------------|
 | `AdafruitVL53L0X` | VL53L0X | i2c |
+
+#### `adafruit.veml6075` — veml6075 v1.0.0
+
+Adafruit VEML6075 UV index sensor
+
+| Sensor type | Model | Interfaces |
+|-------------|-------|------------|
+| `AdafruitVEML6075` | VEML6075 | i2c |
 
 #### `adafruit.bh1750` — bh1750 v1.0.0
 
@@ -1679,14 +1679,6 @@ Adafruit BH1750 digital light sensor
 
 ### Atlas
 
-#### `atlas.salinity` — salinity v1.0.0
-
-Atlas Scientific salinity sensor
-
-| Sensor type | Model | Interfaces |
-|-------------|-------|------------|
-| `AtlasSalinity` | Salinity | uart |
-
 #### `atlas.ph` — ph v1.0.0
 
 Atlas Scientific pH sensor
@@ -1694,6 +1686,14 @@ Atlas Scientific pH sensor
 | Sensor type | Model | Interfaces |
 |-------------|-------|------------|
 | `AtlasPH` | pH | uart |
+
+#### `atlas.salinity` — salinity v1.0.0
+
+Atlas Scientific salinity sensor
+
+| Sensor type | Model | Interfaces |
+|-------------|-------|------------|
+| `AtlasSalinity` | Salinity | uart |
 
 ### Bosch
 
@@ -1743,14 +1743,6 @@ GQ GMC geiger counter
 
 ### Hokuyo
 
-#### `hokuyo.ust10` — ust10 v1.0.0
-
-Hokuyo UST-10LX 2D LiDAR
-
-| Sensor type | Model | Interfaces |
-|-------------|-------|------------|
-| `HokuyoUST10` | UST-10LX | ethernet, uart |
-
 #### `hokuyo.utm30` — utm30 v1.0.0
 
 Hokuyo UTM-30LX-EW outdoor LiDAR
@@ -1758,6 +1750,14 @@ Hokuyo UTM-30LX-EW outdoor LiDAR
 | Sensor type | Model | Interfaces |
 |-------------|-------|------------|
 | `HokuyoUTM30` | UTM-30LX-EW | ethernet |
+
+#### `hokuyo.ust10` — ust10 v1.0.0
+
+Hokuyo UST-10LX 2D LiDAR
+
+| Sensor type | Model | Interfaces |
+|-------------|-------|------------|
+| `HokuyoUST10` | UST-10LX | ethernet, uart |
 
 ### Intel
 
@@ -1906,6 +1906,7 @@ The Spanda CLI drives the autonomous systems platform: check, verify, simulate, 
 - [`assure`](./man/spanda-assure.md)
 - [`diagnose`](./man/spanda-diagnose.md)
 - [`heal`](./man/spanda-heal.md)
+- [`continuity`](./man/spanda-continuity.md)
 - [`fleet`](./man/spanda-fleet.md)
 - [`package`](./man/spanda-package.md)
 - [`trace`](./man/spanda-trace.md)
@@ -1939,6 +1940,7 @@ Type-check and parse a Spanda program or project.
 **OPTIONS**
 
 `--json` — machine-readable diagnostics
+`--readiness-json` — readiness + recovery + continuity policy hints
 `--project` — check all modules in the current project
 
 **EXAMPLES**
@@ -1958,7 +1960,7 @@ spanda check --project
 
 **SEE ALSO**
 
-spanda-verify(1), spanda-run(1)
+spanda-verify(1), spanda-run(1), spanda-continuity(1)
 
 ### spanda-verify(1) {#cli-verify}
 
@@ -2316,6 +2318,53 @@ Recovery policies in `.sd` source.
 **SEE ALSO**
 
 spanda-diagnose(1), spanda-recovery(1)
+
+### spanda-continuity(1) {#cli-continuity}
+
+**NAME**
+
+`continuity` — Mission continuity, takeover, delegation, and succession planning.
+
+**SYNOPSIS**
+
+```
+spanda continuity|takeover|delegate|succession <file.sd> [options]
+```
+
+**DESCRIPTION**
+
+Mission continuity, takeover, delegation, and succession planning.
+
+**OPTIONS**
+
+`--failed <name>` — failed robot or entity
+`--progress <pct>` — mission progress percent
+`--trigger <kind>` — continuity trigger (e.g. `robot_failed`)
+`--successor` / `--to <name>` — designated successor for takeover/delegate
+`--scope fleet|swarm|robot` — succession scope
+`--json` / `--markdown` / `--html` — report format
+
+**EXAMPLES**
+
+```bash
+spanda continuity examples/showcase/continuity/warehouse.sd --failed ScannerAlpha --progress 72
+spanda takeover examples/showcase/takeover/patrol.sd --failed RoverA
+spanda delegate examples/showcase/delegation/survey.sd --failed SurveyBot --to RelayBot
+spanda succession examples/showcase/fleet_succession/delivery.sd --scope fleet
+spanda demo continuity
+```
+
+**EXIT STATUS**
+
+0 when planning succeeds; 1 on validation or safety gate failures.
+
+**FILES**
+
+`continuity_policy` and `mission_plan` declarations in `.sd` source.
+
+**SEE ALSO**
+
+spanda-recovery(1), spanda-fleet(1), [mission-continuity.md](../mission-continuity.md)
 
 ### spanda-fleet(1) {#cli-fleet}
 
