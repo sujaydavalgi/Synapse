@@ -1673,6 +1673,7 @@ class Parser {
     const stateMachines: StateMachineDecl[] = [];
     const events: EventDecl[] = [];
     const eventHandlers: EventHandlerDecl[] = [];
+    const triggerHandlers: import("../runtime/trigger-registry.js").TriggerHandlerDecl[] = [];
     let twin: TwinDecl | null = null;
     let verify: VerifyDecl | null = null;
     let observe: ObserveDecl | null = null;
@@ -1797,6 +1798,12 @@ class Parser {
       // Otherwise, continue when this.check("ON").
       } else if (this.check("ON")) {
         eventHandlers.push(this.parseOnTrigger());
+      } else if (this.check("EVERY")) {
+        triggerHandlers.push(this.parseEveryTrigger());
+      } else if (this.check("WHEN")) {
+        triggerHandlers.push(this.parseWhenTrigger());
+      } else if (this.check("WHILE")) {
+        triggerHandlers.push(this.parseWhileTrigger());
 
       // Otherwise, continue when this.check("TWIN").
       } else if (this.check("TWIN")) {
@@ -1942,6 +1949,7 @@ class Parser {
       stateMachines,
       events,
       eventHandlers,
+      triggerHandlers,
       twin,
       verify,
       observe,
@@ -7356,6 +7364,69 @@ class Parser {
     return {
       kind: "EventHandlerDecl",
       eventName,
+      returnType,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseEveryTrigger(): import("../runtime/trigger-registry.js").TriggerHandlerDecl {
+    const start = this.advance();
+    const intervalMs = this.parseDuration();
+    let returnType: SpandaType = { kind: "void" };
+    if (this.check("ARROW")) {
+      this.advance();
+      returnType = this.parseTypeAnnotation();
+    }
+    this.expect("LBRACE", "Expected '{' after timer interval");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close timer trigger");
+    return {
+      kind: "TriggerHandlerDecl",
+      triggerKind: { kind: "timer", interval_ms: intervalMs },
+      priority: "normal",
+      returnType,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseWhenTrigger(): import("../runtime/trigger-registry.js").TriggerHandlerDecl {
+    const start = this.advance();
+    const expr = this.parseExpr();
+    let returnType: SpandaType = { kind: "void" };
+    if (this.check("ARROW")) {
+      this.advance();
+      returnType = this.parseTypeAnnotation();
+    }
+    this.expect("LBRACE", "Expected '{' after when condition");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close when trigger");
+    return {
+      kind: "TriggerHandlerDecl",
+      triggerKind: { kind: "condition", expr, level: false },
+      priority: "normal",
+      returnType,
+      body,
+      span: this.spanFrom(start, end),
+    };
+  }
+
+  private parseWhileTrigger(): import("../runtime/trigger-registry.js").TriggerHandlerDecl {
+    const start = this.advance();
+    const expr = this.parseExpr();
+    let returnType: SpandaType = { kind: "void" };
+    if (this.check("ARROW")) {
+      this.advance();
+      returnType = this.parseTypeAnnotation();
+    }
+    this.expect("LBRACE", "Expected '{' after while condition");
+    const body = this.parseBlock();
+    const end = this.expect("RBRACE", "Expected '}' to close while trigger");
+    return {
+      kind: "TriggerHandlerDecl",
+      triggerKind: { kind: "condition", expr, level: true },
+      priority: "normal",
       returnType,
       body,
       span: this.spanFrom(start, end),

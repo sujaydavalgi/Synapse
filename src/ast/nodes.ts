@@ -236,6 +236,7 @@ export type RobotDecl = {
   stateMachines: StateMachineDecl[];
   events: EventDecl[];
   eventHandlers: EventHandlerDecl[];
+  triggerHandlers: import("../runtime/trigger-registry.js").TriggerHandlerDecl[];
   twin: TwinDecl | null;
   verify: VerifyDecl | null;
   observe: ObserveDecl | null;

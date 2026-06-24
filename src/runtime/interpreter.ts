@@ -85,6 +85,14 @@ import {
 } from "../regex.js";
 import { ReliabilityRuntime } from "./reliability-runtime.js";
 import {
+  ConditionTriggerState,
+  MAX_TRIGGERS_PER_TICK,
+  TriggerRegistry,
+  triggerCategoryLabel,
+  timerScheduleFromHandler,
+  type TriggerTimerSchedule,
+} from "./trigger-registry.js";
+import {
   createMissionRuntime,
   FleetRegistry,
   missionAdvance,
@@ -341,6 +349,11 @@ export class Interpreter {
   private returning = false;
   private returnValue: RuntimeValue = { kind: "void" };
   private reliability = new ReliabilityRuntime();
+  private triggerRegistry = new TriggerRegistry();
+  private triggerTimers: TriggerTimerSchedule[] = [];
+  private conditionTriggerState = new ConditionTriggerState();
+  private triggersDispatchedThisTick = 0;
+  private readonly maxTriggersPerTick = MAX_TRIGGERS_PER_TICK;
   private geofences: GeofenceRuntime[] = [];
   private geofenceActive = new Set<string>();
   private connectivityPolicies: ConnectivityPolicyRuntime[] = [];
@@ -400,6 +413,15 @@ export class Interpreter {
       this.setupRobot(robot);
       if (!entryBehavior && robot.behaviors.length === 0 && robot.tasks.length > 1) {
         this.executeMultiplexedTasks(robot.tasks);
+        continue;
+      }
+      if (
+        !entryBehavior &&
+        robot.behaviors.length === 0 &&
+        robot.tasks.length === 0 &&
+        (robot.triggerHandlers.length > 0 || this.triggerRegistry.timerHandlers().length > 0)
+      ) {
+        this.executeTriggerOnlyLoop();
         continue;
       }
       const behaviorName =
@@ -814,22 +836,13 @@ export class Interpreter {
   }
 
   private dispatchMessageTriggers(topicName: string, topicPath: string): void {
-    // Description:
-    //     DispatchMessageTriggers.
-    //
-    // Inputs:
-    //     topicName: string
-    //         Caller-supplied topicName.
-    //     topicPath: string
-    //         Caller-supplied topicPath.
-    //
-    // Outputs:
-    //     None.
-    //
-    // Example:
-    //     const result = dispatchMessageTriggers(topicName, topicPath);
-
-    // Dispatch message triggers for an inbound topic path when handlers exist.
+    const ids = this.triggerRegistry
+      .handlersForMessage(topicName, topicPath)
+      .map((handler) => handler.id);
+    if (ids.length > 0) {
+      this.executeTriggerHandlers(ids);
+      return;
+    }
     for (const [eventName, handler] of this.eventHandlers) {
       if (eventName === `message:${topicName}` || eventName === `message:${topicPath}`) {
         const started = performance.now();
@@ -1165,27 +1178,46 @@ export class Interpreter {
     // const result = executeTaskLoop(task);
     const { body, intervalMs, requires, ensures, invariant, name, priority, budget } = task;
     const maxIter = this.options.maxLoopIterations ?? 10;
+    this.reliability.configureScheduler(1, intervalMs);
     this.options.onLog?.(
       `single-task ${name} interval=${intervalMs}ms priority=${priority}`,
     );
 
     // Loop with index variable i.
     for (let i = 0; i < maxIter; i++) {
+      const simTime = (i + 1) * intervalMs;
+      this.reliability.simTimeMs = simTime;
       this.options.backend.tick(intervalMs);
+      this.triggersDispatchedThisTick = 0;
+      this.reliability.recordSchedulerTick();
+      this.runTimerTriggers(simTime);
+      this.runConditionTriggers();
 
       // continue when runScheduledTask is falsy.
       if (!this.runScheduledTask(name, priority, intervalMs, body, requires, ensures, invariant, budget)) {
         break;
       }
+      this.reliability.checkWatchdogs(this.reliabilityHost());
+      this.reliability.checkTopicQosDeadlines(this.reliabilityHost());
       this.runVerifyRules();
       pollRuntimeHealthChanges(
         this.currentProgram,
         this.injectedFaults,
-        this.reliability.simTimeMs,
+        simTime,
         this.healthPollState,
       );
       this.updateTwinSnapshot();
       this.runConnectivityMaintenance();
+      this.reliability.recordEvent(this.reliabilityHost(), "scheduler_tick", {
+        simTimeMs: simTime,
+        iteration: i + 1,
+        task: name,
+      });
+
+      // continue when this.safetyMonitor?.isEmergencyStop().
+      if (this.safetyMonitor?.isEmergencyStop()) {
+        break;
+      }
     }
 }
 
@@ -1553,6 +1585,9 @@ export class Interpreter {
       this.reliability.checkWatchdogs(this.reliabilityHost());
       this.reliability.checkTopicQosDeadlines(this.reliabilityHost());
       this.runConnectivityMaintenance();
+      this.triggersDispatchedThisTick = 0;
+      this.runTimerTriggers(simTime);
+      this.runConditionTriggers();
       this.reliability.recordEvent(this.reliabilityHost(), "scheduler_tick", {
         simTimeMs: simTime,
         iteration: i + 1,
@@ -1888,7 +1923,25 @@ export class Interpreter {
     //     const result = dispatchEvent(eventName);
 
     // const result = dispatchEvent(eventName);
+    const dot = eventName.indexOf(".");
+    if (dot > 0) {
+      const connectivityHandlers = this.triggerRegistry.handlersForConnectivity(
+        eventName.slice(0, dot),
+        eventName.slice(dot + 1),
+      );
+      if (connectivityHandlers.length > 0) {
+        this.options.onLog?.(`emit ${eventName}`);
+        this.executeTriggerHandlers(connectivityHandlers.map((handler) => handler.id));
+        return;
+      }
+    }
     const body = this.eventHandlers.get(eventName);
+    const registryHandlers = this.triggerRegistry.handlersForEvent(eventName);
+    if (registryHandlers.length > 0) {
+      this.options.onLog?.(`emit ${eventName}`);
+      this.executeTriggerHandlers(registryHandlers.map((handler) => handler.id));
+      return;
+    }
 
     // continue when body.
     if (body) {
@@ -1917,6 +1970,120 @@ export class Interpreter {
       return "connectivity";
     }
     return "event";
+  }
+
+  private canDispatchTrigger(): boolean {
+    return this.triggersDispatchedThisTick < this.maxTriggersPerTick;
+  }
+
+  private executeTriggerHandlers(handlerIds: number[]): void {
+    const sorted = TriggerRegistry.sortedByPriority(
+      handlerIds
+        .map((id) => this.triggerRegistry.get(id))
+        .filter((handler): handler is NonNullable<typeof handler> => handler !== undefined),
+    );
+    for (const handler of sorted) {
+      if (!this.executeTriggerBodyById(handler.id)) {
+        break;
+      }
+      if (this.safetyMonitor?.isEmergencyStop()) {
+        break;
+      }
+    }
+  }
+
+  private executeTriggerBodyById(handlerId: number): boolean {
+    if (!this.canDispatchTrigger()) {
+      this.options.onLog?.("trigger suppressed (storm limit)");
+      return false;
+    }
+    const handler = this.triggerRegistry.get(handlerId);
+    if (!handler) {
+      return false;
+    }
+    this.triggersDispatchedThisTick += 1;
+    const started = performance.now();
+    let failed = false;
+    try {
+      this.executeBlock(handler.body);
+    } catch {
+      failed = true;
+    }
+    this.reliability.recordTriggerExecution(
+      handler.name,
+      triggerCategoryLabel(handler.kind),
+      handler.priority,
+      performance.now() - started,
+      failed,
+    );
+    return true;
+  }
+
+  private runTimerTriggers(simTime: number): void {
+    const toRun: number[] = [];
+    for (const schedule of this.triggerTimers) {
+      if (schedule.next_due_ms > simTime) {
+        continue;
+      }
+      if (simTime > schedule.next_due_ms + schedule.interval_ms) {
+        const handler = this.triggerRegistry.get(schedule.trigger_id);
+        if (handler) {
+          this.reliability.recordTriggerMissedDeadline(
+            handler.name,
+            triggerCategoryLabel(handler.kind),
+            handler.priority,
+          );
+        }
+      }
+      toRun.push(schedule.trigger_id);
+      schedule.next_due_ms = simTime + schedule.interval_ms;
+    }
+    if (toRun.length > 0) {
+      this.executeTriggerHandlers(toRun);
+    }
+  }
+
+  private runConditionTriggers(): void {
+    const handlers = this.triggerRegistry.conditionHandlers();
+    const toRun: number[] = [];
+    for (const handler of handlers) {
+      if (handler.kind.kind !== "condition") {
+        continue;
+      }
+      const activeValue = this.evalExpr(handler.kind.expr);
+      const active = activeValue.kind === "bool" && activeValue.value;
+      if (handler.kind.level) {
+        if (active) {
+          toRun.push(handler.id);
+        }
+      } else if (this.conditionTriggerState.shouldFire(handler.id, active)) {
+        toRun.push(handler.id);
+      }
+    }
+    if (toRun.length > 0) {
+      this.executeTriggerHandlers(toRun);
+    }
+  }
+
+  private executeTriggerOnlyLoop(): void {
+    const intervals = this.triggerTimers.map((schedule) => schedule.interval_ms);
+    const baseTick = Math.max(1, intervals.length > 0 ? Math.min(...intervals) : 10);
+    const maxIter = this.options.maxLoopIterations ?? 10;
+    this.reliability.configureScheduler(0, baseTick);
+    this.options.onLog?.(`scheduler: trigger-only loop with base tick ${baseTick}ms`);
+    for (let i = 0; i < maxIter; i++) {
+      const simTime = (i + 1) * baseTick;
+      this.reliability.simTimeMs = simTime;
+      this.options.backend.tick(baseTick);
+      this.triggersDispatchedThisTick = 0;
+      this.reliability.recordSchedulerTick();
+      this.runTimerTriggers(simTime);
+      this.runConditionTriggers();
+      this.runConnectivityMaintenance();
+      if (this.safetyMonitor?.isEmergencyStop()) {
+        break;
+      }
+    }
   }
 
   private executeEnter(stateName: string, line: number): void {
@@ -2009,6 +2176,10 @@ export class Interpreter {
     this.topicPathToMessageType.clear();
     this.zones = [];
     this.eventHandlers.clear();
+    this.triggerRegistry.clear();
+    this.triggerTimers = [];
+    this.conditionTriggerState.clear();
+    this.triggersDispatchedThisTick = 0;
     this.stateMachines.clear();
     this.twinRuntime = null;
     this.agentCapabilities.clear();
@@ -2252,8 +2423,18 @@ export class Interpreter {
     // Invoke each registered handler.
     for (const handler of robot.eventHandlers ?? []) {
       this.eventHandlers.set(handler.eventName, handler.body);
+      this.triggerRegistry.registerLegacyEvent(handler);
       this.options.onLog?.(`handler registered for ${handler.eventName}`);
     }
+    for (const trigger of robot.triggerHandlers ?? []) {
+      this.triggerRegistry.register(trigger);
+      this.options.onLog?.(`trigger registered: ${trigger.triggerKind.kind}`);
+    }
+    this.triggerTimers = this.triggerRegistry
+      .timerHandlers()
+      .map((handler) => timerScheduleFromHandler(handler))
+      .filter((schedule): schedule is TriggerTimerSchedule => schedule !== null);
+    this.conditionTriggerState.clear();
 
     // continue when robot.twin.
     if (robot.twin) {

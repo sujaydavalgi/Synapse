@@ -328,6 +328,21 @@ export class ReliabilityRuntime {
     this.triggerMetrics.set(name, existing);
   }
 
+  recordTriggerMissedDeadline(name: string, category: string, priority: string): void {
+    const existing = this.triggerMetrics.get(name) ?? {
+      name,
+      category,
+      priority,
+      executions: 0,
+      failures: 0,
+      missed_deadlines: 0,
+      last_duration_ms: 0,
+      max_duration_ms: 0,
+    };
+    existing.missed_deadlines += 1;
+    this.triggerMetrics.set(name, existing);
+  }
+
   recordTopicPublish(path: string, elapsedMs: number, deadlineMiss = false): void {
     const existing = this.topicMetrics.get(path) ?? {
       path,
