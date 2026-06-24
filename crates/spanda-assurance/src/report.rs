@@ -1,5 +1,6 @@
 //! Report formatting for mission assurance CLI outputs.
 //!
+use crate::recovery::RecoveryReport;
 use spanda_readiness::ReportFormat;
 
 use crate::anomaly::AnomalyReport;
@@ -197,6 +198,78 @@ pub fn format_state(report: &StateAssuranceReport, format: ReportFormat) -> Stri
             for issue in &report.issues {
                 out.push_str(&format!("! {issue}\n"));
             }
+            out
+        }
+    }
+}
+
+/// Format recovery framework report for CLI output.
+pub fn format_recovery(report: &RecoveryReport, format: ReportFormat) -> String {
+    match format {
+        ReportFormat::Json => serde_json::to_string_pretty(report).unwrap_or_default(),
+        ReportFormat::Markdown => {
+            let mut out = format!(
+                "# Recovery Report\n\n**Passed:** {}\n\n**Recovery Ready:** {}\n**Risk:** {}\n\n",
+                report.passed,
+                if report.readiness.recovery_ready {
+                    "YES"
+                } else {
+                    "NO"
+                },
+                report.readiness.risk
+            );
+            for plan in &report.plans {
+                out.push_str(&format!(
+                    "## {}\n\n**Issue:** {}\n**Diagnosis:** {}\n**Risk:** {}\n\n",
+                    plan.name, plan.failure, plan.diagnosis, plan.risk
+                ));
+                for action in &plan.actions {
+                    out.push_str(&format!("- {}\n", action.description));
+                }
+                out.push('\n');
+            }
+            for result in &report.results {
+                out.push_str(&format!(
+                    "### Outcome: {:?}\n**Safety Validation:** {}\n\n",
+                    result.status, result.evidence.safety_validation
+                ));
+            }
+            out
+        }
+        ReportFormat::Html => format!(
+            "<!DOCTYPE html><html><body><h1>Recovery Report</h1><p>Passed: {}</p><p>Recovery Ready: {}</p></body></html>",
+            report.passed,
+            if report.readiness.recovery_ready {
+                "YES"
+            } else {
+                "NO"
+            }
+        ),
+        ReportFormat::Text => {
+            let mut out = String::new();
+            if let Some(plan) = report.plans.first() {
+                out.push_str(&format!("Issue:\n{}\n\n", plan.failure));
+                out.push_str(&format!("Diagnosis:\n{}\n\n", plan.diagnosis));
+                if let Some(action) = plan.actions.first() {
+                    out.push_str(&format!("Recovery:\n{}\n\n", action.description));
+                }
+                out.push_str(&format!("Risk:\n{}\n\n", plan.risk));
+            }
+            if let Some(result) = report.results.first() {
+                out.push_str(&format!(
+                    "Safety Validation:\n{}\n\nOutcome:\n{:?}\n",
+                    result.evidence.safety_validation, result.status
+                ));
+            }
+            out.push_str(&format!(
+                "Recovery Ready: {}\nSuccess Rate: {:.0}%\n",
+                if report.readiness.recovery_ready {
+                    "YES"
+                } else {
+                    "NO"
+                },
+                report.assurance.success_rate * 100.0
+            ));
             out
         }
     }

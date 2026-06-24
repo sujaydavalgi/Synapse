@@ -155,9 +155,7 @@ pub fn learned_models(program: &Program) -> Vec<LearnedBehaviorModel> {
                 learned_backend,
                 ..
             } = decl;
-            let backend = learned_backend
-                .clone()
-                .or_else(|| import_backend.clone())?;
+            let backend = learned_backend.clone().or_else(|| import_backend.clone())?;
             Some(LearnedBehaviorModel {
                 detector: name.clone(),
                 backend,

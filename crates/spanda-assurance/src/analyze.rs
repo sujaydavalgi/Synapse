@@ -10,6 +10,7 @@ use crate::mission::{verify_mission_assurance, MissionAssuranceReport};
 use crate::mitigation::extract_mitigations;
 use crate::modes::validate_modes;
 use crate::prognostics::{evaluate_prognostics, PrognosticsReport};
+use crate::recovery::{evaluate_recovery, RecoveryReport};
 use crate::resilience::{check_resilience, ResilienceReport};
 use crate::state::{evaluate_state_assurance, StateAssuranceReport};
 
@@ -22,6 +23,7 @@ pub struct MissionAssuranceSummary {
     pub resilience: ResilienceReport,
     pub mission: MissionAssuranceReport,
     pub state: StateAssuranceReport,
+    pub recovery: RecoveryReport,
     pub issues: Vec<String>,
     pub passed: bool,
 }
@@ -34,6 +36,7 @@ pub fn assure_program(program: &Program, source_label: &str) -> MissionAssurance
     let resilience = check_resilience(program);
     let mission = verify_mission_assurance(program);
     let state = evaluate_state_assurance(program);
+    let recovery = evaluate_recovery(program, None);
 
     let mut issues = Vec::new();
     issues.extend(validate_knowledge_models(program));
@@ -46,6 +49,7 @@ pub fn assure_program(program: &Program, source_label: &str) -> MissionAssurance
         && resilience.passed
         && mission.passed
         && state.passed
+        && recovery.passed
         && issues.is_empty();
 
     MissionAssuranceSummary {
@@ -55,6 +59,7 @@ pub fn assure_program(program: &Program, source_label: &str) -> MissionAssurance
         resilience,
         mission,
         state,
+        recovery,
         issues,
         passed,
     }

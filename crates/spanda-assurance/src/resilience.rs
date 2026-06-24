@@ -55,8 +55,10 @@ pub fn check_resilience(program: &Program) -> ResilienceReport {
         })
         .collect();
 
-    let mut options = ReadinessOptions::default();
-    options.target = default_deploy_target(program);
+    let options = ReadinessOptions {
+        target: default_deploy_target(program),
+        ..Default::default()
+    };
     let readiness = evaluate_readiness(program, &options);
     let passed = readiness.mission_ready && !policies.is_empty() || resilience_policies.is_empty();
 

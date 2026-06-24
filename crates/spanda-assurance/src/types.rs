@@ -169,6 +169,7 @@ pub enum ModeKind {
     Degraded,
     Safe,
     Emergency,
+    Recovery,
 }
 
 /// Mission plan summary.

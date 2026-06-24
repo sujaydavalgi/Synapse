@@ -9,6 +9,7 @@ fn parse_mode_kind(raw: &str) -> ModeKind {
         "degraded" | "degraded_mode" => ModeKind::Degraded,
         "safe" | "safe_mode" => ModeKind::Safe,
         "emergency" | "emergency_mode" => ModeKind::Emergency,
+        "recovery" | "recovery_mode" => ModeKind::Recovery,
         _ => ModeKind::Normal,
     }
 }
