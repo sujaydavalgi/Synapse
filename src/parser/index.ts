@@ -301,9 +301,14 @@ class Parser {
     // Example:
 
     // const result = spanFrom(start, end);
+    // End offset is exclusive so source slices include the full end token.
     return {
       start: { line: start.line, column: start.column, offset: start.offset },
-      end: { line: end.line, column: end.column, offset: end.offset },
+      end: {
+        line: end.line,
+        column: end.column,
+        offset: end.offset + end.lexeme.length,
+      },
     };
 }
 

@@ -206,10 +206,12 @@ impl Parser {
         // Example:
         // let result = instance.span_from(start, end);
 
-        // Produce Span as the result.
+        // End offset is exclusive so source slices include the full end token.
+        let mut end_loc = loc(end);
+        end_loc.offset = end_loc.offset.saturating_add(end.lexeme.len());
         Span {
             start: loc(start),
-            end: loc(end),
+            end: end_loc,
         }
     }
 

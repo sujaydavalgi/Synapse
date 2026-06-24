@@ -1944,4 +1944,27 @@ robot R {
         let tokens = spanda_lexer::tokenize(&formatted).unwrap();
         assert!(spanda_parser::parse(tokens).is_ok());
     }
+
+    #[test]
+    fn format_preserves_assurance_block_closing_braces() {
+        let source = r#"hardware RoverV1 {
+    sensors [GPS];
+    actuators [DifferentialDrive];
+}
+
+knowledge_model RoverModel {
+    component gps;
+}
+
+robot Rover {
+    sensor gps: GPS;
+}
+"#;
+        let formatted = format_ast(source).unwrap();
+        assert!(formatted.contains("sensors [GPS];"));
+        assert!(formatted.contains("component gps;"));
+        assert_eq!(formatted.matches('}').count(), 3);
+        let tokens = spanda_lexer::tokenize(&formatted).unwrap();
+        assert!(spanda_parser::parse(tokens).is_ok());
+    }
 }

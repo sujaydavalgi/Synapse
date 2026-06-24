@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Fleet and deploy agents:** per-robot/per-target state files in Rust and TypeScript so concurrent agents on one host do not inherit the wrong identity; fleet mesh relay no longer holds the coordinator mutex during outbound HTTP; fleet agents reject peer relays when startup identity is missing.
+- **Formatter spans:** parser `span_from` now uses an exclusive end offset so `spanda fmt` preserves closing braces on span-backed declarations (hardware, assurance, health, kill switch). per-robot/per-target state files in Rust and TypeScript so concurrent agents on one host do not inherit the wrong identity; fleet mesh relay no longer holds the coordinator mutex during outbound HTTP; fleet agents reject peer relays when startup identity is missing.
 - **Agent hardening:** TypeScript per-identity state paths ignore `SPANDA_*_STATE` env overrides; stale deployment fields reset when loaded identity mismatches startup; HTTPS agents use read timeouts and connection shutdown; HTTP 400 responses shut down cleanly; TypeScript agent servers serialize concurrent requests; remote/mesh clients use 30s fetch timeouts; `spanda fleet mesh start` routes through the native CLI; integration test spawns use per-identity state files.
 
 ## [0.4.0] - 2026-06-22
