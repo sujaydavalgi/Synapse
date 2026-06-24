@@ -26,7 +26,14 @@ LIST="$("${SPANDA[@]}" telemetry list --kind sensor --limit 3)"
 echo "${LIST}"
 echo "${LIST}" | grep -q '\[sensor\]'
 
-echo "== telemetry latest device publish =="
+echo "== telemetry session + runtime metrics =="
+SESSIONS="$("${SPANDA[@]}" telemetry list --kind session --limit 2)"
+echo "${SESSIONS}"
+echo "${SESSIONS}" | grep -q '\[session\]'
+METRICS="$("${SPANDA[@]}" telemetry list --kind runtime_metrics --limit 1)"
+echo "${METRICS}"
+echo "${METRICS}" | grep -q '\[runtime_metrics\]'
+
 LATEST="$("${SPANDA[@]}" telemetry latest --device TelemetryRover --metric /telemetry)"
 echo "${LATEST}"
 echo "${LATEST}" | grep -q 'TelemetryRover'
