@@ -3,9 +3,24 @@
  * @module
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import http from "node:http";
 import { dirname } from "node:path";
-import { resolveHeartbeatIndexPath, resolveStorePath } from "./telemetry-store.js";
+import {
+  loadMissionTrace,
+  parseReplayOffset,
+  playbackFrames,
+  traceFramesFrom,
+} from "./replay.js";
+import {
+  envPersistEnabled,
+  readAllEvents,
+  readHeartbeatIndexForStore,
+  resolveHeartbeatIndexPath,
+  resolveStorePath,
+  usesSqliteBackend,
+} from "./telemetry-store.js";
+import { envBackendSqlite, sqliteBackendAvailable } from "./telemetry-sqlite.js";
 
 export type TelemetryEvent =
   | {
@@ -81,25 +96,8 @@ type TelemetryStats = {
   tracked_devices: number;
 };
 
-function readAllEvents(storePath = resolveStorePath()): TelemetryEvent[] {
-  if (!existsSync(storePath)) {
-    return [];
-  }
-  return readFileSync(storePath, "utf8")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => JSON.parse(line) as TelemetryEvent);
-}
-
 function readHeartbeatIndex(): HeartbeatIndex {
-  const path = resolveHeartbeatIndexPath();
-  if (!existsSync(path)) {
-    return { tasks: {}, devices: {} };
-  }
-  const parsed = JSON.parse(readFileSync(path, "utf8")) as HeartbeatIndex;
-  parsed.devices ??= {};
-  return parsed;
+  return readHeartbeatIndexForStore();
 }
 
 function sessionTimeWindow(events: TelemetryEvent[], sessionId: string): [number, number] | null {
@@ -439,6 +437,173 @@ function renderOtlp(): string {
   }, null, 2);
 }
 
+function missionTraceForSession(sessionId: string): string | undefined {
+  return listSessions().find((session) => session.session_id === sessionId)?.mission_trace_path;
+}
+
+function parseReplayArgs(args: string[]): {
+  sessionId?: string;
+  from?: string;
+  deterministic: boolean;
+  playback: boolean;
+  json: boolean;
+} {
+  let sessionId: string | undefined;
+  let from: string | undefined;
+  let deterministic = false;
+  let playback = false;
+  let json = false;
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    switch (arg) {
+      case "--session":
+        sessionId = args[++i];
+        break;
+      case "--from":
+        from = args[++i];
+        break;
+      case "--deterministic":
+        deterministic = true;
+        break;
+      case "--playback":
+        playback = true;
+        break;
+      case "--json":
+        json = true;
+        break;
+      default:
+        throw new Error(`Unknown telemetry replay flag: ${arg}`);
+    }
+  }
+  return { sessionId, from, deterministic, playback, json };
+}
+
+function runTelemetryReplay(args: string[]): number {
+  const { sessionId, from, deterministic, playback, json } = parseReplayArgs(args);
+  if (!sessionId) {
+    console.error("telemetry replay requires --session <id>");
+    return 1;
+  }
+  const tracePath = missionTraceForSession(sessionId);
+  if (!tracePath) {
+    console.error(`No mission trace linked for session ${sessionId}`);
+    console.error("Run with --record to link a mission trace on session end.");
+    return 1;
+  }
+  if (!existsSync(tracePath)) {
+    console.error(`Mission trace file not found: ${tracePath}`);
+    return 1;
+  }
+  if (deterministic) {
+    console.error("Deterministic replay verification requires the native Rust CLI");
+    return 1;
+  }
+  const trace = loadMissionTrace(tracePath);
+  const offsetMs = from ? parseReplayOffset(from) : 0;
+  const frames = traceFramesFrom(trace, offsetMs);
+  if (playback) {
+    const report = playbackFrames(
+      frames,
+      () => {
+        /* state snapshots applied by caller when available */
+      },
+      true,
+    );
+    if (json) {
+      console.log(
+        JSON.stringify(
+          {
+            ok: true,
+            mode: "playback",
+            frames_applied: report.framesApplied,
+            states_applied: report.statesApplied,
+            offset_ms: offsetMs,
+          },
+          null,
+          2,
+        ),
+      );
+    } else {
+      console.log(
+        `Playback ${tracePath}: ${report.framesApplied} frames (${report.statesApplied} with state) from ${offsetMs}ms`,
+      );
+    }
+    return 0;
+  }
+  if (json) {
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          source: trace.source,
+          deterministic: trace.deterministic,
+          offset_ms: offsetMs,
+          frames,
+        },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  console.log(`Replay ${tracePath} (${frames.length} frames from ${offsetMs}ms)`);
+  for (const frame of frames.slice(0, 20)) {
+    console.log(`  t=${frame.simTimeMs.toFixed(1)}ms ${frame.event}`, frame.payload ?? {});
+  }
+  if (frames.length > 20) {
+    console.log(`  ... ${frames.length - 20} more frames`);
+  }
+  return 0;
+}
+
+function runTelemetryServe(args: string[]): number {
+  let bind = "127.0.0.1:9090";
+  let once = false;
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === "--bind") {
+      bind = args[++i] ?? bind;
+    } else if (args[i] === "--once") {
+      once = true;
+    } else {
+      throw new Error(`Unknown telemetry serve flag: ${args[i]}`);
+    }
+  }
+  const [host, portText] = bind.includes(":") ? bind.split(":") : ["127.0.0.1", bind];
+  const port = Number(portText);
+  const server = http.createServer((req, res) => {
+    const path = req.url?.split("?")[0] ?? "/";
+    if (path === "/healthz") {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("ok");
+      return;
+    }
+    if (path === "/metrics") {
+      res.writeHead(200, { "Content-Type": "text/plain; version=0.0.4; charset=utf-8" });
+      res.end(renderPrometheus());
+      return;
+    }
+    if (path === "/otlp/v1/metrics") {
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(renderOtlp());
+      return;
+    }
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("not found");
+  });
+  server.listen(port, host, () => {
+    console.error(`Spanda telemetry server listening on http://${bind}`);
+    console.error("  GET /metrics         Prometheus text");
+    console.error("  GET /otlp/v1/metrics OTLP/JSON metrics");
+    console.error("  GET /healthz         liveness");
+  });
+  if (once) {
+    server.once("request", () => {
+      setTimeout(() => server.close(), 50);
+    });
+  }
+  return 0;
+}
+
 export function runTelemetryCli(sub: string, args: string[]): number {
   try {
     switch (sub) {
@@ -571,17 +736,47 @@ export function runTelemetryCli(sub: string, args: string[]): number {
             out = args[++i] ?? out;
           }
         }
-        const storePath = resolveStorePath();
-        if (!existsSync(storePath)) {
-          writeFileSync(out, "", "utf8");
-        } else {
-          const parent = dirname(out);
-          if (!existsSync(parent)) {
-            mkdirSync(parent, { recursive: true });
-          }
-          copyFileSync(storePath, out);
+        const events = readAllEvents();
+        const parent = dirname(out);
+        if (!existsSync(parent)) {
+          mkdirSync(parent, { recursive: true });
         }
+        writeFileSync(
+          out,
+          events.length > 0 ? `${events.map((event) => JSON.stringify(event)).join("\n")}\n` : "",
+          "utf8",
+        );
         console.log(`Exported telemetry to ${out}`);
+        return 0;
+      }
+      case "info": {
+        const json = args.includes("--json");
+        const storePath = resolveStorePath();
+        const info = {
+          backend: usesSqliteBackend() ? "sqlite" : "jsonl",
+          store_path: storePath,
+          heartbeat_path: usesSqliteBackend() ? null : resolveHeartbeatIndexPath(storePath),
+          persist_enabled: envPersistEnabled(),
+          sqlite_available: sqliteBackendAvailable(),
+          max_events: process.env.SPANDA_TELEMETRY_MAX_EVENTS ?? null,
+          event_count: readAllEvents().length,
+        };
+        if (json) {
+          console.log(JSON.stringify(info, null, 2));
+        } else {
+          console.log(`Backend: ${info.backend}`);
+          console.log(`Store: ${info.store_path}`);
+          if (info.heartbeat_path) {
+            console.log(`Heartbeat index: ${info.heartbeat_path}`);
+          }
+          console.log(`Events: ${info.event_count}`);
+          if (info.max_events) {
+            console.log(`Retention max: ${info.max_events}`);
+          }
+          if (envBackendSqlite() && !info.sqlite_available) {
+            console.log("SQLite backend requires Node.js 22+ or the native Rust CLI");
+          }
+        }
         return 0;
       }
       case "prometheus": {
@@ -625,8 +820,7 @@ export function runTelemetryCli(sub: string, args: string[]): number {
         return 0;
       }
       case "serve":
-        console.error("telemetry serve requires the native Rust CLI");
-        return 1;
+        return runTelemetryServe(args);
       case "sessions": {
         const json = args.includes("--json");
         const sessions = listSessions();
@@ -644,10 +838,7 @@ export function runTelemetryCli(sub: string, args: string[]): number {
         return 0;
       }
       case "replay":
-        console.error(
-          "telemetry replay requires the native Rust CLI (mission trace replay)",
-        );
-        return 1;
+        return runTelemetryReplay(args);
       default:
         console.error(`Unknown telemetry subcommand: ${sub}`);
         return 1;
