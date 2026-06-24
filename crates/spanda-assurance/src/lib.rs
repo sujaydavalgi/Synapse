@@ -18,7 +18,7 @@ pub mod state;
 pub mod types;
 
 pub use analyze::{assure_program, diagnosis_report, mitigation_report, MissionAssuranceSummary};
-pub use anomaly::{scan_anomalies, AnomalyReport};
+pub use anomaly::{learned_models, scan_anomalies, AnomalyReport};
 pub use diagnosis::{diagnose_from_trace, diagnose_program, DiagnosisReport};
 pub use evidence::{build_assurance_report, AssuranceReport};
 pub use knowledge::{capability_ontology, extract_knowledge_base, validate_knowledge_models};

@@ -19,6 +19,8 @@ Core defines **interfaces and data models**. Heavy algorithms (ML anomaly detect
 |-----------|---------|
 | `knowledge_model` | System model, components, dependencies |
 | `state_estimator` | Sensor fusion inputs and estimate type |
+
+At runtime, `state_estimator` wires `SensorFusion` bindings after robot sensors are registered. One estimator also aliases `fusion` for parity with `observe { }` programs.
 | `anomaly_detector` | Expected behavior bounds |
 | `on anomaly …` | Automated reactions |
 | `prognostics` | RUL prediction and degradation warnings |

@@ -35,6 +35,12 @@ spanda anomaly scan rover.sd [--json]
 
 Integrates with existing **health checks** — failed health checks surface as anomalies without duplicating health evaluation.
 
+**Learned backends:** import `assurance.anomaly` (or another anomaly package) to mark detectors as ML-backed via `learned_models()` static analysis.
+
+## Runtime
+
+Program-level `state_estimator` declarations register fusion bindings at robot setup. A single estimator aliases `fusion` (same as `observe { }`); named estimators are available as `{Name}.read()`.
+
 ## Package
 
 Heavy detection algorithms: **`spanda-anomaly`** (`assurance.anomaly`).

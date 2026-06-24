@@ -116,3 +116,27 @@ robot R { sensor gps: GPS; actuator w: DifferentialDrive; safety { max_speed = 1
     let report = verify_mission_assurance(&program);
     assert_eq!(report.plans.len(), 1);
 }
+
+#[test]
+fn learned_models_detect_package_import() {
+    use spanda_assurance::learned_models;
+    let source = r#"
+import assurance.anomaly;
+
+anomaly_detector NavML {
+    expected gps.accuracy <= 3 m;
+}
+
+robot R {
+    sensor gps: GPS;
+    actuator w: DifferentialDrive;
+    safety { max_speed = 1 m/s; }
+    behavior b() {}
+}
+"#;
+    let program = parse_source(source);
+    let models = learned_models(&program);
+    assert_eq!(models.len(), 1);
+    assert_eq!(models[0].detector, "NavML");
+    assert!(models[0].backend.contains("anomaly"));
+}

@@ -129,8 +129,33 @@ pub fn scan_anomalies(program: &Program) -> AnomalyReport {
 }
 
 /// List learned behavior model placeholders (optional package backends).
-pub fn learned_models(_program: &Program) -> Vec<LearnedBehaviorModel> {
-    Vec::new()
+pub fn learned_models(program: &Program) -> Vec<LearnedBehaviorModel> {
+    let Program::Program {
+        imports,
+        anomaly_detectors,
+        ..
+    } = program;
+    let backend = imports.iter().find_map(|imp| {
+        let spanda_ast::nodes::ImportDecl::ImportDecl { path, .. } = imp;
+        if path.contains("assurance.anomaly") || path.ends_with("anomaly") {
+            Some(path.clone())
+        } else {
+            None
+        }
+    });
+    let Some(backend) = backend else {
+        return Vec::new();
+    };
+    anomaly_detectors
+        .iter()
+        .map(|decl| {
+            let AnomalyDetectorDecl::AnomalyDetectorDecl { name, .. } = decl;
+            LearnedBehaviorModel {
+                detector: name.clone(),
+                backend: backend.clone(),
+            }
+        })
+        .collect()
 }
 
 /// Parse severity from handler declaration.
