@@ -822,8 +822,10 @@ impl PrettyPrinter {
                         val.print_expr(value);
                         self.write(&format!("{name} = {}", val.out));
 
-                        // Take the branch when *unit differs from None.
-                        if *unit != UnitKind::None {
+                        // Append unit only when it is not already part of a unit literal.
+                        if !matches!(value, Expr::UnitLiteralExpr { .. })
+                            && *unit != UnitKind::None
+                        {
                             self.space();
                             self.write(unit.as_str());
                         }
@@ -1966,5 +1968,19 @@ robot Rover {
         assert_eq!(formatted.matches('}').count(), 3);
         let tokens = spanda_lexer::tokenize(&formatted).unwrap();
         assert!(spanda_parser::parse(tokens).is_ok());
+    }
+
+    #[test]
+    fn format_robot_max_speed_does_not_duplicate_unit() {
+        let source = r#"robot Rover {
+    sensor gps: GPS;
+    safety {
+        max_speed = 1.5 m/s;
+    }
+}
+"#;
+        let formatted = format_ast(source).unwrap();
+        assert!(!formatted.contains("m/s m/s"));
+        assert!(formatted.contains("max_speed = 1.5 m/s"));
     }
 }
