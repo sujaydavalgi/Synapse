@@ -1,0 +1,14 @@
+//! Error types for persistent telemetry storage.
+
+use thiserror::Error;
+
+/// Errors from reading or writing the telemetry store.
+#[derive(Debug, Error)]
+pub enum TelemetryStoreError {
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("serialization error: {0}")]
+    Serialization(String),
+}
+
+pub type TelemetryStoreResult<T> = Result<T, TelemetryStoreError>;

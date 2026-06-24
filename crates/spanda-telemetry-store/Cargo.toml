@@ -1,0 +1,18 @@
+[package]
+name = "spanda-telemetry-store"
+version.workspace = true
+edition.workspace = true
+description = "Persistent append-only telemetry storage for devices, sensors, and heartbeats"
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+spanda-runtime = { path = "../spanda-runtime" }
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"

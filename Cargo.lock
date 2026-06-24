@@ -1306,6 +1306,7 @@ dependencies = [
  "spanda-runtime",
  "spanda-security",
  "spanda-sir",
+ "spanda-telemetry-store",
  "spanda-typecheck",
  "tempfile",
 ]
@@ -1669,6 +1670,7 @@ dependencies = [
  "spanda-runtime-host",
  "spanda-safety",
  "spanda-security",
+ "spanda-telemetry-store",
  "spanda-transport",
  "spanda-transport-routing",
  "spanda-typecheck",
@@ -1796,6 +1798,7 @@ dependencies = [
  "spanda-audit",
  "spanda-comm",
  "spanda-runtime",
+ "spanda-telemetry-store",
  "spanda-transport",
  "spanda-transport-dds",
  "spanda-transport-mqtt",
@@ -1900,6 +1903,17 @@ dependencies = [
  "serde_json",
  "spanda-ast",
  "spanda-driver",
+]
+
+[[package]]
+name = "spanda-telemetry-store"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spanda-runtime",
+ "tempfile",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
