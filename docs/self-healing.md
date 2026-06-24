@@ -80,6 +80,8 @@ High-risk actions require operator approval via:
 - `Approval` topic messages received on subscribed comm topics
 - Mission `requires approval Operator for: <action>` gates `mission.start`, `mission.advance`, and `mission.resume` until approval is granted
 
+`spanda check --readiness-json` includes recovery-policy diagnostics (missing policies, fleet triggers without fleet, high-risk actions without Approval topics).
+
 Recovery outcomes are recorded to `.spanda/recovery_knowledge.json` for future recommendations (no automatic code or safety rule changes).
 
 ## Example

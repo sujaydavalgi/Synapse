@@ -299,6 +299,26 @@ fn demo_readiness(root: &Path) {
     println!("\nDemo complete. See examples/showcase/readiness/rover.sd and docs/readiness.md");
 }
 
+fn demo_self_healing(root: &Path) {
+    let healing_path = showcase(root, &["self_healing", "rover.sd"]);
+    let fleet_path = showcase(root, &["fleet_recovery", "fleet.sd"]);
+    let healing_sd = require_file(&healing_path);
+    let fleet_sd = require_file(&fleet_path);
+    let heal_file = healing_sd.to_str().unwrap();
+    let fleet_file = fleet_sd.to_str().unwrap();
+
+    println!("== Self-healing — recovery policies, validation, fleet mesh ==\n");
+    run_spanda("check", healing_sd, &[]);
+    run_spanda_args(&["heal", heal_file]);
+    run_spanda_args(&["recover", heal_file, "--failure", "gps"]);
+    run_spanda_args(&["recovery", "knowledge", heal_file]);
+    run_spanda_args(&["sim", heal_file, "--inject-failure", "gps"]);
+    run_spanda_args(&["analyze-failure", heal_file, "--with-recovery"]);
+    run_spanda_args(&["heal", fleet_file]);
+
+    println!("\nDemo complete. See examples/showcase/self_healing/ and docs/self-healing.md");
+}
+
 fn demo_assurance(root: &Path) {
     let assurance_path = showcase(root, &["assurance", "rover.sd"]);
     let assurance_sd = require_file(&assurance_path);
@@ -344,6 +364,7 @@ pub fn demo_dispatch(args: &[String]) {
         "health" => demo_health(&root),
         "readiness" => demo_readiness(&root),
         "assurance" => demo_assurance(&root),
+        "self-healing" | "selfhealing" | "healing" => demo_self_healing(&root),
         "" | "list" | "--help" | "-h" => {
             eprintln!(
                 "Spanda showcase demos\n\n\
@@ -356,7 +377,8 @@ pub fn demo_dispatch(args: &[String]) {
                    fleet   — multi-robot fleet simulation\n\
                    health    — health checks with fault injection\n\
                    readiness — operational go/no-go with runtime health\n\
-                   assurance — mission assurance CLI suite (assure, anomaly, state)\n\n\
+                   assurance — mission assurance CLI suite (assure, anomaly, state)\n\
+                   self-healing — recovery policies, heal/recover/sim, fleet recovery\n\n\
                  Set SPANDA_ROOT to the repository root if examples are not found.\n\
                  See examples/showcase/README.md"
             );

@@ -17,6 +17,7 @@ Start here when evaluating Spanda as a **professional autonomous-systems platfor
 | `spanda demo health` | Health checks + fault injection |
 | `spanda demo readiness` | Operational go/no-go scoring |
 | `spanda demo assurance` | Mission assurance CLI suite |
+| `spanda demo self-healing` | Recovery policies, heal/recover/sim, fleet recovery |
 
 Set `SPANDA_ROOT` to the repository root if examples are not found.
 

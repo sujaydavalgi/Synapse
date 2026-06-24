@@ -76,6 +76,7 @@ cd Spanda && ./scripts/install.sh
 
 spanda demo rover          # flagship platform demo
 spanda demo assurance      # mission assurance CLI suite
+spanda demo self-healing   # recovery policies, heal/recover/sim
 
 # Or step by step:
 spanda check examples/showcase/killer_demo.sd      # type-check
