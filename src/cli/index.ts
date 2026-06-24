@@ -385,6 +385,12 @@ async function main(): Promise<void> {
       case "audit":
       case "verify-fleet":
       case "verify-approval":
+      case "assure":
+      case "anomaly":
+      case "prognostics":
+      case "mission":
+      case "resilience":
+      case "mitigation":
         handleReadinessNative(command, positional, flags);
         break;
       default:

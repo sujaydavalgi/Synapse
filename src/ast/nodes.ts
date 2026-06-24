@@ -189,6 +189,16 @@ export type Program = {
   healthChecks: import("../foundations.js").HealthCheckDecl[];
   healthPolicies: import("../foundations.js").HealthPolicyDecl[];
   requiresCapabilities: import("../foundations.js").RequiresCapabilityDecl[];
+  knowledgeModels: import("../assurance_decl.js").KnowledgeModelDecl[];
+  stateEstimators: import("../assurance_decl.js").StateEstimatorDecl[];
+  anomalyDetectors: import("../assurance_decl.js").AnomalyDetectorDecl[];
+  anomalyHandlers: import("../assurance_decl.js").AnomalyHandlerDecl[];
+  prognostics: import("../assurance_decl.js").PrognosticsDecl[];
+  mitigations: import("../assurance_decl.js").MitigationDecl[];
+  operatingModes: import("../assurance_decl.js").OperatingModeDecl[];
+  missionPlans: import("../assurance_decl.js").MissionPlanDecl[];
+  resiliencePolicies: import("../assurance_decl.js").ResiliencePolicyDecl[];
+  assuranceCases: import("../assurance_decl.js").AssuranceCaseDecl[];
   robots: RobotDecl[];
   span: Span;
 };

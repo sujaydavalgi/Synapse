@@ -6,6 +6,19 @@
 import type { Token } from "../lexer/index.js";
 import { unitFromLexeme } from "../lexer/index.js";
 import { regexFromLexeme } from "../regex.js";
+import {
+  parseAnomalyDetector,
+  parseAnomalyHandler,
+  parseAssuranceCase,
+  parseKnowledgeModel,
+  parseMissionPlan,
+  parseMitigation,
+  parseOperatingMode,
+  parsePrognostics,
+  parseResiliencePolicy,
+  parseStateEstimator,
+  type AssuranceParseCtx,
+} from "./assurance.js";
 import { resolveGenericType, resolveTypeName } from "../type-system.js";
 import type { SpandaType } from "../ast/nodes.js";
 import type {
@@ -467,6 +480,16 @@ class Parser {
     const healthChecks: HealthCheckDecl[] = [];
     const healthPolicies: HealthPolicyDecl[] = [];
     const requiresCapabilities: RequiresCapabilityDecl[] = [];
+    const knowledgeModels: import("../assurance_decl.js").KnowledgeModelDecl[] = [];
+    const stateEstimators: import("../assurance_decl.js").StateEstimatorDecl[] = [];
+    const anomalyDetectors: import("../assurance_decl.js").AnomalyDetectorDecl[] = [];
+    const anomalyHandlers: import("../assurance_decl.js").AnomalyHandlerDecl[] = [];
+    const prognostics: import("../assurance_decl.js").PrognosticsDecl[] = [];
+    const mitigations: import("../assurance_decl.js").MitigationDecl[] = [];
+    const operatingModes: import("../assurance_decl.js").OperatingModeDecl[] = [];
+    const missionPlans: import("../assurance_decl.js").MissionPlanDecl[] = [];
+    const resiliencePolicies: import("../assurance_decl.js").ResiliencePolicyDecl[] = [];
+    const assuranceCases: import("../assurance_decl.js").AssuranceCaseDecl[] = [];
     const robots: RobotDecl[] = [];
     const hardwareProfiles: HardwareDecl[] = [];
     const deployments: DeployDecl[] = [];
@@ -537,6 +560,26 @@ class Parser {
         healthPolicies.push(this.parseHealthPolicy());
       } else if (this.check("IDENT") && this.peek().lexeme === "requires_capability") {
         requiresCapabilities.push(this.parseRequiresCapability());
+      } else if (this.check("IDENT") && this.peek().lexeme === "knowledge_model") {
+        knowledgeModels.push(parseKnowledgeModel(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "state_estimator") {
+        stateEstimators.push(parseStateEstimator(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "anomaly_detector") {
+        anomalyDetectors.push(parseAnomalyDetector(this as unknown as AssuranceParseCtx));
+      } else if (this.check("ON") && this.isAnomalyHandler()) {
+        anomalyHandlers.push(parseAnomalyHandler(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "prognostics") {
+        prognostics.push(parsePrognostics(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "mitigation") {
+        mitigations.push(parseMitigation(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "assurance_case") {
+        assuranceCases.push(parseAssuranceCase(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "resilience_policy") {
+        resiliencePolicies.push(parseResiliencePolicy(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "mission_plan") {
+        missionPlans.push(parseMissionPlan(this as unknown as AssuranceParseCtx));
+      } else if (this.check("IDENT") && this.peek().lexeme === "operating_mode") {
+        operatingModes.push(parseOperatingMode(this as unknown as AssuranceParseCtx));
       } else if (this.check("ROBOT")) {
         robots.push(this.parseRobot());
       } else {
@@ -579,6 +622,16 @@ class Parser {
       healthChecks,
       healthPolicies,
       requiresCapabilities,
+      knowledgeModels,
+      stateEstimators,
+      anomalyDetectors,
+      anomalyHandlers,
+      prognostics,
+      mitigations,
+      operatingModes,
+      missionPlans,
+      resiliencePolicies,
+      assuranceCases,
       robots,
       span: this.spanFrom(start, end),
     };
@@ -2149,10 +2202,14 @@ class Parser {
         const condStart = this.advance();
         const metric = this.parseDottedName("Expected metric path");
         let op: string;
-        if (this.match("GT")) {
-          op = this.match("EQ") ? ">=" : ">";
+        if (this.match("GTE")) {
+          op = ">=";
+        } else if (this.match("GT")) {
+          op = ">";
+        } else if (this.match("LTE")) {
+          op = "<=";
         } else if (this.match("LT")) {
-          op = this.match("EQ") ? "<=" : "<";
+          op = "<";
         } else if (this.match("EQ")) {
           op = "==";
         } else {
@@ -2170,7 +2227,7 @@ class Parser {
           threshold = "false";
         } else if (this.check("IDENT")) {
           threshold = this.advance().lexeme;
-        } else if (this.check("NUMBER")) {
+        } else if (this.check("UNIT_LITERAL") || this.check("NUMBER")) {
           threshold = this.advance().lexeme;
         } else {
           threshold = this.parseLabel("Expected threshold value");
@@ -7179,6 +7236,10 @@ class Parser {
     if (this.match("GOAL")) return "goal";
     return this.advance().lexeme;
 }
+
+  private isAnomalyHandler(): boolean {
+    return this.tokens[this.pos + 1]?.lexeme === "anomaly";
+  }
 }
 
 export { parse as parseTokens };
