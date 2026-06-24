@@ -117,14 +117,8 @@ export type RootCauseReport = {
   recommended_actions: string[];
 };
 
-export type ReadinessDashboard = {
-  overall_score: number;
-  mission_ready_count: number;
-  degraded_count: number;
-  not_ready_count: number;
-  top_issues: string[];
-  reports: ReadinessReport[];
-};
+export type { ReadinessDashboard } from "./readiness.js";
+export { readinessDashboardFromReports } from "./readiness.js";
 
 const FAILURE_SCENARIOS: Array<[string, string, string, string]> = [
   ["GPS", "Navigation degraded; position uncertainty increases", "Switch to visual odometry", "High"],
@@ -142,30 +136,38 @@ export function parseProgramSource(source: string): Program {
 }
 
 export function lineColumnForFactor(program: Program, factor: string): { line: number; column: number } {
-  const robot = program.robots[0];
+  if (factor === "Health") {
+    const health = program.healthChecks[0];
+    if (health) {
+      return { line: health.span.start.line, column: health.span.start.column };
+    }
+  }
+  if (factor === "Capabilities" || factor === "Mission Requirements") {
+    const missionRobot = program.robots.find((r) => r.mission);
+    if (missionRobot?.mission) {
+      return {
+        line: missionRobot.mission.span.start.line,
+        column: missionRobot.mission.span.start.column,
+      };
+    }
+  }
+  if (factor === "Safety") {
+    const robot = program.robots[0];
+    if (robot?.safety) {
+      return { line: robot.safety.span.start.line, column: robot.safety.span.start.column };
+    }
+  }
+  if (factor === "Fleet") {
+    const fleet = program.fleets[0];
+    if (fleet) {
+      return { line: fleet.span.start.line, column: fleet.span.start.column };
+    }
+  }
   const deploy = program.deployments[0];
-  const health = program.healthChecks[0];
-  const fleet = program.fleets[0];
-  const missionRobot = program.robots.find((r) => r.mission);
-
-  if (factor === "Health" && health) {
-    return { line: health.span.start.line, column: health.span.start.column };
-  }
-  if ((factor === "Capabilities" || factor === "Mission Requirements") && missionRobot?.mission) {
-    return {
-      line: missionRobot.mission.span.start.line,
-      column: missionRobot.mission.span.start.column,
-    };
-  }
-  if (factor === "Safety" && robot?.safety) {
-    return { line: robot.safety.span.start.line, column: robot.safety.span.start.column };
-  }
-  if (factor === "Fleet" && fleet) {
-    return { line: fleet.span.start.line, column: fleet.span.start.column };
-  }
   if (deploy && deploy.kind === "DeployDecl") {
     return { line: deploy.span.start.line, column: deploy.span.start.column };
   }
+  const robot = program.robots[0];
   if (robot) {
     return { line: robot.span.start.line, column: robot.span.start.column };
   }
@@ -310,9 +312,14 @@ export function auditProgramTs(program: Program, source: string): SafetyAuditRep
     });
   }
   const security = analyzeProgram(program);
+  const severityMap: Record<string, AuditFinding["severity"]> = {
+    error: "Critical",
+    warning: "High",
+    info: "Low",
+  };
   for (const issue of security.findings) {
     findings.push({
-      severity: issue.severity === "error" ? "Critical" : issue.severity === "warning" ? "High" : "Low",
+      severity: severityMap[issue.severity] ?? "Low",
       category: "security",
       message: issue.message,
       line: issue.line,
@@ -447,25 +454,6 @@ export function diagnoseTraceTs(tracePath: string): RootCauseReport {
   };
 }
 
-export function readinessDashboardFromReports(reports: ReadinessReport[]): ReadinessDashboard {
-  const mission_ready_count = reports.filter((r) => r.mission_ready).length;
-  const degraded_count = reports.filter((r) => r.status === "Degraded").length;
-  const not_ready_count = reports.length - mission_ready_count - degraded_count;
-  const overall_score =
-    reports.length === 0
-      ? 0
-      : Math.round(reports.reduce((sum, r) => sum + r.score.total, 0) / reports.length);
-  const top_issues = reports.flatMap((r) => r.issues.map((i) => i.message)).slice(0, 10);
-  return {
-    overall_score,
-    mission_ready_count,
-    degraded_count,
-    not_ready_count,
-    top_issues,
-    reports,
-  };
-}
-
 export function formatMissionVerification(reports: MissionVerificationReport[]): string {
   return reports
     .map(
@@ -561,10 +549,11 @@ export function runOperationalCommand(
   switch (command) {
     case "readiness": {
       if (flags.has("agent-json")) {
+        const readiness = evaluateReadinessSource(source, options);
         const body = JSON.stringify({
           ok: true,
-          mission_ready: evaluateReadinessSource(source, options).mission_ready,
-          readiness: evaluateReadinessSource(source, options),
+          mission_ready: readiness.mission_ready,
+          readiness,
         });
         const parsed = JSON.parse(body) as { mission_ready?: boolean };
         return { exitCode: parsed.mission_ready ? 0 : 1, output: body };
@@ -586,7 +575,7 @@ export function runOperationalCommand(
       const report = generateSafetyReportTs(program, file);
       return {
         exitCode: report.deployable ? 0 : 1,
-        output: json ? JSON.stringify(report, null, 2) : JSON.stringify(report, null, 2),
+        output: JSON.stringify(report, null, 2),
       };
     }
     case "diagnose": {
@@ -614,7 +603,7 @@ export function runOperationalCommand(
       const report = verifyApprovalsTs(program);
       return {
         exitCode: report.compatible ? 0 : 1,
-        output: json ? JSON.stringify(report, null, 2) : JSON.stringify(report, null, 2),
+        output: JSON.stringify(report, null, 2),
       };
     }
     default:

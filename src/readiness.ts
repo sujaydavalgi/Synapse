@@ -38,6 +38,15 @@ export type ReadinessReport = {
   robots: string[];
 };
 
+export type ReadinessDashboard = {
+  overall_score: number;
+  mission_ready_count: number;
+  degraded_count: number;
+  not_ready_count: number;
+  top_issues: string[];
+  reports: ReadinessReport[];
+};
+
 export type ReadinessOptions = {
   target?: string;
   includeRuntime?: boolean;
@@ -313,4 +322,23 @@ export function readinessDiagnostics(
       suggested_fix: issue.suggested_action,
     };
   });
+}
+
+export function readinessDashboardFromReports(reports: ReadinessReport[]): ReadinessDashboard {
+  const mission_ready_count = reports.filter((r) => r.mission_ready).length;
+  const degraded_count = reports.filter((r) => r.status === "Degraded").length;
+  const not_ready_count = reports.length - mission_ready_count - degraded_count;
+  const overall_score =
+    reports.length === 0
+      ? 0
+      : Math.round(reports.reduce((sum, r) => sum + r.score.total, 0) / reports.length);
+  const top_issues = reports.flatMap((r) => r.issues.map((i) => i.message)).slice(0, 10);
+  return {
+    overall_score,
+    mission_ready_count,
+    degraded_count,
+    not_ready_count,
+    top_issues,
+    reports,
+  };
 }

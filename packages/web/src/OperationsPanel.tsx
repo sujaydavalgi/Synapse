@@ -1,12 +1,10 @@
 import { useCallback, useState } from "react";
 import {
   evaluateReadinessSource,
-  type ReadinessReport,
-} from "@spanda/core/readiness.js";
-import {
   readinessDashboardFromReports,
+  type ReadinessReport,
   type ReadinessDashboard,
-} from "@spanda/core/operational.js";
+} from "@spanda/core/readiness.js";
 import { fetchAgentReadiness } from "./readiness-agent.js";
 
 type Props = {
