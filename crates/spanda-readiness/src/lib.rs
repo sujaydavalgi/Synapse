@@ -14,6 +14,7 @@ pub mod engine;
 pub mod failure;
 pub mod fleet;
 pub mod fleet_verify;
+pub mod gates;
 pub mod mission;
 pub mod report;
 pub mod root_cause;
@@ -35,6 +36,9 @@ pub use engine::{evaluate_readiness, evaluate_readiness_source, evaluate_readine
 pub use failure::{analyze_failure, analyze_failure_source, FailureAnalysisReport};
 pub use fleet::evaluate_fleet_readiness;
 pub use fleet_verify::{verify_fleet, verify_fleet_source, FleetVerifyReport};
+pub use gates::{
+    evaluate_deployment_gates, DeploymentGate, DeploymentGatePolicy, DeploymentGateReport,
+};
 pub use mission::{verify_mission, verify_mission_source, MissionVerificationReport};
 pub use report::{
     format_audit, format_failure_analysis, format_fleet_readiness, format_mission_verification,

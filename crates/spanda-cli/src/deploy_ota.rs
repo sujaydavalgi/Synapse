@@ -155,6 +155,7 @@ pub fn deploy_dispatch(args: &[String]) {
         "rollout" => cmd_rollout(&args[1..]),
         "rollback" => cmd_rollback(&args[1..]),
         "status" => cmd_status(&args[1..]),
+        "gate" => cmd_gate(&args[1..]),
         "agent" => cmd_agent(&args[1..]),
         other if !other.starts_with('-') => {
             eprintln!("Unknown deploy subcommand '{other}'");
@@ -187,6 +188,7 @@ pub fn deploy_usage_lines() -> &'static str {
      spanda deploy rollout [--json] [--remote] [--require-certify] [--sign-key <material>] [--strategy all|canary|staged] [--canary-percent N] [--version <ver>] [--dry-run] <file.sd>\n\
      spanda deploy rollback [--json] [--remote] <file.sd>\n\
      spanda deploy status [--json]\n\
+     spanda deploy gate [--json] [--policy default|production] [--config <spanda.toml>] <file.sd>\n\
      spanda deploy agent start [--bind <addr>] [--target <Robot@Hardware>] [--token <t>] [--tls-cert <pem>] [--tls-key <pem>] [--require-hash] [--require-signature] [--require-certify] [--trust-key <material>]\n\
      spanda deploy agent register <Robot@Hardware> <http(s)://host:port> [--token <t>]\n\
      spanda deploy agent list [--json]\n\
@@ -800,6 +802,85 @@ fn cmd_status(args: &[String]) {
         if state.current_version.is_empty() {
             println!("  (no deployments recorded)");
         }
+    }
+}
+
+fn cmd_gate(args: &[String]) {
+    let json = args.iter().any(|a| a == "--json");
+    let mut policy_name = "default".to_string();
+    let mut config_path: Option<String> = None;
+    let mut file: Option<String> = None;
+    let mut i = 0usize;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--json" => {}
+            "--policy" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("--policy requires default or production");
+                    process::exit(1);
+                }
+                policy_name = args[i].clone();
+            }
+            "--config" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("--config requires a path to spanda.toml");
+                    process::exit(1);
+                }
+                config_path = Some(args[i].clone());
+            }
+            other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
+            other => {
+                eprintln!("Unknown argument: {other}");
+                process::exit(1);
+            }
+        }
+        i += 1;
+    }
+    let file = file.unwrap_or_else(|| {
+        eprintln!("Usage: spanda deploy gate [--json] [--policy default|production] [--config <spanda.toml>] <file.sd>");
+        process::exit(1);
+    });
+    let source = read_source(&file);
+    let program = parse_program(&source, &file);
+    let system_config = crate::config_load::load_system_config(
+        std::path::Path::new(&file),
+        config_path.as_deref().map(std::path::Path::new),
+    );
+    crate::config_load::ensure_config_valid(system_config.as_ref().map(|arc| arc.as_ref()));
+    let mut options = spanda_readiness::readiness_options_from_flags(
+        &program,
+        system_config
+            .as_ref()
+            .and_then(|cfg| spanda_config::default_verify_target(cfg.as_ref())),
+        false,
+        false,
+        false,
+        false,
+    );
+    options.system_config = system_config;
+    let policy = if policy_name == "production" {
+        spanda_readiness::DeploymentGatePolicy::production()
+    } else {
+        spanda_readiness::DeploymentGatePolicy::default()
+    };
+    let report = spanda_readiness::evaluate_deployment_gates(&program, &source, &options, &policy);
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report).unwrap());
+    } else {
+        println!("Deployment gates for {file} (policy: {policy_name})");
+        for gate in &report.gates {
+            let tag = if gate.passed { "PASS" } else { "FAIL" };
+            println!("  [{tag}] {} — {}", gate.name, gate.message);
+        }
+        println!(
+            "\nGate check: {}",
+            if report.passed { "PASSED" } else { "BLOCKED" }
+        );
+    }
+    if !report.passed {
+        process::exit(1);
     }
 }
 

@@ -13,6 +13,7 @@ mod device_cli;
 mod device_tree_cli;
 mod drift_cli;
 mod explain_cli;
+mod graph_cli;
 mod fault_cli;
 mod network_cli;
 mod package;
@@ -239,7 +240,9 @@ fn usage() {
            spanda map verify <file.sd> [--config <spanda.toml>] [--json]\n\n\
          Security commands:\n\
            spanda security check [--json] <file.sd>\n\
-           spanda security audit [--json] <file.sd>\n",
+           spanda security audit [--json] <file.sd>\n\n\
+         Analysis commands:\n\
+           spanda graph <file.sd> [--format json|mermaid|dot|text] [--json] [--config <spanda.toml>]\n",
         deploy_ota::deploy_usage_lines()
     );
 }
@@ -1427,7 +1430,7 @@ fn main() {
 
     if command == "deploy" && args.len() > 2 {
         match args[2].as_str() {
-            "plan" | "rollout" | "rollback" | "status" | "agent" => {
+            "plan" | "rollout" | "rollback" | "status" | "gate" | "agent" => {
                 deploy_ota::deploy_dispatch(&args[2..]);
                 let _ = io::stdout().flush();
                 return;
@@ -1497,6 +1500,12 @@ fn main() {
 
     if command == "contract" {
         contract_cli::contract_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "graph" {
+        graph_cli::graph_dispatch(&args[2..]);
         let _ = io::stdout().flush();
         return;
     }
