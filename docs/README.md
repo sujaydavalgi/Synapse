@@ -41,6 +41,11 @@
 | [provider-interfaces.md](./provider-interfaces.md) | **Provider trait contracts for packages** |
 | [official-packages.md](./official-packages.md) | **Official package catalog** |
 | [how-packages-work.md](./how-packages-work.md) | **Package loading pipeline and CLI workflow** |
+| [configuration.md](./configuration.md) | **Cascading TOML configuration and ResolvedSystemConfig** |
+| [cascading-config.md](./cascading-config.md) | **Layered config overrides (base → environment → deployment → robot)** |
+| [device-tree.md](./device-tree.md) | **Fleet/device hierarchy in TOML** |
+| [config-validation.md](./config-validation.md) | **Configuration validation rules and CLI** |
+| [spanda-toml.md](./spanda-toml.md) | **`spanda.toml` manifest reference (package + system config)** |
 | [how-providers-work.md](./how-providers-work.md) | **Provider registry, traits, and dispatch** |
 | [how-runtime-resolution-works.md](./how-runtime-resolution-works.md) | **Runtime resolution from imports to providers** |
 | [security-architecture.md](./security-architecture.md) | **Security contracts vs package backends** |

@@ -43,6 +43,7 @@ spanda-lexer = { path = "../spanda-lexer" }
 spanda-hardware = { path = "../spanda-hardware" }
 spanda-capability = { path = "../spanda-capability" }
 spanda-readiness = { path = "../spanda-readiness" }
+spanda-config = { path = "../spanda-config" }
 spanda-runtime-faults = { path = "../spanda-runtime-faults" }
 spanda-assurance = { path = "../spanda-assurance" }
 spanda-contract = { path = "../spanda-contract" }

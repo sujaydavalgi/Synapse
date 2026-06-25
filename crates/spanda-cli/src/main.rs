@@ -2,11 +2,13 @@
 //!
 mod assurance_cli;
 mod certify_cli;
+mod config_cli;
 mod continuity_cli;
 mod contract_cli;
 mod decision_cli;
 mod demo_cli;
 mod deploy_ota;
+mod device_tree_cli;
 mod explain_cli;
 mod fault_cli;
 mod package;
@@ -217,6 +219,15 @@ fn usage() {
            spanda verify-adapter [--project <dir>] [--import <path>] [--package <name>]\n\
            spanda registry search <query>\n\
            spanda registry info <package>\n\n\
+         Configuration commands:\n\
+           spanda config resolve [--json] [--config <spanda.toml>]\n\
+           spanda config validate [--json] [--config <spanda.toml>]\n\
+           spanda config graph [--json] [--config <spanda.toml>]\n\
+           spanda config diff <base.toml> <other.toml> [--json]\n\
+           spanda config report [--json] [--config <spanda.toml>]\n\
+           spanda device-tree inspect <robot-id> [--json] [--config <spanda.toml>]\n\
+           spanda device-tree graph [--json] [--config <spanda.toml>]\n\
+           spanda map verify <file.sd> [--config <spanda.toml>] [--json]\n\n\
          Security commands:\n\
            spanda security check [--json] <file.sd>\n\
            spanda security audit [--json] <file.sd>\n",
@@ -1404,6 +1415,29 @@ fn main() {
 
     if command == "security" {
         security_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "config" {
+        config_cli::config_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "device-tree" {
+        device_tree_cli::device_tree_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "map" {
+        if args.get(2).map(String::as_str) == Some("verify") {
+            device_tree_cli::cmd_map_verify(&args[3..]);
+        } else {
+            eprintln!("Usage: spanda map verify <file.sd> [--config <spanda.toml>] [--json]");
+            process::exit(1);
+        }
         let _ = io::stdout().flush();
         return;
     }

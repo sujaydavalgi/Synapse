@@ -1,6 +1,6 @@
 # spanda.toml Reference
 
-The `spanda.toml` manifest describes a Spanda package — its metadata, dependencies, hardware requirements, capabilities, and safety level.
+The `spanda.toml` manifest describes a Spanda package — its metadata, dependencies, hardware requirements, capabilities, and safety level. For **autonomous system configuration** (fleet, devices, layered overrides), see also [configuration.md](configuration.md).
 
 ## Minimal manifest
 
@@ -140,3 +140,51 @@ After `spanda install`, a `spanda.lock` JSON file records resolved versions:
 ```
 
 Commit `spanda.lock` for reproducible builds.
+
+## System configuration (`[project]` and `[config]`)
+
+Autonomous system projects may add configuration sections alongside `[package]`:
+
+```toml
+[project]
+name = "Warehouse Patrol"
+version = "0.1.0"
+language = "0.2"
+
+[config]
+devices = "spanda.devices.toml"
+providers = "spanda.providers.toml"
+fleet = "spanda.fleet.toml"
+security = "spanda.security.toml"
+health = "spanda.health.toml"
+readiness = "spanda.readiness.toml"
+assurance = "spanda.assurance.toml"
+recovery = "spanda.recovery.toml"
+mission = "spanda.mission.toml"
+hardware = "spanda.hardware.toml"
+
+[extends]
+base = "configs/base.toml"
+environment = "configs/warehouse-a.toml"
+deployment = "configs/production.toml"
+robot = "configs/rover-001.toml"
+
+[merge]
+fleet = "merge_by_id"
+```
+
+When `[project]` is omitted, the config resolver derives project name and version from `[package]`.
+
+Fragment files hold domain-specific TOML (device tree, providers, health policies, etc.). Resolve and validate with:
+
+```bash
+spanda config resolve
+spanda config validate
+spanda config report
+```
+
+See [configuration.md](configuration.md), [cascading-config.md](cascading-config.md), [device-tree.md](device-tree.md), and [config-validation.md](config-validation.md).
+
+## JSON configuration
+
+Machine-generated configs may use `.json` files. The `spanda-config` crate loads JSON and TOML through the same merge pipeline. JSON remains supported for lockfiles (`spanda.lock`), registry indexes, and deploy/fleet state — not as a replacement for human-authored project config.

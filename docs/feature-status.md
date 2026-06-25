@@ -18,6 +18,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Distributed fleet** | `fleet orchestrate --remote`, agent registry — Experimental |
 | **CLI install** | `cargo install --path crates/spanda-cli` → binary `spanda` — Stable |
 | **Bundled demos** | `spanda demo` without full clone — Stable |
+| **Cascading configuration** | `spanda config`, `spanda device-tree`, `spanda map verify`; `spanda-config` crate — Experimental |
 
 ## v0.2.0 — Officially Supported
 

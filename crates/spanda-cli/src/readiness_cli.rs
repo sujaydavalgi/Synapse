@@ -19,6 +19,7 @@ struct ParsedReadinessCli {
     file: String,
     options: ReadinessOptions,
     agent_json: bool,
+    system_config: Option<spanda_config::ResolvedSystemConfig>,
 }
 
 fn read_file(path: &str) -> String {
@@ -119,6 +120,7 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
     let mut simulate = false;
     let mut strict = false;
     let mut agent_json = false;
+    let mut config_path: Option<String> = None;
     let mut file: Option<String> = None;
     let mut i = 0usize;
     while i < args.len() {
@@ -143,6 +145,14 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
             }
             "--simulate" => simulate = true,
             "--strict" => strict = true,
+            "--config" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("--config requires a path to spanda.toml");
+                    process::exit(1);
+                }
+                config_path = Some(args[i].clone());
+            }
             other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
             other => {
                 eprintln!("Unknown argument: {other}");
@@ -157,6 +167,30 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
     });
     let source = read_file(&file);
     let program = parse_program(&source);
+    let system_config = config_path.as_ref().map(|path| {
+        let root = std::path::Path::new(path)
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."));
+        spanda_config::ConfigResolver::new()
+            .with_validation(true)
+            .resolve_from_dir(root)
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to load config: {e}");
+                process::exit(1);
+            })
+    });
+    if target.is_none() {
+        if let Some(ref cfg) = system_config {
+            if let Some(robot) = cfg
+                .device_tree
+                .fleet
+                .as_ref()
+                .and_then(|f| f.robots.first())
+            {
+                target = robot.hardware_profile.clone();
+            }
+        }
+    }
     let options = readiness_options_from_flags(
         &program,
         target,
@@ -170,6 +204,7 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
         file,
         options,
         agent_json,
+        system_config,
     }
 }
 
@@ -217,6 +252,21 @@ pub fn cmd_readiness(args: &[String]) {
     //     let result = spanda_cli::readiness_cli::cmd_readiness(args);
 
     let parsed = parse_readiness_cli(args);
+    if let Some(ref cfg) = parsed.system_config {
+        if !cfg.validation.passed {
+            eprintln!(
+                "Configuration validation failed ({} errors); see `spanda config validate`",
+                cfg.validation.error_count()
+            );
+            if parsed.format == ReportFormat::Json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&cfg.validation).unwrap_or_default()
+                );
+            }
+            process::exit(1);
+        }
+    }
     let source = read_file(&parsed.file);
 
     // Emit the same JSON envelope as deploy/fleet `GET /v1/readiness`.
