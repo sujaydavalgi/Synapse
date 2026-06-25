@@ -71,6 +71,7 @@ robot Rover {
   resource_watch {
     memory > 85%;
     cpu > 90% for 30s;
+    disk_free < 500 MB;
   }
   behavior b() { loop every 50ms { } }
 }

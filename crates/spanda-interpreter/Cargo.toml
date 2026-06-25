@@ -34,6 +34,7 @@ spanda-transport = { path = "../spanda-transport", default-features = false }
 spanda-transport-routing = { path = "../spanda-transport-routing", default-features = false }
 spanda-typecheck = { path = "../spanda-typecheck" }
 spanda-capability = { path = "../spanda-capability" }
+spanda-runtime-faults = { path = "../spanda-runtime-faults" }
 spanda-assurance = { path = "../spanda-assurance" }
 spanda-deploy-http = { path = "../spanda-deploy-http", optional = true }
 

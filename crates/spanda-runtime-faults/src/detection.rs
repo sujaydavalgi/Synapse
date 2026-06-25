@@ -516,6 +516,104 @@ pub fn resource_pressure_from_condition(
     }
 }
 
+/// Map live hardware monitor fault and event strings to runtime faults.
+pub fn faults_from_hardware_signals(
+    faults: &[String],
+    events: &[String],
+    sim_time_ms: f64,
+) -> Vec<RuntimeFault> {
+    // Convert hardware monitor fault/event names into structured runtime faults.
+    //
+    // Parameters:
+    // - `faults` — active fault labels from the hardware monitor
+    // - `events` — active event labels from the hardware monitor
+    // - `sim_time_ms` — current simulation time in milliseconds
+    //
+    // Returns:
+    // Structured runtime fault records for each signal.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let faults = faults_from_hardware_signals(&hw_faults, &hw_events, sim_ms);
+
+    let mut out = Vec::new();
+    for fault in faults {
+        let (kind, status) = hardware_label_to_fault(fault);
+        out.push(RuntimeFault {
+            kind,
+            target: fault.clone(),
+            status,
+            message: format!("Hardware fault: {fault}"),
+            evidence: FaultEvidence {
+                related_events: vec![fault.clone()],
+                ..Default::default()
+            },
+            detected_at_ms: sim_time_ms,
+        });
+    }
+    for event in events {
+        if faults.contains(event) {
+            continue;
+        }
+        let (kind, status) = hardware_event_to_fault(event);
+        out.push(RuntimeFault {
+            kind,
+            target: event.clone(),
+            status,
+            message: format!("Hardware event: {event}"),
+            evidence: FaultEvidence {
+                related_events: vec![event.clone()],
+                ..Default::default()
+            },
+            detected_at_ms: sim_time_ms,
+        });
+    }
+    out
+}
+
+fn hardware_label_to_fault(label: &str) -> (RuntimeFaultKind, RuntimeHealthStatus) {
+    let lower = label.to_ascii_lowercase();
+    if lower.contains("crash") || lower.contains("critical") {
+        (RuntimeFaultKind::ProcessCrash, RuntimeHealthStatus::Crashed)
+    } else if lower.contains("offline") || lower.contains("camera") {
+        (
+            RuntimeFaultKind::SensorDriverCrash,
+            RuntimeHealthStatus::Degraded,
+        )
+    } else if lower.contains("gps") || lower.contains("degraded") {
+        (
+            RuntimeFaultKind::TaskStarvation,
+            RuntimeHealthStatus::Degraded,
+        )
+    } else if lower.contains("heartbeat") {
+        (
+            RuntimeFaultKind::HeartbeatLoss,
+            RuntimeHealthStatus::Degraded,
+        )
+    } else if lower.contains("memory") {
+        (
+            RuntimeFaultKind::MemoryPressure,
+            RuntimeHealthStatus::Warning,
+        )
+    } else if lower.contains("watchdog") {
+        (
+            RuntimeFaultKind::WatchdogTimeout,
+            RuntimeHealthStatus::Critical,
+        )
+    } else {
+        (
+            RuntimeFaultKind::AbnormalShutdown,
+            RuntimeHealthStatus::Warning,
+        )
+    }
+}
+
+fn hardware_event_to_fault(event: &str) -> (RuntimeFaultKind, RuntimeHealthStatus) {
+    hardware_label_to_fault(event)
+}
+
 fn make_fault(
     kind: RuntimeFaultKind,
     target: String,

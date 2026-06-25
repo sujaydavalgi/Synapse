@@ -9977,15 +9977,21 @@ impl Parser {
                 line: self.peek().line,
                 column: self.peek().column,
             })?;
-            let mut threshold = self.advance().lexeme.clone();
-            if self.check(TokenType::UnitLiteral) {
-                threshold = format!("{threshold} {}", self.advance().lexeme);
-            } else if self.check(TokenType::Ident) {
-                let next = self.peek().lexeme.as_str();
-                if next == "MB" || next == "GB" || next == "KB" || next == "ms" || next == "min" {
-                    threshold = format!("{threshold} {}", self.advance().lexeme);
+            let mut threshold = if self.check(TokenType::Number) {
+                let num = self.advance().lexeme.clone();
+                if self.check(TokenType::UnitLiteral) {
+                    format!("{} {}", num, self.advance().lexeme)
+                } else if self.check(TokenType::Ident) {
+                    let unit = self.advance().lexeme.clone();
+                    format!("{num} {unit}")
+                } else {
+                    num
                 }
-            }
+            } else if self.check(TokenType::UnitLiteral) {
+                self.advance().lexeme.clone()
+            } else {
+                self.advance().lexeme.clone()
+            };
             if self.check(TokenType::Percent) {
                 self.advance();
                 threshold.push('%');

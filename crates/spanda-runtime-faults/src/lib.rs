@@ -13,8 +13,8 @@ pub mod types;
 
 pub use detection::{
     collect_configured_monitors, detect_from_runtime_signals, evaluate_memory_watches,
-    evaluate_resource_pressure, evaluate_restart_loops, parse_memory_watch_threshold,
-    resource_pressure_from_condition, static_fault_scan,
+    evaluate_resource_pressure, evaluate_restart_loops, faults_from_hardware_signals,
+    parse_memory_watch_threshold, resource_pressure_from_condition, static_fault_scan,
 };
 pub use engine::{
     build_runtime_health, build_timeline, extract_reliability_evidence, scan_program_faults,

@@ -1784,6 +1784,7 @@ dependencies = [
  "spanda-providers",
  "spanda-regex-lang",
  "spanda-runtime",
+ "spanda-runtime-faults",
  "spanda-runtime-host",
  "spanda-safety",
  "spanda-security",

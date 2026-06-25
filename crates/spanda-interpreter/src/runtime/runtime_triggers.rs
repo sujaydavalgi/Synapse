@@ -149,6 +149,7 @@ impl<B: RobotBackend> Interpreter<B> {
         self.poll_transport_inbound_triggers()?;
         self.run_twin_fault_triggers()?;
         self.poll_runtime_health_changes();
+        self.poll_runtime_fault_changes();
         Ok(())
     }
 

@@ -425,6 +425,8 @@ pub struct Interpreter<B: RobotBackend> {
     health_program: Option<Program>,
     last_health_overall: Option<String>,
     last_health_checks: HashMap<String, String>,
+    fault_program: Option<Program>,
+    seen_fault_keys: std::collections::HashSet<String>,
     applied_health_reactions: std::collections::HashSet<String>,
     applied_anomaly_handlers: std::collections::HashSet<String>,
     learned_anomaly_triggers: std::collections::HashSet<String>,
@@ -544,6 +546,8 @@ impl<B: RobotBackend> Interpreter<B> {
             health_program: None,
             last_health_overall: None,
             last_health_checks: HashMap::new(),
+            fault_program: None,
+            seen_fault_keys: std::collections::HashSet::new(),
             applied_health_reactions: std::collections::HashSet::new(),
             applied_anomaly_handlers: std::collections::HashSet::new(),
             learned_anomaly_triggers: std::collections::HashSet::new(),
@@ -1269,6 +1273,7 @@ impl<B: RobotBackend> Interpreter<B> {
         }
         self.load_program_metadata(program);
         self.cache_health_program(program);
+        self.cache_fault_program(program);
         self.cache_kill_switches(program);
         let Program::Program { swarms, .. } = program;
         self.program_swarms = swarms.clone();
@@ -1318,6 +1323,7 @@ impl<B: RobotBackend> Interpreter<B> {
                         }
                         self.log("health: injected default health fault scenarios".into());
                         self.poll_runtime_health_changes();
+                        self.poll_runtime_fault_changes();
                     }
                     if let Some(ks) = self.options.trigger_kill_switch.clone() {
                         self.activate_kill_switch(&ks)?;
@@ -1338,6 +1344,7 @@ impl<B: RobotBackend> Interpreter<B> {
                 }
                 self.log("health: injected default health fault scenarios".into());
                 self.poll_runtime_health_changes();
+                self.poll_runtime_fault_changes();
             }
 
             if let Some(ks) = self.options.trigger_kill_switch.clone() {
@@ -1971,6 +1978,8 @@ mod runtime_declarations;
 mod runtime_eval;
 #[path = "runtime_execute.rs"]
 mod runtime_execute;
+#[path = "runtime_faults.rs"]
+mod runtime_faults;
 #[path = "runtime_health.rs"]
 mod runtime_health;
 #[path = "runtime_helpers.rs"]
