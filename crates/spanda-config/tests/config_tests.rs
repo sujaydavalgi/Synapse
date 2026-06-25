@@ -434,3 +434,33 @@ fn network_report_includes_traceability() {
     assert!(bundle.network.networked_devices >= 1);
     assert!(!bundle.network.traceability.is_empty());
 }
+
+#[test]
+fn config_drift_passes_for_identical_resolved_configs() {
+    let root = fixture_root();
+    let resolved = ConfigResolver::new()
+        .resolve_from_dir(&root)
+        .expect("resolve");
+    let report = spanda_config::detect_config_drift(&resolved, &resolved);
+    assert!(report.passed);
+    assert!(report.findings.is_empty());
+}
+
+#[test]
+fn config_drift_detects_device_ip_change() {
+    let root = fixture_root();
+    let baseline = ConfigResolver::new()
+        .resolve_from_dir(&root)
+        .expect("resolve");
+    let mut current = baseline.clone();
+    let device = current
+        .device_registry
+        .devices
+        .iter_mut()
+        .find(|d| d.id == "camera-front-001")
+        .expect("camera");
+    device.ip_address = Some("10.0.0.99".into());
+    let report = spanda_config::detect_config_drift(&baseline, &current);
+    assert!(!report.passed);
+    assert!(report.findings.iter().any(|f| f.message.contains("ip")));
+}

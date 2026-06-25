@@ -1,6 +1,7 @@
 //! Human-readable and JSON configuration reports.
 //!
 use crate::device_identity::traceability_rows;
+use crate::drift::{detect_config_drift, format_drift_lines};
 use crate::resolved::ResolvedSystemConfig;
 use serde::Serialize;
 
@@ -319,14 +320,5 @@ pub fn config_drift_report(
     // Example:
     // let drift = config_drift_report(&base, &current);
 
-    let mut lines = Vec::new();
-    lines.extend(crate::resolver::diff_configs(&baseline.raw, &current.raw));
-    if baseline.fleet_id() != current.fleet_id() {
-        lines.push(format!(
-            "~ fleet.id: {:?} -> {:?}",
-            baseline.fleet_id(),
-            current.fleet_id()
-        ));
-    }
-    lines
+    format_drift_lines(&detect_config_drift(baseline, current))
 }

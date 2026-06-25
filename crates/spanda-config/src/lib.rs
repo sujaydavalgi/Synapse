@@ -6,6 +6,7 @@
 //!
 pub mod device_identity;
 pub mod device_tree;
+pub mod drift;
 pub mod error;
 pub mod integration;
 pub mod json;
@@ -39,6 +40,10 @@ pub use manifest::{
 };
 pub use mapping::{ActuatorMapping, LogicalPhysicalMap, RobotMapping, SensorMapping};
 pub use network_validation::validate_device_registry;
+pub use drift::{
+    append_program_drift, detect_config_drift, format_drift_lines, ConfigDriftReport,
+    DriftDimension, DriftFinding, DriftSeverity,
+};
 pub use reports::{
     config_drift_report, format_report_text, format_report_text_with_options,
     generate_report_bundle, ConfigReportBundle,
