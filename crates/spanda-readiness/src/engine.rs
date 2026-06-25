@@ -152,6 +152,21 @@ pub fn evaluate_readiness_with_runtime(
                 suggested_action: Some("Update device identity in spanda.toml fragments".into()),
             });
         }
+        if let Some(ref baseline) = options.baseline_config {
+            for (severity, message) in
+                crate::config::config_drift_issues(baseline.as_ref(), cfg, Some(program))
+            {
+                issues.push(ReadinessIssue {
+                    factor: "Configuration".into(),
+                    severity,
+                    message,
+                    suggested_action: Some(
+                        "Reconcile live config with approved baseline or update baseline"
+                            .into(),
+                    ),
+                });
+            }
+        }
         if !cfg.validation.passed {
             for finding in cfg
                 .validation

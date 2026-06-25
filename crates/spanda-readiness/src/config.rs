@@ -93,3 +93,33 @@ pub fn config_device_identity_issues(
     }
     issues
 }
+
+/// Readiness issues when current configuration drifts from an approved baseline.
+pub fn config_drift_issues(
+    baseline: &ResolvedSystemConfig,
+    current: &ResolvedSystemConfig,
+    program: Option<&spanda_ast::nodes::Program>,
+) -> Vec<(crate::types::ReadinessSeverity, String)> {
+    let mut report = spanda_config::detect_config_drift(baseline, current);
+    if let Some(prog) = program {
+        spanda_config::append_program_drift(&mut report, prog, current);
+    }
+    report
+        .findings
+        .into_iter()
+        .filter(|f| f.severity >= spanda_config::DriftSeverity::Medium)
+        .map(|f| (drift_severity_to_readiness(f.severity), f.message))
+        .collect()
+}
+
+fn drift_severity_to_readiness(
+    severity: spanda_config::DriftSeverity,
+) -> crate::types::ReadinessSeverity {
+    match severity {
+        spanda_config::DriftSeverity::Info => crate::types::ReadinessSeverity::Low,
+        spanda_config::DriftSeverity::Low => crate::types::ReadinessSeverity::Low,
+        spanda_config::DriftSeverity::Medium => crate::types::ReadinessSeverity::Medium,
+        spanda_config::DriftSeverity::High => crate::types::ReadinessSeverity::High,
+        spanda_config::DriftSeverity::Critical => crate::types::ReadinessSeverity::Critical,
+    }
+}

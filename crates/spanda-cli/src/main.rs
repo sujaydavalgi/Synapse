@@ -11,6 +11,7 @@ mod demo_cli;
 mod deploy_ota;
 mod device_cli;
 mod device_tree_cli;
+mod drift_cli;
 mod explain_cli;
 mod fault_cli;
 mod network_cli;
@@ -226,7 +227,9 @@ fn usage() {
            spanda config validate [--json] [--config <spanda.toml>]\n\
            spanda config graph [--json] [--config <spanda.toml>]\n\
            spanda config diff <base.toml> <other.toml> [--json]\n\
+           spanda config drift --baseline <dir|spanda.toml> [--config <spanda.toml>] [program.sd] [--json]\n\
            spanda config report [--json] [--network] [--config <spanda.toml>]\n\
+           spanda drift --baseline <dir|spanda.toml> [--config <spanda.toml>] [program.sd] [--json]\n\
            spanda device discover [--subnet CIDR] [--json] [--config <spanda.toml>]\n\
            spanda device inspect <id> [--json] [--config <spanda.toml>]\n\
            spanda device-tree inspect <robot-id> [--json] [--config <spanda.toml>]\n\
@@ -1447,6 +1450,12 @@ fn main() {
 
     if command == "config" {
         config_cli::config_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "drift" {
+        drift_cli::drift_dispatch(&args[2..]);
         let _ = io::stdout().flush();
         return;
     }

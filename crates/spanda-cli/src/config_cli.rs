@@ -37,6 +37,7 @@ pub fn config_dispatch(args: &[String]) {
         "validate" => cmd_config_validate(&args[1..]),
         "graph" => cmd_config_graph(&args[1..]),
         "diff" => cmd_config_diff(&args[1..]),
+        "drift" => crate::drift_cli::drift_dispatch(&args[1..]),
         "report" => cmd_config_report(&args[1..]),
         _ => {
             eprintln!(
@@ -45,6 +46,7 @@ pub fn config_dispatch(args: &[String]) {
                  spanda config validate [--json] [--config <spanda.toml>]\n  \
                  spanda config graph [--json] [--config <spanda.toml>]\n  \
                  spanda config diff <base.toml> <other.toml> [--json]\n  \
+                 spanda config drift --baseline <dir|spanda.toml> [--config <spanda.toml>] [program.sd] [--json]\n  \
                  spanda config report [--json] [--network] [--config <spanda.toml>]"
             );
             process::exit(1);

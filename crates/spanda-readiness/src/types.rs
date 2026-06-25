@@ -170,6 +170,10 @@ pub struct ReadinessOptions {
     /// Resolved project configuration (when available).
     #[serde(skip)]
     pub system_config: Option<std::sync::Arc<spanda_config::ResolvedSystemConfig>>,
+
+    /// Approved baseline configuration for drift comparison.
+    #[serde(skip)]
+    pub baseline_config: Option<std::sync::Arc<spanda_config::ResolvedSystemConfig>>,
 }
 
 /// Twin readiness comparison status.

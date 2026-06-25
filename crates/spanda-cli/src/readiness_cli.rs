@@ -122,6 +122,7 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
     let mut strict = false;
     let mut agent_json = false;
     let mut config_path: Option<String> = None;
+    let mut baseline_path: Option<String> = None;
     let mut file: Option<String> = None;
     let mut i = 0usize;
     while i < args.len() {
@@ -154,6 +155,14 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
                 }
                 config_path = Some(args[i].clone());
             }
+            "--baseline" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("--baseline requires a path to spanda.toml or project directory");
+                    process::exit(1);
+                }
+                baseline_path = Some(args[i].clone());
+            }
             other if !other.starts_with('-') && file.is_none() => file = Some(other.to_string()),
             other => {
                 eprintln!("Unknown argument: {other}");
@@ -173,6 +182,22 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
         config_path.as_deref().map(std::path::Path::new),
     );
     ensure_config_valid(system_config.as_ref().map(|arc| arc.as_ref()));
+    let baseline_config = baseline_path.as_ref().map(|path| {
+        let p = std::path::Path::new(path);
+        let root = if p.is_dir() {
+            p.to_path_buf()
+        } else {
+            p.parent().unwrap_or(p).to_path_buf()
+        };
+        std::sync::Arc::new(
+            spanda_config::ConfigResolver::new()
+                .resolve_from_dir(&root)
+                .unwrap_or_else(|e| {
+                    eprintln!("{e}");
+                    process::exit(1);
+                }),
+        )
+    });
     if target.is_none() {
         if let Some(ref cfg) = system_config {
             target = spanda_config::default_verify_target(cfg);
@@ -187,6 +212,7 @@ fn parse_readiness_cli(args: &[String]) -> ParsedReadinessCli {
         strict,
     );
     options.system_config = system_config.clone();
+    options.baseline_config = baseline_config;
     ParsedReadinessCli {
         format,
         file,
