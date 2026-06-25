@@ -1386,6 +1386,7 @@ dependencies = [
  "spanda-security",
  "spanda-sir",
  "spanda-telemetry-store",
+ "spanda-threat",
  "spanda-typecheck",
  "tempfile",
 ]
@@ -2086,6 +2087,18 @@ dependencies = [
  "spanda-runtime",
  "tempfile",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "spanda-threat"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spanda-ast",
+ "spanda-lexer",
+ "spanda-parser",
+ "spanda-security",
 ]
 
 [[package]]

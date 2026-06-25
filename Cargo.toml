@@ -57,6 +57,7 @@ members = [
     "crates/spanda-explain",
     "crates/spanda-decision",
     "crates/spanda-graph",
+    "crates/spanda-threat",
     "crates/spanda-telemetry-store",
     "crates/spanda-transport",
 ]

@@ -189,6 +189,11 @@ pub fn security_audit(source: &str) -> Result<SecurityReport, spanda_error::Span
     Ok(report)
 }
 
+/// Produce a security report for an already-parsed program.
+pub fn security_analyze_program(program: &Program) -> SecurityReport {
+    analyze_program(program)
+}
+
 fn analyze_program(program: &Program) -> SecurityReport {
     // Description:
     //     Analyze program.
