@@ -62,6 +62,8 @@ members = [
     "crates/spanda-score",
     "crates/spanda-policy",
     "crates/spanda-chaos",
+    "crates/spanda-estimate",
+    "crates/spanda-compliance",
     "crates/spanda-telemetry-store",
     "crates/spanda-transport",
 ]

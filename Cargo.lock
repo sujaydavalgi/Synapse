@@ -1363,6 +1363,7 @@ dependencies = [
  "spanda-certify",
  "spanda-chaos",
  "spanda-codegen",
+ "spanda-compliance",
  "spanda-config",
  "spanda-contract",
  "spanda-debug",
@@ -1372,6 +1373,7 @@ dependencies = [
  "spanda-docs",
  "spanda-driver",
  "spanda-error",
+ "spanda-estimate",
  "spanda-explain",
  "spanda-fleet",
  "spanda-format",
@@ -1520,6 +1522,18 @@ dependencies = [
  "spanda-ast",
  "spanda-runtime",
  "spanda-typecheck",
+]
+
+[[package]]
+name = "spanda-compliance"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spanda-ast",
+ "spanda-lexer",
+ "spanda-parser",
+ "spanda-readiness",
 ]
 
 [[package]]
@@ -1727,6 +1741,18 @@ dependencies = [
  "spanda-runtime",
  "spanda-typecheck",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "spanda-estimate"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spanda-ast",
+ "spanda-hardware",
+ "spanda-lexer",
+ "spanda-parser",
 ]
 
 [[package]]
