@@ -22,4 +22,8 @@ let w = assurance.fusion.weight_for_sensor("GPS");
 let confidence = assurance.fusion.confidence_for_types("GPS,Lidar,IMU");
 ```
 
+## Spoofing backend
+
+Exports `spoofing_backend_name()` and `spoofing_contract_version()` for GPS/IMU cross-check integrations with `spanda spoof-check`.
+
 See `examples/showcase/assurance/rover.sd` and [state-estimation.md](../../../docs/state-estimation.md).

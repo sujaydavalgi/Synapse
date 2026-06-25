@@ -3,3 +3,13 @@ module positioning.gps;
 export fn read() -> Int {
   return 1;
 }
+
+// Vendor spoofing backend identifier (see spanda-spoofing for core heuristics).
+export fn spoofing_backend_name() -> String {
+    return "spanda-gps";
+}
+
+// Declared plausibility contract version for GPS jump detection.
+export fn plausibility_contract_version() -> String {
+    return "heuristic-v1";
+}

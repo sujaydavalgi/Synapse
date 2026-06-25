@@ -1,6 +1,6 @@
 module assurance.fusion;
 
-/** Package-backed weighted fusion (lean core dispatches to spanda-runtime weights). */
+// Package-backed weighted fusion (lean core dispatches to spanda-runtime weights).
 export fn weight_for_sensor(sensor_type: String) -> Float {
     return 0.10;
 }
@@ -11,4 +11,14 @@ export fn confidence_for_types(types: String) -> Float {
 
 export fn backend_name() -> String {
     return "assurance.fusion";
+}
+
+// Vendor cross-sensor spoofing backend identifier.
+export fn spoofing_backend_name() -> String {
+    return "spanda-fusion";
+}
+
+// Declared fusion spoofing contract version for GPS/IMU disagreement checks.
+export fn spoofing_contract_version() -> String {
+    return "gps-imu-v1";
 }
