@@ -14,6 +14,7 @@ mod device_tree_cli;
 mod drift_cli;
 mod explain_cli;
 mod graph_cli;
+mod threat_model_cli;
 mod fault_cli;
 mod network_cli;
 mod package;
@@ -243,7 +244,8 @@ fn usage() {
            spanda security audit [--json] <file.sd>\n\n\
          Analysis commands:\n\
            spanda graph <file.sd> [--format json|mermaid|dot|text] [--json] [--config <spanda.toml>]\n\
-           spanda trust <package> [--version <ver>] [--project <dir>] [--json]\n",
+           spanda trust <package> [--version <ver>] [--project <dir>] [--json]\n\
+           spanda threat-model <file.sd> [--json]\n",
         deploy_ota::deploy_usage_lines()
     );
 }
@@ -1513,6 +1515,12 @@ fn main() {
 
     if command == "trust" {
         package::cmd_trust(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "threat-model" {
+        threat_model_cli::threat_model_dispatch(&args[2..]);
         let _ = io::stdout().flush();
         return;
     }

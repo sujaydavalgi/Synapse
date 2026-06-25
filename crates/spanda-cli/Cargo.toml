@@ -49,6 +49,7 @@ spanda-assurance = { path = "../spanda-assurance" }
 spanda-contract = { path = "../spanda-contract" }
 spanda-explain = { path = "../spanda-explain" }
 spanda-graph = { path = "../spanda-graph" }
+spanda-threat = { path = "../spanda-threat" }
 spanda-decision = { path = "../spanda-decision" }
 spanda-telemetry-store = { path = "../spanda-telemetry-store", features = ["sqlite", "push"] }
 spanda-lint = { path = "../spanda-lint" }
