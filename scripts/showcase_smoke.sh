@@ -51,4 +51,8 @@ echo "== showcase smoke: differentiation =="
 chmod +x scripts/differentiation_smoke.sh
 ./scripts/differentiation_smoke.sh
 
+echo "== showcase smoke: maturity =="
+chmod +x scripts/maturity_smoke.sh
+./scripts/maturity_smoke.sh
+
 echo "Showcase smoke tests passed."

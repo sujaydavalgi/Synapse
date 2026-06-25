@@ -653,6 +653,21 @@ fn demo_differentiation(root: &Path) {
     println!("\nDemo complete. See examples/showcase/differentiation/ and docs/differentiation-roadmap.md");
 }
 
+fn demo_maturity(root: &Path) {
+    let path = showcase(root, &["readiness", "rover.sd"]);
+    let file = require_file(&path);
+    let sd = file.to_str().unwrap();
+
+    println!("== Platform maturity Phase A — graph, explain, trust, gates ==\n");
+    run_spanda("check", file, &[]);
+    run_spanda_args(&["graph", sd, "--format", "text"]);
+    run_spanda_args(&["explain", sd]);
+    run_spanda_args(&["trust", "spanda-mqtt"]);
+    run_spanda_args_allow_fail(&["deploy", "gate", sd]);
+
+    println!("\nDemo complete. See docs/platform-maturity-roadmap.md and docs/dependency-graphs.md");
+}
+
 pub fn demo_dispatch(args: &[String]) {
     // Description:
     //     Demo dispatch.
@@ -682,6 +697,7 @@ pub fn demo_dispatch(args: &[String]) {
         "self-healing" | "selfhealing" | "healing" => demo_self_healing(&root),
         "continuity" | "takeover" | "succession" => demo_continuity(&root),
         "differentiation" | "diff" => demo_differentiation(&root),
+        "maturity" | "platform-maturity" => demo_maturity(&root),
         "" | "list" | "--help" | "-h" => {
             eprintln!(
                 "Spanda showcase demos\n\n\
@@ -697,7 +713,8 @@ pub fn demo_dispatch(args: &[String]) {
                    assurance — mission assurance CLI suite (assure, anomaly, state)\n\
                    self-healing — recovery policies, heal/recover/sim, fleet recovery\n\
                    continuity — mission continuity, takeover, delegation, succession\n\
-                   differentiation — mission contracts, safety/recovery coverage, explain\n\n\
+                   differentiation — mission contracts, safety/recovery coverage, explain\n\
+                   maturity — Phase A graph, explain, trust, deployment gates\n\n\
                  Set SPANDA_ROOT to the repository root if examples are not found.\n\
                  See examples/showcase/README.md"
             );

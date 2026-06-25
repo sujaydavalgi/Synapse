@@ -279,7 +279,7 @@ When each area ships: update `CHANGELOG.md`, `feature-status.md`, `getting-start
 | Package trust | `spanda trust <name> [--version]` | `spanda-package::trust` | Registry fixture scoring |
 | Deployment gates | `spanda deploy gate <file>`, `--gate` on rollout | extends readiness | Gate pass/fail CI |
 
-**Exit criteria:** `spanda demo maturity` runs graph + explain + trust + gate on `rover.sd`.
+**Exit criteria:** `spanda demo maturity` + `scripts/maturity_smoke.sh` (wired into `scripts/showcase_smoke.sh`).
 
 ### Phase B — Operate & compare (v0.6, Q1 2027)
 
