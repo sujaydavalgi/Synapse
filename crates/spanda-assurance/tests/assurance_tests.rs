@@ -1,8 +1,8 @@
 //! Integration tests for mission assurance analysis.
 
 use spanda_assurance::{
-    assure_program, build_assurance_report, check_resilience, evaluate_prognostics,
-    extract_knowledge_base, scan_anomalies, verify_mission_assurance,
+    assure_program, build_assurance_report, build_assurance_report_with_config, check_resilience,
+    evaluate_prognostics, extract_knowledge_base, scan_anomalies, verify_mission_assurance,
 };
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
@@ -397,4 +397,16 @@ robot R {
         .fused
         .as_ref()
         .is_some_and(|f| f.value.contains("weighted")));
+}
+
+#[test]
+fn assurance_report_includes_device_traceability_from_config() {
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../spanda-config/tests/fixtures/warehouse");
+    let cfg = spanda_config::ConfigResolver::new()
+        .resolve_from_dir(&root)
+        .expect("resolve");
+    let program = parse_source(ROVER);
+    let report = build_assurance_report_with_config(&program, "rover.sd", Some(&cfg));
+    assert!(report.traceability.rows.iter().any(|row| row.contains("device:camera-front-001")));
 }
