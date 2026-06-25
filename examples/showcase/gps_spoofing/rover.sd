@@ -1,8 +1,12 @@
-// GPS spoofing detection showcase
+// GPS spoofing detection showcase (core + package backends)
 //
 //   spanda spoof-check examples/showcase/gps_spoofing/rover.sd
 //   spanda spoof-check examples/showcase/gps_spoofing/spoof.trace
-//   spanda sim examples/showcase/gps_spoofing/rover.sd
+//   spanda check packages/registry/spanda-gps/src/positioning_gps.sd
+//   spanda check packages/registry/spanda-fusion/src/assurance_fusion.sd
+
+import positioning.gps;
+import assurance.fusion;
 
 hardware RoverV1 {
   sensors [ GPS, IMU, Lidar ];

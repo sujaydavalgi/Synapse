@@ -419,7 +419,7 @@ tamper_policy CriticalResponse {
 | Gap | Notes |
 |-----|-------|
 | Hardware secure boot | Requires vendor packages (TPM, Jetson, Pi secure boot) |
-| Real-time spoofing ML | Out of scope for core; package backends only |
+| Real-time spoofing ML | Vendor packages (`spanda-gps`, `spanda-fusion`) — contract stubs shipped; ML backends optional |
 | Fleet-wide tamper correlation | Needs mesh coordinator extensions |
 | Legal/compliance certification | Profiles are templates, not accredited standards |
 | Zero false-positive guarantee | Confidence scores + human approval for Critical |

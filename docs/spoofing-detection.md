@@ -39,7 +39,7 @@ Integrates with `tamper_policy` and `recovery_policy` — default: alert + audit
 
 **Crate:** `spanda-spoofing` — `analyze_spoofing_coverage`, `analyze_trace_spoofing`, `generate_program_spoof_check`, `generate_trace_spoof_check`.
 
-**Package-backed extensions** — vendor-specific models in `spanda-gps`, `spanda-fusion` packages; core hooks in `spanda-connectivity` (`haversine_m`, `GpsSpoofing` fault simulation).
+**Package-backed extensions** — `spanda-gps` (`positioning.gps`) and `spanda-fusion` (`assurance.fusion`) export spoofing backend contracts; core heuristics live in `spanda-spoofing` and `spanda-connectivity` (`haversine_m`, `GpsSpoofing` fault simulation).
 
 ## Demo
 

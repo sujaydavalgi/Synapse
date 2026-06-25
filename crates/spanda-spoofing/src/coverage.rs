@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use spanda_ast::assurance_decl::StateEstimatorDecl;
 use spanda_ast::foundations::{HardwareDecl, HealthCheckDecl, TriggerHandlerDecl, TriggerKind};
-use spanda_ast::nodes::{Program, RobotDecl, SensorDecl};
+use spanda_ast::nodes::{ImportDecl, Program, RobotDecl, SensorDecl};
 
 /// One static coverage check for spoofing readiness.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -33,11 +33,11 @@ pub fn analyze_spoofing_coverage(program: &Program) -> (u32, Vec<SpoofingCoverag
 
     let Program::Program {
         hardware_profiles,
-        requires_connectivity,
         geofences,
         state_estimators,
         health_checks,
         robots,
+        imports,
         ..
     } = program;
 
@@ -57,7 +57,8 @@ pub fn analyze_spoofing_coverage(program: &Program) -> (u32, Vec<SpoofingCoverag
             } => health_checks.iter().any(health_check_targets_gps),
         });
     let has_geofence = !geofences.is_empty();
-    let has_connectivity_requirement = requires_connectivity.is_some();
+    let has_package_gps = program_imports_module(imports, "positioning.gps");
+    let has_package_fusion = program_imports_module(imports, "assurance.fusion");
 
     let checks = vec![
         SpoofingCoverageCheck {
@@ -119,14 +120,25 @@ pub fn analyze_spoofing_coverage(program: &Program) -> (u32, Vec<SpoofingCoverag
             },
         },
         SpoofingCoverageCheck {
-            id: "connectivity_requirement".into(),
-            label: "requires_connectivity declares GPS dependency".into(),
-            passed: has_connectivity_requirement,
+            id: "package_gps_backend".into(),
+            label: "spanda-gps package imported (positioning.gps spoofing backend)".into(),
+            passed: has_package_gps,
             weight: 5,
-            detail: if has_connectivity_requirement {
+            detail: if has_package_gps {
                 None
             } else {
-                Some("Optional: requires_connectivity { gps: required; } documents GNSS need".into())
+                Some("Optional: import positioning.gps for vendor GPS plausibility hooks".into())
+            },
+        },
+        SpoofingCoverageCheck {
+            id: "package_fusion_backend".into(),
+            label: "spanda-fusion package imported (assurance.fusion cross-sensor backend)".into(),
+            passed: has_package_fusion,
+            weight: 5,
+            detail: if has_package_fusion {
+                None
+            } else {
+                Some("Optional: import assurance.fusion for GPS/IMU disagreement hooks".into())
             },
         },
     ];
@@ -200,6 +212,12 @@ fn trigger_list_has_spoof_handler(handlers: &[TriggerHandlerDecl]) -> bool {
                     if sensor_is_gps(domain) && event == "spoofed"
             )
         }
+    })
+}
+
+fn program_imports_module(imports: &[ImportDecl], module_path: &str) -> bool {
+    imports.iter().any(|import| match import {
+        ImportDecl::ImportDecl { path, .. } => path == module_path,
     })
 }
 
@@ -280,5 +298,22 @@ deploy Rover to RoverV1;
             .unwrap()
             .passed);
         assert!(!checks.iter().find(|c| c.id == "spoof_handler").unwrap().passed);
+    }
+
+    #[test]
+    fn package_imports_add_backend_coverage_checks() {
+        let source = r#"
+import positioning.gps;
+import assurance.fusion;
+hardware RoverV1 { sensors [ GPS, IMU ]; actuators [ DifferentialDrive ]; }
+state_estimator RoverState { inputs [gps.fix, imu.data]; output StateEstimate; }
+health_check GpsHealth for robot Rover { check gps.status == Healthy; }
+robot Rover { sensor gps: GPS; on gps.spoofed { audit.record("spoof"); } }
+deploy Rover to RoverV1;
+"#;
+        let program = parse_fixture(source);
+        let (_, checks) = analyze_spoofing_coverage(&program);
+        assert!(checks.iter().find(|c| c.id == "package_gps_backend").unwrap().passed);
+        assert!(checks.iter().find(|c| c.id == "package_fusion_backend").unwrap().passed);
     }
 }
