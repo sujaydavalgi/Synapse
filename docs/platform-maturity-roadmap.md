@@ -203,7 +203,7 @@ Ordered by **adoption impact × trust impact ÷ implementation risk**.
 | Priority | Area | Rationale |
 |----------|------|-----------|
 | P3.1 | **Tamper / integrity framework** | Verify-time `spanda tamper-check` shipped; runtime integrity and `spanda integrity` planned |
-| P3.2 | **Explainability reports** (trace decisions) | Requires rich decision traces in replay v3 |
+| P3.2 | **Explainability reports** (trace decisions) | `spanda explain decision <trace>` shipped; richer replay v3 traces planned |
 | P3.3 | **AI generate / suggest** | Guardrailed codegen; mock-first; human review required |
 | P3.4 | **Runtime policy enforcement** | Depends on policy engine maturity |
 | P3.5 | **Spoofing detection** (GPS/sensor) | Package-backed; hardware-specific |
@@ -309,8 +309,8 @@ When each area ships: update `CHANGELOG.md`, `feature-status.md`, `getting-start
 
 | Deliverable | CLI |
 |-------------|-----|
-| Tamper framework | `spanda tamper-check` (verify-time); `spanda integrity`, runtime tamper (planned) |
-| Explainability | `spanda explain decision.trace` |
+| Tamper framework | `spanda tamper-check` (verify-time); `spanda integrity` (verify-time); runtime tamper (planned) |
+| Explainability | `spanda explain decision <trace>` |
 | AI assist | `spanda generate`, `spanda suggest` (guardrailed) |
 | Showcase demos | `examples/showcase/gps_spoofing/`, `package_tampering/`, … |
 

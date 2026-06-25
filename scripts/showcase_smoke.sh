@@ -91,4 +91,12 @@ echo "== showcase smoke: tamper =="
 chmod +x scripts/tamper_smoke.sh
 ./scripts/tamper_smoke.sh
 
+echo "== showcase smoke: integrity =="
+chmod +x scripts/integrity_smoke.sh
+./scripts/integrity_smoke.sh
+
+echo "== showcase smoke: decision explain =="
+chmod +x scripts/decision_explain_smoke.sh
+./scripts/decision_explain_smoke.sh
+
 echo "Showcase smoke tests passed."

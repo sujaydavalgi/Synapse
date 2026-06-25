@@ -15,7 +15,8 @@ spanda explain verify --file rover.sd
 spanda explain safety --file rover.sd
 
 # Trace decisions (Phase D)
-spanda explain decision.trace
+spanda explain decision <mission.trace> [--json]
+spanda explain <mission.trace> [--json]
 ```
 
 With `--config`, reports add **configuration validation**, **deployment gates preview**, and **package trust** sections. With `--baseline`, adds a **drift** section comparing approved vs live configuration.

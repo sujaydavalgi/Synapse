@@ -101,7 +101,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Platform maturity (Phase A)** | `spanda graph`, `spanda deploy gate`, `spanda explain` (with `--config`/`--baseline`), `spanda trust` — **Experimental**; see [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) |
 | **Platform maturity (Phase B)** | Threat model, mission diff, scorecard (`spanda score`), policy engine (`spanda verify --policy`) — **Experimental** |
 | **Platform maturity (Phase C)** | Chaos, readiness trends, resource estimation, compliance profiles, ADR (`spanda adr`) — **Experimental** |
-| **Platform maturity (Phase D)** | Verify-time tamper check (`spanda tamper-check`) — **Experimental** |
+| **Platform maturity (Phase D)** | Verify-time tamper check (`spanda tamper-check`), integrity (`spanda integrity`), decision trace explain (`spanda explain decision`) — **Experimental** |
 | **Platform maturity (Phase C–D)** | Readiness trends, resource estimation, compliance profiles, ADR, tamper check |
 | **LLVM backend (production primary)** | Optimized native binaries replacing interpreter as default deploy path |
 | **Self-hosting compiler (full)** | Complete Spanda-authored compiler pipeline |
