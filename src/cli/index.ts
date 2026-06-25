@@ -27,6 +27,7 @@ import {
 } from "../rust-bridge.js";
 import { securityCheck, securityAudit, reportHasErrors } from "../security/index.js";
 import { runOperationalCommand } from "../operational.js";
+import { runConfigCommand } from "../config-fallback.js";
 import {
   applyRollout,
   buildDeployPlan,
@@ -136,6 +137,10 @@ Package commands (require native CLI: npm run build:rust):
   spanda publish [--project <dir>]
   spanda verify-adapter [--project <dir>] [--import <path>] [--package <name>]
   spanda registry search <query>
+
+  spanda config resolve|validate|graph|diff|report [--json] [--config <spanda.toml>]
+  spanda device-tree inspect <robot-id>|graph [--json] [--config <spanda.toml>]
+  spanda map verify <file.sd> [--config <spanda.toml>] [--json]
 
 Examples:
   spanda check examples/rover.sd
@@ -382,6 +387,11 @@ async function main(): Promise<void> {
         break;
       case "registry":
         handleRegistry(positional, json);
+        break;
+      case "config":
+      case "device-tree":
+      case "map":
+        handleConfigNative(command, positional, flags);
         break;
       case "readiness":
       case "analyze-failure":
@@ -1950,6 +1960,17 @@ function handleRegistry(positional: string[], json: boolean): void {
     console.error("Usage: spanda registry search <query> | spanda registry info <package>");
     process.exit(1);
   }
+}
+
+function handleConfigNative(
+  command: string,
+  positional: string[],
+  flags: Map<string, string | boolean>,
+): void {
+  const result = runConfigCommand(command, positional, flags);
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  process.exit(result.exitCode);
 }
 
 function handleReadinessNative(
