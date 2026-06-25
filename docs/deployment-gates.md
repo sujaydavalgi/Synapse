@@ -17,6 +17,7 @@ Prevent unsafe deployment when operational gates fail.
 | Readiness | Score ≥ threshold and `mission_ready` |
 | Safety | Safety audit has no critical/high findings |
 | Capability | Capability traceability matrix PASS |
+| Package trust | Configured packages meet trust threshold (with `--config`) |
 | Health | No high-severity health readiness issues |
 
 ## CLI

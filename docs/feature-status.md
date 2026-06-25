@@ -98,7 +98,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 |------|-------------|
 | **Differentiation (NEXT)** | What-If Analysis, Mission Risk Analysis, Readiness Forecasting, Trust Graph, Scorecards |
 | **Differentiation (LATER)** | Digital Mission Twin, Certification Packs, Mission Time Travel, Human/Robot Teaming, Autonomous Governance |
-| **Platform maturity (Phase A)** | `spanda graph`, `spanda deploy gate`, `explain`, `package trust` — see [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) |
+| **Platform maturity (Phase A)** | `spanda graph`, `spanda deploy gate`, `spanda explain` (with `--config`/`--baseline`), `spanda trust` — **Experimental**; see [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) |
 | **Platform maturity (Phase B–D)** | Drift, threat model, policy engine, chaos, tamper detection, scorecard, compliance profiles |
 | **LLVM backend (production primary)** | Optimized native binaries replacing interpreter as default deploy path |
 | **Self-hosting compiler (full)** | Complete Spanda-authored compiler pipeline |

@@ -9,6 +9,7 @@ Help engineers understand code, missions, verification results, and autonomous d
 ```bash
 # Static analysis (Phase A)
 spanda explain rover.sd
+spanda explain rover.sd --config spanda.toml --baseline approved/
 spanda explain readiness --file rover.sd
 spanda explain verify --file rover.sd
 spanda explain safety --file rover.sd
@@ -17,11 +18,13 @@ spanda explain safety --file rover.sd
 spanda explain decision.trace
 ```
 
+With `--config`, reports add **configuration validation**, **deployment gates preview**, and **package trust** sections. With `--baseline`, adds a **drift** section comparing approved vs live configuration.
+
 ## Capabilities by phase
 
 | Phase | Explains |
 |-------|----------|
-| A (static) | Source structure, readiness failures, verify failures, safety rule violations |
+| A (static) | Source structure, readiness failures, verify failures, safety rule violations, config validation, deployment gates, package trust, drift (with `--baseline`) |
 | B | Policy violations, drift deltas |
 | D (trace) | Decision, reason, evidence, safety checks, chosen action, rejected actions |
 

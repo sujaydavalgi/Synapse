@@ -275,8 +275,8 @@ When each area ships: update `CHANGELOG.md`, `feature-status.md`, `getting-start
 | Deliverable | CLI | Crate | Tests |
 |-------------|-----|-------|-------|
 | Dependency graph | `spanda graph <file> [--format json\|mermaid\|dot]` | `spanda-graph` | Golden graph outputs |
-| Static explain | `spanda explain <file>`, `spanda explain readiness\|verify\|safety` | `spanda-explain` | Fixture-based explanations |
-| Package trust | `spanda package trust <name>` | `spanda-trust` | Registry fixture scoring |
+| Static explain | `spanda explain <file> [--config] [--baseline]`, subcommands `readiness\|verify\|safety` | `spanda-explain` | Fixture-based explanations |
+| Package trust | `spanda trust <name> [--version]` | `spanda-package::trust` | Registry fixture scoring |
 | Deployment gates | `spanda deploy gate <file>`, `--gate` on rollout | extends readiness | Gate pass/fail CI |
 
 **Exit criteria:** `spanda demo maturity` runs graph + explain + trust + gate on `rover.sd`.
