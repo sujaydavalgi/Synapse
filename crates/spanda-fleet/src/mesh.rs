@@ -5,6 +5,7 @@ use crate::recovery_mesh::handle_fleet_recovery_post;
 use crate::remote::{
     default_fleet_agents_path, load_fleet_agent_registry, relay_peer_deliveries, FleetAgentRegistry,
 };
+use crate::tamper_mesh::{handle_fleet_tamper_get, handle_fleet_tamper_ingest_post};
 use crate::telemetry_mesh::{handle_fleet_telemetry_get, handle_fleet_telemetry_ingest_post};
 use crate::PeerDelivery;
 use serde::{Deserialize, Serialize};
@@ -60,8 +61,13 @@ pub struct FleetMeshState {
     pub continuity_relayed_total: u32,
     pub continuity_failed_total: u32,
     pub telemetry_ingest_total: u32,
+    pub tamper_ingest_total: u32,
     #[serde(default)]
     pub telemetry_shards: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    pub tamper_shards: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    pub tamper_fleet_name: String,
     #[serde(default)]
     pub token: Option<String>,
 }
@@ -250,6 +256,8 @@ pub fn handle_fleet_mesh_request(
                     "continuity_failed_total": state.continuity_failed_total,
                     "telemetry_ingest_total": state.telemetry_ingest_total,
                     "telemetry_robots": state.telemetry_shards.len(),
+                    "tamper_ingest_total": state.tamper_ingest_total,
+                    "tamper_robots": state.tamper_shards.len(),
                     "healthy": true,
                 }))
                 .unwrap_or_else(|_| "{}".into()),
@@ -285,6 +293,12 @@ pub fn handle_fleet_mesh_request(
         ("GET", "/v1/fleet/telemetry") => handle_fleet_telemetry_get(state),
         ("POST", "/v1/fleet/telemetry/ingest") => {
             handle_fleet_telemetry_ingest_post(&request.body, state)
+        }
+        ("GET", path) if path.starts_with("/v1/fleet/tamper") => {
+            handle_fleet_tamper_get(path, state)
+        }
+        ("POST", "/v1/fleet/tamper/ingest") => {
+            handle_fleet_tamper_ingest_post(&request.body, state)
         }
         _ => HttpResponse {
             status: 404,

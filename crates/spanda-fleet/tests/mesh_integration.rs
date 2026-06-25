@@ -360,6 +360,43 @@ fn mesh_coordinator_ingests_and_merges_fleet_telemetry() {
 }
 
 #[test]
+fn mesh_coordinator_correlates_ingested_tamper_traces() {
+    use spanda_deploy_http::{ingest_fleet_tamper_trace, FleetTamperIngestRequest};
+    use spanda_fleet::fetch_live_fleet_tamper_report;
+
+    let registry = FleetAgentRegistry::default();
+    let (mesh_port, _mesh) = spawn_test_fleet_mesh(&registry).expect("spawn mesh");
+    thread::sleep(Duration::from_millis(30));
+    let mesh_url = format!("http://127.0.0.1:{mesh_port}");
+    let trace = include_str!("../../../examples/showcase/fleet_tamper/rover_alpha.trace");
+    ingest_fleet_tamper_trace(
+        &mesh_url,
+        &FleetTamperIngestRequest {
+            robot_id: "RoverAlpha".into(),
+            trace_json: trace.into(),
+            fleet_name: Some("PatrolFleet".into()),
+        },
+        None,
+    )
+    .expect("ingest alpha");
+    let trace_b = include_str!("../../../examples/showcase/fleet_tamper/rover_beta.trace");
+    ingest_fleet_tamper_trace(
+        &mesh_url,
+        &FleetTamperIngestRequest {
+            robot_id: "RoverBeta".into(),
+            trace_json: trace_b.into(),
+            fleet_name: Some("PatrolFleet".into()),
+        },
+        None,
+    )
+    .expect("ingest beta");
+    let report = fetch_live_fleet_tamper_report(&mesh_url, "PatrolFleet", None, true)
+        .expect("fetch tamper report");
+    assert!(report.contains("PatrolFleet"));
+    assert!(report.contains("shared_agent_intrusion"));
+}
+
+#[test]
 fn swarm_continuity_handoff_relays_through_mesh() {
     let (port_b, _agent_b) = spawn_test_fleet_agent("ScoutB", None).expect("spawn ScoutB");
     let mut registry = FleetAgentRegistry::default();

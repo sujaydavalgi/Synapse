@@ -1,5 +1,6 @@
 //! CLI for verify-time and runtime tamper analysis.
 //!
+use spanda_fleet::fetch_live_fleet_tamper_report;
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
 use spanda_tamper::{
@@ -43,6 +44,23 @@ fn fleet_manifest_arg(args: &[String]) -> Option<String> {
         .map(|window| window[1].clone())
 }
 
+fn mesh_url_arg(args: &[String]) -> Option<String> {
+    args.windows(2)
+        .find(|window| window[0] == "--mesh-url")
+        .map(|window| window[1].clone())
+}
+
+fn fleet_name_arg(args: &[String]) -> String {
+    args.windows(2)
+        .find(|window| window[0] == "--fleet-name")
+        .map(|window| window[1].clone())
+        .unwrap_or_else(|| "fleet".into())
+}
+
+fn mesh_token() -> Option<String> {
+    std::env::var("SPANDA_FLEET_MESH_TOKEN").ok()
+}
+
 fn json_flag(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "--json")
 }
@@ -52,13 +70,13 @@ fn file_arg(args: &[String]) -> String {
     while index < args.len() {
         match args[index].as_str() {
             "--json" | "--runtime" => index += 1,
-            "--fleet" => index += 2,
+            "--fleet" | "--mesh-url" | "--fleet-name" => index += 2,
             other if !other.starts_with('-') => return other.to_string(),
             _ => index += 1,
         }
     }
     eprintln!(
-        "Usage:\n  spanda tamper-check <file.sd|file.trace> [--runtime] [--json]\n  spanda tamper-check --fleet <manifest.json> [--json]\n  spanda diagnose tamper <file.trace> [--json]\n  spanda diagnose tamper --fleet <manifest.json> [--json]"
+        "Usage:\n  spanda tamper-check <file.sd|file.trace> [--runtime] [--json]\n  spanda tamper-check --fleet <manifest.json> [--json]\n  spanda tamper-check --mesh-url <url> [--fleet-name <name>] [--json]\n  spanda diagnose tamper <file.trace> [--json]\n  spanda diagnose tamper --fleet <manifest.json> [--json]\n  spanda diagnose tamper --mesh-url <url> [--fleet-name <name>] [--json]"
     );
     process::exit(1);
 }
@@ -79,9 +97,42 @@ fn run_fleet_tamper_check(manifest: &str, args: &[String]) {
     }
 }
 
+fn run_mesh_tamper_check(mesh_url: &str, args: &[String]) {
+    let fleet_name = fleet_name_arg(args);
+    let output = fetch_live_fleet_tamper_report(
+        mesh_url,
+        &fleet_name,
+        mesh_token().as_deref(),
+        json_flag(args),
+    )
+    .unwrap_or_else(|error| {
+        eprintln!("{error}");
+        process::exit(1);
+    });
+    println!("{output}");
+    if !json_flag(args) && output.contains("Result: FAIL") {
+        process::exit(1);
+    }
+    if json_flag(args) {
+        let report: spanda_tamper::FleetTamperReport =
+            serde_json::from_str(&output).unwrap_or_else(|error| {
+                eprintln!("invalid fleet tamper JSON: {error}");
+                process::exit(1);
+            });
+        if !report.passed {
+            process::exit(1);
+        }
+    }
+}
+
 /// `spanda tamper-check <file.sd|file.trace> [--runtime] [--json]`
 /// `spanda tamper-check --fleet <manifest.json> [--json]`
+/// `spanda tamper-check --mesh-url <url> [--fleet-name <name>] [--json]`
 pub fn tamper_check_dispatch(args: &[String]) {
+    if let Some(mesh_url) = mesh_url_arg(args) {
+        run_mesh_tamper_check(&mesh_url, args);
+        return;
+    }
     if let Some(manifest) = fleet_manifest_arg(args) {
         run_fleet_tamper_check(&manifest, args);
         return;
@@ -117,7 +168,12 @@ pub fn tamper_check_dispatch(args: &[String]) {
 
 /// `spanda diagnose tamper <file.trace> [--json]`
 /// `spanda diagnose tamper --fleet <manifest.json> [--json]`
+/// `spanda diagnose tamper --mesh-url <url> [--fleet-name <name>] [--json]`
 pub fn tamper_diagnose_dispatch(args: &[String]) {
+    if let Some(mesh_url) = mesh_url_arg(args) {
+        run_mesh_tamper_check(&mesh_url, args);
+        return;
+    }
     if let Some(manifest) = fleet_manifest_arg(args) {
         run_fleet_tamper_check(&manifest, args);
         return;

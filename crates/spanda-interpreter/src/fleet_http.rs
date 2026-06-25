@@ -2,8 +2,8 @@
 
 #[cfg(feature = "fleet-http")]
 pub use spanda_deploy_http::{
-    relay_continuity_via_mesh, relay_recovery_via_mesh, FleetContinuityRequest,
-    FleetContinuityResponse, FleetRecoveryRequest, FleetRecoveryResponse,
+    ingest_fleet_tamper_trace, relay_continuity_via_mesh, relay_recovery_via_mesh,
+    FleetContinuityRequest, FleetRecoveryRequest, FleetTamperIngestRequest,
 };
 
 #[cfg(not(feature = "fleet-http"))]
@@ -82,5 +82,33 @@ pub fn relay_continuity_via_mesh(
     _request: &FleetContinuityRequest,
     _token: Option<&str>,
 ) -> Result<FleetContinuityResponse, String> {
+    Err("fleet mesh HTTP is disabled in this build".into())
+}
+
+/// Tamper trace shard posted to the fleet mesh coordinator.
+#[cfg(not(feature = "fleet-http"))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FleetTamperIngestRequest {
+    pub robot_id: String,
+    pub trace_json: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fleet_name: Option<String>,
+}
+
+/// Result of ingesting one robot tamper trace shard.
+#[cfg(not(feature = "fleet-http"))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FleetTamperIngestResponse {
+    pub ok: bool,
+    pub robots: u32,
+}
+
+/// Ingest a tamper trace shard into the fleet mesh coordinator.
+#[cfg(not(feature = "fleet-http"))]
+pub fn ingest_fleet_tamper_trace(
+    _mesh_url: &str,
+    _request: &FleetTamperIngestRequest,
+    _token: Option<&str>,
+) -> Result<FleetTamperIngestResponse, String> {
     Err("fleet mesh HTTP is disabled in this build".into())
 }

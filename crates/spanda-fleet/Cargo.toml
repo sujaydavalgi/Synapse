@@ -19,6 +19,7 @@ spanda-interpreter = { path = "../spanda-interpreter", default-features = false,
 spanda-lexer = { path = "../spanda-lexer" }
 spanda-parser = { path = "../spanda-parser" }
 spanda-readiness = { path = "../spanda-readiness" }
+spanda-tamper = { path = "../spanda-tamper" }
 spanda-runtime = { path = "../spanda-runtime" }
 spanda-telemetry-store = { path = "../spanda-telemetry-store", default-features = false }
 

@@ -21,7 +21,8 @@ pub use diagnosis::{
     TamperTimelineEvent,
 };
 pub use fleet::{
-    correlate_fleet_tamper, format_fleet_tamper_report, load_fleet_tamper_manifest,
+    build_fleet_tamper_report, correlate_fleet_tamper, correlate_fleet_tamper_traces,
+    format_fleet_tamper_report, load_fleet_tamper_manifest,
     FleetTamperCorrelation, FleetTamperManifest, FleetTamperMember, FleetTamperReport,
     MemberTamperDiagnosis,
 };

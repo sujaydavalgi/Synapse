@@ -265,6 +265,7 @@ fn usage() {
            spanda adr <file.sd> [--json] [--out <dir>]\n\
            spanda tamper-check <file.sd|file.trace> [--runtime] [--json]\n\
            spanda tamper-check --fleet <manifest.json> [--json]\n\
+           spanda tamper-check --mesh-url <url> [--fleet-name <name>] [--json]\n\
            spanda spoof-check <file.sd|file.trace> [--json]\n\
            spanda integrity <file.sd> [--baseline <file.sd>] [--agent <Robot@Hardware>] [--config <spanda.toml>] [--json]\n\
            spanda generate mission|robot|health-policy [--backend template|llm] [--json] [--out <file.sd>]\n\

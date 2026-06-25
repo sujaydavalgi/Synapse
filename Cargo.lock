@@ -1549,6 +1549,7 @@ dependencies = [
  "spanda-lexer",
  "spanda-parser",
  "spanda-readiness",
+ "spanda-tamper",
 ]
 
 [[package]]
@@ -1814,6 +1815,7 @@ dependencies = [
  "spanda-parser",
  "spanda-readiness",
  "spanda-runtime",
+ "spanda-tamper",
  "spanda-telemetry-store",
 ]
 
@@ -2205,6 +2207,7 @@ dependencies = [
  "serde_json",
  "spanda-ast",
  "spanda-connectivity",
+ "spanda-deploy-http",
  "spanda-lexer",
  "spanda-parser",
 ]

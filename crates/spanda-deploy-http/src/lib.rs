@@ -2,6 +2,7 @@
 //!
 pub mod fleet_continuity;
 pub mod fleet_recovery;
+pub mod fleet_tamper;
 
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{
@@ -738,3 +739,7 @@ pub use fleet_continuity::{
     relay_continuity_via_mesh, FleetContinuityRequest, FleetContinuityResponse,
 };
 pub use fleet_recovery::{relay_recovery_via_mesh, FleetRecoveryRequest, FleetRecoveryResponse};
+pub use fleet_tamper::{
+    fetch_fleet_tamper_report, ingest_fleet_tamper_trace, FleetTamperIngestRequest,
+    FleetTamperIngestResponse,
+};

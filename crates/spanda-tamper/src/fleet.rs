@@ -116,13 +116,93 @@ pub fn correlate_fleet_tamper(manifest_path: &Path) -> Result<FleetTamperReport,
     let passed = members.iter().all(|member| member.passed)
         && correlations.iter().all(|event| event.confidence < 0.85);
 
-    Ok(FleetTamperReport {
-        fleet: manifest.fleet,
+    Ok(build_fleet_tamper_report(
+        manifest.fleet,
         members,
         correlations,
         fleet_trust_score,
         passed,
-    })
+    ))
+}
+
+/// Build a fleet tamper report from pre-diagnosed member traces.
+pub fn build_fleet_tamper_report(
+    fleet: String,
+    members: Vec<MemberTamperDiagnosis>,
+    correlations: Vec<FleetTamperCorrelation>,
+    fleet_trust_score: u32,
+    passed: bool,
+) -> FleetTamperReport {
+    // Assemble a fleet tamper correlation report from member diagnoses.
+    //
+    // Parameters:
+    // - `fleet` — fleet label
+    // - `members` — per-robot tamper diagnoses
+    // - `correlations` — cross-member correlation events
+    // - `fleet_trust_score` — rolled-up fleet trust score
+    // - `passed` — overall pass/fail
+    //
+    // Returns:
+    // Fleet tamper correlation report.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let report = build_fleet_tamper_report("PatrolFleet".into(), members, correlations, 75, false);
+
+    FleetTamperReport {
+        fleet,
+        members,
+        correlations,
+        fleet_trust_score,
+        passed,
+    }
+}
+
+/// Correlate tamper signals from in-memory member traces (mesh ingest or tests).
+pub fn correlate_fleet_tamper_traces(
+    fleet: &str,
+    traces: &[(String, MissionTrace, String)],
+) -> FleetTamperReport {
+    // Diagnose each member trace and correlate cross-fleet tamper patterns.
+    //
+    // Parameters:
+    // - `fleet` — fleet label
+    // - `traces` — robot id, trace, and source label tuples
+    //
+    // Returns:
+    // Fleet tamper correlation report.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let report = correlate_fleet_tamper_traces("PatrolFleet", &members);
+
+    let mut members = Vec::new();
+    for (robot, trace, label) in traces {
+        let diagnosis = diagnose_tamper_trace(trace, label);
+        members.push(MemberTamperDiagnosis {
+            robot: robot.clone(),
+            trace: label.clone(),
+            tamper_status: diagnosis.tamper_status,
+            trust_score: diagnosis.trust_score,
+            passed: diagnosis.passed,
+            diagnosis,
+        });
+    }
+    let correlations = detect_fleet_correlations(&members);
+    let fleet_trust_score = compute_fleet_trust_score(&members, &correlations);
+    let passed = members.iter().all(|member| member.passed)
+        && correlations.iter().all(|event| event.confidence < 0.85);
+    build_fleet_tamper_report(
+        fleet.into(),
+        members,
+        correlations,
+        fleet_trust_score,
+        passed,
+    )
 }
 
 /// Format a fleet tamper report for CLI output.
