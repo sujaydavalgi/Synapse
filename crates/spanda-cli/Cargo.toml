@@ -51,6 +51,7 @@ spanda-explain = { path = "../spanda-explain" }
 spanda-graph = { path = "../spanda-graph" }
 spanda-threat = { path = "../spanda-threat" }
 spanda-diff = { path = "../spanda-diff" }
+spanda-score = { path = "../spanda-score" }
 spanda-decision = { path = "../spanda-decision" }
 spanda-telemetry-store = { path = "../spanda-telemetry-store", features = ["sqlite", "push"] }
 spanda-lint = { path = "../spanda-lint" }
