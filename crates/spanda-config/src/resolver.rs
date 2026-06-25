@@ -244,7 +244,7 @@ pub fn merge_values(
                 let strategy = hints
                     .get(&key)
                     .copied()
-                    .unwrap_or(MergeStrategyHint::Replace)
+                    .unwrap_or_else(|| default_array_strategy(&key))
                     .into();
                 let merged_entry = if let Some(base_val) = base_table.remove(&key) {
                     merge_entry(base_val, overlay_val, strategy, &key)?
@@ -290,6 +290,13 @@ fn merge_entry(
             Ok(toml::Value::Array(overlay_arr.clone()))
         }
         (_, overlay, _) => Ok(overlay.clone()),
+    }
+}
+
+fn default_array_strategy(key: &str) -> MergeStrategyHint {
+    match key {
+        "robots" | "devices" => MergeStrategyHint::MergeById,
+        _ => MergeStrategyHint::Replace,
     }
 }
 

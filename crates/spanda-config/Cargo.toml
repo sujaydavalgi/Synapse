@@ -11,6 +11,7 @@ toml = "0.8"
 thiserror = "2"
 spanda-hardware = { path = "../spanda-hardware" }
 spanda-package = { path = "../spanda-package" }
+spanda-ast = { path = "../spanda-ast" }
 
 [dev-dependencies]
 tempfile = "3"

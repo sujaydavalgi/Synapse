@@ -319,3 +319,42 @@ fn validation_severity_counts() {
         )
     }));
 }
+
+#[test]
+fn resolve_for_source_from_project_dir() {
+    let root = fixture_root();
+    let cfg = spanda_config::resolve_for_source(&root, None, true)
+        .expect("resolve")
+        .expect("config");
+    assert_eq!(cfg.project_name(), "Warehouse Patrol");
+}
+
+#[test]
+fn health_inject_faults_uses_robot_policy() {
+    let root = fixture_root();
+    let resolved = ConfigResolver::new()
+        .resolve_from_dir(&root)
+        .expect("resolve");
+    let faults = spanda_config::health_inject_faults(&resolved, "rover-001");
+    assert!(!faults.is_empty());
+}
+
+#[test]
+fn provider_packages_include_device_tree_providers() {
+    let root = fixture_root();
+    let resolved = ConfigResolver::new()
+        .resolve_from_dir(&root)
+        .expect("resolve");
+    let packages = spanda_config::provider_packages_for_runtime(&resolved);
+    assert!(!packages.is_empty());
+}
+
+#[test]
+fn assurance_policy_reads_minimum_score() {
+    let root = fixture_root();
+    let resolved = ConfigResolver::new()
+        .resolve_from_dir(&root)
+        .expect("resolve");
+    let policy = spanda_config::assurance_policy(&resolved);
+    assert_eq!(policy.minimum_score, 70);
+}
