@@ -202,7 +202,7 @@ Ordered by **adoption impact × trust impact ÷ implementation risk**.
 
 | Priority | Area | Rationale |
 |----------|------|-----------|
-| P3.1 | **Tamper / integrity framework** | Verify-time `spanda tamper-check` shipped; runtime integrity and `spanda integrity` planned |
+| P3.1 | **Tamper / integrity framework** | Verify-time `spanda tamper-check` and `spanda integrity` with `--baseline` and `--agent` |
 | P3.2 | **Explainability reports** (trace decisions) | `spanda explain decision <trace>` shipped; richer replay v3 traces planned |
 | P3.3 | **AI generate / suggest** | Mock-first templates with parse+typecheck gate; `spanda generate`, `spanda suggest` |
 | P3.4 | **Runtime policy enforcement** | `spanda run|sim --enforce-policy` for max_speed and operation_hours |
