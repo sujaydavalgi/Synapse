@@ -7,9 +7,9 @@ Guardrailed scaffolding and static suggestions for Spanda programs. All generate
 ## CLI
 
 ```bash
-spanda generate mission [--robot Rover] [--mission Patrol] [--out patrol.sd]
-spanda generate robot [--robot Rover] [--hardware RoverV1] [--json]
-spanda generate health-policy [--health-policy RoverPolicy] [--out health.sd]
+spanda generate mission [--backend template|llm] [--robot Rover] [--mission Patrol] [--out patrol.sd]
+spanda generate robot [--backend template|llm] [--robot Rover] [--hardware RoverV1] [--json]
+spanda generate health-policy [--backend template|llm] [--health-policy RoverPolicy] [--out health.sd]
 spanda suggest examples/showcase/readiness/rover.sd [--json]
 ```
 
@@ -20,7 +20,8 @@ spanda suggest examples/showcase/readiness/rover.sd [--json]
 | Parse + typecheck | Every `spanda generate` scaffold is validated before reporting success |
 | Suggest-only | `spanda suggest` never writes files — recommendations only |
 | No auto-deploy | Generated source must pass `spanda verify` separately before deploy |
-| Mock-first | Template-based generation; external LLM providers planned |
+| Mock-first | Template-based generation by default |
+| Optional LLM | `--backend llm` posts the template to `SPANDA_LLM_ENDPOINT` (falls back to template when unset) |
 
 ## Suggestions
 

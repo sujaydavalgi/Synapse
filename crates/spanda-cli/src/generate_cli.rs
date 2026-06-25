@@ -2,7 +2,7 @@
 //!
 use spanda_generate::{
     format_generation_report, format_suggest_report, generate_health_policy, generate_mission_program,
-    generate_robot_program, suggest_program, GenerateOptions,
+    generate_robot_program, suggest_program, GenerateBackend, GenerateOptions,
 };
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
@@ -55,6 +55,13 @@ fn build_options(args: &[String]) -> GenerateOptions {
     if let Some(name) = flag_value(args, "--health-check") {
         options.health_check_name = name;
     }
+    if let Some(backend) = flag_value(args, "--backend") {
+        options.backend = if backend.eq_ignore_ascii_case("llm") {
+            GenerateBackend::Llm
+        } else {
+            GenerateBackend::Template
+        };
+    }
     options
 }
 
@@ -85,7 +92,7 @@ pub fn generate_dispatch(args: &[String]) {
         "health-policy" => emit_generation(args, generate_health_policy(&options)),
         _ => {
             eprintln!(
-                "Usage:\n  spanda generate mission|robot|health-policy [--robot <name>] [--hardware <name>] [--mission <name>] [--json] [--out <file.sd>]"
+                "Usage:\n  spanda generate mission|robot|health-policy [--robot <name>] [--hardware <name>] [--mission <name>] [--backend template|llm] [--json] [--out <file.sd>]"
             );
             process::exit(1);
         }

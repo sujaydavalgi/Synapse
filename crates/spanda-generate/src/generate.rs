@@ -1,7 +1,17 @@
 //! Template-based Spanda source generation (mock-first, guardrailed).
 
+use crate::llm::refine_with_llm;
 use crate::validate::validate_generated_source;
 use serde::{Deserialize, Serialize};
+
+/// Generation backend — template scaffolds or optional external LLM refinement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum GenerateBackend {
+    #[default]
+    Template,
+    Llm,
+}
 
 /// Kind of scaffold to generate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,6 +26,8 @@ pub enum GenerateKind {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GenerateOptions {
     pub kind: GenerateKind,
+    #[serde(default)]
+    pub backend: GenerateBackend,
     pub robot_name: String,
     pub hardware_name: String,
     pub mission_name: String,
@@ -28,6 +40,7 @@ impl Default for GenerateOptions {
     fn default() -> Self {
         Self {
             kind: GenerateKind::Mission,
+            backend: GenerateBackend::Template,
             robot_name: "Rover".into(),
             hardware_name: "RoverV1".into(),
             mission_name: "Patrol".into(),
@@ -42,6 +55,9 @@ impl Default for GenerateOptions {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GenerationReport {
     pub kind: GenerateKind,
+    pub backend: GenerateBackend,
+    #[serde(default)]
+    pub backend_note: Option<String>,
     pub source: String,
     pub validated: bool,
     pub validation_error: Option<String>,
@@ -64,7 +80,7 @@ pub fn generate_mission_program(options: &GenerateOptions) -> GenerationReport {
     // let report = generate_mission_program(&GenerateOptions::default());
 
     let source = render_mission_program(options);
-    finalize_report(GenerateKind::Mission, source)
+    finalize_report(GenerateKind::Mission, options.backend, "mission", source)
 }
 
 /// Generate a rover hardware + robot scaffold.
@@ -84,7 +100,7 @@ pub fn generate_robot_program(options: &GenerateOptions) -> GenerationReport {
     // let report = generate_robot_program(&GenerateOptions::default());
 
     let source = render_robot_program(options);
-    finalize_report(GenerateKind::Robot, source)
+    finalize_report(GenerateKind::Robot, options.backend, "robot", source)
 }
 
 /// Generate health check and health policy blocks for a robot.
@@ -104,7 +120,7 @@ pub fn generate_health_policy(options: &GenerateOptions) -> GenerationReport {
     // let report = generate_health_policy(&GenerateOptions::default());
 
     let source = render_health_policy_program(options);
-    finalize_report(GenerateKind::HealthPolicy, source)
+    finalize_report(GenerateKind::HealthPolicy, options.backend, "health-policy", source)
 }
 
 /// Format a generation report for CLI output.
@@ -128,7 +144,7 @@ pub fn format_generation_report(report: &GenerationReport, json: bool) -> String
         return serde_json::to_string_pretty(report).unwrap_or_else(|error| error.to_string());
     }
     let mut lines = vec![
-        format!("Generated {:?} scaffold", report.kind),
+        format!("Generated {:?} scaffold ({:?} backend)", report.kind, report.backend),
         format!(
             "Validation: {}",
             if report.validated {
@@ -138,6 +154,9 @@ pub fn format_generation_report(report: &GenerationReport, json: bool) -> String
             }
         ),
     ];
+    if let Some(note) = &report.backend_note {
+        lines.push(format!("Backend note: {note}"));
+    }
     if let Some(error) = &report.validation_error {
         lines.push(format!("Validation error: {error}"));
     }
@@ -146,20 +165,48 @@ pub fn format_generation_report(report: &GenerationReport, json: bool) -> String
     lines.join("\n")
 }
 
-fn finalize_report(kind: GenerateKind, source: String) -> GenerationReport {
+fn finalize_report(
+    kind: GenerateKind,
+    backend: GenerateBackend,
+    kind_label: &str,
+    template: String,
+) -> GenerationReport {
+    let (source, backend_note) = apply_generation_backend(backend, kind_label, template);
     match validate_generated_source(&source) {
         Ok(()) => GenerationReport {
             kind,
+            backend,
+            backend_note,
             source,
             validated: true,
             validation_error: None,
         },
         Err(error) => GenerationReport {
             kind,
+            backend,
+            backend_note,
             source,
             validated: false,
             validation_error: Some(error),
         },
+    }
+}
+
+fn apply_generation_backend(
+    backend: GenerateBackend,
+    kind_label: &str,
+    template: String,
+) -> (String, Option<String>) {
+    if backend != GenerateBackend::Llm {
+        return (template, None);
+    }
+
+    match refine_with_llm(kind_label, &template) {
+        Ok(source) => (source, Some("refined via SPANDA_LLM_ENDPOINT".into())),
+        Err(error) => (
+            template,
+            Some(format!("template fallback: {error}")),
+        ),
     }
 }
 
