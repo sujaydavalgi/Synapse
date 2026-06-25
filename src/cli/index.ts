@@ -139,6 +139,7 @@ Package commands (require native CLI: npm run build:rust):
   spanda registry search <query>
 
   spanda config resolve|validate|graph|diff|drift|report [--json] [--network] [--config <spanda.toml>]
+  spanda drift <file.sd> [--agent <Robot@Hardware>] [--config <spanda.toml>] [--json]
   spanda drift --baseline <dir> [--config <spanda.toml>] [program.sd] [--json]
   spanda device discover|inspect <id> [--subnet CIDR] [--json] [--config <spanda.toml>]
   spanda device-tree inspect <robot-id>|graph [--json] [--config <spanda.toml>]

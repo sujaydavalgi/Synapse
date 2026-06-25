@@ -288,7 +288,7 @@ Compact snapshot — full matrix: [docs/feature-status.md](docs/feature-status.m
 | Security / Encryption | **Stable** | Capabilities, audit, AES-GCM wire frames; live TLS optional |
 | Package System | **Stable** | `spanda install`, `build`, `test`, hosted index |
 | Provider Registry | **Stable** | Official packages + dispatch; local mirror |
-| Cascading configuration | **Experimental** | `spanda config`, device identity registry, `device discover`, `network scan`, `--config` on run/verify/readiness/replay |
+| Cascading configuration | **Experimental** | `spanda config`, `spanda drift`, device identity registry, `device discover`, `network scan`, `--config` / `--baseline` on readiness |
 | Fleet | **Experimental** | In-process sim stable; distributed HTTP agents experimental |
 | IoT | **Experimental** | Live Modbus/OPC-UA env-gated; hub fallback |
 | Debugger | **Experimental** | VS Code DAP via `spanda-dap` |

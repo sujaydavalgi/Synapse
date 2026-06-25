@@ -116,7 +116,7 @@ Reference fragments via `[config] network_devices = "spanda.network-devices.toml
 | `spanda config graph` | Show config dependency graph |
 | `spanda config diff <a> <b>` | Diff two config files |
 | `spanda config drift --baseline <dir>` | Semantic drift vs approved baseline |
-| `spanda drift --baseline <dir>` | Same as `config drift` |
+| `spanda drift <file.sd> [--agent Robot@HW]` | Program + agent drift vs deploy/fleet agents |
 | `spanda config report` | Full configuration report |
 | `spanda config report --network` | Network/device identity report only |
 | `spanda device discover` | List configured devices; optional `--subnet` scan |

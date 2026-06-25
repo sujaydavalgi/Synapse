@@ -229,6 +229,7 @@ fn usage() {
            spanda config diff <base.toml> <other.toml> [--json]\n\
            spanda config drift --baseline <dir|spanda.toml> [--config <spanda.toml>] [program.sd] [--json]\n\
            spanda config report [--json] [--network] [--config <spanda.toml>]\n\
+           spanda drift <file.sd> [--agent <Robot@Hardware>] [--config <spanda.toml>] [--json]\n\
            spanda drift --baseline <dir|spanda.toml> [--config <spanda.toml>] [program.sd] [--json]\n\
            spanda device discover [--subnet CIDR] [--json] [--config <spanda.toml>]\n\
            spanda device inspect <id> [--json] [--config <spanda.toml>]\n\

@@ -2,7 +2,7 @@
 
 **Status:** Experimental · **Phase:** Deploy, Operate · **Priority:** P1.1
 
-Detect mismatch between **expected** (approved baseline configuration) and **actual** (live resolved configuration), plus optional program-to-config mapping alignment.
+Detect mismatch between **expected** (approved baseline configuration, declared deploy posture, and program artifacts) and **actual** (live resolved configuration and on-device agent reports).
 
 ## CLI
 
@@ -10,29 +10,43 @@ Detect mismatch between **expected** (approved baseline configuration) and **act
 # Compare approved baseline against live project config
 spanda drift --baseline configs/approved/ --config spanda.toml
 
-# Same via config subcommand
-spanda config drift --baseline configs/approved/ --config spanda.toml
+# Program + live deploy agent check (uses .spanda/deploy-agents.json)
+spanda drift rover.sd --agent Rover@JetsonOrin --config spanda.toml
 
-# Include program mapping checks against live config
-spanda drift --baseline configs/approved/ --config spanda.toml rover.sd
+# Program drift against all registered deploy/fleet agents
+spanda drift rover.sd --config spanda.toml
+
+# Config subcommand alias
+spanda config drift --baseline configs/approved/ rover.sd --json
 
 # Readiness with baseline drift gates
 spanda readiness rover.sd --config spanda.toml --baseline configs/approved/
-
-# JSON output
-spanda drift --baseline configs/approved/ --config spanda.toml --json
 ```
 
 ## Comparison dimensions
 
-| Dimension | Baseline | Current |
-|-----------|----------|---------|
-| Configuration | Merged TOML keys | Live merged TOML |
-| Fleet | `fleet.id`, robot ids | Live fleet tree |
-| Device | `DeviceRegistry` identity fields | Live device records |
-| Provider / Package | Declared providers and packages | Live manifests |
-| Mapping | Logical-to-physical sensors/actuators | Live mapping |
-| Program | — | `.sd` sensors/actuators vs live map (when file provided) |
+| Dimension | Expected | Actual |
+|-----------|----------|--------|
+| Configuration | Baseline merged TOML | Live merged TOML |
+| Fleet | Baseline fleet tree | Live fleet tree |
+| Device | Baseline `DeviceRegistry` | Live device records |
+| Provider / Package | Baseline manifests | Live manifests |
+| Mapping | Baseline logical map | Live logical map |
+| Program | `.sd` sensors/actuators | Live logical map |
+| Hardware | `deploy … to <profile>` | Agent `/v1/status` `hardware_profile` |
+| Firmware | Device `firmware_version` in config | Agent `/v1/status` `firmware_version` |
+| Program hash | SHA-256 of `.sd` file | Agent `/v1/status` `program_hash` |
+| Packages | `ResolvedSystemConfig.packages` | Agent `/v1/status` `packages` |
+
+## Agent status fields
+
+Deploy agents (`spanda deploy agent`) and fleet agents (`spanda fleet agent`) expose drift fields on `GET /v1/status`:
+
+- `program_hash` — set on rollout
+- `hardware_profile` — from deploy assignment or rollout payload
+- `firmware_version` — optional rollout metadata
+- `packages` — optional rollout metadata
+- `healthy` — agent health flag
 
 ## Output
 
@@ -40,7 +54,9 @@ spanda drift --baseline configs/approved/ --config spanda.toml --json
 
 ## Foundation
 
-Implemented in `spanda-config::drift` (semantic comparison on `ResolvedSystemConfig`). Readiness integrates drift via `--baseline`. Agent/firmware/hardware drift (live agent `/v1/status`) remains planned.
+- Semantic config comparison: `spanda-config::drift`
+- Agent snapshot comparison: `expected_agent_states` + `detect_agent_drift`
+- Readiness baseline gates: `spanda readiness --baseline`
 
 ## Related
 

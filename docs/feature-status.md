@@ -18,7 +18,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Distributed fleet** | `fleet orchestrate --remote`, agent registry — Experimental |
 | **CLI install** | `cargo install --path crates/spanda-cli` → binary `spanda` — Stable |
 | **Bundled demos** | `spanda demo` without full clone — Stable |
-| **Cascading configuration** | `spanda config`, `spanda drift`, `spanda device discover|inspect`, `spanda network scan`, `spanda device-tree`, `spanda map verify`; `DeviceRegistry` + network identity validation; configuration drift vs `--baseline`; `--config` on run/verify/readiness/replay/assurance — Experimental |
+| **Cascading configuration** | `spanda config`, `spanda drift`, `spanda device discover|inspect`, `spanda network scan`, `spanda device-tree`, `spanda map verify`; `DeviceRegistry` + network identity validation; config and agent drift (`--baseline`, `--agent`); `--config` on run/verify/readiness/replay/assurance — Experimental |
 
 ## v0.2.0 — Officially Supported
 
