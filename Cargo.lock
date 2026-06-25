@@ -1384,6 +1384,7 @@ dependencies = [
  "spanda-readiness",
  "spanda-runtime",
  "spanda-runtime-faults",
+ "spanda-score",
  "spanda-security",
  "spanda-sir",
  "spanda-telemetry-store",
@@ -2058,6 +2059,23 @@ version = "0.4.0"
 dependencies = [
  "spanda-ast",
  "spanda-runtime",
+]
+
+[[package]]
+name = "spanda-score"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "spanda-assurance",
+ "spanda-ast",
+ "spanda-capability",
+ "spanda-config",
+ "spanda-hardware",
+ "spanda-lexer",
+ "spanda-parser",
+ "spanda-readiness",
+ "spanda-threat",
 ]
 
 [[package]]
