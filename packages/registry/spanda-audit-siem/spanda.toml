@@ -1,0 +1,17 @@
+[package]
+name = "spanda-audit-siem"
+version = "0.1.0"
+description = "SIEM export adapter for Spanda Control Center mutation audit trail"
+license = "Apache-2.0"
+
+[safety]
+level = "sensors"
+
+[capabilities]
+required = [
+  "network.http",
+]
+
+[adapter]
+provides = ["audit.siem"]
+requires = ["network.http"]

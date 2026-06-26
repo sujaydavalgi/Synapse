@@ -1,0 +1,17 @@
+[package]
+name = "spanda-alert-escalation"
+version = "0.1.0"
+description = "On-call rotation and alert escalation policy templates for Spanda Control Center"
+license = "Apache-2.0"
+
+[safety]
+level = "sensors"
+
+[capabilities]
+required = [
+  "network.http",
+]
+
+[adapter]
+provides = ["alerting.escalation"]
+requires = ["network.http"]
