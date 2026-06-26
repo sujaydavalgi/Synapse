@@ -97,6 +97,10 @@ curl -sf -X POST "http://${BIND}/v1/readiness/run" | grep -q mission_ready
 echo "== GET /v1/failover/chains =="
 fetch /v1/failover/chains | grep -q chains
 
+echo "== E2 failover drill (redundant chain smoke) =="
+chmod +x "${ROOT}/scripts/failover_drill_smoke.sh"
+"${ROOT}/scripts/failover_drill_smoke.sh"
+
 echo "== GET /v1/device-reports =="
 fetch /v1/device-reports | grep -q inventory
 
