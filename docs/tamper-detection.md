@@ -52,7 +52,7 @@ Verify-time `spanda tamper-check` composes threat modeling, safety audit, securi
 
 One command: `spanda demo trust` · smoke: `scripts/trust_showcase_smoke.sh`, `scripts/bundled_trust_smoke.sh`
 
-Trust showcases are bundled in the `spanda` CLI crate for `cargo install` (sync via `scripts/sync_bundled_examples.sh`).
+Trust showcases are bundled in the `spanda` CLI crate for `cargo install`; `spanda demo trust` auto-configures `SPANDA_REGISTRY_URL` from the bundled trust registry (sync via `scripts/sync_bundled_registry.sh`).
 
 ## Integration
 

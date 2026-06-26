@@ -32,3 +32,7 @@ for f in killer_demo.sd ai_safety_violation.sd hardware_compatibility.sd README.
 done
 
 echo "✓ Synced bundled examples to crates/spanda-cli/bundled-examples/"
+
+if [[ -x "${ROOT}/scripts/sync_bundled_registry.sh" ]]; then
+  "${ROOT}/scripts/sync_bundled_registry.sh"
+fi
