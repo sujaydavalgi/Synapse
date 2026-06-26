@@ -102,6 +102,13 @@ pub fn default_agents_path() -> PathBuf {
     PathBuf::from(".spanda/deploy-agents.json")
 }
 
+/// Deploy agent registry path (`SPANDA_DEPLOY_AGENTS` override).
+pub fn agents_registry_path() -> PathBuf {
+    std::env::var("SPANDA_DEPLOY_AGENTS")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| default_agents_path())
+}
+
 pub fn load_agent_registry(path: &Path) -> DeployAgentRegistry {
     // Description:
     //     Load agent registry.

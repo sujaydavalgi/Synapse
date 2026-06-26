@@ -163,7 +163,7 @@ pub fn ota_execute(body: &str, ctx: Option<&RbacContext>) -> HttpResponse {
             "rollout": result,
         }));
     }
-    let registry = load_agent_registry(&spanda_ota::default_agents_path());
+    let registry = load_agent_registry(&spanda_ota::agents_registry_path());
     let bundle = build_deploy_bundle(&plan);
     let result = execute_remote_rollout(&plan, &options, &registry, &bundle);
     if result.success {

@@ -186,6 +186,13 @@ curl -sf -X POST \
   -d '{"strategy":"all","version":"1.2.3","dry_run":true,"assignments":[{"robot_name":"rover-001","hardware":"jetson"}]}' \
   "http://${BIND}/v1/ota/execute" | grep -q '"dry_run":true'
 
+echo "== E3 GET /v1/version (API policy) =="
+fetch /v1/version | grep -q supported_versions
+
+echo "== E3 live OTA execute (deploy agent) =="
+chmod +x "${ROOT}/scripts/ota_fleet_execute_smoke.sh"
+"${ROOT}/scripts/ota_fleet_execute_smoke.sh"
+
 echo "== E2 GET /v1/discovery?transport=ble (registry package) =="
 fetch "/v1/discovery?transport=ble" | grep -q spanda-discovery-ble
 
