@@ -6,7 +6,9 @@ BIN="${CARGO_TARGET_DIR:-$ROOT/target}/debug/spanda"
 ROVER="$ROOT/examples/showcase/secure_boot/rover.sd"
 
 cd "$ROOT"
-export SPANDA_REGISTRY_URL="file://${ROOT}/registry"
+# shellcheck source=lib/registry_env.sh
+source "${ROOT}/scripts/lib/registry_env.sh"
+ensure_spanda_registry_url "$ROOT"
 cargo build -p spanda -q
 
 echo "== secure boot tamper-check =="

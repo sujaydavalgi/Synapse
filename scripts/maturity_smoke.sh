@@ -22,7 +22,9 @@ echo "$EXPLAIN" | grep -q "composite_trust"
 
 echo "== explain secure_boot on defense showcase =="
 DEFENSE="${ROOT}/examples/showcase/compliance/defense_rover.sd"
-export SPANDA_REGISTRY_URL="file://${ROOT}/registry"
+# shellcheck source=lib/registry_env.sh
+source "${ROOT}/scripts/lib/registry_env.sh"
+ensure_spanda_registry_url "$ROOT"
 EXPLAIN_SB="$(run_spanda explain "$DEFENSE" 2>&1 || true)"
 echo "$EXPLAIN_SB" | grep -q "secure_boot"
 unset SPANDA_REGISTRY_URL

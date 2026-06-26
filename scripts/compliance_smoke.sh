@@ -8,7 +8,9 @@ WAREHOUSE="${ROOT}/examples/showcase/policy/warehouse.sd"
 DEFENSE="${ROOT}/examples/showcase/compliance/defense_rover.sd"
 SECURE_BOOT="${ROOT}/examples/showcase/secure_boot/rover.sd"
 
-export SPANDA_REGISTRY_URL="file://${ROOT}/registry"
+# shellcheck source=lib/registry_env.sh
+source "${ROOT}/scripts/lib/registry_env.sh"
+ensure_spanda_registry_url "$ROOT"
 cargo build -p spanda -q
 
 if [[ -n "${SPANDA_BIN:-}" && -x "${SPANDA_BIN}" ]]; then
