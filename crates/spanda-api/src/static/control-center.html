@@ -148,15 +148,6 @@
       errEl.textContent = msg;
     }
 
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
     async function loadDashboard() {
       try {
         errEl.hidden = true;
@@ -418,20 +409,18 @@
         const data = await api("/v1/digital-thread/query" + (qs ? "?" + qs : ""));
         const thread = data.digital_thread;
         const panel = document.getElementById("tab-digital-thread");
-        const capEsc = escapeHtml(cap);
-        const devEsc = escapeHtml(dev);
         panel.innerHTML = `
           <h2>Digital thread</h2>
           <div class="dt-filters">
-            <label>Capability<input id="dt-capability" value="${capEsc}" placeholder="navigate" /></label>
-            <label>Device id<input id="dt-device" value="${devEsc}" placeholder="gps-001" /></label>
+            <label>Capability<input id="dt-capability" placeholder="navigate" /></label>
+            <label>Device id<input id="dt-device" placeholder="gps-001" /></label>
             <label>Lifecycle<select id="dt-lifecycle">
               <option value="">All phases</option>
-              <option value="requirement"${phase==="requirement"?" selected":""}>Requirement</option>
-              <option value="design"${phase==="design"?" selected":""}>Design</option>
-              <option value="deploy"${phase==="deploy"?" selected":""}>Deploy</option>
-              <option value="operate"${phase==="operate"?" selected":""}>Operate</option>
-              <option value="retire"${phase==="retire"?" selected":""}>Retire</option>
+              <option value="requirement">Requirement</option>
+              <option value="design">Design</option>
+              <option value="deploy">Deploy</option>
+              <option value="operate">Operate</option>
+              <option value="retire">Retire</option>
             </select></label>
             <button type="button" id="dt-query">Query</button>
           </div>
@@ -440,6 +429,9 @@
           <div class="dt-graph-wrap" id="dt-graph"></div>
           <div class="dt-detail" id="dt-detail"></div>
           <details><summary>Chain summary</summary><pre>${JSON.stringify(thread.chain_summary, null, 2)}</pre></details>`;
+        document.getElementById("dt-capability").value = cap;
+        document.getElementById("dt-device").value = dev;
+        document.getElementById("dt-lifecycle").value = phase;
         document.getElementById("dt-query").onclick = loadDigitalThread;
         renderDigitalThreadGraph(document.getElementById("dt-graph"), thread, document.getElementById("dt-detail"));
       } catch (e) { showError(String(e)); }
