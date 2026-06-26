@@ -10,8 +10,8 @@ pub mod spanda_v1 {
 
 use spanda_v1::control_center_server::{ControlCenter, ControlCenterServer};
 use spanda_v1::{
-    DriftRequest, Empty, HealthResponse, JsonBodyRequest, JsonResponse, QueryRequest,
-    ReadinessRequest, TrustPackageRequest,
+    DeviceBodyRequest, DeviceIdRequest, DriftRequest, Empty, HealthResponse, JsonBodyRequest,
+    JsonResponse, QueryRequest, ReadinessRequest, TrustPackageRequest,
 };
 
 struct GrpcControlCenter {
@@ -96,6 +96,85 @@ impl ControlCenter for GrpcControlCenter {
     ) -> Result<Response<JsonResponse>, Status> {
         self.with_state(|state| crate::handlers::devices_list_json(state))
             .map(Response::new)
+    }
+
+    async fn get_device(
+        &self,
+        request: Request<DeviceIdRequest>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let device_id = request.into_inner().device_id;
+        self.with_state(|state| crate::handlers::device_get_json(state, &device_id))
+            .map(Response::new)
+    }
+
+    async fn patch_device(
+        &self,
+        request: Request<DeviceBodyRequest>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let ctx = self.rbac_from_request(&request);
+        let inner = request.into_inner();
+        self.with_state_mut(|state| {
+            crate::handlers::device_patch_json(state, &inner.device_id, &inner.body_json, ctx.as_ref())
+        })
+        .map(Response::new)
+    }
+
+    async fn device_provision(
+        &self,
+        request: Request<DeviceBodyRequest>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let ctx = self.rbac_from_request(&request);
+        let inner = request.into_inner();
+        self.with_state_mut(|state| {
+            crate::handlers::device_provision_json(
+                state,
+                &inner.device_id,
+                &inner.body_json,
+                ctx.as_ref(),
+            )
+        })
+        .map(Response::new)
+    }
+
+    async fn device_assign(
+        &self,
+        request: Request<DeviceBodyRequest>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let ctx = self.rbac_from_request(&request);
+        let inner = request.into_inner();
+        self.with_state_mut(|state| {
+            crate::handlers::device_assign_json(
+                state,
+                &inner.device_id,
+                &inner.body_json,
+                ctx.as_ref(),
+            )
+        })
+        .map(Response::new)
+    }
+
+    async fn device_quarantine(
+        &self,
+        request: Request<DeviceIdRequest>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let ctx = self.rbac_from_request(&request);
+        let device_id = request.into_inner().device_id;
+        self.with_state_mut(|state| {
+            crate::handlers::device_quarantine_json(state, &device_id, ctx.as_ref())
+        })
+        .map(Response::new)
+    }
+
+    async fn device_trust(
+        &self,
+        request: Request<DeviceIdRequest>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let ctx = self.rbac_from_request(&request);
+        let device_id = request.into_inner().device_id;
+        self.with_state_mut(|state| {
+            crate::handlers::device_trust_json(state, &device_id, ctx.as_ref())
+        })
+        .map(Response::new)
     }
 
     async fn list_fleet_agents(
@@ -318,6 +397,25 @@ impl ControlCenter for GrpcControlCenter {
         Ok(Response::new(JsonResponse {
             json: crate::handlers::config_snapshots_list_json(),
         }))
+    }
+
+    async fn save_config_snapshot(
+        &self,
+        request: Request<JsonBodyRequest>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let ctx = self.rbac_from_request(&request);
+        let body = request.into_inner().body_json;
+        self.with_state(|state| crate::handlers::config_snapshots_save_json(state, &body, ctx.as_ref()))
+            .map(Response::new)
+    }
+
+    async fn test_alert(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        let ctx = self.rbac_from_request(&request);
+        self.with_state_mut(|state| crate::handlers::alerts_test_json(state, ctx.as_ref()))
+            .map(Response::new)
     }
 
     async fn get_device_tree(

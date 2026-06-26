@@ -31,10 +31,25 @@ message JsonBodyRequest {
   string body_json = 1;
 }
 
+message DeviceIdRequest {
+  string device_id = 1;
+}
+
+message DeviceBodyRequest {
+  string device_id = 1;
+  string body_json = 2;
+}
+
 service ControlCenter {
   rpc Health(Empty) returns (HealthResponse);
   rpc GetDashboard(Empty) returns (JsonResponse);
   rpc ListDevices(Empty) returns (JsonResponse);
+  rpc GetDevice(DeviceIdRequest) returns (JsonResponse);
+  rpc PatchDevice(DeviceBodyRequest) returns (JsonResponse);
+  rpc DeviceProvision(DeviceBodyRequest) returns (JsonResponse);
+  rpc DeviceAssign(DeviceBodyRequest) returns (JsonResponse);
+  rpc DeviceQuarantine(DeviceIdRequest) returns (JsonResponse);
+  rpc DeviceTrust(DeviceIdRequest) returns (JsonResponse);
   rpc ListFleetAgents(Empty) returns (JsonResponse);
   rpc EvaluateReadiness(ReadinessRequest) returns (JsonResponse);
   rpc GetSreSummary(Empty) returns (JsonResponse);
@@ -56,6 +71,8 @@ service ControlCenter {
   rpc ListFleets(Empty) returns (JsonResponse);
   rpc ListAlerts(Empty) returns (JsonResponse);
   rpc ListConfigSnapshots(Empty) returns (JsonResponse);
+  rpc SaveConfigSnapshot(JsonBodyRequest) returns (JsonResponse);
+  rpc TestAlert(Empty) returns (JsonResponse);
   rpc GetDeviceTree(Empty) returns (JsonResponse);
   rpc GetDeviceReports(Empty) returns (JsonResponse);
   rpc GetFailoverChains(Empty) returns (JsonResponse);

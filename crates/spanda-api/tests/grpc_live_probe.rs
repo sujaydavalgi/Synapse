@@ -1,7 +1,8 @@
 //! Live gRPC probe against a running Control Center (`SPANDA_GRPC_BIND`).
 use spanda_api::grpc::spanda_v1::control_center_client::ControlCenterClient;
 use spanda_api::grpc::spanda_v1::{
-    DriftRequest, Empty, JsonBodyRequest, QueryRequest, ReadinessRequest, TrustPackageRequest,
+    DeviceIdRequest, DriftRequest, Empty, JsonBodyRequest, QueryRequest, ReadinessRequest,
+    TrustPackageRequest,
 };
 use tonic::metadata::MetadataValue;
 use tonic::transport::Channel;
@@ -112,6 +113,15 @@ async fn grpc_live_control_center_endpoints() {
         .expect("discover devices")
         .into_inner();
     assert!(discovery.json.contains("installed_packages"));
+
+    let device = client
+        .get_device(DeviceIdRequest {
+            device_id: "gps-001".into(),
+        })
+        .await
+        .expect("get device")
+        .into_inner();
+    assert!(device.json.contains("gps-001") || device.json.contains("device"));
 
     if let Ok(baseline_id) = std::env::var("SPANDA_GRPC_BASELINE_ID") {
         let drift = client

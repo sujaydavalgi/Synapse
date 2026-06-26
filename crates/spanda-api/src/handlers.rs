@@ -859,6 +859,59 @@ pub fn devices_list_json(state: &ControlCenterState) -> String {
     devices_list(state).body
 }
 
+/// JSON body for gRPC `GetDevice` (parity with `GET /v1/devices/{id}`).
+pub fn device_get_json(state: &ControlCenterState, device_id: &str) -> String {
+    device_get(state, device_id).body
+}
+
+/// JSON body for gRPC `PatchDevice` (parity with `PATCH /v1/devices/{id}`).
+pub fn device_patch_json(
+    state: &mut ControlCenterState,
+    device_id: &str,
+    body: &str,
+    ctx: Option<&RbacContext>,
+) -> String {
+    device_patch(state, device_id, body, ctx).body
+}
+
+/// JSON body for gRPC `DeviceProvision` (parity with `POST /v1/devices/{id}/provision`).
+pub fn device_provision_json(
+    state: &mut ControlCenterState,
+    device_id: &str,
+    body: &str,
+    ctx: Option<&RbacContext>,
+) -> String {
+    device_provision(state, device_id, body, ctx).body
+}
+
+/// JSON body for gRPC `DeviceAssign` (parity with `POST /v1/devices/{id}/assign`).
+pub fn device_assign_json(
+    state: &mut ControlCenterState,
+    device_id: &str,
+    body: &str,
+    ctx: Option<&RbacContext>,
+) -> String {
+    device_assign(state, device_id, body, ctx).body
+}
+
+/// JSON body for gRPC `DeviceQuarantine` (parity with `POST /v1/devices/{id}/quarantine`).
+pub fn device_quarantine_json(
+    state: &mut ControlCenterState,
+    device_id: &str,
+    ctx: Option<&RbacContext>,
+) -> String {
+    device_quarantine(state, device_id, ctx).body
+}
+
+/// JSON body for gRPC `DeviceTrust` (parity with `POST /v1/devices/{id}/trust`).
+pub fn device_trust_json(
+    state: &mut ControlCenterState,
+    device_id: &str,
+    ctx: Option<&RbacContext>,
+) -> String {
+    device_trust(state, device_id, ctx).body
+}
+
 /// JSON body for gRPC `ListFleetAgents` (parity with `GET /v1/fleet/agents`).
 pub fn fleet_agents_json() -> String {
     fleet_agents().body
@@ -970,6 +1023,20 @@ pub fn alerts_list_json(state: &ControlCenterState) -> String {
 /// JSON body for gRPC `ListConfigSnapshots` (parity with `GET /v1/config/snapshots`).
 pub fn config_snapshots_list_json() -> String {
     config_snapshots_list().body
+}
+
+/// JSON body for gRPC `SaveConfigSnapshot` (parity with `POST /v1/config/snapshots`).
+pub fn config_snapshots_save_json(
+    state: &ControlCenterState,
+    body: &str,
+    ctx: Option<&RbacContext>,
+) -> String {
+    config_snapshots_save(state, body, ctx).body
+}
+
+/// JSON body for gRPC `TestAlert` (parity with `POST /v1/alerts/test`).
+pub fn alerts_test_json(state: &mut ControlCenterState, ctx: Option<&RbacContext>) -> String {
+    alerts_test(state, ctx).body
 }
 
 /// JSON body for gRPC `GetDeviceTree` (parity with `GET /v1/device-tree`).

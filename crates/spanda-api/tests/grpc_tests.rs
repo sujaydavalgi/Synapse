@@ -1,11 +1,15 @@
 //! gRPC server smoke tests for Control Center.
 use spanda_api::grpc::spanda_v1::control_center_client::ControlCenterClient;
 use spanda_api::grpc::spanda_v1::{Empty, QueryRequest, ReadinessRequest, TrustPackageRequest};
+use spanda_api::grpc::spanda_v1::{DeviceIdRequest, DeviceBodyRequest};
 use spanda_api::{run_control_center_server, ControlCenterOptions};
 use std::net::TcpListener;
+use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
 use tonic::transport::Channel;
+
+static GRPC_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 fn pick_port() -> u16 {
     TcpListener::bind("127.0.0.1:0")
@@ -196,6 +200,7 @@ async fn connect(bind: &str) -> ControlCenterClient<Channel> {
 
 #[tokio::test]
 async fn grpc_mutation_rbac_from_metadata() {
+    let _guard = GRPC_TEST_LOCK.lock().unwrap();
     std::env::set_var("SPANDA_API_KEY", "grpc-rbac-test-key");
     let http_port = pick_port();
     let grpc_port = pick_port();
@@ -236,4 +241,80 @@ async fn grpc_mutation_rbac_from_metadata() {
         .expect("plan ota with bearer")
         .into_inner();
     assert!(allowed.json.contains("rollout"));
+}
+
+#[tokio::test]
+async fn grpc_device_subresources_with_warehouse_config() {
+    let _guard = GRPC_TEST_LOCK.lock().unwrap();
+    std::env::set_var("SPANDA_API_KEY", "grpc-device-test-key");
+    let warehouse = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("spanda-config/tests/fixtures/warehouse/spanda.toml");
+    let http_port = pick_port();
+    let grpc_port = pick_port();
+    let options = ControlCenterOptions {
+        bind: format!("127.0.0.1:{http_port}"),
+        grpc_bind: Some(format!("127.0.0.1:{grpc_port}")),
+        config_path: Some(warehouse),
+        once: true,
+        timeout_ms: 500,
+        ..Default::default()
+    };
+    let grpc_bind = options.grpc_bind.clone().unwrap();
+    thread::spawn(move || {
+        let _ = run_control_center_server(&options);
+    });
+    thread::sleep(Duration::from_millis(500));
+    let mut client = connect(&grpc_bind).await;
+
+    let device = client
+        .get_device(DeviceIdRequest {
+            device_id: "gps-001".into(),
+        })
+        .await
+        .expect("get device")
+        .into_inner();
+    assert!(device.json.contains("gps-001"));
+
+    let mut alert_req = tonic::Request::new(Empty {});
+    alert_req.metadata_mut().insert(
+        "authorization",
+        tonic::metadata::MetadataValue::try_from("Bearer grpc-device-test-key").unwrap(),
+    );
+    let alert = client
+        .test_alert(alert_req)
+        .await
+        .expect("test alert")
+        .into_inner();
+    assert!(alert.json.contains("Control Center alert test"));
+
+    let mut snapshot_req = tonic::Request::new(spanda_api::grpc::spanda_v1::JsonBodyRequest {
+        body_json: r#"{"label":"grpc-snapshot"}"#.into(),
+    });
+    snapshot_req.metadata_mut().insert(
+        "authorization",
+        tonic::metadata::MetadataValue::try_from("Bearer grpc-device-test-key").unwrap(),
+    );
+    let snapshot = client
+        .save_config_snapshot(snapshot_req)
+        .await
+        .expect("save snapshot")
+        .into_inner();
+    assert!(snapshot.json.contains("snapshot"));
+
+    let mut assign_req = tonic::Request::new(DeviceBodyRequest {
+        device_id: "gps-001".into(),
+        body_json: r#"{"robot_id":"rover-001","logical_name":"gps"}"#.into(),
+    });
+    assign_req.metadata_mut().insert(
+        "authorization",
+        tonic::metadata::MetadataValue::try_from("Bearer grpc-device-test-key").unwrap(),
+    );
+    let assign = client
+        .device_assign(assign_req)
+        .await
+        .expect("device assign")
+        .into_inner();
+    assert!(assign.json.contains("result") || assign.json.contains("ok"));
 }
