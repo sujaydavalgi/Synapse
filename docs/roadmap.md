@@ -124,7 +124,7 @@ Full analysis: [enterprise-operations-roadmap.md](./enterprise-operations-roadma
 
 **Exit criteria (E3):** SDK integration test, canary deploy demo, correlation trace in observability API — **shipped** (`scripts/enterprise_ops_smoke.sh`, `packages/sdk-python`)
 
-**Exit criteria (E4):** Compliance report export and digital thread query demo — **shipped** (`scripts/enterprise_ops_smoke.sh`)
+**Exit criteria (E4):** Compliance report export, digital thread query, executive PDF export, and Tauri desktop scaffold — **shipped** (`scripts/enterprise_ops_smoke.sh`, `scripts/control_center_desktop_smoke.sh`)
 
 **UI stack:** React + TypeScript (`ControlCenterPanel` in `@spanda/web`, desktop shell `@spanda/control-center-desktop`); Rust backend (`spanda-api`); Tauri desktop scaffold (experimental).
 

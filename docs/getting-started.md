@@ -629,6 +629,46 @@ cargo doc --workspace --no-deps   # Rust crate API docs
 
 ---
 
+## Control Center (enterprise operations)
+
+Experimental E1–E4 control plane for fleet operators. Full reference: [control-center.md](./control-center.md) · [enterprise-operations-roadmap.md](./enterprise-operations-roadmap.md).
+
+### Start the API and embedded UI
+
+```bash
+cargo run -p spanda -- control-center serve --bind 127.0.0.1:8080
+```
+
+Open `http://127.0.0.1:8080` for the embedded Control Center HTML UI, or use the React panel in `@spanda/web` / the Tauri desktop shell.
+
+### Smoke test (API + desktop compile check)
+
+```bash
+./scripts/enterprise_ops_smoke.sh
+./scripts/control_center_desktop_smoke.sh
+```
+
+### Desktop shell (optional)
+
+```bash
+# Terminal 1 — API (see above)
+# Terminal 2 — Tauri dev shell (requires npm install + Tauri prerequisites)
+npm run control-center:desktop:dev
+```
+
+Point the UI at a different API URL with `VITE_CONTROL_CENTER_URL=http://host:port`.
+
+### Python SDK
+
+```bash
+pip install -e 'packages/sdk-python[stream]'
+export SPANDA_CONTROL_CENTER_URL=http://127.0.0.1:8080
+```
+
+See [packages/sdk-python/README.md](../packages/sdk-python/README.md).
+
+---
+
 ## Next steps
 
 - [language-reference/](./language-reference/README.md) — structured language topics
@@ -636,6 +676,7 @@ cargo doc --workspace --no-deps   # Rust crate API docs
 - [mission-assurance.md](./mission-assurance.md) — knowledge, state, anomaly, resilience CLI
 - [readiness.md](./readiness.md) — operational go/no-go scoring
 - [killer-demo.md](./killer-demo.md) — 5-minute safety + verify walkthrough
+- [control-center.md](./control-center.md) — enterprise Control Center API and UI
 - [realtime.md](./realtime.md) — deadline-aware tasks and wall-clock mode
 - [replay.md](./replay.md) — mission trace record and playback
 - [regex.md](./regex.md) — regex literals and filters

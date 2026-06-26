@@ -23,7 +23,7 @@ Spanda should not compete as a general-purpose language, Python replacement, Rus
 
 ### Platform maturity focus (2026–2027)
 
-Beyond core language features, Spanda prioritizes **adoption, trust, and operations** — see [platform-maturity-roadmap.md](./platform-maturity-roadmap.md), [enterprise-operations-roadmap.md](./enterprise-operations-roadmap.md), and [differentiation-roadmap.md](./differentiation-roadmap.md). Planned areas compose existing engines (`spanda-readiness`, `spanda-assurance`, `spanda-security`) rather than replacing them. **NOW (v0.5+):** mission contracts, explainability, decision audit trail, safety/recovery coverage, Control Center foundation. **NEXT:** SDKs, full drift, OTA strategies, observability.
+Beyond core language features, Spanda prioritizes **adoption, trust, and operations** — see [platform-maturity-roadmap.md](./platform-maturity-roadmap.md), [enterprise-operations-roadmap.md](./enterprise-operations-roadmap.md), and [differentiation-roadmap.md](./differentiation-roadmap.md). Planned areas compose existing engines (`spanda-readiness`, `spanda-assurance`, `spanda-security`) rather than replacing them. **NOW (v0.5+):** mission contracts, explainability, decision audit trail, safety/recovery coverage. **Shipped (experimental, E1–E4):** Control Center (`spanda control-center serve`), REST v1 API, Python SDK, WebSocket/OTLP observability, compliance/digital-thread/executive reporting, Tauri desktop scaffold — see [control-center.md](./control-center.md). **NEXT:** native gRPC, full drift dimensions, live discovery transports, production desktop installers.
 
 ### Philosophy
 

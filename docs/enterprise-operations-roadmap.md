@@ -18,26 +18,26 @@ Enterprise operations pillars compose existing engines — they do **not** repla
 
 | # | Pillar | Lifecycle phase(s) | Tier | Primary outcome |
 |---|--------|-------------------|------|-----------------|
-| 1 | **Control Center** | Operate, Observe, Govern | Planned | Web-based operational visibility |
-| 2 | **Device Pool** | Deploy, Operate | Planned | Central device inventory and lifecycle |
-| 3 | **Device Discovery** | Deploy | Planned | Package-backed discovery transports |
-| 4 | **Provisioning** | Deploy, Verify | Planned | Discover → verify → assign → ready workflow |
-| 5 | **Configuration Management** | Deploy, Operate | Experimental → Planned | Versioned cascading TOML with approval |
-| 6 | **RBAC** | Govern, Operate | Planned | Role-based access for humans and services |
-| 7 | **Secret Management** | Deploy, Govern, Security | Planned | Encrypted credentials with rotation and audit |
+| 1 | **Control Center** | Operate, Observe, Govern | Experimental | Web-based operational visibility |
+| 2 | **Device Pool** | Deploy, Operate | Experimental | Central device inventory and lifecycle |
+| 3 | **Device Discovery** | Deploy | Experimental | Package-backed discovery transports (mock mDNS in core) |
+| 4 | **Provisioning** | Deploy, Verify | Experimental | Discover → verify → assign → ready workflow |
+| 5 | **Configuration Management** | Deploy, Operate | Experimental | Versioned cascading TOML with snapshots |
+| 6 | **RBAC** | Govern, Operate | Experimental | Role-based access for humans and services |
+| 7 | **Secret Management** | Deploy, Govern, Security | Experimental | Encrypted credentials contract with rotation metadata |
 | 8 | **Telemetry** | Operate, Observe | Experimental | Time-series health, readiness, mission data |
-| 9 | **Alerting** | Operate, Recover | Planned | Multi-channel incident notifications |
+| 9 | **Alerting** | Operate, Recover | Experimental | Multi-channel incident notifications |
 | 10 | **Configuration Drift** | Operate, Verify | Experimental | Expected vs actual parity across dimensions |
 | 11 | **OTA & Rollback** | Deploy | Experimental | Canary, blue/green, phased rollout |
 | 12 | **Package Trust** | Verify, Build | Experimental | Signature, reputation, vulnerability scoring |
-| 13 | **SDKs** | Build, Operate | Planned | Python, REST, gRPC, WebSocket, CLI |
-| 14 | **Operator Workflows** | Operate, Recover | Planned | Mission approval, takeover, quarantine |
-| 15 | **SRE** | Operate, Observe | Planned | SLO/SLA, MTTR/MTBF, incident reporting |
-| 16 | **Reporting** | Govern, Audit | Planned | Fleet, mission, compliance, executive exports |
+| 13 | **SDKs** | Build, Operate | Experimental | Python SDK + REST v1; JSON-RPC gateway; WebSocket client |
+| 14 | **Operator Workflows** | Operate, Recover | Experimental | Mission approval, takeover, quarantine |
+| 15 | **SRE** | Operate, Observe | Experimental | SLO/SLA, MTTR/MTBF, incident reporting |
+| 16 | **Reporting** | Govern, Audit | Experimental | Fleet, mission, compliance, executive exports (incl. PDF) |
 | 17 | **Compliance** | Verify, Govern, Audit | Experimental | Evidence packs, immutable audit trails |
-| 18 | **APIs** | All | Planned | REST + gRPC parity with CLI surface |
-| 19 | **Observability** | Operate, Observe | Planned | Metrics, logs, traces, OpenTelemetry |
-| 20 | **Digital Thread** | Build → Retire | Future | End-to-end traceability chain |
+| 18 | **APIs** | All | Experimental | REST v1 + OpenAPI; JSON-RPC gateway |
+| 19 | **Observability** | Operate, Observe | Experimental | Trace log, OTLP export to Jaeger, WebSocket telemetry stream |
+| 20 | **Digital Thread** | Build → Retire | Experimental | End-to-end traceability chain (v1 query) |
 
 ### Tier definitions
 
@@ -105,7 +105,7 @@ Enterprise operations pillars compose existing engines — they do **not** repla
 | Telemetry backends | `spanda-telemetry-timescale`, `spanda-telemetry-influx` | Telemetry |
 | Observability exporters | `spanda-otel-collector` | Observability |
 | SDK language bindings | `spanda-sdk-python` (official package) | SDKs |
-| Control Center UI | `@spanda/control-center` (extends `packages/web`) | Control Center |
+| Control Center UI | `@spanda/web` (`ControlCenterPanel`) + embedded serve HTML | Control Center |
 | Compliance industry packs | `spanda-compliance-medical`, `spanda-compliance-defense` | Compliance |
 | Reporting templates | `spanda-report-executive`, `spanda-report-fleet` | Reporting |
 
@@ -129,7 +129,7 @@ Enterprise operations pillars compose existing engines — they do **not** repla
 
 ```mermaid
 flowchart TB
-  subgraph ui ["@spanda/control-center"]
+  subgraph ui ["Control Center UI (@spanda/web)"]
     DASH["Dashboard"]
     FLEET["Fleet View"]
     MISSION["Mission View"]
@@ -520,9 +520,9 @@ Builds on `spanda-capability` traceability matrices + `spanda-audit` + mission c
 
 | Horizon | Timeline | Pillars |
 |---------|----------|---------|
-| **NOW** | 0–6 months (v0.5–v0.6) | Control Center, Device Pool, Provisioning, Telemetry, Alerting, RBAC, Secrets |
-| **NEXT** | 6–12 months (v0.6–v0.7) | SDKs, Configuration Drift (full), OTA strategies, Package Trust (UI), Observability |
-| **LATER** | 12–18 months (v0.8–v1.0) | Compliance Packs, Executive Dashboards, Digital Thread, Predictive Analytics |
+| **NOW** | 0–6 months (v0.5–v0.6) | Control Center, Device Pool, Provisioning, Telemetry, Alerting, RBAC, Secrets — **E1 shipped** (experimental) |
+| **NEXT** | 6–12 months (v0.6–v0.7) | SDKs, Configuration Drift (full), OTA strategies, Package Trust (UI), Observability — **E2–E3 shipped** (experimental) |
+| **LATER** | 12–18 months (v0.8–v1.0) | Compliance Packs, Executive Dashboards, Digital Thread, Predictive Analytics — **E4 shipped** (experimental; Tauri scaffold) |
 
 ### Phase E1 — Control plane foundation (v0.5+, Q3–Q4 2026)
 
@@ -531,7 +531,7 @@ Builds on `spanda-capability` traceability matrices + `spanda-audit` + mission c
 | Deliverable | Component | Depends on |
 |-------------|-----------|------------|
 | `spanda-api` REST v1 | `spanda-api` crate | existing engines |
-| Control Center shell | `@spanda/control-center` | `spanda-api` |
+| Control Center shell | `ControlCenterPanel` in `@spanda/web` + embedded HTML | `spanda-api` |
 | Dashboard + Fleet + Readiness modules | UI modules | telemetry, readiness APIs |
 | Device Pool schema + lifecycle | extends `spanda-config` | `DeviceRegistry` |
 | RBAC v1 (API keys + 4 roles) | `spanda-security` | audit |

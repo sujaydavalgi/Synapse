@@ -295,6 +295,7 @@ Compact snapshot — full matrix: [docs/feature-status.md](docs/feature-status.m
 | LLVM | **Experimental** | `spanda ir`, `compile-native` — interpreter is primary runtime |
 | WASM | **Experimental** | Browser check/run/verify; limited vs native CLI |
 | ROS2 | **Experimental** | rclrs/rclpy bridge; requires ROS Humble setup |
+| Control Center | **Experimental** | `spanda control-center serve`, REST v1 (`spanda-api`), embedded UI, Tauri desktop scaffold |
 | GitHub Pages / Docs Site | **Experimental** | mdBook under [docs-site/](docs-site/); build with `mdbook build docs-site` |
 
 ---
@@ -335,6 +336,7 @@ One-line pointers — details in [docs/platform-overview.md](docs/platform-overv
 | **Spanda Diagnosis** | Root-cause analysis from mission traces and programs | [docs/diagnostics.md](docs/diagnostics.md) |
 | **Spanda Registry** | Package index, install, publish, signed tarballs | [docs/registry.md](docs/registry.md) |
 | **Spanda Providers** | Official package traits — ROS2, MQTT, vision, fleet, and more | [docs/how-providers-work.md](docs/how-providers-work.md) |
+| **Control Center** | Enterprise ops API (`spanda-api`), `spanda control-center serve`, web UI, Tauri desktop shell | [docs/control-center.md](docs/control-center.md) · [docs/enterprise-operations-roadmap.md](docs/enterprise-operations-roadmap.md) |
 
 ---
 
@@ -344,7 +346,8 @@ One-line pointers — details in [docs/platform-overview.md](docs/platform-overv
 |---|---|---|
 | **Language (.sd)** | **Safety validation** | **Hardware verify** |
 | **Simulation & replay** | **Mission assurance** | **Packages (38)** |
-| **Health & readiness** | **Fleet & OTA** | **ROS2 / IoT / AI bridges** |
+| **Health & readiness** | **Fleet & OTA** | **Control Center (E1–E4)** |
+| **ROS2 / IoT / AI bridges** | **Enterprise ops API** | **Python SDK + desktop shell** |
 
 More samples: [docs/overview/code-samples.md](docs/overview/code-samples.md) · Demos: [docs/overview/demos-and-examples.md](docs/overview/demos-and-examples.md)
 
@@ -373,6 +376,7 @@ More samples: [docs/overview/code-samples.md](docs/overview/code-samples.md) · 
 | **Providers** | [docs/how-providers-work.md](docs/how-providers-work.md) · [docs/official-packages.md](docs/official-packages.md) |
 | **Security** | [docs/security.md](docs/security.md) · [docs/security-architecture.md](docs/security-architecture.md) |
 | **Examples** | [examples/README.md](examples/README.md) · [docs/overview/demos-and-examples.md](docs/overview/demos-and-examples.md) |
+| **Control Center** | [docs/control-center.md](docs/control-center.md) · [docs/enterprise-operations-roadmap.md](docs/enterprise-operations-roadmap.md) |
 | **Roadmap** | [docs/roadmap.md](docs/roadmap.md) |
 
 Full index: [docs/README.md](docs/README.md)
