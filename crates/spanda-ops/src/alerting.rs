@@ -18,6 +18,7 @@ pub enum AlertType {
     HealthCritical,
     ReadinessFailed,
     RecoveryFailed,
+    ConfigDrift,
     Custom,
 }
 

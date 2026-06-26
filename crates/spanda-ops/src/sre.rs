@@ -67,6 +67,7 @@ fn is_fault_alert(alert: &Alert) -> bool {
             | AlertType::HealthCritical
             | AlertType::RobotOffline
             | AlertType::MissionFailure
+            | AlertType::ConfigDrift
     ) || alert.severity == AlertSeverity::Critical
 }
 
