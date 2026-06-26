@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Control Center remote CLI:** `spanda control-center dashboard|drift|incidents|approvals|evidence|sre|devices|ota|readiness|compliance|alerts|snapshots|trust|api` — REST v1 client parity via `SPANDA_CONTROL_CENTER_URL`.
+- **Control Center remote CLI:** govern shortcuts (`scorecard`, `digital-thread`, `reports`, `provision`, `secrets`, `audit`) plus `dashboard|drift|incidents|approvals|evidence|sre|devices|ota|readiness|compliance|alerts|snapshots|trust|api` — REST v1 parity via `SPANDA_CONTROL_CENTER_URL`.
 - **Config publish-on-approve:** approving a config request applies the snapshot to runtime and persists device pool fields when `--config` is set.
 - **gRPC parity:** `ListConfigApprovals`, `SubmitConfigApproval`, `ApproveConfigApproval`, `RejectConfigApproval`, `ListComplianceEvidence` (60 RPCs total).
 - **Config approval queue:** `GET/POST /v1/config/approvals`, approve/reject subpaths; RBAC-gated publish workflow.

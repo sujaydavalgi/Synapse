@@ -308,6 +308,8 @@ iid = created['incident']['id']
 c.ack_incident(iid, assignee='sdk')
 c.resolve_incident(iid)
 assert c.list_incidents()['incidents']
+c.list_config_approvals()
+c.list_compliance_evidence()
 "
 
 echo "== E4 GET /v1/compliance/export?profile=defense =="
@@ -319,6 +321,11 @@ fetch "/v1/digital-thread/query" | grep -q matched_node_count
 
 echo "== E4 GET /v1/executive/scorecard =="
 fetch /v1/executive/scorecard | grep -q overall_score
+
+echo "== E4 CLI govern shortcuts =="
+run_spanda control-center scorecard | grep -q overall_score
+run_spanda control-center digital-thread query | grep -q matched_node_count
+run_spanda control-center audit list | grep -q record_count
 
 echo "== E4 GET /v1/reports/export?format=markdown =="
 curl -sf -H "Authorization: Bearer ${SPANDA_API_KEY}" \

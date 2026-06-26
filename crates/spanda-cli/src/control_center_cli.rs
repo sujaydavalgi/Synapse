@@ -27,6 +27,12 @@ pub fn control_center_dispatch(args: &[String]) {
         "alerts" => cmd_alerts(&args[1..]),
         "snapshots" => cmd_snapshots(&args[1..]),
         "trust" => cmd_trust(&args[1..]),
+        "scorecard" => cmd_scorecard(&args[1..]),
+        "digital-thread" => cmd_digital_thread(&args[1..]),
+        "reports" => cmd_reports(&args[1..]),
+        "provision" => cmd_provision(&args[1..]),
+        "secrets" => cmd_secrets(&args[1..]),
+        "audit" => cmd_audit(&args[1..]),
         _ => {
             eprintln!("Unknown control-center subcommand: {}", args[0]);
             print_usage();
@@ -52,7 +58,13 @@ fn print_usage() {
          spanda control-center compliance export [--profile <name>] [--url <base>]\n  \
          spanda control-center alerts list|test [--url <base>]\n  \
          spanda control-center snapshots list|save [--label <name>] [--url <base>]\n  \
-         spanda control-center trust package --name <pkg> [--version <ver>] [--url <base>]\n\n\
+         spanda control-center trust package --name <pkg> [--version <ver>] [--url <base>]\n  \
+         spanda control-center scorecard [--url <base>]\n  \
+         spanda control-center digital-thread query [--capability <name>] [--device-id <id>] [--url <base>]\n  \
+         spanda control-center reports export [--format markdown|json|pdf] [--url <base>]\n  \
+         spanda control-center provision run [--body <json>] [--url <base>]\n  \
+         spanda control-center secrets list [--url <base>]\n  \
+         spanda control-center audit list [--url <base>]\n\n\
          Remote calls use SPANDA_CONTROL_CENTER_URL (default http://127.0.0.1:8080) and SPANDA_API_KEY for mutations.\n\
          serve: set SPANDA_API_KEY for authenticated mutations (PATCH devices, POST alerts/test).\n\
          serve: set SPANDA_ALERT_WEBHOOK_URL or SPANDA_ALERT_EMAIL_TO for alert delivery."
@@ -509,6 +521,71 @@ fn cmd_trust(args: &[String]) {
         format!("/v1/trust/package?name={name}")
     };
     remote_get(&client, &path, false);
+}
+
+fn cmd_scorecard(args: &[String]) {
+    let client = client_from_args(args);
+    remote_get(&client, "/v1/executive/scorecard", false);
+}
+
+fn cmd_digital_thread(args: &[String]) {
+    if args.first().map(String::as_str) != Some("query") {
+        eprintln!("Usage: spanda control-center digital-thread query [--capability <name>] [--device-id <id>]");
+        process::exit(1);
+    }
+    let mut query = Vec::new();
+    if let Some(capability) = flag_value(args, "--capability") {
+        query.push(format!("capability={capability}"));
+    }
+    if let Some(device_id) = flag_value(args, "--device-id") {
+        query.push(format!("device_id={device_id}"));
+    }
+    let path = if query.is_empty() {
+        "/v1/digital-thread/query".into()
+    } else {
+        format!("/v1/digital-thread/query?{}", query.join("&"))
+    };
+    let client = client_from_args(args);
+    remote_get(&client, &path, false);
+}
+
+fn cmd_reports(args: &[String]) {
+    if args.first().map(String::as_str) != Some("export") {
+        eprintln!("Usage: spanda control-center reports export [--format markdown|json|pdf]");
+        process::exit(1);
+    }
+    let format = flag_value(args, "--format").unwrap_or_else(|| "markdown".into());
+    let client = client_from_args(args);
+    let path = format!("/v1/reports/export?format={format}");
+    remote_get(&client, &path, true);
+}
+
+fn cmd_provision(args: &[String]) {
+    if args.first().map(String::as_str) != Some("run") {
+        eprintln!("Usage: spanda control-center provision run [--body <json>]");
+        process::exit(1);
+    }
+    let client = client_from_args(args);
+    let body = flag_value(args, "--body").unwrap_or_else(|| "{}".into());
+    remote_post(&client, "/v1/provision", &body, true);
+}
+
+fn cmd_secrets(args: &[String]) {
+    if args.first().map(String::as_str) != Some("list") {
+        eprintln!("Usage: spanda control-center secrets list");
+        process::exit(1);
+    }
+    let client = client_from_args(args);
+    remote_get(&client, "/v1/secrets", true);
+}
+
+fn cmd_audit(args: &[String]) {
+    if args.first().map(String::as_str) != Some("list") {
+        eprintln!("Usage: spanda control-center audit list");
+        process::exit(1);
+    }
+    let client = client_from_args(args);
+    remote_get(&client, "/v1/audit/mutations", true);
 }
 
 fn remote_get(client: &ControlCenterClient, path: &str, auth: bool) {
