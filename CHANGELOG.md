@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **gRPC device subresource parity:** `GetDevice`, `PatchDevice`, `DeviceProvision`, `DeviceAssign`, `DeviceQuarantine`, `DeviceTrust`, `SaveConfigSnapshot`, `TestAlert` RPCs (47 total — full REST mutation parity except JSON-RPC gateway).
+- **API rate limiting:** `spanda-security::RateLimiter` with `SPANDA_API_RATE_LIMIT_PER_MINUTE`; 429 + `Retry-After` on REST; `RESOURCE_EXHAUSTED` on gRPC.
+- **API versioning policy:** `GET /v1/version`; `X-Spanda-Api-Version: v1` header enforcement on REST and gRPC.
+- **Live OTA fleet execute:** `SPANDA_DEPLOY_AGENTS` registry path for `POST /v1/ota/execute`; `scripts/ota_fleet_execute_smoke.sh`.
 - **gRPC full REST parity (read paths):** `GetDeviceTree`, `GetDeviceReports`, `GetFailoverChains`, `ListSecrets`, `GetRbacMatrix`, `GetAnalyticsReadiness`, `ExportReports`, `GetObservabilityTraces`, `GetOtlpTraces`, `ExportOtlpTraces`, `ExportOtlpMetrics` RPCs (39 total).
 - **gRPC operator/provision parity:** `DiscoverDevices`, `RunDiscovery`, `ProvisionDevice`, `PlanOta`, `ExecuteOta`, `ListRobots`, `ListFleets`, `ListAlerts`, `ListConfigSnapshots`, `OperatorQuarantine`, `OperatorMissionApprove`, `ExportCompliance` RPCs (28 total); Bearer/`x-api-key` metadata for mutation RBAC.
 - **Registry discovery runtime:** `discovery_registry` wraps installed `spanda-discovery-mdns`, `spanda-discovery-ble`, and `spanda-discovery-usb` transports; `installed_packages` on discovery API responses.
