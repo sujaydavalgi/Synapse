@@ -88,6 +88,15 @@ impl DeviceDiscoveryTransport for MockMdnsDiscoveryTransport {
                 matches: live,
             });
         }
+        if std::env::var("SPANDA_DISCOVERY_NO_STUB")
+            .ok()
+            .is_some_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        {
+            return Ok(DiscoveryTransportResult {
+                transport: self.transport_name().into(),
+                matches: Vec::new(),
+            });
+        }
         Ok(DiscoveryTransportResult {
             transport: self.transport_name().into(),
             matches: vec![DiscoveryMatch {
@@ -122,6 +131,15 @@ macro_rules! live_transport {
                     return Ok(DiscoveryTransportResult {
                         transport: self.transport_name().into(),
                         matches: live,
+                    });
+                }
+                if std::env::var("SPANDA_DISCOVERY_NO_STUB")
+                    .ok()
+                    .is_some_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+                {
+                    return Ok(DiscoveryTransportResult {
+                        transport: self.transport_name().into(),
+                        matches: Vec::new(),
                     });
                 }
                 Ok(DiscoveryTransportResult {

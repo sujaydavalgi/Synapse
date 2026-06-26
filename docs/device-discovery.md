@@ -13,6 +13,9 @@ Spanda discovers devices through **provider interfaces** — core ships built-in
 | CAN | `can` | SocketCAN sysfs / `ip link type can`; env `SPANDA_DISCOVERY_CAN_MATCHES` |
 | MQTT | `mqtt` | TCP probe to `SPANDA_MQTT_BROKER` (default `127.0.0.1:1883`) |
 | ROS2/DDS | `ros2` | `ros2 topic list` when CLI installed; env `SPANDA_DISCOVERY_ROS2_DISABLE` |
+| WiFi | `wifi` | Subnet correlation; env `SPANDA_DISCOVERY_WIFI_MATCHES` |
+| Cellular | `cellular` | `mmcli -L` when ModemManager installed; env `SPANDA_DISCOVERY_CELLULAR_MATCHES` |
+| Serial | `serial` | `/dev/ttyUSB*` / `/dev/ttyACM*`; env `SPANDA_DISCOVERY_SERIAL_MATCHES` |
 
 ## CLI
 
@@ -45,6 +48,7 @@ Environment overrides for CI and headless hosts:
 - `SPANDA_DISCOVERY_SUBNET` — default CIDR when `subnet` is omitted
 - `SPANDA_DISCOVERY_MDNS_MATCHES` — comma list `name@ip` for deterministic mDNS results
 - `SPANDA_MQTT_BROKER` — broker host:port for MQTT probe
+- `SPANDA_DISCOVERY_NO_STUB=1` — return empty results instead of stub devices when live probes find nothing
 
 ## Provider contract
 

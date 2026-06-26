@@ -393,13 +393,42 @@ pub fn probe_wifi(timeout_ms: u64) -> Vec<DiscoveryMatch> {
     Vec::new()
 }
 
-/// Probe cellular modems via env override (`SPANDA_DISCOVERY_CELLULAR_MATCHES`).
+/// Probe cellular modems via env override, `mmcli`, or ModemManager D-Bus listing.
 pub fn probe_cellular() -> Vec<DiscoveryMatch> {
-    env_match_list(
+    let env_matches = env_match_list(
         "SPANDA_DISCOVERY_CELLULAR_MATCHES",
         "cellular",
         "cellular",
-    )
+    );
+    if !env_matches.is_empty() {
+        return env_matches;
+    }
+
+    if let Some(output) = run_command_output("mmcli", &["-L"], 1500) {
+        let matches: Vec<_> = output
+            .lines()
+            .filter(|line| line.contains("/Modem/"))
+            .enumerate()
+            .map(|(index, line)| {
+                let modem_id = line
+                    .split('/')
+                    .next_back()
+                    .unwrap_or("0")
+                    .trim();
+                discovery_match(
+                    &format!("cellular-modem-{modem_id}-{index}"),
+                    Some("lte"),
+                    modem_id,
+                    "cellular",
+                )
+            })
+            .collect();
+        if !matches.is_empty() {
+            return matches;
+        }
+    }
+
+    Vec::new()
 }
 
 /// Probe serial devices via env override or shallow `/dev/tty*` listing.

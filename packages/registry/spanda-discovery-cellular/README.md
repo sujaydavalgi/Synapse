@@ -4,7 +4,7 @@ Optional **LTE/5G modem** discovery transport for fleet agents reporting cellula
 
 ## Status
 
-**Experimental** — package contract stub. Matches are sourced from `SPANDA_DISCOVERY_CELLULAR_MATCHES` until modem agent reports ship.
+**Experimental** — env override (`SPANDA_DISCOVERY_CELLULAR_MATCHES`) or host `mmcli -L` when ModemManager is installed.
 
 ## API
 
