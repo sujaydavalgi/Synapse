@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Spoofing ML backend:** optional `SPANDA_SPOOFING_ML_ENDPOINT` HTTP merge plus `SPANDA_SPOOFING_ML_BACKEND` stub backends (`mock`, `file`, `script`) and `SPANDA_SPOOFING_ML_MIN_CONFIDENCE` filtering for trace spoof-check.
 - **Secure boot package stubs:** `spanda-trust-jetson`, `spanda-trust-pi` attestation contracts in hosted registry index.
 - **Compliance template hardening:** accreditation notice on profiles; defense/medical require `tamper_policy`; Critical tamper actions require operator approval.
-- **Trust showcase demos:** `examples/showcase/package_tampering/`, `mission_tampering/`, `runtime_intrusion/` with tamper and integrity workflows.
+- **Trust showcase demos:** `examples/showcase/package_tampering/`, `mission_tampering/`, `runtime_intrusion/` with tamper and integrity workflows; `spanda demo trust` one-command walkthrough.
 - **Integrity verification (verify-time):** `generate_integrity_report` in `spanda-tamper`; CLI `spanda integrity <file.sd> [--baseline <file.sd>] [--agent <Robot@Hardware>] [--json]`; `scripts/integrity_smoke.sh`; docs [integrity-verification.md](docs/integrity-verification.md).
 - **Decision trace explainability:** `spanda explain decision <mission.trace> [--json]` with evidence, safety checks, and rejected alternatives; `scripts/decision_explain_smoke.sh`.
 - **Runtime policy enforcement:** `spanda-policy` runtime monitor with `max_speed` and `operation_hours` gates; `spanda run|sim --enforce-policy <name>`; `scripts/policy_runtime_smoke.sh`.

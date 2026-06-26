@@ -44,4 +44,9 @@ export SPANDA_ROOT="${ROOT}"
 DEMO_OUT="$(run_spanda demo maturity 2>&1 || true)"
 echo "$DEMO_OUT" | grep -q "Platform maturity"
 
+echo "== demo trust =="
+export SPANDA_ROOT="${ROOT}"
+TRUST_DEMO="$(run_spanda demo trust 2>&1 || true)"
+echo "$TRUST_DEMO" | grep -q "Trust & tamper"
+
 echo "Maturity smoke OK"

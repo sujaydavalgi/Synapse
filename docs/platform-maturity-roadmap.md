@@ -407,7 +407,7 @@ Branches match runtime signals (`tamper severity Critical`, `tamper signal capab
 
 **Diagnosis:** `spanda diagnose tamper <trace>` — tamper source, affected components, impact, recovery recommendations (shipped in `spanda-tamper::diagnosis`).
 
-### Demos (planned)
+### Demos (shipped)
 
 | Example | Demonstrates |
 |---------|--------------|
@@ -417,6 +417,8 @@ Branches match runtime signals (`tamper severity Critical`, `tamper signal capab
 | `examples/showcase/runtime_intrusion/` | Unexpected capability usage in mission trace |
 | `examples/showcase/tamper_policy/` | Declarative tamper_policy response on security faults |
 
+Run all: `spanda demo trust` (set `SPANDA_ROOT` to repo) · smoke: `scripts/trust_showcase_smoke.sh`, `scripts/showcase_smoke.sh`
+
 ### Remaining gaps (honest)
 
 | Gap | Notes |
@@ -425,7 +427,7 @@ Branches match runtime signals (`tamper severity Critical`, `tamper signal capab
 | Real-time spoofing ML | Shipped — HTTP + mock/file/script ML backends with confidence filtering |
 | Fleet-wide tamper correlation | Shipped — offline `--fleet <manifest.json>` and live `--mesh-url` ingest |
 | Legal/compliance certification | Template profiles + defense/medical showcases — not accredited standards |
-| Zero false-positive guarantee | Confidence scores + operator approval gate for Critical tamper_policy destructive actions |
+| Zero false-positive guarantee | Confidence scores on spoofing ML; Critical tamper_policy destructive actions require operator approval (`SPANDA_OPERATOR_APPROVAL=1` to bypass in sim) |
 
 ---
 

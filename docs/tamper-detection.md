@@ -40,6 +40,18 @@ Verify-time `spanda tamper-check` composes threat modeling, safety audit, securi
 
 **Secure boot:** import `trust.jetson` or `trust.pi` for contract stubs; optional live attestation via `SPANDA_ATTESTATION_ENDPOINT`. See [hardware-attestation.md](./hardware-attestation.md) and `examples/showcase/secure_boot/`.
 
+## Showcases
+
+| Directory | CLI |
+|-----------|-----|
+| `gps_spoofing/` | `spanda spoof-check` |
+| `package_tampering/` | `spanda tamper-check` (trust score delta) |
+| `mission_tampering/` | `spanda integrity --baseline` |
+| `runtime_intrusion/` | `spanda tamper-check <trace>`, `spanda diagnose tamper` |
+| `tamper_policy/` | `spanda sim --inject-security-faults` |
+
+One command: `spanda demo trust` · smoke: `scripts/trust_showcase_smoke.sh`
+
 ## Integration
 
 Readiness · Assurance · Diagnosis · Health · Security · Capability verification · Hardware verification · Trust score · Audit · Replay
