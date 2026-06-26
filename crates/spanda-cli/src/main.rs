@@ -11,6 +11,7 @@ mod config_load;
 mod continuity_cli;
 mod contract_cli;
 mod control_center_cli;
+mod control_center_client;
 mod decision_cli;
 mod demo_cli;
 mod deploy_ota;
