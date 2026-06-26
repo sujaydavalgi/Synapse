@@ -1,0 +1,71 @@
+// Approved package baseline — trusted warehouse program
+//
+//   spanda tamper-check examples/showcase/package_tampering/approved.sd
+
+policy WarehousePolicy {
+    max_speed = 1.0 m/s;
+    requires_kill_switch;
+    requires_capability [ gps_navigation, obstacle_avoidance ];
+    min_readiness_score = 80;
+    operation_hours = "06:00-22:00";
+}
+
+hardware RoverV1 {
+  sensors [ GPS, Lidar, Camera ];
+  actuators [ DifferentialDrive ];
+  connectivity [ WiFi, LTE ];
+}
+
+kill_switch EmergencyStop {
+  priority: critical;
+  action {
+    stop_all_actuators();
+  }
+}
+
+robot Rover {
+  uses hardware RoverV1;
+  sensor gps: GPS;
+  sensor lidar: Lidar;
+  sensor camera: Camera;
+  actuator wheels: DifferentialDrive;
+
+  exposes capabilities [
+    gps_navigation,
+    obstacle_avoidance,
+    telemetry_streaming
+  ];
+
+  mission Patrol {
+    requires capabilities [ gps_navigation, obstacle_avoidance ];
+    patrol_loop;
+  }
+
+  safety {
+    max_speed = 0.8 m/s;
+    stop_if lidar.nearest_distance < 0.5 m;
+  }
+
+  mode caution_mode { wheels.drive(linear: 0.1 m/s, angular: 0.0 rad/s); }
+
+  behavior patrol_loop() {
+    loop every 100ms {
+      let scan = lidar.read();
+      let _ = scan;
+      wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+    }
+  }
+}
+
+health_check RoverHealth for robot Rover {
+  check gps.status == Healthy;
+  check lidar.status == Healthy;
+  check camera.status == Healthy;
+}
+
+health_policy RoverPolicy {
+  on Degraded { enter caution_mode; }
+  on Critical { emergency_stop; }
+}
+
+deploy Rover to RoverV1;

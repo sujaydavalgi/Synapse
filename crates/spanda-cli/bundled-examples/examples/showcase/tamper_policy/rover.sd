@@ -1,0 +1,48 @@
+// Tamper policy showcase — declarative response to security faults
+//
+//   spanda sim examples/showcase/tamper_policy/rover.sd --inject-security-faults
+//   spanda tamper-check examples/showcase/tamper_policy/rover.sd
+
+hardware RoverV1 {
+  sensors [ GPS ];
+  actuators [ DifferentialDrive ];
+}
+
+kill_switch EmergencyStop {
+  priority: critical;
+  action { emergency_stop; }
+}
+
+health_check RoverHealth for robot Rover {
+  check battery.level >= 20%;
+}
+
+tamper_policy CriticalResponse {
+  on tamper severity Critical {
+    enter degraded_mode;
+    audit.record("critical_tamper_detected");
+  }
+  on tamper signal ReplayAttack {
+    stop_all_actuators();
+  }
+}
+
+robot Rover {
+  uses hardware RoverV1;
+  sensor gps: GPS;
+  actuator wheels: DifferentialDrive;
+
+  exposes capabilities [ gps_navigation, telemetry_streaming ];
+
+  mode degraded { }
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  behavior patrol() {
+    wheels.drive(0.1 m/s);
+  }
+}
+
+deploy Rover to RoverV1;

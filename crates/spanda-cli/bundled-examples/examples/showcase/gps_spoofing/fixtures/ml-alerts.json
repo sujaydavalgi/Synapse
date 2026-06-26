@@ -1,0 +1,11 @@
+{
+  "alerts": [
+    {
+      "sensor": "gps",
+      "severity": "high",
+      "confidence": 0.88,
+      "message": "fixture ML model flagged GPS drift",
+      "evidence": "fixture-model-v1"
+    }
+  ]
+}

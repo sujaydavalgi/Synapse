@@ -1,0 +1,61 @@
+// Defense compliance profile showcase
+//
+//   spanda verify examples/showcase/compliance/defense_rover.sd --profile defense
+//   spanda readiness examples/showcase/compliance/defense_rover.sd --profile defense
+//
+// Satisfies defense template: secure boot, tamper_policy, secure_comm, assurance_case.
+
+import trust.jetson;
+
+hardware JetsonDefense {
+  sensors [ GPS ];
+  actuators [ DifferentialDrive ];
+  connectivity [ WiFi, LTE ];
+}
+
+kill_switch EmergencyStop {
+  priority: critical;
+  action { emergency_stop; }
+}
+
+health_check RoverHealth for robot Rover {
+  check battery.level >= 20%;
+}
+
+assurance_case DefenseDeployCase {
+  evidence hardware_verification;
+  evidence capability_traceability;
+  evidence health_checks;
+}
+
+tamper_policy DefenseTamperResponse {
+  on tamper severity Critical {
+    enter degraded_mode;
+    audit.record("defense_tamper_detected");
+  }
+}
+
+robot Rover {
+  uses hardware JetsonDefense;
+  sensor gps: GPS;
+  actuator wheels: DifferentialDrive;
+
+  exposes capabilities [ gps_navigation, telemetry_streaming ];
+
+  secure_comm {
+    encryption: required;
+    authentication: signed;
+  }
+
+  mode degraded { }
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  behavior patrol() {
+    wheels.drive(0.1 m/s);
+  }
+}
+
+deploy Rover to JetsonDefense;

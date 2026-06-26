@@ -11,6 +11,12 @@ for d in unsafe_ai hardware_verification capability_verification health_monitori
   cp -R "${ROOT}/examples/showcase/${d}" "${DEST}/"
 done
 
+# Trust & tamper showcases (spanda demo trust, tamper-check, spoof-check).
+for d in gps_spoofing package_tampering mission_tampering runtime_intrusion tamper_policy secure_boot compliance; do
+  rm -rf "${DEST}/${d}"
+  cp -R "${ROOT}/examples/showcase/${d}" "${DEST}/"
+done
+
 # Autonomous rover: source only (no vendored .spanda/ — `spanda demo rover` runs install).
 rm -rf "${DEST}/autonomous_rover"
 mkdir -p "${DEST}/autonomous_rover"

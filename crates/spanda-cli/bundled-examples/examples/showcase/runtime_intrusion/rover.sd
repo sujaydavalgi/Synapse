@@ -1,0 +1,25 @@
+// Runtime intrusion showcase — capability-enforced robot with audit trail
+//
+//   spanda tamper-check examples/showcase/runtime_intrusion/intrusion.trace
+
+hardware RoverV1 {
+  sensors [ Lidar ];
+  actuators [ DifferentialDrive ];
+}
+
+robot Rover {
+  sensor lidar: Lidar;
+  actuator wheels: DifferentialDrive;
+
+  exposes capabilities [ obstacle_avoidance, telemetry_streaming ];
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  behavior patrol() {
+    wheels.drive(linear: 0.1 m/s, angular: 0.0 rad/s);
+  }
+}
+
+deploy Rover to RoverV1;

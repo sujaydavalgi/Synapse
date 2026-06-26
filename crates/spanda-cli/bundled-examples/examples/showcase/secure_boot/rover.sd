@@ -1,0 +1,35 @@
+// Secure boot contract showcase — Jetson attestation import
+//
+//   spanda tamper-check examples/showcase/secure_boot/rover.sd
+//   spanda integrity examples/showcase/secure_boot/rover.sd
+//
+// Optional live attestation:
+//   SPANDA_ATTESTATION_ENDPOINT=http://127.0.0.1:9999/attest spanda tamper-check examples/showcase/secure_boot/rover.sd
+
+import trust.jetson;
+
+hardware JetsonRover {
+  sensors [ GPS ];
+  actuators [ DifferentialDrive ];
+}
+
+kill_switch EmergencyStop {
+  priority: critical;
+  action { emergency_stop; }
+}
+
+robot Rover {
+  uses hardware JetsonRover;
+  sensor gps: GPS;
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 0.5 m/s;
+  }
+
+  behavior patrol() {
+    wheels.drive(0.1 m/s);
+  }
+}
+
+deploy Rover to JetsonRover;

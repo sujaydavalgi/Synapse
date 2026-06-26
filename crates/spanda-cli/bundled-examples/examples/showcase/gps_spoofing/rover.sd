@@ -1,0 +1,57 @@
+// GPS spoofing detection showcase (core + package backends)
+//
+//   spanda spoof-check examples/showcase/gps_spoofing/rover.sd
+//   spanda spoof-check examples/showcase/gps_spoofing/spoof.trace
+//   spanda check packages/registry/spanda-gps/src/positioning_gps.sd
+//   spanda check packages/registry/spanda-fusion/src/assurance_fusion.sd
+
+import positioning.gps;
+import assurance.fusion;
+
+hardware RoverV1 {
+  sensors [ GPS, IMU, Lidar ];
+  actuators [ DifferentialDrive ];
+  connectivity [ WiFi, GPS ];
+}
+
+requires_connectivity {
+  gps: required;
+}
+
+state_estimator RoverState {
+  inputs [gps.fix, imu.data];
+  output StateEstimate;
+}
+
+geofence MissionZone {
+  center: geo(37.7749, -122.4194);
+  radius: 500.0;
+}
+
+health_check GpsSensorHealth for robot Rover {
+  check gps.status == Healthy;
+}
+
+robot Rover {
+  sensor gps: GPS on "/fix";
+  sensor imu: IMU;
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 1.0 m/s;
+  }
+
+  on gps.spoofed {
+    audit.record("gps_spoof_detected");
+  }
+
+  behavior patrol() {
+    wheels.drive(linear: 0.2 m/s, angular: 0.0 rad/s);
+  }
+}
+
+simulate_compatibility {
+  fault GpsSpoofing;
+}
+
+deploy Rover to RoverV1;

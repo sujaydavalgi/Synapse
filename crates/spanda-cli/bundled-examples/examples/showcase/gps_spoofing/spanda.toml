@@ -1,0 +1,9 @@
+[package]
+name = "gps_spoofing"
+version = "0.1.0"
+description = "GPS spoofing detection showcase with package backends"
+license = "Apache-2.0"
+
+[dependencies]
+spanda-gps = "0.1"
+spanda-fusion = "0.1"

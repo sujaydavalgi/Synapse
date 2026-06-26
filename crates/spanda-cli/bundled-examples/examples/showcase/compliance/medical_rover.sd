@@ -1,0 +1,60 @@
+// Medical compliance profile showcase
+//
+//   spanda verify examples/showcase/compliance/medical_rover.sd --profile medical
+//   spanda readiness examples/showcase/compliance/medical_rover.sd --profile medical
+//
+// Satisfies medical template: secure boot, tamper_policy, assurance_case, dual health checks.
+
+import trust.pi;
+
+hardware PiMedical {
+  sensors [ GPS ];
+  actuators [ DifferentialDrive ];
+  connectivity [ WiFi ];
+}
+
+kill_switch EmergencyStop {
+  priority: critical;
+  action { emergency_stop; }
+}
+
+health_check BatteryHealth for robot Rover {
+  check battery.level >= 25%;
+}
+
+health_check GpsHealth for robot Rover {
+  check gps.fix_quality >= 0.5;
+}
+
+assurance_case MedicalDeployCase {
+  evidence hardware_verification;
+  evidence health_checks;
+  evidence simulation_replay;
+}
+
+tamper_policy MedicalTamperResponse {
+  on tamper severity Critical {
+    enter degraded_mode;
+    audit.record("medical_tamper_detected");
+  }
+}
+
+robot Rover {
+  uses hardware PiMedical;
+  sensor gps: GPS;
+  actuator wheels: DifferentialDrive;
+
+  exposes capabilities [ gps_navigation, telemetry_streaming ];
+
+  mode degraded { }
+
+  safety {
+    max_speed = 0.8 m/s;
+  }
+
+  behavior patrol() {
+    wheels.drive(0.1 m/s);
+  }
+}
+
+deploy Rover to PiMedical;

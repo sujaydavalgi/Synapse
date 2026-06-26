@@ -1,0 +1,33 @@
+// Tampered mission — safety limits raised after approval
+//
+//   spanda integrity examples/showcase/mission_tampering/modified.sd --baseline examples/showcase/mission_tampering/approved.sd
+
+hardware RoverV1 {
+  sensors [ GPS, Lidar ];
+  actuators [ DifferentialDrive ];
+}
+
+robot Rover {
+  sensor gps: GPS;
+  sensor lidar: Lidar;
+  actuator wheels: DifferentialDrive;
+
+  safety {
+    max_speed = 3.0 m/s;
+    stop_if lidar.nearest_distance < 0.2 m;
+  }
+
+  mission Patrol {
+    patrol_loop;
+  }
+
+  behavior patrol_loop() {
+    loop every 100ms {
+      let scan = lidar.read();
+      let _ = scan;
+      wheels.drive(linear: 1.5 m/s, angular: 0.0 rad/s);
+    }
+  }
+}
+
+deploy Rover to RoverV1;
