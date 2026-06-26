@@ -46,6 +46,25 @@ curl -X POST http://127.0.0.1:8080/v1/devices/gps-001/provision \
 
 Failed provisioning quarantines the device automatically.
 
+## Idempotent reprovision and conflicts
+
+Re-running provision for the same `device_id` is **idempotent** when:
+
+- Lifecycle is already `active` or `assigned` with the same `robot_id`
+- Trust level remains `verified` or `trusted`
+- Firmware and calibration gates still pass
+
+**Conflict policy** (operator action required):
+
+| Situation | Behavior |
+|-----------|----------|
+| Device assigned to a different robot | API returns `ready: false`; update assignment via `PATCH /v1/devices/{id}` first |
+| Device quarantined | Resolve quarantine cause, then `POST /v1/devices/{id}/trust` before reprovision |
+| Stale provisioning_id | New run generates a fresh report; prior `provisioning_id` is superseded in audit only |
+| Concurrent provision requests | Last successful write wins; use correlation IDs in mutation audit for ordering |
+
+Treat `POST /v1/provision` as a **gate check**, not a destructive reset — it does not retire or delete pool entries.
+
 ## Logical mapping example
 
 ```toml

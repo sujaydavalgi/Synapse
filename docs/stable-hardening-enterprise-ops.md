@@ -30,16 +30,16 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 | REST v1 | Full E1–E4 surface | — (OpenAPI parity test in CI) |
 | gRPC | 59 RPCs (tonic) | **Shipped:** published proto semver policy (`GET /v1/version` → `grpc`) |
 | Remote CLI | `spanda control-center *` shortcuts | **Shipped:** OpenAPI parity test (`control_center_openapi_parity.rs`) |
-| Rate limits | `SPANDA_API_RATE_LIMIT_PER_MINUTE` | Load-test defaults documented per tier |
-| Mutation audit | Hash-chained JSONL | External SIEM export adapter (package) |
+| Rate limits | `SPANDA_API_RATE_LIMIT_PER_MINUTE` | **Shipped:** tier defaults in [control-center-rate-limits.md](./control-center-rate-limits.md) |
+| Mutation audit | Hash-chained JSONL | **Shipped:** SIEM export (`GET /v1/audit/mutations/export`, `spanda-audit-siem`) |
 
 ### Device Pool + Provisioning
 
 | Item | Experimental (today) | Stable requires |
 |------|---------------------|-----------------|
-| Lifecycle | discover → active → quarantine → retire | Fleet-scale (1000+ devices) perf benchmark |
+| Lifecycle | discover → active → quarantine → retire | **Shipped:** 1000-device pool perf gate (`device_pool_scale` test) |
 | Discovery | mDNS/BLE/USB/wifi/cellular/serial registry | Production transport certs per vendor |
-| Provisioning | `POST /v1/provision`, per-device workflows | Idempotent reprovision + conflict policy doc |
+| Provisioning | `POST /v1/provision`, per-device workflows | **Shipped:** idempotent reprovision + conflict policy ([device-provisioning.md](./device-provisioning.md)) |
 | Failover | Chain enrichment in recovery | **Shipped:** automated failover drill smoke (`scripts/failover_drill_smoke.sh`) |
 
 ### Configuration Management
@@ -63,9 +63,9 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 
 | Item | Experimental (today) | Stable requires |
 |------|---------------------|-----------------|
-| Traces | API log + OTLP export to Jaeger | Managed collector HA deployment guide |
+| Traces | API log + OTLP export to Jaeger | **Shipped:** OTLP collector HA guide ([otlp-collector-ha.md](./otlp-collector-ha.md)) |
 | Metrics | OTLP metrics preview + export | **Shipped:** Grafana dashboard templates (`spanda-grafana-dashboards`) |
-| WebSocket | `/v1/stream/telemetry` | Backpressure + reconnect contract |
+| WebSocket | `/v1/stream/telemetry` | **Shipped:** backpressure + reconnect contract (`SPANDA_WS_MAX_PENDING_FRAMES`) |
 | SRE | SLO, MTTR/MTBF hints, incidents, auto-open from critical alerts | **Shipped:** SLO burn-rate rollup + background fast-burn alert dispatch (`SPANDA_SRE_BURN_SCAN_INTERVAL_SECS`) |
 | Incidents | ack/resolve workflow | **Shipped:** PagerDuty bi-directional sync (`POST /v1/integrations/pagerduty/webhook`) |
 
@@ -83,7 +83,7 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 |------|---------------------|-----------------|
 | Python | REST client + stream extra | **Shipped:** PyPI publish scaffold + semver policy (`VERSIONING.md`, `sdk-python-v*` tags) |
 | TypeScript | `ControlCenterPanel` in `@spanda/web` | **Shipped:** npm publish scaffold (`PUBLISHING.md`, `npm-web-v*` tags) |
-| Remote CLI | `spanda control-center` client | Documented in `getting-started.md` |
+| Remote CLI | `spanda control-center` client | **Shipped:** documented in [getting-started.md](./getting-started.md) |
 
 ### Desktop (Tauri)
 
@@ -98,8 +98,8 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 
 | Item | Experimental (today) | Stable requires |
 |------|---------------------|-----------------|
-| Channels | webhook, email, Slack, PagerDuty, Teams packages | On-call rotation + escalation policies |
-| Dedup | Core dispatcher | Configurable dedup windows per severity |
+| Channels | webhook, email, Slack, PagerDuty, Teams packages | **Shipped:** escalation templates (`spanda-alert-escalation`) |
+| Dedup | Core dispatcher | **Shipped:** per-severity dedup windows (`SPANDA_ALERT_DEDUP_WINDOW_*_SECS`) |
 
 ---
 

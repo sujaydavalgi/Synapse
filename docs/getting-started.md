@@ -664,9 +664,12 @@ export SPANDA_CONTROL_CENTER_URL=http://127.0.0.1:8080
 export SPANDA_API_KEY=your-operator-key
 spanda control-center dashboard
 spanda control-center drift --baseline-id <snapshot-id>
+spanda control-center drift scan
+spanda control-center incidents list
+spanda control-center api get /v1/sre/summary
 ```
 
-See [control-center.md](./control-center.md) for incidents, approvals, evidence, and generic `api get|post`.
+Rate limits, WebSocket streaming, and SIEM audit export: [control-center.md](./control-center.md) · [control-center-rate-limits.md](./control-center-rate-limits.md).
 
 ### Smoke test (API + desktop compile check)
 

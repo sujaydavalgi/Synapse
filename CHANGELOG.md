@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **OpenAPI REST parity:** complete `openapi.json` for all `/v1/*` routes; `openapi_routes.rs` registry + `openapi_parity_tests.rs` CI guard.
+- **Alert dedup windows:** per-severity dedup before dispatch (`SPANDA_ALERT_DEDUP_WINDOW_INFO_SECS`, `WARNING`, `CRITICAL`).
+- **WebSocket reconnect contract:** resume offsets, heartbeat, backpressure (`SPANDA_WS_MAX_PENDING_FRAMES`, `SPANDA_WS_HEARTBEAT_INTERVAL_MS`).
+- **SIEM mutation audit export:** `GET /v1/audit/mutations/export?format=cef|jsonl`; registry package `spanda-audit-siem`.
+- **On-call escalation templates:** registry package `spanda-alert-escalation` with tier routing guidance.
+- **Device pool scale gate:** 1000-device list/summary perf test (`device_pool_scale`) + `scripts/device_pool_perf_bench.sh`.
+- **Ops docs:** [control-center-rate-limits.md](docs/control-center-rate-limits.md), [otlp-collector-ha.md](docs/otlp-collector-ha.md); idempotent reprovision policy in [device-provisioning.md](docs/device-provisioning.md). complete `openapi.json` for all `/v1/*` routes; `openapi_routes.rs` registry + `openapi_parity_tests.rs` CI guard.
 - **Scheduled drift scans:** background scheduler (`SPANDA_DRIFT_SCAN_INTERVAL_SECS`), `GET /v1/drift/scans`, `POST /v1/drift/scan`, `ConfigDrift` alerts with critical auto-incidents; CLI `control-center drift scan|scans`.
 - **gRPC proto semver policy:** `grpc_policy.rs`, proto semver `1.0.0` on `control_center.proto`, `GET /v1/version` → `grpc` block; Health status includes proto semver and RPC count.
 - **OTA readiness rollback:** `rollback_on_readiness_fail` on `POST /v1/ota/execute` (env `SPANDA_OTA_ROLLBACK_ON_READINESS_FAIL`); auto-rollback deploy agents when post-deploy readiness fails.
