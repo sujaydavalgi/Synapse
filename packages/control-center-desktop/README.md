@@ -70,20 +70,21 @@ This runs `cargo check` on the Tauri crate (no GUI required).
 
 The desktop app does not embed the Rust API server; operators typically run the API locally or against a fleet endpoint.
 
-## Auto-update (experimental)
+## Auto-update
 
-The Tauri shell includes `tauri-plugin-updater` with `active: false` by default. To enable signed updates in production:
+The Tauri shell includes `tauri-plugin-updater`. In development builds, `active` defaults to `false`. For production releases:
 
-1. Generate signing keys (`tauri signer generate`).
-2. Set `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
-3. Set `plugins.updater.active` to `true` and configure release endpoints.
+1. Generate signing keys: `npm run tauri signer generate -- -w ~/.tauri/spanda-updater.key`
+2. Set `TAURI_UPDATER_PUBKEY` at build time (injected via `src-tauri/build.rs`)
+3. Set `SPANDA_DESKTOP_UPDATER_ACTIVE=1` (or `TAURI_UPDATER_ACTIVE=true`) when building with `TAURI_BUILD=1`
+4. Publish signed artifacts from `.github/workflows/desktop-release.yml` (tag `desktop-v*`)
 
-Until then, operators update via platform installers from CI (`TAURI_BUILD=1` on macOS).
+See [docs/desktop-release-runbook.md](../../docs/desktop-release-runbook.md).
 
-Set `TAURI_UPDATER_PUBKEY` (and optionally `TAURI_UPDATER_ACTIVE=true`) when running `TAURI_BUILD=1` to inject the signing pubkey at build time via `src-tauri/build.rs`.
+Until the first production release is published, operators update via platform installers from CI (`TAURI_BUILD=1` on macOS).
 
 Optional macOS codesign/notarization after bundle: set `APPLE_SIGNING_IDENTITY` and `APPLE_NOTARIZE_PROFILE`, then run `./scripts/sign_tauri_macos.sh` (also wired in CI when secrets are present).
 
 ## Status
 
-**Experimental** — scaffold, dev workflow, and updater plugin wiring; production installers and signed auto-update are not yet published.
+**Experimental** — dev workflow, CI signing scaffold, and env-gated updater wiring are shipped. **First signed production release** is pending maintainer tags and Apple/registry secrets. Stable promotion: [docs/stable-hardening-enterprise-ops.md](../../docs/stable-hardening-enterprise-ops.md).

@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security audit prep:** `scripts/security_audit_prep.sh`, registry package `spanda-security-audit`, [docs/security-audit-third-party.md](docs/security-audit-third-party.md).
 - **Desktop release runbook:** signed/notarized macOS CI (`.github/workflows/desktop-release.yml`), env-gated Tauri updater (`TAURI_UPDATER_PUBKEY`, `SPANDA_DESKTOP_UPDATER_ACTIVE`), [docs/desktop-release-runbook.md](docs/desktop-release-runbook.md).
 - **SDK publish verify:** `scripts/verify_sdk_publish_ready.sh` for PyPI/npm readiness checks.
+- **Docs:** enterprise ops stable-hardening checklist, control-center API reference, field soak, security audit, and desktop release runbooks synced.
 - **Digital thread graph UI:** interactive SVG graph in `ControlCenterPanel` and embedded Control Center HTML — filter by capability/device, click-to-highlight neighbors.
 - **Stable hardening checklist:** [docs/stable-hardening-enterprise-ops.md](docs/stable-hardening-enterprise-ops.md) — Experimental → Stable promotion gates per pillar.
 - **Python SDK expansion:** executive scorecard, digital thread, reports export, OTA execute/status, config snapshots, audit mutations.

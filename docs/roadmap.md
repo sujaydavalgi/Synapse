@@ -69,7 +69,7 @@ Full enterprise analysis: [enterprise-operations-roadmap.md](./enterprise-operat
 | [Self-healing](#self-healing--recovery) | Recovery planner + CLI + runtime dispatch (**Stable**) | Recovery coverage hardening |
 | [Platform maturity](#platform-maturity) | 16 areas shipped **Experimental** (graph, explain, gates, trust, policy, drift, …) | Stable hardening for Phase A–D deliverables |
 | [Differentiation](#differentiation--signature-capabilities) | NOW items shipped **Experimental** (contracts, explain, audit, coverage) | Stable hardening; NEXT signature capabilities |
-| [Enterprise operations](#enterprise-operations) | E1–E4 **Experimental** (Control Center, device pool, provisioning, APIs, smoke) | Harden to **Stable**: native gRPC, full drift, registry discovery packages, production desktop |
+| Enterprise operations | E1–E4 **Experimental** (Control Center, device pool, provisioning, APIs, smoke) | **Stable promotion:** operational gates (soak, audit, releases) — code checklist **shipped** |
 
 ---
 
@@ -136,8 +136,8 @@ Full analysis: [enterprise-operations-roadmap.md](./enterprise-operations-roadma
 | 13 | SDKs (Python, REST, gRPC, WebSocket) | NEXT | **Experimental** — Python SDK, REST v1, remote CLI, tonic gRPC (60 RPCs), WebSocket telemetry |
 | 14 | Operator Workflows (approve, takeover, quarantine) | NEXT | **Experimental** — device trust API/CLI/UI, mission approve, quarantine |
 | 15 | SRE (SLO, MTTR, incidents) | NEXT | **Experimental** — `/v1/sre/summary` + incident workflow API (`/v1/sre/incidents`) |
-| 16 | Reporting (fleet, mission, compliance exports) | LATER | **Experimental** — markdown/PDF/JSON exports via `/v1/reports/export` / **Planned** (scheduled reports) |
-| 17 | Compliance (evidence packs) | LATER | **Experimental** — `GET /v1/compliance/export` |
+| 16 | Reporting (fleet, mission, compliance exports) | LATER | **Experimental** — markdown/PDF/JSON exports + **scheduled webhook delivery** (`/v1/reports/schedules`) |
+| 17 | Compliance (evidence packs) | LATER | **Experimental** — export + **signed profile catalog** (`/v1/compliance/profiles`) |
 | 18 | APIs (REST + gRPC CLI parity) | NEXT | **Experimental** — REST v1 + OpenAPI; tonic gRPC (60 RPCs); remote `spanda control-center` CLI |
 | 19 | Observability (OTel, traces, correlation) | NEXT | **Experimental** — trace log, OTLP export, correlation IDs, `spanda-otel-collector` backend wiring |
 | 20 | Digital Thread (requirement → retirement) | LATER | **Experimental** — lifecycle phases on query API + graph UI (`lifecycle_phase` filter) |
@@ -149,7 +149,7 @@ Full analysis: [enterprise-operations-roadmap.md](./enterprise-operations-roadma
 | **NOW (shipped experimental)** | v0.5–v0.6 | Control Center, Device Pool, Provisioning, Discovery, Telemetry, Alerting, RBAC, Secrets — E1 gate: `enterprise_ops_smoke.sh` |
 | **NEXT (shipped experimental)** | v0.6–v0.7 | SDKs, drift (partial), OTA plan, package trust API, observability OTLP/WS, operator workflows, SRE summary — E2–E3 gates |
 | **LATER (shipped experimental)** | v0.8–v1.0 | Compliance export, executive scorecard, digital thread query, PDF reporting, Tauri desktop scaffold — E4 gate |
-| **Stable hardening** | v0.5 beta → v1.0 | Native gRPC, full 6-dimension drift, registry-backed discovery packages, alert channel packages, production installers, HA |
+| **Stable hardening** | v0.5 beta → v1.0 | **Checklist shipped in code** — operational gates remain (field soak, audit sign-off, production releases) |
 
 ### Phased delivery
 
@@ -171,18 +171,26 @@ Phases E1–E4 are **shipped at experimental tier** (CI smoke + docs). The table
 
 ### Remaining for Stable
 
-See **[stable-hardening-enterprise-ops.md](./stable-hardening-enterprise-ops.md)** for the full per-pillar checklist and promotion gates.
+See **[stable-hardening-enterprise-ops.md](./stable-hardening-enterprise-ops.md)** for the full per-pillar checklist. **All stable-hardening implementation items are shipped**; promotion to **Stable** tier requires operational gates only.
 
-| Area | Experimental today | Stable requires |
-|------|-------------------|-----------------|
-| Discovery | Host-backed probes + registry packages (wifi/cellular/serial) | Production transport certs; fleet-scale soak |
-| Device Pool | Full lifecycle + HA persistence + multi-tenant | 1000+ device perf benchmark |
-| APIs | REST v1 + 59 gRPC RPCs + remote CLI + rate limits | Complete OpenAPI (**shipped**); gRPC semver policy (**shipped** — `GET /v1/version`) |
-| Observability | OTLP traces/metrics + WebSocket + `spanda-otel-collector` | Managed collector HA guide |
-| Desktop | Tauri scaffold + glib patch + updater scaffold | Signed/notarized installers + active auto-update |
-| Drift / OTA | 7-dimension drift; plan + live execute | Mandatory certify gate in production policy |
-| Digital Thread | Interactive graph UI + query API | **Shipped (experimental):** lifecycle phases (requirement → retirement) |
-| Compliance | Export + immutable evidence log | Multi-approver + scheduled delivery |
+| Gate | Status |
+|------|--------|
+| Code + docs checklist | **Shipped** — OpenAPI parity, RBAC, HA persistence, OTA certify policy, signed compliance catalog, scheduled reports, discovery TLS, SLO burn monitor, PagerDuty sync, Grafana templates, desktop CI/signing scaffold |
+| 30-day field soak | **Pending** — run `scripts/field_soak_gate.sh` after pilot start ([field-soak-gate.md](./field-soak-gate.md)) |
+| Third-party security audit | **Pending** — prep shipped; external sign-off ([security-audit-third-party.md](./security-audit-third-party.md)) |
+| Production releases | **Pending** — PyPI (`sdk-python-v*`), npm (`npm-web-v*`), desktop (`desktop-v*`) with registry/signing secrets |
+| Tier promotion | **Pending** — update `feature-status.md` after gates pass |
+
+| Area | Experimental today | Stable hardening (code) |
+|------|-------------------|-------------------------|
+| Discovery | Host-backed probes + registry packages + TLS policy | **Shipped** |
+| Device Pool | Full lifecycle + HA persistence + multi-tenant | **Shipped** (1000-device perf gate) |
+| APIs | REST v1 + 60 gRPC RPCs + remote CLI + OpenAPI parity | **Shipped** |
+| Observability | OTLP + WebSocket + Grafana templates + HA guide | **Shipped** |
+| Desktop | Tauri scaffold + CI + signing runbook + env-gated updater | **Shipped** (first release pending) |
+| Drift / OTA | 7-dimension drift + scheduled scans; certify in production | **Shipped** |
+| Digital Thread | Full lifecycle graph + query API | **Shipped** |
+| Compliance / Reports | Signed catalog + scheduled delivery | **Shipped** |
 
 **Exit criteria (E1):** `spanda control-center serve` + `scripts/enterprise_ops_smoke.sh` — **shipped**
 

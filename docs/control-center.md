@@ -126,7 +126,7 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/secrets` | GET | Bearer | Secret metadata (no values) |
 | `/v1/rbac/matrix` | GET | — | Role permission matrix |
 | `/v1/provision` | POST | Bearer | Run discover → ready workflow |
-| `/v1/discovery` | GET | — | Package-backed discovery (`?transport=mdns` or `subnet`) |
+| `/v1/discovery` | GET | — | Package-backed discovery (`?transport=mdns` or `subnet`); response includes `tls` policy summary |
 | `/v1/config/snapshots` | GET/POST | POST: Bearer | List or save configuration snapshots (`encrypt: true` + `SPANDA_CONFIG_SNAPSHOT_KEY` for AES-256-GCM at rest) |
 | `/v1/config/approvals` | GET | — | List config publish approval requests |
 | `/v1/config/approvals` | POST | Bearer (Deploy) | Submit approval request for a snapshot (`required_approvals` or `SPANDA_CONFIG_APPROVALS_REQUIRED`) |
@@ -139,8 +139,8 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/drift` | GET | — | Operational drift vs baseline snapshot (`?baseline_id=`) |
 | `/v1/drift/scans` | GET | — | Recorded drift scan history |
 | `/v1/drift/scan` | POST | Bearer | Trigger drift scan (optional `baseline_id`) |
-| `/v1/ota/plan` | POST | Bearer | Plan canary / staged / blue_green rollout |
-| `/v1/ota/execute` | POST | Bearer | Execute rollout; `rollback_on_readiness_fail` gates post-deploy readiness |
+| `/v1/ota/plan` | POST | Bearer | Plan canary / staged / blue_green rollout; `require_certify` enforced when `SPANDA_OTA_REQUIRE_CERTIFY` or `SPANDA_PRODUCTION_POLICY=production` |
+| `/v1/ota/execute` | POST | Bearer | Execute rollout; `rollback_on_readiness_fail` gates post-deploy readiness; certification proof required in production policy |
 | `/v1/ota/status` | GET | — | OTA deploy state (`.spanda/deploy-state.json`) |
 | `/v1/trust/package` | GET | — | Package trust evaluation (`?name=&version=`) |
 | `/v1/sre/summary` | GET | — | Availability, incidents, MTTR/MTBF hints, `health_trends`, `readiness_trends`, `slo`, and `burn_rate` |
@@ -148,6 +148,7 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/sre/incidents` | POST | Bearer | Open incident |
 | `/v1/sre/incidents/{id}/ack` | POST | Bearer | Acknowledge incident |
 | `/v1/sre/incidents/{id}/resolve` | POST | Bearer | Resolve incident |
+| `/v1/integrations/pagerduty/webhook` | POST | Bearer | Inbound PagerDuty ack/resolve → incident workflow sync |
 | `/v1/observability/traces` | GET | — | Recent API trace records |
 | `/v1/observability/otlp/traces` | GET | — | OTLP/JSON trace preview for Jaeger |
 | `/v1/observability/otlp/metrics` | GET | — | OTLP/JSON metrics preview |
@@ -159,11 +160,16 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/rpc` | POST | — | gRPC-compatible JSON gateway |
 | **gRPC (tonic)** | — | — | Native `ControlCenter` service on `--grpc-bind` (60 RPCs; full REST parity except JSON-RPC gateway) |
 | `/v1/compliance/export` | GET/POST | Bearer | Accreditation bundle (`?profile=defense`); appends immutable evidence log |
+| `/v1/compliance/profiles` | GET | — | Signed profile catalog (defense, medical, ISO 26262) with Ed25519 verification |
 | `/v1/compliance/evidence` | GET | Bearer | List append-only compliance evidence records |
-| `/v1/digital-thread/query` | GET | — | Trace chain (`?capability=`, `?device_id=`) |
+| `/v1/digital-thread/query` | GET | — | Trace chain (`?capability=`, `?device_id=`, `?lifecycle_phase=`) |
 | `/v1/executive/scorecard` | GET | — | Mission scorecard rollup |
 | `/v1/analytics/readiness` | GET | — | Readiness trends and forecast |
 | `/v1/reports/export` | GET | Bearer | Combined report (`format=markdown`, `json`, or `pdf`) |
+| `/v1/reports/schedules` | GET | Bearer | List scheduled report delivery jobs |
+| `/v1/reports/schedules` | POST | Bearer | Create scheduled webhook delivery (`profile`, `format`, `destination_url`, `interval_hours`) |
+| `/v1/audit/mutations` | GET | Bearer | Hash-chained mutation audit trail |
+| `/v1/audit/mutations/export` | GET | Bearer | SIEM export (`?format=cef` or `jsonl`) |
 
 Authenticate mutations with `Authorization: Bearer <SPANDA_API_KEY>`.
 
@@ -175,7 +181,17 @@ Authenticate mutations with `Authorization: Bearer <SPANDA_API_KEY>`.
 
 **Rate limiting:** Set `SPANDA_API_RATE_LIMIT_PER_MINUTE` (per API key, or `anonymous` when unauthenticated). Excess requests return HTTP `429` with `Retry-After` (REST) or gRPC `RESOURCE_EXHAUSTED`.
 
-**Mutation audit:** Successful `POST`/`PATCH`/`PUT`/`DELETE` requests append hash-chained audit records (`GET /v1/audit/mutations`, Bearer required). Persisted to `.spanda/control-center-mutations.jsonl` (override with `SPANDA_MUTATION_AUDIT_PATH`).
+**Mutation audit:** Successful `POST`/`PATCH`/`PUT`/`DELETE` requests append hash-chained audit records (`GET /v1/audit/mutations`, Bearer required). Export for SIEM: `GET /v1/audit/mutations/export?format=cef|jsonl`. Persisted to `.spanda/control-center-mutations.jsonl` (override with `SPANDA_MUTATION_AUDIT_PATH`).
+
+**Production policy:** Set `SPANDA_PRODUCTION_POLICY=production` to enable fleet defaults: OTA certification required (`SPANDA_OTA_REQUIRE_CERTIFY`), discovery TLS required (`SPANDA_DISCOVERY_REQUIRE_TLS`). See [stable-hardening-enterprise-ops.md](./stable-hardening-enterprise-ops.md).
+
+**Scheduled reports:** Background delivery when `SPANDA_REPORT_SCHEDULE_INTERVAL_SECS` is set (e.g. `3600`). Schedules persist under `SPANDA_CONTROL_CENTER_STATE_DIR`.
+
+**Discovery TLS:** `SPANDA_DISCOVERY_REQUIRE_TLS` blocks insecure `http://` / `mqtt://` endpoints; `SPANDA_DISCOVERY_TLS_CA_BUNDLE` points at vendor CA PEM. Registry package: `spanda-discovery-tls`.
+
+**SRE burn monitor:** Fast-burn alerts when `SPANDA_SRE_BURN_SCAN_INTERVAL_SECS` > 0 (`SPANDA_SRE_BURN_RATE_FAST`, `SPANDA_SRE_BURN_WINDOW_HOURS`).
+
+**Drift scans:** Background scheduler when `SPANDA_DRIFT_SCAN_INTERVAL_SECS` > 0.
 
 Pass optional `X-Correlation-ID` on any request; the server echoes it on the response and records traces for `/v1/observability/traces`.
 
@@ -278,6 +294,10 @@ Configure delivery channels via environment variables:
 | `SPANDA_ALERT_WEBHOOK_URL` | POST JSON alert payload |
 | `SPANDA_ALERT_EMAIL_TO` | Email recipient (logs if `SPANDA_SMTP_HOST` unset) |
 | `SPANDA_ALERT_EMAIL_DRY_RUN=1` | Log email without sending |
+| `SPANDA_ALERT_DEDUP_WINDOW_*_SECS` | Per-severity dedup windows before dispatch |
+| `SPANDA_PAGERDUTY_WEBHOOK_SECRET` | Optional HMAC for inbound PagerDuty webhook |
+
+Registry packages: `spanda-alert-pagerduty` (bi-directional sync), `spanda-alert-escalation`, `spanda-alert-slack`, `spanda-alert-teams`.
 
 Default: log to stderr.
 
@@ -288,7 +308,16 @@ Default: log to stderr.
 ```bash
 ./scripts/enterprise_ops_smoke.sh
 ./scripts/control_center_desktop_smoke.sh
+./scripts/security_audit_prep.sh      # third-party audit intake
+./scripts/field_soak_gate.sh          # after 30-day pilot start date
+./scripts/verify_sdk_publish_ready.sh # PyPI + npm pack readiness
 ```
+
+---
+
+## Stable promotion
+
+Enterprise operations E1–E4 are **Experimental** with full stable-hardening checklist items **shipped in code**. Remaining gates before **Stable** tier: third-party security audit sign-off, 30-day field soak, and first production SDK/desktop releases. See [stable-hardening-enterprise-ops.md](./stable-hardening-enterprise-ops.md) · [field-soak-gate.md](./field-soak-gate.md) · [security-audit-third-party.md](./security-audit-third-party.md) · [desktop-release-runbook.md](./desktop-release-runbook.md).
 
 ---
 
@@ -300,10 +329,10 @@ Package: `@spanda/control-center-desktop` (`packages/control-center-desktop`).
 2. Dev shell: `npm run control-center:desktop:dev` (Vite on port **5174**)
 3. Optional API URL: `VITE_CONTROL_CENTER_URL=http://host:port`
 
-The desktop shell reuses `ControlCenterPanel` from `@spanda/web`; it does not embed `spanda-api`. See [packages/control-center-desktop/README.md](../packages/control-center-desktop/README.md).
+The desktop shell reuses `ControlCenterPanel` from `@spanda/web`; it does not embed `spanda-api`. Production release: tag `desktop-v*`, CI workflow `.github/workflows/desktop-release.yml`, optional `./scripts/sign_tauri_macos.sh`. See [packages/control-center-desktop/README.md](../packages/control-center-desktop/README.md) · [desktop-release-runbook.md](./desktop-release-runbook.md).
 
 ---
 
 ## Status
 
-**Experimental** (Phase E1–E4). Includes device pool provisioning, multi-transport discovery, WebSocket telemetry streaming, OTLP trace export to Jaeger, compliance export, digital thread query with **interactive graph UI**, executive scorecard, report composer (including PDF), and Tauri desktop scaffold.
+**Experimental** (Phase E1–E4). Includes device pool provisioning, multi-transport discovery with production TLS policy, WebSocket telemetry streaming, OTLP trace/metrics export, SLO burn-rate monitor, PagerDuty bi-directional sync, compliance export with **signed profile catalog**, scheduled report delivery, digital thread query with **full lifecycle graph UI**, executive scorecard, report composer (including PDF), Grafana dashboard templates (`spanda-grafana-dashboards`), and Tauri desktop CI/signing scaffold.

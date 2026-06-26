@@ -378,7 +378,7 @@ Web-based operational visibility for robots, fleets, swarms, devices, sensors, m
 |-------|-------|
 | UI | React + TypeScript (`ControlCenterPanel` in `@spanda/web`) |
 | State | React Query + context |
-| Desktop | Tauri (`@spanda/control-center-desktop`) — future signed installers |
+| Desktop | Tauri (`@spanda/control-center-desktop`) — CI signing scaffold + env-gated auto-update ([desktop-release-runbook.md](./desktop-release-runbook.md)) |
 | Backend | Rust `spanda-api` (`spanda control-center serve`) |
 | Build | Vite (shared with `@spanda/web`) |
 
@@ -519,7 +519,7 @@ Builds on [telemetry-store.md](./telemetry-store.md):
 
 **Alert types:** Mission Failure, Robot Offline, Crash, Reboot, Memory Leak, Tamper, Security, Low Battery, Health Critical, Readiness Failed, Recovery Failed.
 
-Core: `spanda-ops::alerting` — rule engine, deduplication, severity routing.
+Core: `spanda-ops::alerting` — rule engine, per-severity deduplication, severity routing. PagerDuty bi-directional sync via `POST /v1/integrations/pagerduty/webhook`.
 
 ### 6.10 Configuration Drift
 
@@ -529,11 +529,13 @@ Extends [drift-detection.md](./drift-detection.md):
 |-----------|----------|--------|
 | Configuration | `detect_config_drift` | **Experimental** |
 | Firmware | attestation vs baseline | **Experimental** |
-| Package | lockfile vs agent report | Planned |
-| Provider | resolved vs runtime dispatch | Planned |
-| Capability | matrix vs runtime grants | Planned |
-| Policy | declared vs enforced | Planned |
-| Safety | certify hash vs runtime | Planned |
+| Package | lockfile vs agent report | **Experimental** (operational drift API) |
+| Provider | resolved vs runtime dispatch | **Experimental** |
+| Capability | matrix vs runtime grants | **Experimental** |
+| Policy | declared vs enforced | **Experimental** |
+| Safety | certify hash vs runtime | **Experimental** |
+
+Scheduled scans: `SPANDA_DRIFT_SCAN_INTERVAL_SECS`, `GET /v1/drift/scans`, `POST /v1/drift/scan`.
 
 ### 6.11 OTA & Rollback
 
@@ -736,7 +738,7 @@ Builds on `spanda-capability` traceability matrices + `spanda-audit` + mission c
 | Tauri desktop packaging | `@spanda/control-center-desktop` |
 | WebSocket SDK | real-time telemetry stream |
 
-**Exit criteria:** Compliance report export; digital thread query demo — **shipped** (`scripts/enterprise_ops_smoke.sh`). PDF executive export — **shipped** (`format=pdf`). Tauri desktop scaffold — **shipped** (`scripts/control_center_desktop_smoke.sh`, `scripts/build_control_center_desktop.sh`; set `TAURI_BUILD=1` for signed installers).
+**Exit criteria:** Compliance report export; signed profile catalog; scheduled report delivery; digital thread lifecycle graph — **shipped** (`scripts/enterprise_ops_smoke.sh`). PDF executive export — **shipped** (`format=pdf`). Tauri desktop CI/signing scaffold — **shipped** (`scripts/control_center_desktop_smoke.sh`, `scripts/build_control_center_desktop.sh`, `.github/workflows/desktop-release.yml`). Stable promotion gates — [stable-hardening-enterprise-ops.md](./stable-hardening-enterprise-ops.md).
 
 ---
 

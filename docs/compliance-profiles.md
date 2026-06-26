@@ -40,6 +40,24 @@ spanda compliance report examples/showcase/compliance/defense_rover.sd --profile
 
 `spanda compliance report` exports an **accreditation bundle** with evidence checklist, audit export ID, and explicit `template_only` status — suitable for engineering audit trails, not legal certification.
 
+## Control Center (signed catalog)
+
+Production fleets can list Ed25519-verified templates:
+
+```bash
+curl http://127.0.0.1:8080/v1/compliance/profiles
+curl -H "Authorization: Bearer $SPANDA_API_KEY" \
+  "http://127.0.0.1:8080/v1/compliance/export?profile=defense"
+```
+
+Templates ship in `crates/spanda-compliance/templates/` (defense, medical, ISO 26262). Re-sign after edits:
+
+```bash
+cargo run -p spanda-compliance --bin sign_catalog
+```
+
+See [control-center.md](./control-center.md) · [security-audit-third-party.md](./security-audit-third-party.md).
+
 ## Integration
 
 Built on readiness, capability verification, and assurance evidence checks in `spanda-compliance`.

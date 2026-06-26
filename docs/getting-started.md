@@ -669,14 +669,29 @@ spanda control-center incidents list
 spanda control-center api get /v1/sre/summary
 ```
 
-Rate limits, WebSocket streaming, and SIEM audit export: [control-center.md](./control-center.md) · [control-center-rate-limits.md](./control-center-rate-limits.md).
+Rate limits, WebSocket streaming, SIEM audit export, scheduled reports, and production policy env vars: [control-center.md](./control-center.md) · [control-center-rate-limits.md](./control-center-rate-limits.md) · [stable-hardening-enterprise-ops.md](./stable-hardening-enterprise-ops.md).
+
+### Production policy (optional)
+
+```bash
+export SPANDA_PRODUCTION_POLICY=production   # enables OTA certify + discovery TLS defaults
+export SPANDA_OTA_REQUIRE_CERTIFY=1
+export SPANDA_DISCOVERY_REQUIRE_TLS=1
+export SPANDA_REPORT_SCHEDULE_INTERVAL_SECS=3600
+```
 
 ### Smoke test (API + desktop compile check)
 
 ```bash
 ./scripts/enterprise_ops_smoke.sh
 ./scripts/control_center_desktop_smoke.sh
+./scripts/security_audit_prep.sh
+./scripts/verify_sdk_publish_ready.sh
 ```
+
+### Field soak and stable promotion
+
+Before promoting enterprise operations to **Stable**: start a 30-day pilot clock ([field-soak-gate.md](./field-soak-gate.md)), complete third-party security audit ([security-audit-third-party.md](./security-audit-third-party.md)), and cut production SDK/desktop releases ([desktop-release-runbook.md](./desktop-release-runbook.md)).
 
 ### Desktop shell (optional)
 

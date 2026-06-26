@@ -56,7 +56,10 @@
 | `scripts/policy_smoke.sh` | Verify-time policy |
 | `scripts/policy_runtime_smoke.sh` | Runtime `--enforce-policy` |
 | `scripts/maturity_smoke.sh` | Graph, explain, trust, deploy gate |
-| `scripts/enterprise_ops_smoke.sh` | Control Center E1–E4 API surface |
+| `scripts/enterprise_ops_smoke.sh` | Control Center E1–E4 API surface (compliance catalog, report schedules, discovery TLS, audit prep) |
+| `scripts/field_soak_gate.sh` | 30-day field pilot gate before Stable promotion |
+| `scripts/security_audit_prep.sh` | Third-party audit intake artifact |
+| `scripts/verify_sdk_publish_ready.sh` | PyPI + npm pack readiness (no publish) |
 
 ## CLI verification
 
