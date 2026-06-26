@@ -83,6 +83,7 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
         eprintln!("  gRPC tonic server on {grpc_bind} (60 RPCs — Control Center service)");
     }
     crate::drift_scheduler::spawn_drift_scheduler(Arc::clone(&state));
+    crate::slo_burn_scheduler::spawn_slo_burn_monitor(Arc::clone(&state));
     if std::env::var("SPANDA_DRIFT_SCAN_INTERVAL_SECS")
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
@@ -92,6 +93,14 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
         eprintln!("  drift scan scheduler active (SPANDA_DRIFT_SCAN_INTERVAL_SECS)");
         eprintln!("  GET  /v1/drift/scans     drift scan history");
         eprintln!("  POST /v1/drift/scan      trigger drift scan (Bearer token)");
+    }
+    if std::env::var("SPANDA_SRE_BURN_SCAN_INTERVAL_SECS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|secs| *secs > 0)
+        .is_some()
+    {
+        eprintln!("  SLO burn-rate monitor active (SPANDA_SRE_BURN_SCAN_INTERVAL_SECS)");
     }
 
     if options.once {
