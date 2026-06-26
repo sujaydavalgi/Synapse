@@ -57,7 +57,22 @@ type Tab =
   | "mapping"
   | "health"
   | "readiness"
+  | "sre"
   | "traceability";
+
+type SreSummary = {
+  availability_percent: number;
+  incidents_open?: number;
+  mttr_hint_ms?: number | null;
+  slo?: { target_percent?: number; met?: boolean };
+};
+
+type IncidentRow = {
+  id: string;
+  title: string;
+  status: string;
+  severity: string;
+};
 
 type Props = {
   apiBase: string;
@@ -77,6 +92,8 @@ export function ControlCenterPanel({ apiBase }: Props) {
   const [selectedRobot, setSelectedRobot] = useState<string>("");
   const [discoveryLog, setDiscoveryLog] = useState<string | null>(null);
   const [provisionLog, setProvisionLog] = useState<string | null>(null);
+  const [sreSummary, setSreSummary] = useState<SreSummary | null>(null);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -277,6 +294,87 @@ export function ControlCenterPanel({ apiBase }: Props) {
     }
   };
 
+  const loadSre = async () => {
+    setBusy(true);
+    try {
+      const [summaryRes, incidentsRes] = await Promise.all([
+        fetch(`${base}/v1/sre/summary`),
+        fetch(`${base}/v1/sre/incidents`),
+      ]);
+      if (!summaryRes.ok) throw new Error(`sre summary ${summaryRes.status}`);
+      setSreSummary(await summaryRes.json());
+      if (incidentsRes.ok) {
+        const body = await incidentsRes.json();
+        setIncidents(body.incidents ?? []);
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createIncident = async () => {
+    if (!apiKey) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`${base}/v1/sre/incidents`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title: "Control Center incident",
+          description: "Opened from @spanda/web panel",
+          severity: "warning",
+        }),
+      });
+      if (!res.ok) throw new Error(`create incident ${res.status}`);
+      await loadSre();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const ackIncident = async (incidentId: string) => {
+    if (!apiKey) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`${base}/v1/sre/incidents/${encodeURIComponent(incidentId)}/ack`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ assignee: "operator" }),
+      });
+      if (!res.ok) throw new Error(`ack incident ${res.status}`);
+      await loadSre();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resolveIncident = async (incidentId: string) => {
+    if (!apiKey) return;
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `${base}/v1/sre/incidents/${encodeURIComponent(incidentId)}/resolve`,
+        { method: "POST", headers: authHeaders() },
+      );
+      if (!res.ok) throw new Error(`resolve incident ${res.status}`);
+      await loadSre();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === "sre") void loadSre();
+  }, [tab, base]);
+
   const exportReports = async () => {
     setBusy(true);
     try {
@@ -309,6 +407,7 @@ export function ControlCenterPanel({ apiBase }: Props) {
     "mapping",
     "health",
     "readiness",
+    "sre",
     "traceability",
   ];
 
@@ -519,6 +618,53 @@ export function ControlCenterPanel({ apiBase }: Props) {
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {tab === "sre" && sreSummary && (
+        <div>
+          <dl>
+            <dt>Availability %</dt>
+            <dd>{sreSummary.availability_percent.toFixed(1)}</dd>
+            <dt>SLO target %</dt>
+            <dd>{(sreSummary.slo?.target_percent ?? 99).toFixed(1)}</dd>
+            <dt>SLO met</dt>
+            <dd>{sreSummary.slo?.met ? "yes" : "no"}</dd>
+            <dt>Open incidents</dt>
+            <dd>{sreSummary.incidents_open ?? 0}</dd>
+            <dt>MTTR hint (ms)</dt>
+            <dd>{sreSummary.mttr_hint_ms ?? "—"}</dd>
+          </dl>
+          <button type="button" onClick={() => void createIncident()} disabled={busy || !apiKey}>
+            Open incident
+          </button>
+          {!apiKey && (
+            <p className="demo-hint">
+              Set <code>VITE_SPANDA_API_KEY</code> to ack/resolve incidents.
+            </p>
+          )}
+          <ul>
+            {incidents.length === 0 && <li>No incidents</li>}
+            {incidents.map((incident) => (
+              <li key={incident.id}>
+                <strong>{incident.title}</strong> — {incident.status} ({incident.severity})
+                {incident.status === "open" && apiKey && (
+                  <button type="button" onClick={() => void ackIncident(incident.id)} disabled={busy}>
+                    Ack
+                  </button>
+                )}
+                {incident.status !== "resolved" && apiKey && (
+                  <button
+                    type="button"
+                    onClick={() => void resolveIncident(incident.id)}
+                    disabled={busy}
+                  >
+                    Resolve
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

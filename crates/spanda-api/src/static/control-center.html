@@ -105,6 +105,37 @@
       return res.json();
     }
 
+    async function apiAuth(method, path, body) {
+      const key = window.SPANDA_API_KEY || "";
+      const res = await fetch(path, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...(key ? { Authorization: "Bearer " + key } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!res.ok) throw new Error(path + " returned " + res.status);
+      return res.json();
+    }
+
+    window.sreAckIncident = async (id) => {
+      await apiAuth("POST", "/v1/sre/incidents/" + encodeURIComponent(id) + "/ack", { assignee: "operator" });
+      await loadSre();
+    };
+    window.sreResolveIncident = async (id) => {
+      await apiAuth("POST", "/v1/sre/incidents/" + encodeURIComponent(id) + "/resolve", null);
+      await loadSre();
+    };
+    window.sreCreateIncident = async () => {
+      await apiAuth("POST", "/v1/sre/incidents", {
+        title: "UI incident",
+        description: "Opened from Control Center SRE tab",
+        severity: "warning",
+      });
+      await loadSre();
+    };
+
     function showError(msg) {
       errEl.hidden = false;
       errEl.textContent = msg;
@@ -247,9 +278,16 @@
           return;
         }
         const data = await api("/v1/drift?baseline_id=" + encodeURIComponent(first.id));
+        const dims = data.report.by_dimension || {};
+        const dimCards = Object.entries(dims).map(([name, count]) =>
+          `<div class="stat"><dt>${name}</dt><dd>${count}</dd></div>`
+        ).join("");
         document.getElementById("tab-drift").innerHTML = `
           <h2>Operational drift</h2>
           <p>Baseline: <code>${first.id}</code> — passed: <strong class="${data.report.passed ? "ok" : "error"}">${data.report.passed}</strong></p>
+          <h3>By dimension</h3>
+          <div class="grid">${dimCards || "<p>No drift findings</p>"}</div>
+          <h3>Full report</h3>
           <pre>${JSON.stringify(data.report, null, 2)}</pre>`;
       } catch (e) { showError(String(e)); }
     }
@@ -283,15 +321,36 @@
       try {
         errEl.hidden = true;
         const sre = await api("/v1/sre/summary");
+        const incidents = await api("/v1/sre/incidents");
         const traces = await api("/v1/observability/traces");
+        const slo = sre.slo || {};
+        const rows = (incidents.incidents || []).map((inc) => `
+          <tr>
+            <td><code>${inc.id}</code></td>
+            <td>${inc.title}</td>
+            <td>${inc.status}</td>
+            <td>${inc.severity}</td>
+            <td>
+              ${inc.status === "open" ? `<button type="button" onclick="sreAckIncident('${inc.id}')">Ack</button>` : ""}
+              ${inc.status !== "resolved" ? `<button type="button" onclick="sreResolveIncident('${inc.id}')">Resolve</button>` : ""}
+            </td>
+          </tr>`).join("") || "<tr><td colspan='5'>No incidents</td></tr>";
         document.getElementById("tab-sre").innerHTML = `
           <h2>SRE dashboard</h2>
           <div class="grid">
             <div class="stat"><dt>Availability %</dt><dd>${sre.availability_percent.toFixed(1)}</dd></div>
+            <div class="stat"><dt>SLO target %</dt><dd>${(slo.target_percent ?? 99).toFixed(1)}</dd></div>
+            <div class="stat"><dt>SLO met</dt><dd class="${slo.met ? "ok" : "error"}">${slo.met ? "yes" : "no"}</dd></div>
+            <div class="stat"><dt>Incidents open</dt><dd>${sre.incidents_open ?? 0}</dd></div>
+            <div class="stat"><dt>MTTR hint (ms)</dt><dd>${sre.mttr_hint_ms ?? "—"}</dd></div>
             <div class="stat"><dt>Alerts</dt><dd>${sre.alerts_total}</dd></div>
             <div class="stat"><dt>Critical</dt><dd>${sre.alerts_critical}</dd></div>
             <div class="stat"><dt>Traces</dt><dd>${sre.traces_recorded}</dd></div>
           </div>
+          <h3>Incidents</h3>
+          <p><button type="button" onclick="sreCreateIncident()">Open incident</button>
+          ${window.SPANDA_API_KEY ? "" : " — set <code>window.SPANDA_API_KEY</code> for mutations"}</p>
+          <table><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Severity</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>
           <h3>Recent traces</h3>
           <pre>${JSON.stringify((traces.traces || []).slice(-5), null, 2)}</pre>`;
       } catch (e) { showError(String(e)); }
