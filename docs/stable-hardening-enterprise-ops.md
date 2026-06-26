@@ -66,7 +66,7 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 | Traces | API log + OTLP export to Jaeger | Managed collector HA deployment guide |
 | Metrics | OTLP metrics preview + export | Dashboard templates (Grafana package) |
 | WebSocket | `/v1/stream/telemetry` | Backpressure + reconnect contract |
-| SRE | SLO, MTTR/MTBF hints, incidents, auto-open from critical alerts | SLO burn-rate alerting package |
+| SRE | SLO, MTTR/MTBF hints, incidents, auto-open from critical alerts | **Shipped:** SLO burn-rate rollup on `/v1/sre/summary` (`burn_rate.fast_burn`) |
 | Incidents | ack/resolve workflow | PagerDuty bi-directional sync |
 
 ### Compliance + Digital Thread

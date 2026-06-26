@@ -143,7 +143,7 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/ota/execute` | POST | Bearer | Execute rollout; `rollback_on_readiness_fail` gates post-deploy readiness |
 | `/v1/ota/status` | GET | — | OTA deploy state (`.spanda/deploy-state.json`) |
 | `/v1/trust/package` | GET | — | Package trust evaluation (`?name=&version=`) |
-| `/v1/sre/summary` | GET | — | Availability, incidents, MTTR/MTBF hints, `health_trends`, `readiness_trends`, and `slo` |
+| `/v1/sre/summary` | GET | — | Availability, incidents, MTTR/MTBF hints, `health_trends`, `readiness_trends`, `slo`, and `burn_rate` |
 | `/v1/sre/incidents` | GET | — | Incident list |
 | `/v1/sre/incidents` | POST | Bearer | Open incident |
 | `/v1/sre/incidents/{id}/ack` | POST | Bearer | Acknowledge incident |

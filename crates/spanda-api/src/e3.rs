@@ -261,6 +261,7 @@ pub fn sre_summary(state: &ControlCenterState) -> HttpResponse {
         "health_trends": health_trends,
         "readiness_trends": readiness_trends,
         "slo": spanda_ops::slo_status(availability),
+        "burn_rate": spanda_ops::slo_burn_rate_summary(&alerts),
     }))
 }
 

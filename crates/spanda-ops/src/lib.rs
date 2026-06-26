@@ -14,7 +14,10 @@ pub use alerting::{Alert, AlertChannel, AlertDispatcher, AlertSeverity, AlertSto
 pub use incidents::{
     Incident, IncidentSeverity, IncidentStatus, IncidentStore,
 };
-pub use sre::{health_trends_summary, mtbf_hint_ms, slo_status, slo_target_percent};
+pub use sre::{
+    health_trends_summary, mtbf_hint_ms, slo_burn_rate_fast_threshold,
+    slo_burn_rate_summary, slo_burn_rate_window_hours, slo_status, slo_target_percent,
+};
 pub use otlp_metrics::{
     env_metrics_endpoint, push_otlp_metrics, render_otlp_metrics_json, ControlCenterMetrics,
 };

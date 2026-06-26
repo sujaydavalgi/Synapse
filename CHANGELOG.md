@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Remote CLI OpenAPI parity:** `control_center_openapi_parity.rs` verifies CLI routes exist in `REST_V1_ROUTES`.
 - **Encrypted config snapshots:** AES-256-GCM at rest via `encrypt` on `POST /v1/config/snapshots` or `SPANDA_CONFIG_SNAPSHOT_ENCRYPT=1` + `SPANDA_CONFIG_SNAPSHOT_KEY`.
 - **Failover drill smoke:** `scripts/failover_drill_smoke.sh` validates redundant chain selection and recovery actions.
+- **SLO burn-rate rollup:** `burn_rate` object on `GET /v1/sre/summary` with `fast_burn` when fault alert rate exceeds budget (`SPANDA_SRE_BURN_RATE_FAST`, `SPANDA_SRE_BURN_WINDOW_HOURS`).
 - **Digital thread graph UI:** interactive SVG graph in `ControlCenterPanel` and embedded Control Center HTML — filter by capability/device, click-to-highlight neighbors.
 - **Stable hardening checklist:** [docs/stable-hardening-enterprise-ops.md](docs/stable-hardening-enterprise-ops.md) — Experimental → Stable promotion gates per pillar.
 - **Python SDK expansion:** executive scorecard, digital thread, reports export, OTA execute/status, config snapshots, audit mutations.
