@@ -19,6 +19,19 @@ fn pick_port() -> u16 {
         .port()
 }
 
+fn copy_dir_all(src: &std::path::Path, dst: &std::path::Path) {
+    std::fs::create_dir_all(dst).expect("create temp config dir");
+    for entry in std::fs::read_dir(src).expect("read config source") {
+        let entry = entry.expect("config entry");
+        let target = dst.join(entry.file_name());
+        if entry.file_type().expect("file type").is_dir() {
+            copy_dir_all(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), target).expect("copy config file");
+        }
+    }
+}
+
 #[tokio::test]
 async fn grpc_health_and_dashboard() {
     let http_port = pick_port();
@@ -247,21 +260,24 @@ async fn grpc_mutation_rbac_from_metadata() {
 async fn grpc_device_subresources_with_warehouse_config() {
     let _guard = GRPC_TEST_LOCK.lock().unwrap();
     std::env::set_var("SPANDA_API_KEY", "grpc-device-test-key");
-    let warehouse = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let warehouse_src = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
-        .join("spanda-config/tests/fixtures/warehouse/spanda.toml");
+        .join("spanda-config/tests/fixtures/warehouse");
+    let temp_dir = tempfile::tempdir().expect("temp config dir");
+    copy_dir_all(&warehouse_src, temp_dir.path());
     let http_port = pick_port();
     let grpc_port = pick_port();
     let options = ControlCenterOptions {
         bind: format!("127.0.0.1:{http_port}"),
         grpc_bind: Some(format!("127.0.0.1:{grpc_port}")),
-        config_path: Some(warehouse),
+        config_path: Some(temp_dir.path().to_path_buf()),
         once: true,
         timeout_ms: 500,
         ..Default::default()
     };
     let grpc_bind = options.grpc_bind.clone().unwrap();
+    let _temp_dir = temp_dir;
     thread::spawn(move || {
         let _ = run_control_center_server(&options);
     });
