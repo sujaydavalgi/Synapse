@@ -17,7 +17,7 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 | HA persistence | Alerts, traces, incidents survive restart | **Shipped** (`SPANDA_CONTROL_CENTER_STATE_DIR`) |
 | Multi-tenant | `SPANDA_TENANT_ID` + key `tenant_id` mismatch → 403 | **Shipped** |
 | Soak | 30-day field pilot without data-loss regressions | **Shipped:** `scripts/field_soak_gate.sh` + [field-soak-gate.md](./field-soak-gate.md) |
-| Security audit | Third-party review of auth + secret handling | **Planned** |
+| Security audit | Third-party review of auth + secret handling | **Shipped:** prep package (`spanda-security-audit`), [security-audit-third-party.md](./security-audit-third-party.md), `scripts/security_audit_prep.sh` (external review pending) |
 
 ---
 
@@ -38,7 +38,7 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 | Item | Experimental (today) | Stable requires |
 |------|---------------------|-----------------|
 | Lifecycle | discover → active → quarantine → retire | **Shipped:** 1000-device pool perf gate (`device_pool_scale` test) |
-| Discovery | mDNS/BLE/USB/wifi/cellular/serial registry | Production transport certs per vendor |
+| Discovery | mDNS/BLE/USB/wifi/cellular/serial registry | **Shipped:** production TLS policy (`SPANDA_DISCOVERY_REQUIRE_TLS`, `spanda-discovery-tls`) |
 | Provisioning | `POST /v1/provision`, per-device workflows | **Shipped:** idempotent reprovision + conflict policy ([device-provisioning.md](./device-provisioning.md)) |
 | Failover | Chain enrichment in recovery | **Shipped:** automated failover drill smoke (`scripts/failover_drill_smoke.sh`) |
 
@@ -57,7 +57,7 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 |------|---------------------|-----------------|
 | Plan | canary / staged / blue_green dry-run | — |
 | Execute | `POST /v1/ota/execute` via deploy agents | **Shipped:** `rollback_on_readiness_fail`; **Shipped:** fleet soak (`scripts/ota_fleet_soak.sh`) |
-| Certification | `--require-certify` gate in planner | Mandatory in default production policy |
+| Certification | `--require-certify` gate in planner | **Shipped:** mandatory via `SPANDA_OTA_REQUIRE_CERTIFY` / `SPANDA_PRODUCTION_POLICY=production` |
 
 ### Observability + SRE
 
@@ -73,8 +73,8 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 
 | Item | Experimental (today) | Stable requires |
 |------|---------------------|-----------------|
-| Export | `GET /v1/compliance/export` + evidence log | Profile catalog (defense, medical, ISO) signed templates |
-| Reports | markdown / JSON / PDF | Scheduled report delivery |
+| Export | `GET /v1/compliance/export` + evidence log | **Shipped:** signed profile catalog (`GET /v1/compliance/profiles`, `spanda-compliance` Ed25519 templates) |
+| Reports | markdown / JSON / PDF | **Shipped:** scheduled delivery (`GET/POST /v1/reports/schedules`, `SPANDA_REPORT_SCHEDULE_INTERVAL_SECS`) |
 | Digital thread | query API + **interactive graph UI** | **Shipped:** full lifecycle graph (requirement → retirement) with `lifecycle_phase` filter |
 
 ### SDKs
@@ -90,8 +90,8 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 | Item | Experimental (today) | Stable requires |
 |------|---------------------|-----------------|
 | Dev shell | `@spanda/control-center-desktop` | — |
-| Build | `TAURI_BUILD=1` macOS CI artifacts | Signed + notarized macOS/Windows installers |
-| Auto-update | `tauri-plugin-updater` scaffold | Active updater + key rotation runbook |
+| Build | `TAURI_BUILD=1` macOS CI artifacts | **Shipped:** signed + notarized macOS via `scripts/sign_tauri_macos.sh`, `.github/workflows/desktop-release.yml` |
+| Auto-update | `tauri-plugin-updater` scaffold | **Shipped:** env-gated active updater (`TAURI_UPDATER_PUBKEY`, `SPANDA_DESKTOP_UPDATER_ACTIVE`), [desktop-release-runbook.md](./desktop-release-runbook.md) |
 | Security | glib RUSTSEC git patch | Upstream gtk4 migration (Tauri v3 track) |
 
 ### Alerting

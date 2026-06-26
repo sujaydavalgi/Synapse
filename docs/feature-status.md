@@ -104,7 +104,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Platform maturity (Phase D)** | Verify-time tamper/integrity, composite program trust, secure-boot attestation (vendor TPM + remote AK chain), compliance accreditation export, decision explain, runtime policy, AI generate/suggest, spoof-check with confidence gates, security assurance, tamper_policy runtime — **Experimental** |
 | **Platform maturity (Phase C–D)** | Readiness trends, resource estimation, compliance profiles, ADR, tamper check |
 | **Enterprise operations (E1–E4, experimental)** | Control Center (`spanda control-center serve`, embedded UI, `ControlCenterPanel` in `@spanda/web`, Tauri `@spanda/control-center-desktop` scaffold), REST v1 (`spanda-api`), Device Pool lifecycle (assign/trust/quarantine/retire, failover chains, recovery integration), host-backed discovery + pool ingest, RBAC v1 (`SPANDA_API_KEY`), `ManagedSecretVault`, alerting core (`spanda-ops`), provisioning/snapshots/discovery (E2), operational drift/OTA/trust/SRE/operator APIs + Python SDK + WebSocket telemetry + OTLP trace export to Jaeger (E3), compliance export/digital thread/executive scorecard/PDF reports (E4); see [enterprise-operations-roadmap.md](./enterprise-operations-roadmap.md), [control-center.md](./control-center.md) |
-| **Enterprise operations (NEXT)** | Tauri installer CI (`TAURI_BUILD=1` on macOS), VS Code Marketplace publish |
+| **Enterprise operations (NEXT)** | VS Code Marketplace publish; third-party security audit sign-off |
 | **LLVM backend (production primary)** | Optimized native binaries replacing interpreter as default deploy path |
 | **Self-hosting compiler (full)** | Complete Spanda-authored compiler pipeline |
 | **ROS2 production adapter** | First-class, zero-config ROS2 deployment |
@@ -214,13 +214,13 @@ See [tier-3-experimental.md](./tier-3-experimental.md) and [tier-3-golden-paths.
 | **Telemetry** | **Experimental** | Health/readiness/mission signals; trend analysis; forecasting **Planned** |
 | **Alerting** | **Experimental** | Webhook, email, PagerDuty, Teams; registry alert packages |
 | **Configuration Drift** | **Experimental** | Full operational drift API (`detect_operational_drift_full`); seven dimensions via Control Center `GET /v1/drift` |
-| **OTA & Rollback** | **Experimental** | Canary, blue/green, phased dry-run; production fleet automation **Planned** |
+| **OTA & Rollback** | **Experimental** | Canary, blue/green, phased dry-run; production `--require-certify` via `SPANDA_OTA_REQUIRE_CERTIFY` |
 | **Package Trust** | **Experimental** | `spanda trust`, `/v1/trust/package`, trust score |
 | **SDKs** | **Experimental** | Python SDK, REST v1, remote CLI (`spanda control-center *`), WebSocket; tonic gRPC (60 RPCs) |
 | **Operator Workflows** | **Experimental** | Mission approve, takeover, quarantine, recovery approval |
 | **SRE** | **Experimental** | `/v1/sre/summary` with `slo`, `mtbf_hint_ms`, `health_trends`, `readiness_trends`; incident workflow + auto-open from critical alerts |
 | **Reporting** | **Experimental** | HTML, Markdown, JSON, PDF, CSV exports |
-| **Compliance** | **Experimental** | Evidence packs, `GET /v1/compliance/export` |
+| **Compliance** | **Experimental** | Evidence packs, `GET /v1/compliance/export`, signed profile catalog (`GET /v1/compliance/profiles`) |
 | **APIs** | **Experimental** | REST v1 + OpenAPI; JSON-RPC gateway; native gRPC (tonic) **Experimental** — 60 RPCs; rate limits (`SPANDA_API_RATE_LIMIT_PER_MINUTE`); versioning policy (`GET /v1/version`, `X-Spanda-Api-Version`) |
 | **Observability** | **Experimental** | OTLP trace/metrics export, correlation IDs, WebSocket telemetry; `spanda-otel-collector` + `SPANDA_OTEL_COLLECTOR_URL`; HA trace log persistence |
 | **Digital Thread** | **Experimental** | `GET /v1/digital-thread/query`; interactive graph UI in Control Center (React + embedded HTML) |

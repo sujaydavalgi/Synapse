@@ -209,6 +209,8 @@ echo "== E3 GET /v1/openapi.json =="
 fetch /v1/openapi.json | grep -q Spanda
 fetch /v1/openapi.json | grep -q '"/v1/digital-thread/query"'
 fetch /v1/openapi.json | grep -q '"/v1/compliance/export"'
+fetch /v1/openapi.json | grep -q '"/v1/compliance/profiles"'
+fetch /v1/openapi.json | grep -q '"/v1/reports/schedules"'
 
 echo "== E3 OpenAPI REST parity test =="
 cargo test -p spanda-api --test openapi_parity_tests --quiet
@@ -354,6 +356,26 @@ assert c.list_config_snapshots()['snapshots']
 echo "== E4 GET /v1/compliance/export?profile=defense =="
 curl -sf -H "Authorization: Bearer ${SPANDA_API_KEY}" \
   "http://${BIND}/v1/compliance/export?profile=defense" | grep -q audit_export_id
+
+echo "== E4 GET /v1/compliance/profiles (signed catalog) =="
+fetch /v1/compliance/profiles | grep -q defense
+
+echo "== E4 POST /v1/reports/schedules =="
+curl -sf -X POST \
+  -H "Authorization: Bearer ${SPANDA_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"profile":"defense","format":"markdown","destination_url":"http://127.0.0.1:9/drop","interval_hours":24}' \
+  "http://${BIND}/v1/reports/schedules" | grep -q '"id"'
+
+echo "== E4 GET /v1/reports/schedules =="
+fetch /v1/reports/schedules | grep -q schedules
+
+echo "== E2 GET /v1/discovery?transport=mdns (TLS policy summary) =="
+fetch "/v1/discovery?transport=mdns&timeout_ms=100" | grep -q '"tls"'
+
+echo "== security audit prep =="
+chmod +x "${ROOT}/scripts/security_audit_prep.sh"
+"${ROOT}/scripts/security_audit_prep.sh" | grep -q security-audit-prep
 
 echo "== E4 GET /v1/digital-thread/query =="
 fetch "/v1/digital-thread/query" | grep -q matched_node_count

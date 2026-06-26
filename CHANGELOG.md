@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Python SDK publish scaffold:** `packages/sdk-python/VERSIONING.md`, `sdk-python-v*` tag workflow, version `0.4.0`.
 - **npm `@spanda/web` publish scaffold:** `PUBLISHING.md`, `npm-web-v*` tag workflow with PR dry-run.
 - **30-day field soak gate:** `scripts/field_soak_gate.sh` + [docs/field-soak-gate.md](docs/field-soak-gate.md).
+- **OTA production certify policy:** `SPANDA_OTA_REQUIRE_CERTIFY` / `SPANDA_PRODUCTION_POLICY=production` enforce certification proof on `POST /v1/ota/plan` and `/v1/ota/execute`.
+- **Signed compliance profile catalog:** Ed25519-verified defense/medical/ISO 26262 templates; `GET /v1/compliance/profiles`; `cargo run -p spanda-compliance --bin sign_catalog`.
+- **Scheduled report delivery:** `GET/POST /v1/reports/schedules` with webhook delivery (`SPANDA_REPORT_SCHEDULE_INTERVAL_SECS`).
+- **Discovery TLS policy:** `SPANDA_DISCOVERY_REQUIRE_TLS`, `SPANDA_DISCOVERY_TLS_CA_BUNDLE`, registry package `spanda-discovery-tls`; `tls` summary on discovery responses.
+- **Security audit prep:** `scripts/security_audit_prep.sh`, registry package `spanda-security-audit`, [docs/security-audit-third-party.md](docs/security-audit-third-party.md).
+- **Desktop release runbook:** signed/notarized macOS CI (`.github/workflows/desktop-release.yml`), env-gated Tauri updater (`TAURI_UPDATER_PUBKEY`, `SPANDA_DESKTOP_UPDATER_ACTIVE`), [docs/desktop-release-runbook.md](docs/desktop-release-runbook.md).
+- **SDK publish verify:** `scripts/verify_sdk_publish_ready.sh` for PyPI/npm readiness checks.
 - **Digital thread graph UI:** interactive SVG graph in `ControlCenterPanel` and embedded Control Center HTML — filter by capability/device, click-to-highlight neighbors.
 - **Stable hardening checklist:** [docs/stable-hardening-enterprise-ops.md](docs/stable-hardening-enterprise-ops.md) — Experimental → Stable promotion gates per pillar.
 - **Python SDK expansion:** executive scorecard, digital thread, reports export, OTA execute/status, config snapshots, audit mutations.
