@@ -30,6 +30,18 @@
         "responses": { "200": { "description": "OK" } }
       }
     },
+    "/v1/tenant": {
+      "get": {
+        "summary": "Active Control Center tenant (SPANDA_TENANT_ID)",
+        "responses": { "200": { "description": "Tenant scope metadata" } }
+      }
+    },
+    "/v1/version": {
+      "get": {
+        "summary": "API versioning policy",
+        "responses": { "200": { "description": "Supported API versions" } }
+      }
+    },
     "/v1/dashboard": {
       "get": {
         "summary": "Operations dashboard summary",
@@ -244,6 +256,25 @@
       "get": {
         "summary": "Recent API trace records (OTLP-compatible export path)",
         "responses": { "200": { "description": "Trace log" } }
+      }
+    },
+    "/v1/observability/backend": {
+      "get": {
+        "summary": "Configured OTLP collector endpoints (SPANDA_OTEL_COLLECTOR_URL)",
+        "responses": { "200": { "description": "Observability backend summary" } }
+      }
+    },
+    "/v1/observability/otlp/metrics": {
+      "get": {
+        "summary": "OTLP/JSON metrics preview",
+        "responses": { "200": { "description": "resourceMetrics payload" } }
+      }
+    },
+    "/v1/audit/mutations": {
+      "get": {
+        "summary": "Mutation audit trail",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Hash-chained mutation records" } }
       }
     },
     "/v1/operator/quarantine": {

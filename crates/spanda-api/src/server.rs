@@ -60,6 +60,8 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
     eprintln!("  GET  /v1/fleet/agents   registered fleet agents");
     eprintln!("  GET  /v1/alerts         alert history");
     eprintln!("  POST /v1/alerts/test    test alert (Bearer token)");
+    eprintln!("  GET  /v1/tenant          active tenant (SPANDA_TENANT_ID)");
+    eprintln!("  GET  /v1/version         API versioning policy");
     eprintln!("  GET  /v1/audit/mutations mutation audit trail (Bearer token)");
     eprintln!("  GET  /v1/openapi.json   OpenAPI 3.1 spec");
     eprintln!("  GET  /v1/drift          operational drift (?baseline_id=)");
@@ -69,12 +71,13 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
     eprintln!("  GET  /v1/digital-thread/query  capability-to-device trace");
     eprintln!("  GET  /v1/compliance/export     accreditation bundle");
     eprintln!("  WS   /v1/stream/telemetry        live telemetry + traces");
+    eprintln!("  GET  /v1/observability/backend     OTLP collector endpoint summary");
     eprintln!("  GET  /v1/observability/otlp/metrics  OTLP metrics preview");
     eprintln!("  POST /v1/observability/otlp/export-metrics  push metrics to collector");
     eprintln!("  POST /v1/observability/otlp/export  push traces to Jaeger");
     if let Some(grpc_bind) = &options.grpc_bind {
         crate::grpc::spawn_grpc_server(grpc_bind.clone(), Arc::clone(&state));
-        eprintln!("  gRPC tonic server on {grpc_bind} (Health, GetDashboard, DetectDrift)");
+        eprintln!("  gRPC tonic server on {grpc_bind} (50 RPCs — Control Center service)");
     }
 
     if options.once {

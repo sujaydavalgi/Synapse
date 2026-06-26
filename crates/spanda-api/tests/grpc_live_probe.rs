@@ -29,6 +29,20 @@ async fn grpc_live_control_center_endpoints() {
         .into_inner();
     assert_eq!(health.status, "ok");
 
+    let tenant = client
+        .get_tenant(Empty {})
+        .await
+        .expect("tenant")
+        .into_inner();
+    assert!(tenant.json.contains("tenant_id"));
+
+    let backend = client
+        .get_observability_backend(Empty {})
+        .await
+        .expect("observability backend")
+        .into_inner();
+    assert!(backend.json.contains("spanda-otel-collector"));
+
     let devices = client
         .list_devices(Empty {})
         .await

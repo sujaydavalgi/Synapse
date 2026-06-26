@@ -186,6 +186,12 @@ curl -sf -X POST \
   -d '{"strategy":"all","version":"1.2.3","dry_run":true,"assignments":[{"robot_name":"rover-001","hardware":"jetson"}]}' \
   "http://${BIND}/v1/ota/execute" | grep -q '"dry_run":true'
 
+echo "== GET /v1/tenant (multi-tenant scope) =="
+fetch /v1/tenant | grep -q tenant_id
+
+echo "== GET /v1/observability/backend (OTEL collector config) =="
+fetch /v1/observability/backend | grep -q spanda-otel-collector
+
 echo "== E3 GET /v1/version (API policy) =="
 fetch /v1/version | grep -q supported_versions
 
