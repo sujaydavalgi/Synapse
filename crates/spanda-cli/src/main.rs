@@ -19,6 +19,7 @@ mod diff_cli;
 mod score_cli;
 mod security_assurance_cli;
 mod chaos_cli;
+mod compliance_cli;
 mod estimate_cli;
 mod generate_cli;
 mod adr_cli;
@@ -1633,6 +1634,12 @@ fn main() {
 
     if command == "adr" {
         adr_cli::adr_dispatch(&args[2..]);
+        let _ = io::stdout().flush();
+        return;
+    }
+
+    if command == "compliance" {
+        compliance_cli::compliance_dispatch(&args[2..]);
         let _ = io::stdout().flush();
         return;
     }

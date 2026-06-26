@@ -1,6 +1,8 @@
 //! Integration tests for compliance profile evaluation.
 
-use spanda_compliance::{evaluate_compliance_profile, list_compliance_profiles};
+use spanda_compliance::{
+    evaluate_compliance_profile, generate_accreditation_report, list_compliance_profiles,
+};
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
 use std::path::PathBuf;
@@ -130,5 +132,26 @@ fn secure_boot_showcase_satisfies_secure_boot_requirement() {
         .violations
         .iter()
         .any(|violation| violation.requirement == "requires_secure_boot"));
+    std::env::remove_var("SPANDA_REGISTRY_URL");
+}
+
+#[test]
+fn defense_accreditation_export_includes_template_notice() {
+    let registry = repo_path(&["registry"]);
+    std::env::set_var(
+        "SPANDA_REGISTRY_URL",
+        format!("file://{}", registry.display()),
+    );
+    let program = parse_file(repo_path(&[
+        "examples",
+        "showcase",
+        "compliance",
+        "defense_rover.sd",
+    ]));
+    let report =
+        generate_accreditation_report(&program, "defense", "defense_rover.sd").unwrap();
+    assert_eq!(report.accreditation_status, "template_only");
+    assert!(report.evidence_checklist.iter().any(|item| item.id == "secure_boot"));
+    assert!(!report.audit_export_id.is_empty());
     std::env::remove_var("SPANDA_REGISTRY_URL");
 }
