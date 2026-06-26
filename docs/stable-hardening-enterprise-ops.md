@@ -12,7 +12,7 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 |------|-------------|--------|
 | Smoke | `enterprise_ops_smoke.sh` green on `main` | **Shipped** |
 | Docs | User-facing docs match behavior | **Shipped** (ongoing sync) |
-| API contract | `/v1/*` version header + OpenAPI for public paths | **Shipped** (partial OpenAPI) |
+| API contract | `/v1/*` version header + **full OpenAPI** for REST routes (parity CI test) | **Shipped** |
 | RBAC | Mutations gated; matrix documented | **Shipped** |
 | HA persistence | Alerts, traces, incidents survive restart | **Shipped** (`SPANDA_CONTROL_CENTER_STATE_DIR`) |
 | Multi-tenant | `SPANDA_TENANT_ID` + key `tenant_id` mismatch → 403 | **Shipped** |
@@ -27,7 +27,7 @@ Phases **E1–E4** are shipped at **Experimental** tier with CI smoke (`scripts/
 
 | Item | Experimental (today) | Stable requires |
 |------|---------------------|-----------------|
-| REST v1 | Full E1–E4 surface | Complete OpenAPI for all `/v1/*` paths |
+| REST v1 | Full E1–E4 surface | — (OpenAPI parity test in CI) |
 | gRPC | 60 RPCs (tonic) | Reflection or published proto semver policy |
 | Remote CLI | `spanda control-center *` shortcuts | Parity test matrix in CI |
 | Rate limits | `SPANDA_API_RATE_LIMIT_PER_MINUTE` | Load-test defaults documented per tier |

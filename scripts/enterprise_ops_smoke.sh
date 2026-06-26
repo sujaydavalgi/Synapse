@@ -193,6 +193,11 @@ run_spanda control-center alerts list | grep -q alerts
 
 echo "== E3 GET /v1/openapi.json =="
 fetch /v1/openapi.json | grep -q Spanda
+fetch /v1/openapi.json | grep -q '"/v1/digital-thread/query"'
+fetch /v1/openapi.json | grep -q '"/v1/compliance/export"'
+
+echo "== E3 OpenAPI REST parity test =="
+cargo test -p spanda-api --test openapi_parity_tests --quiet
 
 echo "== E3 GET /v1/drift?baseline_id =="
 fetch "/v1/drift?baseline_id=${BASELINE_ID}" | grep -q dimensions_checked

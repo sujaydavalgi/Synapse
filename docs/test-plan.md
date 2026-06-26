@@ -19,6 +19,7 @@
 | Fleet field validation | multi-process agents + mesh orchestrate | `scripts/fleet_field_validation.sh` |
 | gRPC Control Center | tonic (60 RPCs — full REST parity except `/v1/rpc`) | `crates/spanda-api/tests/grpc_tests.rs`, `grpc_live_probe.rs` |
 | API rate limit + versioning | `SPANDA_API_RATE_LIMIT_PER_MINUTE`, `GET /v1/version`, `X-Spanda-Api-Version` | `crates/spanda-api/tests/api_policy_tests.rs` |
+| OpenAPI REST parity | `GET /v1/openapi.json` documents all `/v1/*` routes | `crates/spanda-api/tests/openapi_parity_tests.rs` |
 | Live OTA execute | `POST /v1/ota/execute` against deploy agent | `crates/spanda-api/tests/ota_execute_live.rs`, `scripts/ota_fleet_execute_smoke.sh` |
 | Discovery registry runtime | `spanda-discovery-mdns` package wrap | `crates/spanda-config/src/discovery_registry.rs` |
 | OTLP metrics (Control Center) | `GET /v1/observability/otlp/metrics`, `POST /v1/observability/otlp/export-metrics` | `crates/spanda-ops/src/otlp_metrics.rs`, `scripts/enterprise_ops_smoke.sh` |
