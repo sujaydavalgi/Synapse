@@ -43,6 +43,7 @@ message DeviceBodyRequest {
 service ControlCenter {
   rpc Health(Empty) returns (HealthResponse);
   rpc GetDashboard(Empty) returns (JsonResponse);
+  rpc ListAuditMutations(Empty) returns (JsonResponse);
   rpc ListDevices(Empty) returns (JsonResponse);
   rpc GetDevice(DeviceIdRequest) returns (JsonResponse);
   rpc PatchDevice(DeviceBodyRequest) returns (JsonResponse);

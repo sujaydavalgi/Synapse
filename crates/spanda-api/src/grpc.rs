@@ -87,6 +87,22 @@ impl GrpcControlCenter {
             Status::resource_exhausted(format!("rate limit exceeded; retry after {retry}s"))
         })
     }
+
+    fn audit_grpc_response(&self, rpc: &str, json: &str, ctx: Option<&RbacContext>) {
+        if let Ok(mut guard) = self.state.lock() {
+            crate::audit_log::record_grpc_mutation(&mut guard, rpc, json, ctx);
+        }
+    }
+
+    fn respond_mutation(
+        &self,
+        rpc: &str,
+        json: String,
+        ctx: Option<RbacContext>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        self.audit_grpc_response(rpc, &json, ctx.as_ref());
+        Ok(Response::new(JsonResponse { json }))
+    }
 }
 
 #[tonic::async_trait]
@@ -126,6 +142,18 @@ impl ControlCenter for GrpcControlCenter {
             .map(Response::new)
     }
 
+    async fn list_audit_mutations(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<JsonResponse>, Status> {
+        self.guard_request(&request)?;
+        let ctx = self.rbac_from_request(&request);
+        self.with_state(|state| {
+            crate::handlers::mutation_audit_list_json(state, ctx.as_ref())
+        })
+        .map(Response::new)
+    }
+
     async fn get_device(
         &self,
         request: Request<DeviceIdRequest>,
@@ -143,10 +171,16 @@ impl ControlCenter for GrpcControlCenter {
         self.guard_request(&request)?;
         let ctx = self.rbac_from_request(&request);
         let inner = request.into_inner();
-        self.with_state_mut(|state| {
-            crate::handlers::device_patch_json(state, &inner.device_id, &inner.body_json, ctx.as_ref())
-        })
-        .map(Response::new)
+        let json = {
+            let mut guard = self.state.lock().map_err(|e| Status::internal(e.to_string()))?;
+            crate::handlers::device_patch_json(
+                &mut guard,
+                &inner.device_id,
+                &inner.body_json,
+                ctx.as_ref(),
+            )
+        };
+        self.respond_mutation("PatchDevice", json, ctx)
     }
 
     async fn device_provision(
@@ -367,9 +401,8 @@ impl ControlCenter for GrpcControlCenter {
         self.guard_request(&request)?;
         let ctx = self.rbac_from_request(&request);
         let body = request.into_inner().body_json;
-        Ok(Response::new(JsonResponse {
-            json: crate::handlers::ota_plan_json(&body, ctx.as_ref()),
-        }))
+        let json = crate::handlers::ota_plan_json(&body, ctx.as_ref());
+        self.respond_mutation("PlanOta", json, ctx)
     }
 
     async fn execute_ota(
@@ -379,9 +412,8 @@ impl ControlCenter for GrpcControlCenter {
         self.guard_request(&request)?;
         let ctx = self.rbac_from_request(&request);
         let body = request.into_inner().body_json;
-        Ok(Response::new(JsonResponse {
-            json: crate::handlers::ota_execute_json(&body, ctx.as_ref()),
-        }))
+        let json = crate::handlers::ota_execute_json(&body, ctx.as_ref());
+        self.respond_mutation("ExecuteOta", json, ctx)
     }
 
     async fn operator_quarantine(
@@ -404,9 +436,8 @@ impl ControlCenter for GrpcControlCenter {
         self.guard_request(&request)?;
         let ctx = self.rbac_from_request(&request);
         let body = request.into_inner().body_json;
-        Ok(Response::new(JsonResponse {
-            json: crate::handlers::operator_mission_approve_json(&body, ctx.as_ref()),
-        }))
+        let json = crate::handlers::operator_mission_approve_json(&body, ctx.as_ref());
+        self.respond_mutation("OperatorMissionApprove", json, ctx)
     }
 
     async fn export_compliance(
@@ -474,8 +505,11 @@ impl ControlCenter for GrpcControlCenter {
     ) -> Result<Response<JsonResponse>, Status> {
         self.guard_request(&request)?;
         let ctx = self.rbac_from_request(&request);
-        self.with_state_mut(|state| crate::handlers::alerts_test_json(state, ctx.as_ref()))
-            .map(Response::new)
+        let json = {
+            let mut guard = self.state.lock().map_err(|e| Status::internal(e.to_string()))?;
+            crate::handlers::alerts_test_json(&mut guard, ctx.as_ref())
+        };
+        self.respond_mutation("TestAlert", json, ctx)
     }
 
     async fn get_device_tree(

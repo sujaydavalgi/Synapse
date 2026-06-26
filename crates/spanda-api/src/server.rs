@@ -60,6 +60,7 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
     eprintln!("  GET  /v1/fleet/agents   registered fleet agents");
     eprintln!("  GET  /v1/alerts         alert history");
     eprintln!("  POST /v1/alerts/test    test alert (Bearer token)");
+    eprintln!("  GET  /v1/audit/mutations mutation audit trail (Bearer token)");
     eprintln!("  GET  /v1/openapi.json   OpenAPI 3.1 spec");
     eprintln!("  GET  /v1/drift          operational drift (?baseline_id=)");
     eprintln!("  POST /v1/ota/plan       canary / phased / blue-green rollout");

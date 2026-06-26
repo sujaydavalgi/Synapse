@@ -310,6 +310,7 @@ pub fn record_trace(
     path: &str,
     status: u16,
     started_ms: f64,
+    ctx: Option<&RbacContext>,
 ) {
     state.trace_log.push(TraceRecord {
         correlation_id: correlation_id.to_string(),
@@ -322,6 +323,7 @@ pub fn record_trace(
     if let Some(record) = state.trace_log.list_owned().last() {
         maybe_auto_push_latest_span(record);
     }
+    crate::audit_log::maybe_record_mutation(state, method, path, status, ctx, correlation_id);
 }
 
 pub fn openapi_spec() -> HttpResponse {

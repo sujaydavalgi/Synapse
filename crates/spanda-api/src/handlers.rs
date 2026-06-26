@@ -62,6 +62,7 @@ pub fn handle_request(
             path,
             response.status,
             started_ms,
+            None,
         );
         return (response, correlation_id);
     }
@@ -74,6 +75,7 @@ pub fn handle_request(
             path,
             response.status,
             started_ms,
+            None,
         );
         return (response, correlation_id);
     }
@@ -86,6 +88,7 @@ pub fn handle_request(
             path,
             response.status,
             started_ms,
+            None,
         );
         return (response, correlation_id);
     }
@@ -98,6 +101,7 @@ pub fn handle_request(
             path,
             response.status,
             started_ms,
+            None,
         );
         return (response, correlation_id);
     }
@@ -114,6 +118,7 @@ pub fn handle_request(
             path,
             response.status,
             started_ms,
+            ctx.as_ref(),
         );
         return (response, correlation_id);
     }
@@ -132,6 +137,7 @@ pub fn handle_request(
                 path,
                 response.status,
                 started_ms,
+                ctx.as_ref(),
             );
             return (response, correlation_id);
         }
@@ -146,6 +152,7 @@ pub fn handle_request(
             path,
             response.status,
             started_ms,
+            ctx.as_ref(),
         );
         return (response, correlation_id);
     }
@@ -164,10 +171,12 @@ pub fn handle_request(
             path,
             response.status,
             started_ms,
+            ctx.as_ref(),
         );
         return (response, correlation_id);
     }
     let response = match (path, request.method.as_str()) {
+        ("/v1/audit/mutations", "GET") => mutation_audit_list(state, ctx.as_ref()),
         ("/v1/dashboard", "GET") => dashboard(state),
         ("/v1/version", "GET") => api_version_info(),
         ("/v1/robots", "GET") => robots_list(state),
@@ -230,6 +239,7 @@ pub fn handle_request(
         path,
         response.status,
         started_ms,
+        ctx.as_ref(),
     );
     (response, correlation_id)
 }
@@ -360,6 +370,24 @@ fn rbac_matrix() -> HttpResponse {
     json_ok(&serde_json::json!({
         "version": API_VERSION,
         "matrix": spanda_security::permission_matrix(),
+    }))
+}
+
+fn mutation_audit_list(state: &ControlCenterState, ctx: Option<&RbacContext>) -> HttpResponse {
+    if !ApiKeyStore::check(ctx, RbacAction::Deploy) {
+        return unauthorized();
+    }
+    let export = state
+        .mutation_audit
+        .export_json()
+        .unwrap_or_else(|_| "{\"records\":[]}".into());
+    let parsed: serde_json::Value =
+        serde_json::from_str(&export).unwrap_or_else(|_| serde_json::json!({ "records": [] }));
+    json_ok(&serde_json::json!({
+        "version": API_VERSION,
+        "audit": parsed,
+        "persist_path": crate::audit_log::default_mutation_audit_path().to_string_lossy(),
+        "record_count": state.mutation_audit.record_count(),
     }))
 }
 
@@ -920,6 +948,11 @@ pub fn encode_response(
         format!("{correlation_header}{retry_header}"),
         response.body
     )
+}
+
+/// JSON body for gRPC `ListAuditMutations` (parity with `GET /v1/audit/mutations`).
+pub fn mutation_audit_list_json(state: &ControlCenterState, ctx: Option<&RbacContext>) -> String {
+    mutation_audit_list(state, ctx).body
 }
 
 /// JSON body for gRPC `ListDevices` (parity with `GET /v1/devices`).
