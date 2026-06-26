@@ -44,6 +44,6 @@ pub use remote_attestation::{
     attestation_trust_store_dir, validate_ak_cert_chain, AkCertChainValidation,
 };
 pub use secure_boot::{
-    contract_to_package, evaluate_secure_boot_coverage, is_secure_boot_contract, SecureBootCoverage,
-    SecureBootEntry,
+    contract_to_package, evaluate_secure_boot_coverage, is_secure_boot_contract,
+    live_ak_chain_verified, secure_boot_status_line, SecureBootCoverage, SecureBootEntry,
 };

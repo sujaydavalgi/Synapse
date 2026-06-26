@@ -806,6 +806,79 @@ fn demo_spoof(root: &Path) {
     println!("\nDemo complete. See examples/showcase/gps_spoofing/README.md and docs/spoofing-detection.md");
 }
 
+fn demo_gaps(root: &Path) {
+    let gaps_root = repo_root_containing_showcase(&["secure_boot", "rover.sd"]);
+    let _ = root;
+    crate::bundled_registry::ensure_bundled_registry_env();
+
+    let secure_boot = showcase(&gaps_root, &["secure_boot", "rover.sd"]);
+    let defense = showcase(&gaps_root, &["compliance", "defense_rover.sd"]);
+    let gps_trace = showcase(&gaps_root, &["gps_spoofing", "spoof.trace"]);
+    require_file(&secure_boot);
+    require_file(&defense);
+    require_file(&gps_trace);
+
+    let sb = secure_boot.to_str().unwrap();
+    let defense_sd = defense.to_str().unwrap();
+    let trace = gps_trace.to_str().unwrap();
+
+    let vendor_jetson = showcase(
+        &gaps_root,
+        &["secure_boot", "fixtures", "jetson-tpm-vendor.sh"],
+    );
+    let vendor_ak = showcase(
+        &gaps_root,
+        &["secure_boot", "fixtures", "vendor-ak-chain.sh"],
+    );
+    let trust_store = showcase(
+        &gaps_root,
+        &["secure_boot", "fixtures", "trust-store"],
+    );
+
+    println!("== Platform maturity gap closure demo ==\n");
+
+    println!("--- Vendor TPM SDK adapter ---");
+    env::set_var("SPANDA_TPM_BACKEND", "vendor");
+    if vendor_jetson.is_file() {
+        env::set_var(
+            "SPANDA_TPM_VENDOR_SDK",
+            vendor_jetson.to_string_lossy().to_string(),
+        );
+    }
+    run_spanda_args_allow_fail(&["tamper-check", sb]);
+    env::remove_var("SPANDA_TPM_BACKEND");
+    env::remove_var("SPANDA_TPM_VENDOR_SDK");
+
+    println!("\n--- Remote AK cert chain validation ---");
+    env::set_var("SPANDA_TPM_BACKEND", "vendor");
+    if vendor_ak.is_file() {
+        env::set_var("SPANDA_TPM_VENDOR_SDK", vendor_ak.to_string_lossy().to_string());
+    }
+    if trust_store.is_dir() {
+        env::set_var(
+            "SPANDA_ATTESTATION_TRUST_STORE",
+            trust_store.to_string_lossy().to_string(),
+        );
+    }
+    run_spanda_args_allow_fail(&["tamper-check", sb]);
+    env::remove_var("SPANDA_TPM_BACKEND");
+    env::remove_var("SPANDA_TPM_VENDOR_SDK");
+    env::remove_var("SPANDA_ATTESTATION_TRUST_STORE");
+
+    println!("\n--- Compliance accreditation export ---");
+    run_spanda_args(&["compliance", "report", defense_sd, "--profile", "defense"]);
+
+    println!("\n--- Spoofing confidence filter ---");
+    env::set_var("SPANDA_SPOOFING_MIN_CONFIDENCE", "0.99");
+    run_spanda_args_allow_fail(&["spoof-check", trace]);
+    env::remove_var("SPANDA_SPOOFING_MIN_CONFIDENCE");
+
+    println!("\n--- Operator confirmation gate ---");
+    run_spanda_args_allow_fail(&["spoof-check", trace]);
+
+    println!("\nDemo complete. See docs/platform-maturity-roadmap.md and scripts/gaps_smoke.sh");
+}
+
 pub fn demo_dispatch(args: &[String]) {
     // Description:
     //     Demo dispatch.
@@ -838,6 +911,7 @@ pub fn demo_dispatch(args: &[String]) {
         "maturity" | "platform-maturity" => demo_maturity(&root),
         "trust" | "tamper" | "security-trust" => demo_trust(&root),
         "spoof" | "spoofing" | "gps-spoofing" => demo_spoof(&root),
+        "gaps" | "platform-gaps" | "maturity-gaps" => demo_gaps(&root),
         "" | "list" | "--help" | "-h" => {
             eprintln!(
                 "Spanda showcase demos\n\n\
@@ -856,7 +930,8 @@ pub fn demo_dispatch(args: &[String]) {
                    differentiation — mission contracts, safety/recovery coverage, explain\n\
                    maturity — Phase A graph, explain, trust, deployment gates\n\
                    trust — package/mission tampering, spoofing, runtime intrusion, tamper_policy\n\
-                   spoof — GPS spoof-check coverage, trace alerts, mock ML merge\n\n\
+                   spoof — GPS spoof-check coverage, trace alerts, mock ML merge\n\
+                   gaps — vendor TPM, AK chain, compliance export, confidence gates\n\n\
                  Set SPANDA_ROOT to the repository root if examples are not found.\n\
                  See examples/showcase/README.md"
             );

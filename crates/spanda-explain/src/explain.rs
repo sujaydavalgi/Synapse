@@ -71,12 +71,7 @@ fn secure_boot_gate_line(coverage: &spanda_tamper::SecureBootCoverage) -> String
     let gate = DeploymentGate {
         name: "secure_boot".into(),
         passed: coverage.passed,
-        message: format!(
-            "secure boot {}/100 contracts={} live_attested={}",
-            coverage.score,
-            coverage.contracts.len(),
-            coverage.live_attested
-        ),
+        message: spanda_tamper::secure_boot_status_line(coverage),
     };
     format!(
         "{}: {}",
@@ -99,20 +94,21 @@ fn secure_boot_section(
     }
     Some(ExplainSection {
         topic: "secure_boot".into(),
-        summary: format!(
-            "Secure boot {}/100 passed={} live_attested={}",
-            coverage.score, coverage.passed, coverage.live_attested
-        ),
+        summary: spanda_tamper::secure_boot_status_line(&coverage),
         details: coverage
             .contracts
             .iter()
             .map(|entry| {
+                let ak = entry
+                    .live_attestation
+                    .as_ref()
+                    .and_then(|live| live.ak_chain_verified)
+                    .map(|verified| format!(" ak_chain_verified={verified}"))
+                    .unwrap_or_default();
+                let suffix = if entry.passed { ak } else { " (FAIL)".into() };
                 format!(
                     "{} via {} — {}{}",
-                    entry.contract,
-                    entry.package,
-                    entry.detail,
-                    if entry.passed { "" } else { " (FAIL)" }
+                    entry.contract, entry.package, entry.detail, suffix
                 )
             })
             .collect(),

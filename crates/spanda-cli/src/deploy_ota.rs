@@ -893,12 +893,7 @@ fn cmd_gate(args: &[String]) {
         report.gates.push(spanda_readiness::DeploymentGate {
             name: "secure_boot".into(),
             passed: secure_boot.passed,
-            message: format!(
-                "secure boot {}/100 contracts={} live_attested={}",
-                secure_boot.score,
-                secure_boot.contracts.len(),
-                secure_boot.live_attested
-            ),
+            message: spanda_tamper::secure_boot_status_line(&secure_boot),
         });
     }
     report.passed = report.gates.iter().all(|gate| gate.passed);

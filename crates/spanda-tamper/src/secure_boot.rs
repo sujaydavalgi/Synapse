@@ -142,3 +142,53 @@ pub fn evaluate_secure_boot_coverage(
         live_attested,
     }
 }
+
+/// Return true when any contract live attestation verified an AK certificate chain.
+pub fn live_ak_chain_verified(coverage: &SecureBootCoverage) -> bool {
+    // Report whether remote AK chain validation succeeded for any contract.
+    //
+    // Parameters:
+    // - `coverage` — secure-boot coverage rollup
+    //
+    // Returns:
+    // True when a live attestation result has `ak_chain_verified=true`.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let verified = live_ak_chain_verified(&coverage);
+
+    coverage.contracts.iter().any(|entry| {
+        entry
+            .live_attestation
+            .as_ref()
+            .and_then(|live| live.ak_chain_verified)
+            .unwrap_or(false)
+    })
+}
+
+/// Format a compact secure-boot status line for gates and explain sections.
+pub fn secure_boot_status_line(coverage: &SecureBootCoverage) -> String {
+    // Build a one-line secure-boot summary for CLI and explain output.
+    //
+    // Parameters:
+    // - `coverage` — secure-boot coverage rollup
+    //
+    // Returns:
+    // Human-readable status string.
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let line = secure_boot_status_line(&coverage);
+
+    format!(
+        "secure boot {}/100 contracts={} live_attested={} ak_chain_verified={}",
+        coverage.score,
+        coverage.contracts.len(),
+        coverage.live_attested,
+        live_ak_chain_verified(coverage)
+    )
+}
