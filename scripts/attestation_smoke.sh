@@ -36,6 +36,10 @@ echo "== tpm2 backend smoke =="
 cargo test -p spanda-tamper tpm2_backend_reports_tooling_status -q
 cargo test -p spanda-tamper tpm2_script_fixture_emits_quote_json -q
 
+echo "== tpm2 quote helpers =="
+cargo test -p spanda-tamper normalize_hex_strips_prefixes -q
+cargo test -p spanda-tamper extract_pcr_hex_parses_tpm2_pcrread_output -q
+
 echo "== tpm2 quote script fixture smoke =="
 TPM2_SCRIPT="${ROOT}/examples/showcase/secure_boot/fixtures/tpm2-quote.sh"
 chmod +x "${TPM2_SCRIPT}"

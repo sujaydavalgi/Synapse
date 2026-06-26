@@ -34,6 +34,7 @@ pub fn query_tpm_attestation(
     // Options:
     // `SPANDA_TPM_BACKEND` — `mock`, `jetson`, `pi`, `tpm2`, `file`, or `script`
     // `SPANDA_TPM2_SCRIPT` — optional shell command for `tpm2` backend (stdout JSON)
+    // `SPANDA_TPM2_PCR0_EXPECT` — optional hex PCR0 policy for tpm2 quote verification
     // `SPANDA_TPM_QUOTE_PATH` — JSON quote file for `file` backend
     // `SPANDA_TPM_SCRIPT` — shell command for `script` backend (stdout JSON)
     //
@@ -190,13 +191,7 @@ fn tpm2_getcap_available() -> bool {
 fn tpm2_tooling_complete() -> bool {
     ["tpm2_createek", "tpm2_createak", "tpm2_quote"]
         .iter()
-        .all(|tool| {
-            std::process::Command::new(tool)
-                .arg("--help")
-                .output()
-                .map(|output| output.status.success())
-                .unwrap_or(false)
-        })
+        .all(|tool| tpm2_tool_available(tool))
 }
 
 struct TempWorkDir(PathBuf);
@@ -233,10 +228,114 @@ fn attempt_tpm2_pcr_quote(contract: &str, package: &str) -> Result<String, Strin
             "sha256",
         ],
     )?;
+    verify_tpm2_quote_signature(dir)?;
+    verify_tpm2_pcr_policy(contract)?;
 
-    Ok(format!(
-        "tpm2_quote pcr0 verified for {contract} via {package}"
-    ))
+    let mut detail = format!("tpm2_quote pcr0 verified for {contract} via {package}");
+    if std::env::var("SPANDA_TPM2_PCR0_EXPECT")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .is_some()
+    {
+        detail.push_str("; pcr0 policy matched");
+    }
+    if tpm2_tool_available("tpm2_checkquote") {
+        detail.push_str("; quote signature checked");
+    }
+
+    Ok(detail)
+}
+
+fn verify_tpm2_quote_signature(dir: &Path) -> Result<(), String> {
+    if !tpm2_tool_available("tpm2_readpublic") || !tpm2_tool_available("tpm2_checkquote") {
+        return Ok(());
+    }
+
+    run_tpm2_step(
+        dir,
+        "tpm2_readpublic",
+        &["-c", "ak.ctx", "-o", "ak.pub", "-f", "pem"],
+    )?;
+    run_tpm2_step(
+        dir,
+        "tpm2_checkquote",
+        &[
+            "-u",
+            "ak.pub",
+            "-m",
+            "quote.msg",
+            "-s",
+            "quote.sig",
+            "-p",
+            "quote.pcr",
+            "-G",
+            "sha256",
+        ],
+    )
+}
+
+fn verify_tpm2_pcr_policy(contract: &str) -> Result<(), String> {
+    let Some(expected) = std::env::var("SPANDA_TPM2_PCR0_EXPECT")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+    else {
+        return Ok(());
+    };
+    if !tpm2_tool_available("tpm2_pcrread") {
+        return Err(format!(
+            "SPANDA_TPM2_PCR0_EXPECT set but tpm2_pcrread unavailable for {contract}"
+        ));
+    }
+
+    let output = std::process::Command::new("tpm2_pcrread")
+        .arg("sha256:0")
+        .output()
+        .map_err(|error| format!("tpm2_pcrread unavailable: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "tpm2_pcrread failed for {contract}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let actual = extract_pcr_hex(&stdout, 0)
+        .ok_or_else(|| format!("could not parse tpm2_pcrread output for {contract}"))?;
+    if normalize_hex(&actual) != normalize_hex(&expected) {
+        return Err(format!(
+            "pcr0 policy mismatch for {contract}: expected {expected} got {actual}"
+        ));
+    }
+    Ok(())
+}
+
+fn tpm2_tool_available(program: &str) -> bool {
+    std::process::Command::new(program)
+        .arg("--help")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
+fn normalize_hex(value: &str) -> String {
+    value
+        .replace("0x", "")
+        .replace("0X", "")
+        .chars()
+        .filter(|ch| ch.is_ascii_hexdigit())
+        .map(|ch| ch.to_ascii_lowercase())
+        .collect()
+}
+
+fn extract_pcr_hex(output: &str, index: u32) -> Option<String> {
+    let marker = format!("{index} : 0x");
+    for line in output.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix(&marker) {
+            return Some(normalize_hex(rest));
+        }
+    }
+    None
 }
 
 fn run_tpm2_step(dir: &Path, program: &str, args: &[&str]) -> Result<(), String> {
@@ -298,9 +397,18 @@ fn run_script_quote(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Mutex, MutexGuard};
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn env_lock() -> MutexGuard<'static, ()> {
+        ENV_LOCK.lock().unwrap_or_else(|error| error.into_inner())
+    }
 
     #[test]
     fn mock_backend_returns_verified_quote() {
+        let _guard = env_lock();
+        std::env::remove_var("SPANDA_TPM2_SCRIPT");
         std::env::set_var("SPANDA_TPM_BACKEND", "mock");
         let result = query_tpm_attestation("trust.jetson", "spanda-trust-jetson", Some("rover.sd"))
             .expect("mock quote");
@@ -311,6 +419,7 @@ mod tests {
 
     #[test]
     fn file_backend_reads_quote_json() {
+        let _guard = env_lock();
         let dir = std::env::temp_dir().join("spanda_tpm_quote_test");
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("quote.json");
@@ -330,6 +439,7 @@ mod tests {
 
     #[test]
     fn tpm2_backend_reports_tooling_status() {
+        let _guard = env_lock();
         std::env::remove_var("SPANDA_TPM2_SCRIPT");
         std::env::set_var("SPANDA_TPM_BACKEND", "tpm2");
         let result = query_tpm_attestation("trust.jetson", "spanda-trust-jetson", Some("rover.sd"))
@@ -347,6 +457,7 @@ mod tests {
 
     #[test]
     fn tpm2_script_fixture_emits_quote_json() {
+        let _guard = env_lock();
         std::env::remove_var("SPANDA_TPM2_SCRIPT");
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("../../examples/showcase/secure_boot/fixtures/tpm2-quote.sh");
@@ -365,5 +476,19 @@ mod tests {
         );
         std::env::remove_var("SPANDA_TPM_BACKEND");
         std::env::remove_var("SPANDA_TPM2_SCRIPT");
+    }
+
+    #[test]
+    fn normalize_hex_strips_prefixes() {
+        assert_eq!(normalize_hex("0xAB-CD ef"), "abcdef");
+    }
+
+    #[test]
+    fn extract_pcr_hex_parses_tpm2_pcrread_output() {
+        let sample = "  sha256:\n    0 : 0x3D458CFE556432B7\n    1 : 0x00000000\n";
+        assert_eq!(
+            extract_pcr_hex(sample, 0),
+            Some("3d458cfe556432b7".into())
+        );
     }
 }
