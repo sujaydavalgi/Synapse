@@ -21,6 +21,7 @@ pub fn run() {
     // Build the Tauri app with shell plugin and default API URL command.
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![default_api_base])
         .run(tauri::generate_context!())
         .expect("error while running Spanda Control Center desktop");

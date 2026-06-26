@@ -70,6 +70,16 @@ This runs `cargo check` on the Tauri crate (no GUI required).
 
 The desktop app does not embed the Rust API server; operators typically run the API locally or against a fleet endpoint.
 
+## Auto-update (experimental)
+
+The Tauri shell includes `tauri-plugin-updater` with `active: false` by default. To enable signed updates in production:
+
+1. Generate signing keys (`tauri signer generate`).
+2. Set `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`.
+3. Set `plugins.updater.active` to `true` and configure release endpoints.
+
+Until then, operators update via platform installers from CI (`TAURI_BUILD=1` on macOS).
+
 ## Status
 
-**Experimental** — scaffold and dev workflow; production installers are not yet published.
+**Experimental** — scaffold, dev workflow, and updater plugin wiring; production installers and signed auto-update are not yet published.
