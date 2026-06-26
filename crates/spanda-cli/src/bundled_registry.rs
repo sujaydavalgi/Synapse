@@ -61,6 +61,7 @@ pub fn ensure_bundled_registry_env() {
 }
 
 /// Return true when `path` lives under the bundled registry directory.
+#[allow(dead_code)]
 pub fn is_bundled_registry_path(path: &Path) -> bool {
     bundled_registry_dir()
         .map(|dir| path.starts_with(dir))

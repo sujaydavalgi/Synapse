@@ -774,6 +774,38 @@ fn demo_trust(root: &Path) {
     println!("\nDemo complete. See examples/showcase/*/README.md and docs/tamper-detection.md");
 }
 
+fn demo_spoof(root: &Path) {
+    let spoof_root = repo_root_containing_showcase(&["gps_spoofing", "rover.sd"]);
+    let _ = root;
+    crate::bundled_registry::ensure_bundled_registry_env();
+
+    let gps_rover = showcase(&spoof_root, &["gps_spoofing", "rover.sd"]);
+    let gps_trace = showcase(&spoof_root, &["gps_spoofing", "spoof.trace"]);
+    require_file(&gps_rover);
+    require_file(&gps_trace);
+
+    let gps_program = gps_rover.to_str().unwrap();
+    let gps_tr = gps_trace.to_str().unwrap();
+
+    println!("== GPS spoofing detection demo ==\n");
+
+    println!("--- Program coverage (expect PASS) ---");
+    run_spanda_args(&["spoof-check", gps_program]);
+
+    println!("\n--- Trace plausibility (expect FAIL) ---");
+    run_spanda_args_allow_fail(&["spoof-check", gps_tr]);
+
+    println!("\n--- Tamper diagnosis ---");
+    run_spanda_args_allow_fail(&["diagnose", "tamper", gps_tr]);
+
+    println!("\n--- Mock ML backend merge ---");
+    env::set_var("SPANDA_SPOOFING_ML_BACKEND", "mock");
+    run_spanda_args_allow_fail(&["spoof-check", gps_tr]);
+    env::remove_var("SPANDA_SPOOFING_ML_BACKEND");
+
+    println!("\nDemo complete. See examples/showcase/gps_spoofing/README.md and docs/spoofing-detection.md");
+}
+
 pub fn demo_dispatch(args: &[String]) {
     // Description:
     //     Demo dispatch.
@@ -805,6 +837,7 @@ pub fn demo_dispatch(args: &[String]) {
         "differentiation" | "diff" => demo_differentiation(&root),
         "maturity" | "platform-maturity" => demo_maturity(&root),
         "trust" | "tamper" | "security-trust" => demo_trust(&root),
+        "spoof" | "spoofing" | "gps-spoofing" => demo_spoof(&root),
         "" | "list" | "--help" | "-h" => {
             eprintln!(
                 "Spanda showcase demos\n\n\
@@ -822,7 +855,8 @@ pub fn demo_dispatch(args: &[String]) {
                    continuity — mission continuity, takeover, delegation, succession\n\
                    differentiation — mission contracts, safety/recovery coverage, explain\n\
                    maturity — Phase A graph, explain, trust, deployment gates\n\
-                   trust — package/mission tampering, spoofing, runtime intrusion, tamper_policy\n\n\
+                   trust — package/mission tampering, spoofing, runtime intrusion, tamper_policy\n\
+                   spoof — GPS spoof-check coverage, trace alerts, mock ML merge\n\n\
                  Set SPANDA_ROOT to the repository root if examples are not found.\n\
                  See examples/showcase/README.md"
             );

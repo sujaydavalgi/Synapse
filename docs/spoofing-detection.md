@@ -47,6 +47,8 @@ Integrates with `tamper_policy` and `recovery_policy` — default: alert + audit
 
 `examples/showcase/gps_spoofing/` — program with fusion + spoof handler passes coverage; `spoof.trace` demonstrates impossible GPS jump and explicit spoof alert.
 
+`spanda demo spoof` — focused walkthrough (program PASS, trace FAIL, diagnosis, mock ML merge). Also covered in `spanda demo trust`.
+
 `scripts/spoof_smoke.sh` (wired into `scripts/showcase_smoke.sh`).
 
 See [tamper-detection.md](./tamper-detection.md) · [state-estimation.md](./state-estimation.md) · [platform-maturity-roadmap.md](./platform-maturity-roadmap.md).

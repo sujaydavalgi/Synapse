@@ -20,6 +20,7 @@ spanda spoof-check examples/showcase/gps_spoofing/spoof.trace
 ## One command
 
 ```bash
+spanda demo spoof
 spanda demo trust
 ```
 
