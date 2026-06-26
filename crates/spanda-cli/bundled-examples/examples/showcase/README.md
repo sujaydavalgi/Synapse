@@ -39,7 +39,7 @@ Set `SPANDA_ROOT` to the repository root if examples are not found.
 | [`compliance/`](./compliance/) | Defense and medical compliance profile showcases |
 | [`fleet_tamper/`](./fleet_tamper/) | Fleet-wide tamper correlation manifest |
 
-One command: `spanda demo trust` · smoke: `./scripts/showcase_smoke.sh`
+One command: `spanda demo trust` · smoke: `./scripts/showcase_smoke.sh`, `./scripts/bundled_trust_smoke.sh`
 
 ---
 
