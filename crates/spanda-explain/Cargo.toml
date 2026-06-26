@@ -20,6 +20,7 @@ spanda-config = { path = "../spanda-config" }
 spanda-package = { path = "../spanda-package" }
 spanda-readiness = { path = "../spanda-readiness" }
 spanda-runtime = { path = "../spanda-runtime" }
+spanda-tamper = { path = "../spanda-tamper" }
 spanda-trust = { path = "../spanda-trust" }
 
 [dev-dependencies]

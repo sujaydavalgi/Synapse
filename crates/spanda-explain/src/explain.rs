@@ -10,6 +10,7 @@ use spanda_readiness::{
     evaluate_deployment_gates, evaluate_readiness, evaluate_safety_coverage, generate_safety_report,
     verify_mission, DeploymentGate, DeploymentGatePolicy, ReadinessOptions,
 };
+use spanda_tamper::evaluate_secure_boot_coverage;
 use spanda_trust::{evaluate_composite_trust, CompositeTrustOptions};
 
 use crate::report::{ExplainReport, ExplainSection};
@@ -64,6 +65,58 @@ fn program_structure(program: &Program) -> ExplainSection {
             })
             .collect(),
     }
+}
+
+fn secure_boot_gate_line(coverage: &spanda_tamper::SecureBootCoverage) -> String {
+    let gate = DeploymentGate {
+        name: "secure_boot".into(),
+        passed: coverage.passed,
+        message: format!(
+            "secure boot {}/100 contracts={} live_attested={}",
+            coverage.score,
+            coverage.contracts.len(),
+            coverage.live_attested
+        ),
+    };
+    format!(
+        "{}: {}",
+        gate.name,
+        if gate.passed {
+            gate.message.clone()
+        } else {
+            format!("FAIL — {}", gate.message)
+        }
+    )
+}
+
+fn secure_boot_section(
+    program: &Program,
+    source_label: &str,
+) -> Option<ExplainSection> {
+    let coverage = evaluate_secure_boot_coverage(program, Some(source_label));
+    if coverage.contracts.is_empty() {
+        return None;
+    }
+    Some(ExplainSection {
+        topic: "secure_boot".into(),
+        summary: format!(
+            "Secure boot {}/100 passed={} live_attested={}",
+            coverage.score, coverage.passed, coverage.live_attested
+        ),
+        details: coverage
+            .contracts
+            .iter()
+            .map(|entry| {
+                format!(
+                    "{} via {} — {}{}",
+                    entry.contract,
+                    entry.package,
+                    entry.detail,
+                    if entry.passed { "" } else { " (FAIL)" }
+                )
+            })
+            .collect(),
+    })
 }
 
 /// Explain program structure and linked operational surfaces.
@@ -125,6 +178,9 @@ pub fn explain_program_with_options(
                 .chain(trust.recommendations.into_iter().map(|item| format!("recommendation: {item}")))
                 .collect(),
         });
+        if let Some(section) = secure_boot_section(program, source_label) {
+            sections.push(section);
+        }
     }
     let contract = verify_contract(program, source_label);
     sections.push(ExplainSection {
@@ -211,6 +267,10 @@ pub fn explain_program_with_options(
                     format!("FAIL — {}", composite_gate.message)
                 }
             ));
+            let secure_boot = evaluate_secure_boot_coverage(program, Some(source_label));
+            if !secure_boot.contracts.is_empty() {
+                gate_details.push(secure_boot_gate_line(&secure_boot));
+            }
         }
         let all_passed = gate_details.iter().all(|line| !line.contains("FAIL —"));
         sections.push(ExplainSection {
