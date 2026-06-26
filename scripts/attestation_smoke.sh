@@ -32,6 +32,26 @@ TAMPER_VENDOR="$(cargo run -p spanda -q -- tamper-check "${ROOT}/examples/showca
 echo "$TAMPER_VENDOR" | grep -q "boot_state=verified"
 unset SPANDA_TPM_BACKEND SPANDA_TPM_SCRIPT
 
+echo "== tpm vendor backend smoke =="
+VENDOR_SCRIPT="${ROOT}/examples/showcase/secure_boot/fixtures/jetson-tpm-vendor.sh"
+chmod +x "${VENDOR_SCRIPT}" 2>/dev/null || true
+export SPANDA_TPM_BACKEND=vendor
+export SPANDA_TPM_VENDOR_SDK="${VENDOR_SCRIPT}"
+TAMPER_VENDOR="$(cargo run -p spanda -q -- tamper-check "${ROOT}/examples/showcase/secure_boot/rover.sd" 2>&1 || true)"
+echo "$TAMPER_VENDOR" | grep -q "boot_state=verified"
+unset SPANDA_TPM_BACKEND SPANDA_TPM_VENDOR_SDK
+
+echo "== remote ak cert chain smoke =="
+VENDOR_AK="${ROOT}/examples/showcase/secure_boot/fixtures/vendor-ak-chain.sh"
+TRUST_STORE="${ROOT}/examples/showcase/secure_boot/fixtures/trust-store"
+chmod +x "${VENDOR_AK}" 2>/dev/null || true
+export SPANDA_TPM_BACKEND=vendor
+export SPANDA_TPM_VENDOR_SDK="${VENDOR_AK}"
+export SPANDA_ATTESTATION_TRUST_STORE="${TRUST_STORE}"
+TAMPER_AK="$(cargo run -p spanda -q -- tamper-check "${ROOT}/examples/showcase/secure_boot/rover.sd" 2>&1 || true)"
+echo "$TAMPER_AK" | grep -q "ak_chain_verified=true"
+unset SPANDA_TPM_BACKEND SPANDA_TPM_VENDOR_SDK SPANDA_ATTESTATION_TRUST_STORE
+
 echo "== tpm2 backend smoke =="
 cargo test -p spanda-tamper tpm2_backend_reports_tooling_status -q
 cargo test -p spanda-tamper tpm2_script_fixture_emits_quote_json -q

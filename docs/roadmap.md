@@ -96,7 +96,7 @@ Full analysis: [differentiation-roadmap.md](./differentiation-roadmap.md)
 
 ### NOW deliverables (v0.5+)
 
-Design specs and topic guides are **shipped**; CLI crates and commands are **not yet implemented** (no `spanda-contract`, `spanda-explain`, or `spanda-decision` in the workspace).
+Design specs and topic guides are **shipped**; CLI crates and commands are **implemented** (`spanda-contract`, `spanda-explain`, `spanda-decision` in the workspace).
 
 | Item | CLI | Crate | Docs | Code |
 |------|-----|-------|------|------|

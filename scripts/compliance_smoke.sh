@@ -35,6 +35,10 @@ echo "== medical showcase profile passes =="
 MEDICAL_FILE="${ROOT}/examples/showcase/compliance/medical_rover.sd"
 run_spanda verify "$MEDICAL_FILE" --profile medical >/dev/null
 
+echo "== compliance accreditation report =="
+ACCRED="$(run_spanda compliance report "$DEFENSE" --profile defense 2>&1 || true)"
+echo "$ACCRED" | grep -q "template_only"
+
 echo "== deploy gate secure_boot on defense showcase =="
 GATE="$(run_spanda deploy gate "$DEFENSE" 2>&1 || true)"
 echo "$GATE" | grep -q "secure_boot"

@@ -417,7 +417,7 @@ Branches match runtime signals (`tamper severity Critical`, `tamper signal capab
 | `examples/showcase/runtime_intrusion/` | Unexpected capability usage in mission trace |
 | `examples/showcase/tamper_policy/` | Declarative tamper_policy response on security faults |
 
-Run all: `spanda demo trust` · `spanda demo spoof` · smoke: `scripts/trust_showcase_smoke.sh`, `scripts/showcase_smoke.sh`, `scripts/bundled_trust_smoke.sh`
+Run all: `spanda demo trust` · `spanda demo spoof` · `spanda demo gaps` · smoke: `scripts/trust_showcase_smoke.sh`, `scripts/showcase_smoke.sh`, `scripts/bundled_trust_smoke.sh`, `scripts/gaps_smoke.sh`
 
 Bundled copies ship in the `spanda` crate for `cargo install` — refresh with `scripts/sync_bundled_examples.sh` after editing showcases. Bundled registry slice (`spanda-trust-jetson`, `spanda-trust-pi`, `spanda-gps`, `spanda-fusion`) syncs via `scripts/sync_bundled_registry.sh`; the CLI defaults `SPANDA_REGISTRY_URL` to it when unset.
 
