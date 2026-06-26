@@ -3,6 +3,7 @@
 use crate::correlation::{correlation_from_headers, new_correlation_id};
 use crate::e3;
 use crate::e4;
+use crate::observability;
 use crate::state::ControlCenterState;
 use serde::Serialize;
 use spanda_config::{
@@ -102,6 +103,10 @@ pub fn handle_request(
         ("/v1/trust/package", "GET") => e3::trust_package(query),
         ("/v1/sre/summary", "GET") => e3::sre_summary(state),
         ("/v1/observability/traces", "GET") => e3::observability_traces(state),
+        ("/v1/observability/otlp/traces", "GET") => observability::otlp_traces_preview(state),
+        ("/v1/observability/otlp/export", "POST") => {
+            observability::otlp_traces_export(state, query, ctx.as_ref())
+        }
         ("/v1/operator/quarantine", "POST") => {
             e3::operator_quarantine(state, &request.body, ctx.as_ref())
         }

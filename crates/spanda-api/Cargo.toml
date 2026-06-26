@@ -22,6 +22,8 @@ spanda-readiness = { path = "../spanda-readiness" }
 spanda-score = { path = "../spanda-score" }
 spanda-security = { path = "../spanda-security" }
 spanda-ast = { path = "../spanda-ast" }
+spanda-telemetry-store = { path = "../spanda-telemetry-store" }
+tungstenite = { version = "0.24", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]
 tempfile = "3"

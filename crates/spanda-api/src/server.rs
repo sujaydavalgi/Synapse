@@ -2,6 +2,7 @@
 //!
 use crate::handlers::{encode_response, handle_request};
 use crate::state::{shared_state, SharedState};
+use crate::ws::{is_telemetry_stream_upgrade, serve_telemetry_websocket};
 use spanda_deploy_http::parse_http_request;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
@@ -65,27 +66,29 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
     eprintln!("  POST /v1/rpc            gRPC-compatible JSON gateway");
     eprintln!("  GET  /v1/digital-thread/query  capability-to-device trace");
     eprintln!("  GET  /v1/compliance/export     accreditation bundle");
+    eprintln!("  WS   /v1/stream/telemetry        live telemetry + traces");
+    eprintln!("  POST /v1/observability/otlp/export  push traces to Jaeger");
 
     if options.once {
-        let (mut stream, _) = listener
+        let (stream, _) = listener
             .accept()
             .map_err(|e| format!("accept failed: {e}"))?;
-        return serve_connection(&mut stream, Arc::clone(&state), options.timeout_ms);
+        return serve_connection(stream, Arc::clone(&state), options.timeout_ms);
     }
 
     for connection in listener.incoming() {
-        let Ok(mut stream) = connection else { continue };
+        let Ok(stream) = connection else { continue };
         let state_clone = Arc::clone(&state);
         let timeout = options.timeout_ms;
         thread::spawn(move || {
-            let _ = serve_connection(&mut stream, state_clone, timeout);
+            let _ = serve_connection(stream, state_clone, timeout);
         });
     }
     Ok(())
 }
 
 fn serve_connection(
-    stream: &mut TcpStream,
+    mut stream: TcpStream,
     state: SharedState,
     timeout_ms: u64,
 ) -> Result<(), String> {
@@ -99,6 +102,11 @@ fn serve_connection(
     let raw = String::from_utf8_lossy(&buf[..read]);
     let request = parse_http_request(&raw)?;
     let path = request.path.split('?').next().unwrap_or(&request.path);
+
+    if is_telemetry_stream_upgrade(&raw, path) {
+        return serve_telemetry_websocket(stream, &buf[..read], state);
+    }
+
     let mut guard = state.lock().map_err(|e| e.to_string())?;
     let (response, correlation_id) = handle_request(&mut guard, &request, &raw);
     let content_type = if path == "/" || path == "/control-center" {
@@ -128,8 +136,8 @@ mod tests {
         let port = listener.local_addr().unwrap().port();
         let state = shared_state();
         let server = thread::spawn(move || {
-            if let Ok((mut stream, _)) = listener.accept() {
-                let _ = serve_connection(&mut stream, state, 5000);
+            if let Ok((stream, _)) = listener.accept() {
+                let _ = serve_connection(stream, state, 5000);
             }
         });
         let mut client = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();

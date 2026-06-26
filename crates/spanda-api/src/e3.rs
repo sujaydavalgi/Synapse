@@ -1,6 +1,8 @@
 //! Phase E3 handlers — drift, OTA, trust, SRE, operator workflows, RPC gateway.
 //!
 use crate::correlation::TraceRecord;
+use crate::handlers::{bad_request, json_ok, now_ms, parse_query, unauthorized};
+use crate::observability::maybe_auto_push_latest_span;
 use crate::state::ControlCenterState;
 use serde::Deserialize;
 use spanda_config::{
@@ -14,8 +16,6 @@ use spanda_ota::{
 };
 use spanda_package::evaluate_package_trust;
 use spanda_security::{ApiKeyStore, RbacAction, RbacContext};
-
-use crate::handlers::{bad_request, json_ok, now_ms, parse_query, unauthorized};
 
 #[derive(Deserialize)]
 struct OtaPlanRequest {
@@ -254,6 +254,9 @@ pub fn record_trace(
         timestamp_ms: started_ms,
         duration_ms: Some(now_ms() - started_ms),
     });
+    if let Some(record) = state.trace_log.list_owned().last() {
+        maybe_auto_push_latest_span(record);
+    }
 }
 
 pub fn openapi_spec() -> HttpResponse {
