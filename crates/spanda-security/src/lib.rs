@@ -10,6 +10,7 @@ pub mod identity;
 pub mod permissions;
 pub mod policy;
 pub mod rbac;
+pub mod rate_limit;
 pub mod runtime;
 pub mod secret_vault;
 pub mod secrets;
@@ -34,6 +35,7 @@ pub use policy::{
     AuthenticationMode, BusSecurityConfig, EncryptionMode, IntegrityMode, SecureCommPolicy,
 };
 pub use rbac::{permission_matrix, ApiKeyRecord, ApiKeyStore, RbacAction, RbacContext, Role};
+pub use rate_limit::RateLimiter;
 pub use runtime::{SecurityContext, SecuritySnapshot};
 pub use secret_vault::{ManagedSecretVault, SecretMetadata, SecretVaultBackend};
 pub use secrets::{SecretHandle, SecretSource, SecretStore};
