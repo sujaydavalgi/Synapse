@@ -15,6 +15,7 @@ use std::time::Duration;
 pub struct ControlCenterOptions {
     pub bind: String,
     pub config_path: Option<PathBuf>,
+    pub program_path: Option<PathBuf>,
     pub once: bool,
     pub timeout_ms: u64,
 }
@@ -24,6 +25,7 @@ impl Default for ControlCenterOptions {
         Self {
             bind: "127.0.0.1:8080".into(),
             config_path: None,
+            program_path: None,
             once: false,
             timeout_ms: 0,
         }
@@ -38,6 +40,9 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
         if let Some(path) = options.config_path.clone() {
             guard.config_path = Some(path);
             guard.reload_config()?;
+        }
+        if let Some(path) = options.program_path.clone() {
+            guard.program_path = Some(path);
         }
     }
 
@@ -58,6 +63,8 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
     eprintln!("  GET  /v1/drift          operational drift (?baseline_id=)");
     eprintln!("  POST /v1/ota/plan       canary / phased / blue-green rollout");
     eprintln!("  POST /v1/rpc            gRPC-compatible JSON gateway");
+    eprintln!("  GET  /v1/digital-thread/query  capability-to-device trace");
+    eprintln!("  GET  /v1/compliance/export     accreditation bundle");
 
     if options.once {
         let (mut stream, _) = listener

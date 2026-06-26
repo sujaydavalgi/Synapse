@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug)]
 pub struct ControlCenterState {
     pub config_path: Option<PathBuf>,
+    pub program_path: Option<PathBuf>,
     pub resolved: Option<ResolvedSystemConfig>,
     pub api_keys: ApiKeyStore,
     pub secret_vault: ManagedSecretVault,
@@ -23,6 +24,7 @@ impl ControlCenterState {
     pub fn new() -> Self {
         Self {
             config_path: None,
+            program_path: None,
             resolved: None,
             api_keys: ApiKeyStore::from_env(),
             secret_vault: ManagedSecretVault::new(),

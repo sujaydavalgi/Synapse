@@ -2,6 +2,7 @@
 //!
 use crate::correlation::{correlation_from_headers, new_correlation_id};
 use crate::e3;
+use crate::e4;
 use crate::state::ControlCenterState;
 use serde::Serialize;
 use spanda_config::{
@@ -108,6 +109,16 @@ pub fn handle_request(
             e3::operator_mission_approve(&request.body, ctx.as_ref())
         }
         ("/v1/rpc", "POST") => e3::rpc_gateway(state, &request.body),
+        ("/v1/compliance/export", "GET") => {
+            e4::compliance_export(state, query, None, ctx.as_ref())
+        }
+        ("/v1/compliance/export", "POST") => {
+            e4::compliance_export(state, query, Some(&request.body), ctx.as_ref())
+        }
+        ("/v1/digital-thread/query", "GET") => e4::digital_thread_query(state, query),
+        ("/v1/executive/scorecard", "GET") => e4::executive_scorecard(state),
+        ("/v1/analytics/readiness", "GET") => e4::analytics_readiness(state, query),
+        ("/v1/reports/export", "GET") => e4::reports_export(state, query, ctx.as_ref()),
         _ => not_found(),
     };
     e3::record_trace(

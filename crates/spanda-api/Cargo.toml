@@ -8,14 +8,20 @@ description = "REST API v1 for Spanda Control Center — CLI parity gateway"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 spanda-audit = { path = "../spanda-audit" }
+spanda-compliance = { path = "../spanda-compliance" }
 spanda-config = { path = "../spanda-config" }
 spanda-deploy-http = { path = "../spanda-deploy-http" }
 spanda-fleet = { path = "../spanda-fleet" }
+spanda-graph = { path = "../spanda-graph" }
+spanda-lexer = { path = "../spanda-lexer" }
 spanda-ops = { path = "../spanda-ops" }
 spanda-ota = { path = "../spanda-ota" }
 spanda-package = { path = "../spanda-package" }
+spanda-parser = { path = "../spanda-parser" }
 spanda-readiness = { path = "../spanda-readiness" }
+spanda-score = { path = "../spanda-score" }
 spanda-security = { path = "../spanda-security" }
+spanda-ast = { path = "../spanda-ast" }
 
 [dev-dependencies]
 tempfile = "3"

@@ -43,6 +43,9 @@
     <button type="button" data-tab="security">Security</button>
     <button type="button" data-tab="sre">SRE</button>
     <button type="button" data-tab="operator">Operator</button>
+    <button type="button" data-tab="audit">Audit</button>
+    <button type="button" data-tab="digital-thread">Digital Thread</button>
+    <button type="button" data-tab="executive">Executive</button>
   </nav>
   <div id="error" class="error" hidden></div>
   <section id="tab-dashboard" class="panel"></section>
@@ -60,8 +63,11 @@
   <section id="tab-security" class="panel" hidden></section>
   <section id="tab-sre" class="panel" hidden></section>
   <section id="tab-operator" class="panel" hidden></section>
+  <section id="tab-audit" class="panel" hidden></section>
+  <section id="tab-digital-thread" class="panel" hidden></section>
+  <section id="tab-executive" class="panel" hidden></section>
   <script>
-    const tabs = ["dashboard", "fleet", "readiness", "devices", "alerts", "health", "assurance", "diagnosis", "provision", "config", "drift", "ota", "security", "sre", "operator"];
+    const tabs = ["dashboard", "fleet", "readiness", "devices", "alerts", "health", "assurance", "diagnosis", "provision", "config", "drift", "ota", "security", "sre", "operator", "audit", "digital-thread", "executive"];
     const errEl = document.getElementById("error");
 
     document.querySelectorAll("nav button").forEach((btn) => {
@@ -87,6 +93,9 @@
         if (tab === "security") loadSecurity();
         if (tab === "sre") loadSre();
         if (tab === "operator") loadOperator();
+        if (tab === "audit") loadAudit();
+        if (tab === "digital-thread") loadDigitalThread();
+        if (tab === "executive") loadExecutive();
       });
     });
 
@@ -296,6 +305,53 @@
           <li><code>POST /v1/operator/quarantine</code> — quarantine device (Bearer, Operate role)</li>
           <li><code>POST /v1/rpc</code> — gRPC-compatible JSON gateway</li>
         </ul>`;
+    }
+
+    async function loadAudit() {
+      try {
+        errEl.hidden = true;
+        const res = await fetch("/v1/compliance/export?profile=defense", {
+          headers: { Authorization: "Bearer " + (window.SPANDA_API_KEY || "") }
+        });
+        if (!res.ok) throw new Error("compliance export " + res.status);
+        const data = await res.json();
+        document.getElementById("tab-audit").innerHTML = `
+          <h2>Compliance audit export</h2>
+          <p>Audit ID: <code>${data.export.audit_export_id}</code></p>
+          <pre>${data.markdown || JSON.stringify(data.export, null, 2)}</pre>`;
+      } catch (e) {
+        document.getElementById("tab-audit").innerHTML = `
+          <h2>Compliance audit export</h2>
+          <p class="error">Requires <code>--program</code> and Bearer token. ${e}</p>`;
+      }
+    }
+
+    async function loadDigitalThread() {
+      try {
+        errEl.hidden = true;
+        const data = await api("/v1/digital-thread/query");
+        const thread = data.digital_thread;
+        document.getElementById("tab-digital-thread").innerHTML = `
+          <h2>Digital thread</h2>
+          <p>${thread.matched_node_count} nodes, ${thread.matched_edge_count} edges</p>
+          <pre>${JSON.stringify(thread.chain_summary, null, 2)}</pre>`;
+      } catch (e) { showError(String(e)); }
+    }
+
+    async function loadExecutive() {
+      try {
+        errEl.hidden = true;
+        const score = await api("/v1/executive/scorecard");
+        const analytics = await api("/v1/analytics/readiness?forecast_days=7");
+        document.getElementById("tab-executive").innerHTML = `
+          <h2>Executive dashboard</h2>
+          <div class="grid">
+            <div class="stat"><dt>Scorecard</dt><dd>${score.scorecard.overall_score}/100</dd></div>
+            <div class="stat"><dt>Tier</dt><dd>${score.scorecard.tier}</dd></div>
+            <div class="stat"><dt>Readiness samples</dt><dd>${analytics.analytics.sample_count}</dd></div>
+          </div>
+          <pre>${JSON.stringify(score.scorecard.categories, null, 2)}</pre>`;
+      } catch (e) { showError(String(e)); }
     }
 
     loadDashboard();
