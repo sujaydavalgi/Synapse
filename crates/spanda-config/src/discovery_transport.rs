@@ -88,6 +88,76 @@ impl DeviceDiscoveryTransport for MockMdnsDiscoveryTransport {
     }
 }
 
+macro_rules! stub_transport {
+    ($name:ident, $transport:expr, $device_id:expr) => {
+        pub struct $name;
+        impl DeviceDiscoveryTransport for $name {
+            fn transport_name(&self) -> &'static str {
+                $transport
+            }
+            fn discover(
+                &self,
+                _options: &DiscoveryOptions,
+            ) -> Result<DiscoveryTransportResult, String> {
+                Ok(DiscoveryTransportResult {
+                    transport: self.transport_name().into(),
+                    matches: vec![DiscoveryMatch {
+                        device_id: $device_id.into(),
+                        logical_name: None,
+                        configured_ip: "stub".into(),
+                        probe: NetworkHostProbe {
+                            ip: "stub".into(),
+                            reachable: true,
+                            open_ports: vec![],
+                            latency_ms: None,
+                        },
+                        matched_by: self.transport_name().into(),
+                    }],
+                })
+            }
+        }
+    };
+}
+
+stub_transport!(MockBleDiscoveryTransport, "ble", "ble-stub-device");
+stub_transport!(MockUsbDiscoveryTransport, "usb", "usb-stub-device");
+stub_transport!(MockCanDiscoveryTransport, "can", "can-stub-device");
+stub_transport!(MockMqttDiscoveryTransport, "mqtt", "mqtt-stub-device");
+stub_transport!(MockRos2DiscoveryTransport, "ros2", "ros2-stub-device");
+
+/// Resolve a discovery transport by name (built-in stubs; packages extend via registry).
+pub fn discovery_transport_by_name(name: &str) -> Option<Box<dyn DeviceDiscoveryTransport>> {
+    match name.to_ascii_lowercase().as_str() {
+        "subnet" => Some(Box::new(SubnetDiscoveryTransport)),
+        "mdns" => Some(Box::new(MockMdnsDiscoveryTransport)),
+        "ble" | "bluetooth" => Some(Box::new(MockBleDiscoveryTransport)),
+        "usb" => Some(Box::new(MockUsbDiscoveryTransport)),
+        "can" => Some(Box::new(MockCanDiscoveryTransport)),
+        "mqtt" => Some(Box::new(MockMqttDiscoveryTransport)),
+        "ros2" | "dds" => Some(Box::new(MockRos2DiscoveryTransport)),
+        _ => None,
+    }
+}
+
+/// Run discovery across one or more named transports.
+pub fn run_discovery_transports(
+    options: &DiscoveryOptions,
+) -> Vec<Result<DiscoveryTransportResult, String>> {
+    let names: Vec<String> = if options.transports.is_empty() {
+        vec!["subnet".into()]
+    } else {
+        options.transports.clone()
+    };
+    names
+        .iter()
+        .map(|name| {
+            discovery_transport_by_name(name)
+                .ok_or_else(|| format!("unknown discovery transport '{name}'"))
+                .and_then(|t| t.discover(options))
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

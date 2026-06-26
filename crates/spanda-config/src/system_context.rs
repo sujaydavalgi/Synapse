@@ -30,19 +30,10 @@ pub struct MissionPolicy {
 }
 
 /// Diagnosis sensitivity from config.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct DiagnosisPolicy {
     pub require_mitigations: bool,
     pub require_anomaly_handlers: bool,
-}
-
-impl Default for DiagnosisPolicy {
-    fn default() -> Self {
-        Self {
-            require_mitigations: false,
-            require_anomaly_handlers: false,
-        }
-    }
 }
 
 const DEFAULT_RECOVERY_FAILURES: &[&str] = &[

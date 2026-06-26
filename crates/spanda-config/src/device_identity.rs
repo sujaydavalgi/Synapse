@@ -29,6 +29,11 @@ impl TrustLevel {
             _ => Self::Unknown,
         }
     }
+
+    /// Whether trust is sufficient for operational mission use.
+    pub fn is_operational(self) -> bool {
+        matches!(self, Self::Verified | Self::Trusted)
+    }
 }
 
 /// Physical device identity with network, bus, and security metadata.
@@ -105,6 +110,20 @@ pub struct DeviceIdentityRecord {
     pub last_seen_ms: Option<f64>,
     #[serde(default)]
     pub provisioning_id: Option<String>,
+    #[serde(default)]
+    pub health_status: Option<String>,
+    #[serde(default)]
+    pub last_heartbeat_ms: Option<f64>,
+    #[serde(default)]
+    pub calibration_status: Option<String>,
+    #[serde(default)]
+    pub calibration_expiry_ms: Option<f64>,
+    #[serde(default)]
+    pub last_firmware_update_ms: Option<f64>,
+    #[serde(default)]
+    pub last_self_test_ms: Option<f64>,
+    #[serde(default)]
+    pub min_firmware_version: Option<String>,
 }
 
 impl DeviceIdentityRecord {
@@ -239,6 +258,13 @@ fn merge_identity(target: &mut DeviceIdentityRecord, overlay: &DeviceIdentityRec
     fill!(assigned_robot);
     fill!(last_seen_ms);
     fill!(provisioning_id);
+    fill!(health_status);
+    fill!(last_heartbeat_ms);
+    fill!(calibration_status);
+    fill!(calibration_expiry_ms);
+    fill!(last_firmware_update_ms);
+    fill!(last_self_test_ms);
+    fill!(min_firmware_version);
     if target.capabilities.is_empty() {
         target.capabilities = overlay.capabilities.clone();
     }
@@ -300,10 +326,17 @@ pub fn identity_from_device_node(robot_id: &str, device: &DeviceNode) -> DeviceI
         redundant_group: device.redundant_group.clone(),
         failover_priority: device.failover_priority,
         mount: device.mount.clone(),
-        lifecycle_state: None,
-        assigned_robot: None,
+        lifecycle_state: device.lifecycle_state.clone(),
+        assigned_robot: device.assigned_robot.clone(),
         last_seen_ms: None,
         provisioning_id: None,
+        health_status: device.health_status.clone(),
+        last_heartbeat_ms: device.last_heartbeat_ms,
+        calibration_status: device.calibration_status.clone(),
+        calibration_expiry_ms: device.calibration_expiry_ms,
+        last_firmware_update_ms: device.last_firmware_update_ms,
+        last_self_test_ms: device.last_self_test_ms,
+        min_firmware_version: device.min_firmware_version.clone(),
     }
 }
 
@@ -480,6 +513,86 @@ pub fn redundant_groups(registry: &DeviceRegistry) -> HashMap<String, Vec<&Devic
         }
     }
     groups
+}
+
+/// Identity anomaly detected during discovery or validation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IdentityAnomaly {
+    pub device_id: String,
+    pub anomaly_type: String,
+    pub message: String,
+}
+
+/// Detect duplicate identities, unknown certificates, and insecure endpoints.
+pub fn detect_identity_anomalies(registry: &DeviceRegistry) -> Vec<IdentityAnomaly> {
+    let mut anomalies = Vec::new();
+    let mut ips: HashMap<String, String> = HashMap::new();
+    let mut macs: HashMap<String, String> = HashMap::new();
+    let mut serials: HashMap<String, String> = HashMap::new();
+    for device in &registry.devices {
+        if let Some(ref ip) = device.ip_address {
+            if let Some(other) = ips.insert(ip.clone(), device.id.clone()) {
+                anomalies.push(IdentityAnomaly {
+                    device_id: device.id.clone(),
+                    anomaly_type: "duplicate_ip".into(),
+                    message: format!("duplicate IP '{ip}' shared with '{other}'"),
+                });
+            }
+        }
+        if let Some(ref mac) = device.normalized_mac() {
+            if let Some(other) = macs.insert(mac.clone(), device.id.clone()) {
+                anomalies.push(IdentityAnomaly {
+                    device_id: device.id.clone(),
+                    anomaly_type: "duplicate_mac".into(),
+                    message: format!("duplicate MAC '{mac}' shared with '{other}'"),
+                });
+            }
+        }
+        if let Some(ref serial) = device.serial {
+            if let Some(other) = serials.insert(serial.clone(), device.id.clone()) {
+                anomalies.push(IdentityAnomaly {
+                    device_id: device.id.clone(),
+                    anomaly_type: "duplicate_serial".into(),
+                    message: format!("duplicate serial '{serial}' shared with '{other}'"),
+                });
+            }
+        }
+        if device.certificate_fingerprint.is_none()
+            && device.is_networked()
+            && device.security_identity.is_some()
+        {
+            anomalies.push(IdentityAnomaly {
+                device_id: device.id.clone(),
+                anomaly_type: "unknown_certificate".into(),
+                message: "security_identity declared without certificate_fingerprint".into(),
+            });
+        }
+        if device.endpoint_is_insecure() {
+            anomalies.push(IdentityAnomaly {
+                device_id: device.id.clone(),
+                anomaly_type: "insecure_endpoint".into(),
+                message: "endpoint uses insecure transport scheme".into(),
+            });
+        }
+        if let Some(ref min) = device.min_firmware_version {
+            if device
+                .firmware_version
+                .as_deref()
+                .map(|v| v < min.as_str())
+                .unwrap_or(true)
+            {
+                anomalies.push(IdentityAnomaly {
+                    device_id: device.id.clone(),
+                    anomaly_type: "unsupported_firmware".into(),
+                    message: format!(
+                        "firmware {:?} below minimum '{min}'",
+                        device.firmware_version
+                    ),
+                });
+            }
+        }
+    }
+    anomalies
 }
 
 pub fn traceability_rows(registry: &DeviceRegistry) -> Vec<TraceabilityRow> {

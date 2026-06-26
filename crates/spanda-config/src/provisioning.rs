@@ -1,6 +1,9 @@
 //! Device provisioning workflow — discover through ready gates.
 //!
-use crate::device_identity::{DeviceIdentityRecord, DeviceRegistry, TrustLevel};
+use crate::device_health::{evaluate_device_readiness, CalibrationStatus};
+use crate::device_identity::{
+    detect_identity_anomalies, DeviceIdentityRecord, DeviceRegistry, TrustLevel,
+};
 use crate::device_pool::DeviceLifecycleState;
 use serde::{Deserialize, Serialize};
 
@@ -102,7 +105,7 @@ fn evaluate_step(
             if let Some(d) = device {
                 ok(step_name, format!("device '{}' discovered", d.id))
             } else {
-                fail(step_name, format!("device not found in registry"))
+                fail(step_name, "device not found in registry".into())
             }
         }
         ProvisionStep::VerifyIdentity => {
@@ -112,9 +115,24 @@ fn evaluate_step(
             if d.id.is_empty() {
                 return fail(step_name, "device id is empty".into());
             }
-            let dup_ip = registry.devices.iter().filter(|x| x.ip_address == d.ip_address && x.ip_address.is_some()).count() > 1;
+            let dup_ip = registry
+                .devices
+                .iter()
+                .filter(|x| x.ip_address == d.ip_address && x.ip_address.is_some())
+                .count()
+                > 1;
             if dup_ip {
                 return fail(step_name, "duplicate IP in registry".into());
+            }
+            let anomalies = detect_identity_anomalies(registry)
+                .into_iter()
+                .filter(|a| a.device_id == d.id)
+                .collect::<Vec<_>>();
+            if anomalies
+                .iter()
+                .any(|a| a.anomaly_type == "duplicate_serial" || a.anomaly_type == "duplicate_mac")
+            {
+                return fail(step_name, "duplicate identity detected".into());
             }
             ok(step_name, "identity fields valid".into())
         }
@@ -155,10 +173,23 @@ fn evaluate_step(
                     | DeviceLifecycleState::Failed
                     | DeviceLifecycleState::Retired
             ) {
-                fail(step_name, format!("lifecycle state {}", lifecycle.as_str()))
-            } else {
-                ok(step_name, format!("lifecycle {}", lifecycle.as_str()))
+                return fail(step_name, format!("lifecycle state {}", lifecycle.as_str()));
             }
+            let health = evaluate_device_readiness(d, 0.0);
+            if health.health_status == "critical" {
+                return fail(step_name, "health status critical".into());
+            }
+            if health.calibration_expired {
+                return fail(step_name, "calibration expired".into());
+            }
+            if d.calibration_status
+                .as_deref()
+                .map(CalibrationStatus::parse)
+                == Some(CalibrationStatus::Expired)
+            {
+                return fail(step_name, "calibration status expired".into());
+            }
+            ok(step_name, format!("lifecycle {}", lifecycle.as_str()))
         }
         ProvisionStep::CapabilityValidation => {
             let Some(d) = device else {
@@ -175,8 +206,8 @@ fn evaluate_step(
                 .map(str::to_string)
                 .or_else(|| device.and_then(|d| d.assigned_robot.clone()))
                 .or_else(|| device.and_then(|d| d.robot_id.clone()));
-            if robot.is_some() {
-                ok(step_name, format!("assigned to {}", robot.unwrap()))
+            if let Some(ref robot) = robot {
+                ok(step_name, format!("assigned to {robot}"))
             } else {
                 fail(step_name, "no robot assignment".into())
             }

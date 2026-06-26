@@ -117,6 +117,24 @@ pub struct DeviceNode {
     pub redundant_group: Option<String>,
     #[serde(default)]
     pub failover_priority: Option<u32>,
+    #[serde(default)]
+    pub health_status: Option<String>,
+    #[serde(default)]
+    pub last_heartbeat_ms: Option<f64>,
+    #[serde(default)]
+    pub calibration_status: Option<String>,
+    #[serde(default)]
+    pub calibration_expiry_ms: Option<f64>,
+    #[serde(default)]
+    pub last_firmware_update_ms: Option<f64>,
+    #[serde(default)]
+    pub last_self_test_ms: Option<f64>,
+    #[serde(default)]
+    pub min_firmware_version: Option<String>,
+    #[serde(default)]
+    pub lifecycle_state: Option<String>,
+    #[serde(default)]
+    pub assigned_robot: Option<String>,
 }
 
 impl DeviceTree {

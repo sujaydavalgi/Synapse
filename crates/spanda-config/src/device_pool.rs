@@ -12,6 +12,7 @@ pub enum DeviceLifecycleState {
     Quarantined,
     Verified,
     Assigned,
+    Active,
     Healthy,
     Degraded,
     Offline,
@@ -25,7 +26,8 @@ impl DeviceLifecycleState {
             "quarantined" => Self::Quarantined,
             "verified" => Self::Verified,
             "assigned" => Self::Assigned,
-            "healthy" => Self::Healthy,
+            "active" => Self::Active,
+            "healthy" => Self::Active,
             "degraded" => Self::Degraded,
             "offline" => Self::Offline,
             "failed" => Self::Failed,
@@ -40,7 +42,8 @@ impl DeviceLifecycleState {
             Self::Quarantined => "quarantined",
             Self::Verified => "verified",
             Self::Assigned => "assigned",
-            Self::Healthy => "healthy",
+            Self::Active => "active",
+            Self::Healthy => "active",
             Self::Degraded => "degraded",
             Self::Offline => "offline",
             Self::Failed => "failed",
@@ -62,15 +65,15 @@ impl DeviceLifecycleState {
                 | (Quarantined, Verified)
                 | (Verified, Assigned)
                 | (Verified, Quarantined)
-                | (Assigned, Healthy)
+                | (Assigned, Active)
                 | (Assigned, Offline)
-                | (Healthy, Degraded)
-                | (Healthy, Offline)
-                | (Healthy, Failed)
-                | (Degraded, Healthy)
+                | (Active, Degraded)
+                | (Active, Offline)
+                | (Active, Failed)
+                | (Degraded, Active)
                 | (Degraded, Offline)
                 | (Degraded, Failed)
-                | (Offline, Healthy)
+                | (Offline, Active)
                 | (Offline, Degraded)
                 | (Failed, Quarantined)
                 | (Failed, Retired)
@@ -125,6 +128,7 @@ pub struct DevicePoolSummary {
     pub quarantined: u32,
     pub verified: u32,
     pub assigned: u32,
+    pub active: u32,
     pub healthy: u32,
     pub degraded: u32,
     pub offline: u32,
@@ -149,7 +153,10 @@ impl DeviceRegistry {
                 DeviceLifecycleState::Quarantined => summary.quarantined += 1,
                 DeviceLifecycleState::Verified => summary.verified += 1,
                 DeviceLifecycleState::Assigned => summary.assigned += 1,
-                DeviceLifecycleState::Healthy => summary.healthy += 1,
+                DeviceLifecycleState::Active | DeviceLifecycleState::Healthy => {
+                    summary.active += 1;
+                    summary.healthy += 1;
+                }
                 DeviceLifecycleState::Degraded => summary.degraded += 1,
                 DeviceLifecycleState::Offline => summary.offline += 1,
                 DeviceLifecycleState::Failed => summary.failed += 1,
@@ -214,6 +221,7 @@ mod tests {
         let summary = registry.pool_summary();
         assert_eq!(summary.total, 2);
         assert_eq!(summary.healthy, 1);
+        assert_eq!(summary.active, 1);
         assert_eq!(summary.discovered, 1);
     }
 }
