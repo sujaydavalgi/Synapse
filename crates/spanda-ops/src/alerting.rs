@@ -36,6 +36,8 @@ pub enum AlertSeverity {
 pub enum AlertChannel {
     Webhook { url: String },
     Email { to: String },
+    PagerDuty { url: String, routing_key: String },
+    Teams { url: String },
     Log,
 }
 
@@ -64,6 +66,14 @@ impl AlertDispatcher {
         if let Ok(url) = std::env::var("SPANDA_ALERT_WEBHOOK_URL") {
             channels.push(AlertChannel::Webhook { url });
         }
+        if let Ok(url) = std::env::var("SPANDA_ALERT_PAGERDUTY_URL") {
+            let routing_key = std::env::var("SPANDA_ALERT_PAGERDUTY_ROUTING_KEY")
+                .unwrap_or_else(|_| "spanda".into());
+            channels.push(AlertChannel::PagerDuty { url, routing_key });
+        }
+        if let Ok(url) = std::env::var("SPANDA_ALERT_TEAMS_URL") {
+            channels.push(AlertChannel::Teams { url });
+        }
         if let Ok(to) = std::env::var("SPANDA_ALERT_EMAIL_TO") {
             channels.push(AlertChannel::Email { to });
         }
@@ -85,6 +95,18 @@ impl AlertDispatcher {
                 AlertChannel::Email { to } => {
                     if send_email(to, alert).is_ok() {
                         delivered.push(format!("email:{to}"));
+                    }
+                }
+                AlertChannel::PagerDuty { url, routing_key } => {
+                    let body = crate::pagerduty::pagerduty_events_payload(alert, routing_key);
+                    if send_webhook_body(url, &body).is_ok() {
+                        delivered.push(format!("pagerduty:{url}"));
+                    }
+                }
+                AlertChannel::Teams { url } => {
+                    let body = crate::teams::teams_webhook_payload(alert);
+                    if send_webhook_body(url, &body).is_ok() {
+                        delivered.push(format!("teams:{url}"));
                     }
                 }
                 AlertChannel::Log => {
@@ -146,7 +168,11 @@ pub fn send_webhook(url: &str, alert: &Alert) -> Result<(), String> {
     } else {
         serde_json::to_string(alert).map_err(|e| e.to_string())?
     };
-    let parsed = spanda_deploy_http_stub::post_json(url, &body)?;
+    send_webhook_body(url, &body)
+}
+
+pub fn send_webhook_body(url: &str, body: &str) -> Result<(), String> {
+    let parsed = spanda_deploy_http_stub::post_json(url, body)?;
     if parsed.status >= 200 && parsed.status < 300 {
         Ok(())
     } else {
