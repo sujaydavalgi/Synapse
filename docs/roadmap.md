@@ -125,7 +125,7 @@ Full analysis: [enterprise-operations-roadmap.md](./enterprise-operations-roadma
 | 2 | Device Pool (central inventory) | NOW | **Experimental** — lifecycle, assign/trust/quarantine, failover chains, recovery integration |
 | 3 | Device Discovery (package transports) | NOW | **Experimental** — subnet, host-backed mDNS/BLE/USB/CAN/MQTT/ROS2 + pool ingest |
 | 4 | Provisioning (discover → ready workflow) | NOW | **Experimental** — `POST /v1/provision` |
-| 5 | Configuration Management (versioned cascading TOML) | NOW | **Experimental** (resolve, diff, snapshots) / **Planned** (approval) |
+| 5 | Configuration Management (versioned cascading TOML) | NOW | **Experimental** — resolve, diff, snapshots, approval queue + publish-on-approve |
 | 6 | RBAC (roles + permissions) | NOW | **Experimental** — `SPANDA_API_KEY`, `/v1/rbac/matrix` |
 | 7 | Secret Management (rotation, audit) | NOW | **Experimental** — `ManagedSecretVault` contract |
 | 8 | Telemetry (time-series, trends) | NOW | **Experimental** — [telemetry-store.md](./telemetry-store.md) |
@@ -133,12 +133,12 @@ Full analysis: [enterprise-operations-roadmap.md](./enterprise-operations-roadma
 | 10 | Configuration Drift (7 dimensions) | NEXT | **Experimental** — `detect_operational_drift_full` via REST and gRPC |
 | 11 | OTA & Rollback (canary, blue/green) | NEXT | **Experimental** — rollout plan, rollback, canary/staged/blue_green dry-run |
 | 12 | Package Trust (scoring) | NEXT | **Experimental** — `spanda trust`, `/v1/trust/package` |
-| 13 | SDKs (Python, REST, gRPC, WebSocket) | NEXT | **Experimental** — Python SDK, REST v1, tonic gRPC (9 RPCs), WebSocket telemetry |
+| 13 | SDKs (Python, REST, gRPC, WebSocket) | NEXT | **Experimental** — Python SDK, REST v1, remote CLI, tonic gRPC (60 RPCs), WebSocket telemetry |
 | 14 | Operator Workflows (approve, takeover, quarantine) | NEXT | **Experimental** — device trust API/CLI/UI, mission approve, quarantine |
 | 15 | SRE (SLO, MTTR, incidents) | NEXT | **Experimental** — `/v1/sre/summary` + incident workflow API (`/v1/sre/incidents`) |
 | 16 | Reporting (fleet, mission, compliance exports) | LATER | **Experimental** — markdown/PDF/JSON exports via `/v1/reports/export` / **Planned** (scheduled reports) |
 | 17 | Compliance (evidence packs) | LATER | **Experimental** — `GET /v1/compliance/export` |
-| 18 | APIs (REST + gRPC CLI parity) | NEXT | **Experimental** — REST v1 + OpenAPI; tonic gRPC expanding (9 RPCs; full CLI parity **Planned**) |
+| 18 | APIs (REST + gRPC CLI parity) | NEXT | **Experimental** — REST v1 + OpenAPI; tonic gRPC (60 RPCs); remote `spanda control-center` CLI |
 | 19 | Observability (OTel, traces, correlation) | NEXT | **Experimental** — trace log, OTLP export, correlation IDs, `spanda-otel-collector` backend wiring |
 | 20 | Digital Thread (requirement → retirement) | LATER | **Experimental** — `GET /v1/digital-thread/query` v1 / **Future** (full lifecycle graph UI) |
 

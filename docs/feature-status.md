@@ -208,7 +208,7 @@ See [tier-3-experimental.md](./tier-3-experimental.md) and [tier-3-golden-paths.
 | **Device Pool** | **Experimental** | Lifecycle states, assign/trust/quarantine/retire, failover chains; multi-tenant API key scoping |
 | **Device Discovery** | **Experimental** | Subnet, mDNS, BLE, USB, CAN, MQTT, ROS2 host probes; `SPANDA_DISCOVERY_NO_STUB`; cellular `mmcli`; pool ingest |
 | **Provisioning** | **Experimental** | `POST /v1/provision`, discover → ready workflow |
-| **Configuration Management** | **Experimental** | Snapshots, diff, resolve; approval queue (`/v1/config/approvals`) |
+| **Configuration Management** | **Experimental** | Snapshots, diff, resolve; approval queue + publish-on-approve (`/v1/config/approvals`) |
 | **RBAC** | **Experimental** | 7 roles, `SPANDA_API_KEY`, `/v1/rbac/matrix` |
 | **Secret Management** | **Experimental** | `ManagedSecretVault`, rotation metadata |
 | **Telemetry** | **Experimental** | Health/readiness/mission signals; trend analysis; forecasting **Planned** |
@@ -216,7 +216,7 @@ See [tier-3-experimental.md](./tier-3-experimental.md) and [tier-3-golden-paths.
 | **Configuration Drift** | **Experimental** | Full operational drift API (`detect_operational_drift_full`); seven dimensions via Control Center `GET /v1/drift` |
 | **OTA & Rollback** | **Experimental** | Canary, blue/green, phased dry-run; production fleet automation **Planned** |
 | **Package Trust** | **Experimental** | `spanda trust`, `/v1/trust/package`, trust score |
-| **SDKs** | **Experimental** | Python SDK, REST v1, WebSocket; tonic gRPC (9 RPCs); CLI reference **Stable** |
+| **SDKs** | **Experimental** | Python SDK, REST v1, remote CLI (`spanda control-center *`), WebSocket; tonic gRPC (60 RPCs) |
 | **Operator Workflows** | **Experimental** | Mission approve, takeover, quarantine, recovery approval |
 | **SRE** | **Experimental** | `/v1/sre/summary` with `slo`, `mtbf_hint_ms`, `health_trends`, `readiness_trends`; incident workflow + auto-open from critical alerts |
 | **Reporting** | **Experimental** | HTML, Markdown, JSON, PDF, CSV exports |
