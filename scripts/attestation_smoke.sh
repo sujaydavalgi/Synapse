@@ -34,5 +34,12 @@ unset SPANDA_TPM_BACKEND SPANDA_TPM_SCRIPT
 
 echo "== tpm2 backend smoke =="
 cargo test -p spanda-tamper tpm2_backend_reports_tooling_status -q
+cargo test -p spanda-tamper tpm2_script_fixture_emits_quote_json -q
+
+echo "== tpm2 quote script fixture smoke =="
+TPM2_SCRIPT="${ROOT}/examples/showcase/secure_boot/fixtures/tpm2-quote.sh"
+chmod +x "${TPM2_SCRIPT}"
+TPM2_JSON="$(SPANDA_ATTESTATION_CONTRACT=trust.jetson SPANDA_ATTESTATION_PACKAGE=spanda-trust-jetson sh "${TPM2_SCRIPT}")"
+echo "$TPM2_JSON" | grep -q '"boot_state"'
 
 echo "attestation smoke ok"

@@ -21,6 +21,12 @@ TPM stub backends:
 SPANDA_TPM_BACKEND=file \
 SPANDA_TPM_QUOTE_PATH=examples/showcase/secure_boot/fixtures/jetson-tpm-quote.json \
 spanda tamper-check examples/showcase/secure_boot/rover.sd
+
+# tpm2-tools PCR quote (when TPM available)
+SPANDA_TPM_BACKEND=tpm2 spanda tamper-check examples/showcase/secure_boot/rover.sd
+SPANDA_TPM_BACKEND=script \
+SPANDA_TPM_SCRIPT=examples/showcase/secure_boot/fixtures/tpm2-quote.sh \
+spanda tamper-check examples/showcase/secure_boot/rover.sd
 ```
 
 ## One command
