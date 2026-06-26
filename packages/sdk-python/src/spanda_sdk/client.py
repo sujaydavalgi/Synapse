@@ -199,6 +199,65 @@ class ControlCenterClient:
             auth=True,
         )
 
+    def executive_scorecard(self) -> Any:
+        return self._request("GET", "/v1/executive/scorecard")
+
+    def digital_thread_query(
+        self,
+        *,
+        capability: Optional[str] = None,
+        device_id: Optional[str] = None,
+    ) -> Any:
+        params = []
+        if capability:
+            params.append(f"capability={capability}")
+        if device_id:
+            params.append(f"device_id={device_id}")
+        query = f"?{'&'.join(params)}" if params else ""
+        return self._request("GET", f"/v1/digital-thread/query{query}")
+
+    def export_reports(self, *, format: str = "markdown", profile: str = "defense") -> Any:
+        return self._request(
+            "GET",
+            f"/v1/reports/export?profile={profile}&format={format}",
+            auth=True,
+        )
+
+    def list_config_snapshots(self) -> Any:
+        return self._request("GET", "/v1/config/snapshots")
+
+    def save_config_snapshot(self, *, label: Optional[str] = None) -> Any:
+        body: dict[str, Any] = {}
+        if label:
+            body["label"] = label
+        return self._request("POST", "/v1/config/snapshots", body, auth=True)
+
+    def ota_execute(
+        self,
+        strategy: str,
+        version: str,
+        *,
+        dry_run: bool = True,
+        assignments: Optional[list] = None,
+    ) -> Any:
+        return self._request(
+            "POST",
+            "/v1/ota/execute",
+            {
+                "strategy": strategy,
+                "version": version,
+                "dry_run": dry_run,
+                "assignments": assignments or [],
+            },
+            auth=True,
+        )
+
+    def ota_status(self) -> Any:
+        return self._request("GET", "/v1/ota/status")
+
+    def list_audit_mutations(self) -> Any:
+        return self._request("GET", "/v1/audit/mutations", auth=True)
+
     def rpc(self, method: str, params: Optional[Mapping[str, Any]] = None) -> Any:
         return self._request(
             "POST",

@@ -310,6 +310,9 @@ c.resolve_incident(iid)
 assert c.list_incidents()['incidents']
 c.list_config_approvals()
 c.list_compliance_evidence()
+assert 'overall_score' in c.executive_scorecard()
+assert 'matched_node_count' in c.digital_thread_query()
+assert c.list_config_snapshots()['snapshots']
 "
 
 echo "== E4 GET /v1/compliance/export?profile=defense =="
