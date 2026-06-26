@@ -38,7 +38,7 @@ When no HTTP endpoint is set, configure a TPM or vendor stub via `SPANDA_TPM_BAC
 | `mock` | CI/dev stub — always returns verified quote |
 | `jetson` | Jetson vendor stub (same as mock with vendor label) |
 | `pi` | Raspberry Pi vendor stub |
-| `tpm2` | Run `tpm2_createek` / `tpm2_createak` / `tpm2_quote` on PCR0 when tpm2-tools and a TPM are available; falls back to `tpm2_getcap` probe |
+| `tpm2` | Run `tpm2_createek` / `tpm2_createak` / `tpm2_quote` on PCR0; verify with `tpm2_checkquote` when available; optional `SPANDA_TPM2_PCR0_EXPECT` PCR0 policy |
 | `file` | Read quote JSON from `SPANDA_TPM_QUOTE_PATH` |
 | `script` | Run `SPANDA_TPM_SCRIPT`; stdout must be quote JSON |
 
@@ -75,6 +75,13 @@ spanda tamper-check examples/showcase/secure_boot/rover.sd
 ```
 
 Smoke scripts use `scripts/lib/registry_env.sh` to prefer the bundled trust registry (`crates/spanda-cli/bundled-registry`) when `SPANDA_REGISTRY_URL` is unset. `spanda demo trust` configures this automatically.
+
+Optional PCR0 policy for tpm2 attestation:
+
+```bash
+export SPANDA_TPM2_PCR0_EXPECT=3d458cfe556432b7   # hex digest from tpm2_pcrread sha256:0
+SPANDA_TPM_BACKEND=tpm2 spanda tamper-check examples/showcase/secure_boot/rover.sd
+```
 
 HTTP takes precedence when both `SPANDA_ATTESTATION_ENDPOINT` and `SPANDA_TPM_BACKEND` are set.
 
