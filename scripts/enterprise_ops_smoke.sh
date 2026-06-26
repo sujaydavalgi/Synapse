@@ -209,11 +209,44 @@ fetch "/v1/discovery?transport=ble" | grep -q spanda-discovery-ble
 echo "== E2 GET /v1/discovery?transport=usb (registry package) =="
 fetch "/v1/discovery?transport=usb" | grep -q spanda-discovery-usb
 
+echo "== E2 GET /v1/discovery?transport=wifi (registry package) =="
+SPANDA_DISCOVERY_WIFI_MATCHES="smoke-wifi@192.168.1.50" \
+fetch "/v1/discovery?transport=wifi" | grep -q spanda-discovery-wifi
+
+echo "== E2 GET /v1/discovery?transport=cellular (registry package) =="
+SPANDA_DISCOVERY_CELLULAR_MATCHES="lte-modem@10.0.0.1" \
+fetch "/v1/discovery?transport=cellular" | grep -q spanda-discovery-cellular
+
+echo "== E2 GET /v1/discovery?transport=serial (registry package) =="
+SPANDA_DISCOVERY_SERIAL_MATCHES="gps@/dev/ttyUSB0" \
+fetch "/v1/discovery?transport=serial" | grep -q spanda-discovery-serial
+
 echo "== E3 GET /v1/trust/package?name=spanda-mqtt =="
 fetch "/v1/trust/package?name=spanda-mqtt" | grep -q trust
 
 echo "== E3 GET /v1/sre/summary =="
 fetch /v1/sre/summary | grep -q availability_percent
+
+echo "== E3 SRE incident workflow =="
+INCIDENT_RESPONSE=$(curl -sf -X POST \
+  -H "Authorization: Bearer ${SPANDA_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"smoke incident","description":"enterprise ops smoke","severity":"warning"}' \
+  "http://${BIND}/v1/sre/incidents")
+echo "$INCIDENT_RESPONSE" | grep -q '"ok":true'
+INCIDENT_ID=$(echo "$INCIDENT_RESPONSE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["incident"]["id"])')
+curl -sf -X POST \
+  -H "Authorization: Bearer ${SPANDA_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"assignee":"oncall"}' \
+  "http://${BIND}/v1/sre/incidents/${INCIDENT_ID}/ack" | grep -q '"ok":true'
+curl -sf -X POST \
+  -H "Authorization: Bearer ${SPANDA_API_KEY}" \
+  "http://${BIND}/v1/sre/incidents/${INCIDENT_ID}/resolve" | grep -q '"ok":true'
+fetch /v1/sre/summary | grep -q mttr_hint_ms
+
+echo "== E3 GET /v1/drift?baseline_id (seven dimensions) =="
+fetch "/v1/drift?baseline_id=${BASELINE_ID}" | grep -q policy
 
 echo "== E3 GET /v1/observability/traces (correlation IDs) =="
 curl -sf -H "X-Correlation-ID: smoke-trace-1" "http://${BIND}/v1/health" >/dev/null

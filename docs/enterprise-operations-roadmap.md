@@ -425,14 +425,14 @@ Core host-backed probes (`discovery_live`) with optional registry packages; disc
 | DNS-SD | core (same probe path as mDNS) + `spanda-discovery-mdns` | **Experimental** |
 | USB | core (`lsusb` probe) + `spanda-discovery-usb` | **Experimental** (host probe) / **Planned** (package) |
 | Bluetooth / BLE | core (`bluetoothctl` probe) + `spanda-discovery-ble` | **Experimental** (host probe) / **Planned** (package) |
-| WiFi | core (subnet + mDNS correlation) + `spanda-discovery-wifi` | **Planned** |
-| LTE / 5G | modem status via device agent report + `spanda-discovery-cellular` | **Planned** |
+| WiFi | core (subnet + mDNS correlation) + `spanda-discovery-wifi` | **Experimental** (registry stub) |
+| LTE / 5G | modem status via device agent report + `spanda-discovery-cellular` | **Experimental** (registry stub) |
 | CAN / EtherCAT | core (socketcan probe) + `spanda-discovery-can`, `spanda-discovery-ethercat` | **Experimental** (host probe) / **Planned** (package) |
 | ROS2 / DDS | core (`ros2 topic list` probe) + `spanda-ros2` | **Experimental** |
 | MQTT | core (broker probe) + `spanda-mqtt` | **Experimental** |
 | OPC-UA | `spanda-opcua`, `spanda-discovery-opcua` | **Experimental** (stubs) |
 | Modbus TCP / RTU | `spanda-modbus`, `spanda-discovery-modbus` | **Experimental** (stubs) |
-| Serial | `spanda-discovery-serial` | **Planned** |
+| Serial | `spanda-discovery-serial` | **Experimental** (registry stub) |
 
 ### 6.4 Provisioning workflow
 
@@ -590,15 +590,15 @@ Official SDK surfaces for external systems to interact with Readiness, Assurance
 
 ### 6.15 SRE
 
-| Metric | Source |
-|--------|--------|
-| SLO / SLA | readiness history + telemetry |
-| Availability / Uptime | health_check + agent heartbeat |
-| MTTR | recovery knowledge store |
-| MTBF | fault timeline |
-| Crash / Recovery statistics | `spanda-runtime-faults` |
-| Incident reports | alerting + audit |
-| Health trends | `spanda readiness trends` |
+| Metric | Source | Status |
+|--------|--------|--------|
+| SLO / SLA | readiness history + telemetry | Planned |
+| Availability / Uptime | health_check + agent heartbeat | **Experimental** (`GET /v1/sre/summary`) |
+| MTTR | resolved incidents | **Experimental** (`mttr_hint_ms` on summary) |
+| MTBF | fault timeline | Planned |
+| Crash / Recovery statistics | `spanda-runtime-faults` | Planned |
+| Incident workflow | `GET/POST /v1/sre/incidents`, ack/resolve | **Experimental** |
+| Health trends | `spanda readiness trends` | Planned |
 
 ### 6.16 Reporting
 

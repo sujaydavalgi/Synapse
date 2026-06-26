@@ -135,7 +135,7 @@ Full analysis: [enterprise-operations-roadmap.md](./enterprise-operations-roadma
 | 12 | Package Trust (scoring) | NEXT | **Experimental** — `spanda trust`, `/v1/trust/package` |
 | 13 | SDKs (Python, REST, gRPC, WebSocket) | NEXT | **Experimental** — Python SDK, REST v1, tonic gRPC (9 RPCs), WebSocket telemetry |
 | 14 | Operator Workflows (approve, takeover, quarantine) | NEXT | **Experimental** — device trust API/CLI/UI, mission approve, quarantine |
-| 15 | SRE (SLO, MTTR, incidents) | NEXT | **Experimental** — `/v1/sre/summary` rollup / **Planned** (incident workflow UI) |
+| 15 | SRE (SLO, MTTR, incidents) | NEXT | **Experimental** — `/v1/sre/summary` + incident workflow API (`/v1/sre/incidents`) |
 | 16 | Reporting (fleet, mission, compliance exports) | LATER | **Experimental** — markdown/PDF/JSON exports via `/v1/reports/export` / **Planned** (scheduled reports) |
 | 17 | Compliance (evidence packs) | LATER | **Experimental** — `GET /v1/compliance/export` |
 | 18 | APIs (REST + gRPC CLI parity) | NEXT | **Experimental** — REST v1 + OpenAPI; tonic gRPC expanding (9 RPCs; full CLI parity **Planned**) |
@@ -173,12 +173,12 @@ Phases E1–E4 are **shipped at experimental tier** (CI smoke + docs). The table
 
 | Area | Experimental today | Stable requires |
 |------|-------------------|-----------------|
-| Discovery | Host-backed core probes + registry package wrap | Additional registry transports (BLE, USB, …); vendor hardening |
-| Device Pool | Full lifecycle + trust + failover | **Experimental** — multi-tenant isolation (`SPANDA_TENANT_ID`, API key `tenant_id`); HA persistence for alerts/traces |
+| Discovery | Host-backed core probes + registry package wrap | **Experimental** — wifi/cellular/serial registry stubs; BLE/USB registry wrap |
+| Device Pool | Full lifecycle + trust + failover | **Experimental** — multi-tenant isolation; HA persistence for alerts/traces/incidents |
 | APIs | REST v1 + OpenAPI | **Experimental** — rate limits + versioning + tenant gate; HA persistence (`SPANDA_CONTROL_CENTER_STATE_DIR`) |
 | Observability | Trace log + OTLP push | **Experimental** — `spanda-otel-collector` package + `SPANDA_OTEL_COLLECTOR_URL`; `GET /v1/observability/backend` |
-| Desktop | Tauri dev scaffold | Signed installers (`TAURI_BUILD=1` CI on macOS); **Experimental** — `tauri-plugin-updater` scaffold (`active: false` until pubkey) |
-| Drift / OTA | Full operational drift API (7 dimensions); plan dry-run | Live fleet rollout via `POST /v1/ota/execute` + deploy agents |
+| Desktop | Tauri dev scaffold | **Experimental** — `tauri-plugin-updater` + `TAURI_UPDATER_PUBKEY` build injection; macOS CI artifact upload |
+| Drift / OTA | Full operational drift API (7 dimensions); plan dry-run | **Experimental** — policy/safety dimension rollup; live fleet rollout via `POST /v1/ota/execute` |
 
 **Exit criteria (E1):** `spanda control-center serve` + `scripts/enterprise_ops_smoke.sh` — **shipped**
 

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Operational drift policy/safety rollup:** `DriftDimension::Policy` and `Safety` route firmware, attestation, and assurance findings into all seven `by_dimension` buckets.
+- **SRE incident workflow:** `IncidentStore` in `spanda-ops`; `GET/POST /v1/sre/incidents`, ack/resolve subpaths; HA persistence; gRPC `ListSreIncidents`/`CreateSreIncident`/`AckSreIncident`/`ResolveSreIncident`; MTTR hint on `/v1/sre/summary`.
+- **Discovery registry expansion:** `spanda-discovery-wifi`, `spanda-discovery-cellular`, `spanda-discovery-serial` packages; BLE/USB registry wrap; host probes via env overrides.
+- **Tauri signed release scaffold:** `build.rs` injects `TAURI_UPDATER_PUBKEY`; macOS CI uploads bundle artifacts.
 - **Multi-tenant isolation:** `SPANDA_TENANT_ID` scopes Control Center instances; API keys carry `tenant_id` (`SPANDA_API_KEYS_FILE` JSON); `GET /v1/tenant`; gRPC `GetTenant`; `403` on tenant mismatch for authenticated requests.
 - **HA persistence:** alerts and trace log hydrate/persist under `.spanda/` (`SPANDA_CONTROL_CENTER_STATE_DIR`); survives restarts for operator dashboards.
 - **Distributed trace backend:** registry package `spanda-otel-collector`; `SPANDA_OTEL_COLLECTOR_URL`; `GET /v1/observability/backend`; gRPC `GetObservabilityBackend`.

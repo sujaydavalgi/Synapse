@@ -17,7 +17,7 @@
 | Swarm continuity | member-lost handoff + mesh relay | `crates/spanda-fleet/src/swarm_continuity.rs`, `crates/spanda-fleet/tests/mesh_integration.rs` |
 | Self-healing runtime | auto-trigger, approval retry, mesh relay | `crates/spanda-interpreter/tests/recovery_runtime.rs`, `scripts/self_healing_smoke.sh` |
 | Fleet field validation | multi-process agents + mesh orchestrate | `scripts/fleet_field_validation.sh` |
-| gRPC Control Center | tonic (50 RPCs — full REST parity except `/v1/rpc`) | `crates/spanda-api/tests/grpc_tests.rs`, `grpc_live_probe.rs` |
+| gRPC Control Center | tonic (55 RPCs — full REST parity except `/v1/rpc`) | `crates/spanda-api/tests/grpc_tests.rs`, `grpc_live_probe.rs` |
 | API rate limit + versioning | `SPANDA_API_RATE_LIMIT_PER_MINUTE`, `GET /v1/version`, `X-Spanda-Api-Version` | `crates/spanda-api/tests/api_policy_tests.rs` |
 | Live OTA execute | `POST /v1/ota/execute` against deploy agent | `crates/spanda-api/tests/ota_execute_live.rs`, `scripts/ota_fleet_execute_smoke.sh` |
 | Discovery registry runtime | `spanda-discovery-mdns` package wrap | `crates/spanda-config/src/discovery_registry.rs` |

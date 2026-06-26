@@ -37,6 +37,8 @@ Open `http://127.0.0.1:8080/` for the Control Center UI, or use the **Control Ce
 | `ListFleetAgents` | Registered fleet agents (`GET /v1/fleet/agents` parity) |
 | `EvaluateReadiness` | Readiness rollup (`POST /v1/readiness/run` parity) |
 | `GetSreSummary` | SRE availability rollup (`GET /v1/sre/summary` parity) |
+| `ListSreIncidents` | Incident list (`GET /v1/sre/incidents` parity) |
+| `CreateSreIncident` | Open incident (`POST /v1/sre/incidents` parity) |
 | `GetTrustPackage` | Package trust score (`GET /v1/trust/package` parity) |
 | `GetOpenApi` | OpenAPI 3.1 spec JSON (`GET /v1/openapi.json` parity) |
 | `GetOtlpMetrics` | OTLP metrics preview (`GET /v1/observability/otlp/metrics`) |
@@ -101,7 +103,11 @@ grpcurl -plaintext -d '{}' 127.0.0.1:50051 spanda.v1.ControlCenter/Health
 | `/v1/ota/plan` | POST | Bearer | Plan canary / staged / blue_green rollout |
 | `/v1/ota/status` | GET | — | OTA deploy state (`.spanda/deploy-state.json`) |
 | `/v1/trust/package` | GET | — | Package trust evaluation (`?name=&version=`) |
-| `/v1/sre/summary` | GET | — | Availability and alert rollup |
+| `/v1/sre/summary` | GET | — | Availability, incidents, and MTTR rollup |
+| `/v1/sre/incidents` | GET | — | Incident list |
+| `/v1/sre/incidents` | POST | Bearer | Open incident |
+| `/v1/sre/incidents/{id}/ack` | POST | Bearer | Acknowledge incident |
+| `/v1/sre/incidents/{id}/resolve` | POST | Bearer | Resolve incident |
 | `/v1/observability/traces` | GET | — | Recent API trace records |
 | `/v1/observability/otlp/traces` | GET | — | OTLP/JSON trace preview for Jaeger |
 | `/v1/observability/otlp/metrics` | GET | — | OTLP/JSON metrics preview |
@@ -111,7 +117,7 @@ grpcurl -plaintext -d '{}' 127.0.0.1:50051 spanda.v1.ControlCenter/Health
 | `/v1/operator/quarantine` | POST | Bearer | Quarantine a device |
 | `/v1/operator/mission/approve` | POST | Bearer | Approve or reject a mission |
 | `/v1/rpc` | POST | — | gRPC-compatible JSON gateway |
-| **gRPC (tonic)** | — | — | Native `ControlCenter` service on `--grpc-bind` (50 RPCs; full REST parity except JSON-RPC gateway) |
+| **gRPC (tonic)** | — | — | Native `ControlCenter` service on `--grpc-bind` (55 RPCs; full REST parity except JSON-RPC gateway) |
 | `/v1/compliance/export` | GET/POST | Bearer | Accreditation bundle (`?profile=defense`) |
 | `/v1/digital-thread/query` | GET | — | Trace chain (`?capability=`, `?device_id=`) |
 | `/v1/executive/scorecard` | GET | — | Mission scorecard rollup |
