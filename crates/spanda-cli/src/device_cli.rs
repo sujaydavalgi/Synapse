@@ -42,6 +42,7 @@ pub fn device_dispatch(args: &[String]) {
         "assign" => cmd_assign(&args[1..]),
         "unassign" => cmd_unassign(&args[1..]),
         "quarantine" => cmd_quarantine(&args[1..]),
+        "trust" => cmd_trust(&args[1..]),
         "retire" => cmd_retire(&args[1..]),
         _ => {
             eprintln!(
@@ -51,7 +52,8 @@ pub fn device_dispatch(args: &[String]) {
                  spanda device provision <id> [--robot ROBOT] [--json] [--config <spanda.toml>]\n  \
                  spanda device assign <id> --robot ROBOT [--logical NAME] [--json] [--config <spanda.toml>]\n  \
                  spanda device unassign <id> [--json] [--config <spanda.toml>]\n  \
-                 spanda device quarantine <id> [--json] [--config <spanda.toml>]\n  \
+                 spanda device quarantine <id> [--json] [--write] [--config <spanda.toml>]\n  \
+                 spanda device trust <id> [--json] [--write] [--config <spanda.toml>]\n  \
                  spanda device retire <id> [--json] [--config <spanda.toml>]"
             );
             process::exit(1);
@@ -290,6 +292,7 @@ fn cmd_unassign(args: &[String]) {
 
 fn cmd_quarantine(args: &[String]) {
     let json = args.iter().any(|a| a == "--json");
+    let write_disk = args.iter().any(|a| a == "--write");
     let device_id = device_id_from_args(args);
     let root = project_root(args);
     let mut resolved = load_resolved(&root);
@@ -300,10 +303,53 @@ fn cmd_quarantine(args: &[String]) {
             eprintln!("{e}");
             process::exit(1);
         });
+    if write_disk {
+        persist_device_if_present(&root, &resolved, &device_id);
+    }
     if json {
         println!("{}", serde_json::to_string_pretty(&result).unwrap());
     } else {
         println!("{} — {}", result.device_id, result.message);
+    }
+}
+
+fn cmd_trust(args: &[String]) {
+    let json = args.iter().any(|a| a == "--json");
+    let write_disk = args.iter().any(|a| a == "--write");
+    let device_id = device_id_from_args(args);
+    let root = project_root(args);
+    let mut resolved = load_resolved(&root);
+    let result = resolved
+        .device_registry
+        .trust_device(&device_id)
+        .unwrap_or_else(|e| {
+            eprintln!("{e}");
+            process::exit(1);
+        });
+    if write_disk {
+        persist_device_if_present(&root, &resolved, &device_id);
+    }
+    if json {
+        println!("{}", serde_json::to_string_pretty(&result).unwrap());
+    } else {
+        println!("{} — {}", result.device_id, result.message);
+    }
+}
+
+fn persist_device_if_present(
+    root: &PathBuf,
+    resolved: &spanda_config::ResolvedSystemConfig,
+    device_id: &str,
+) {
+    let manifest = SpandaManifest::load_from_dir(root).unwrap_or_else(|e| {
+        eprintln!("{e}");
+        process::exit(1);
+    });
+    if let Some(device) = resolved.device_registry.get(device_id) {
+        if let Err(e) = persist_device_record(root, &manifest, device) {
+            eprintln!("persist: {e}");
+            process::exit(1);
+        }
     }
 }
 
