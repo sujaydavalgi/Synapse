@@ -63,7 +63,7 @@ cargo test -p spanda-tamper extract_pcr_hex_parses_tpm2_pcrread_output -q
 echo "== tpm2 quote script fixture smoke =="
 TPM2_SCRIPT="${ROOT}/examples/showcase/secure_boot/fixtures/tpm2-quote.sh"
 chmod +x "${TPM2_SCRIPT}"
-TPM2_JSON="$(SPANDA_ATTESTATION_CONTRACT=trust.jetson SPANDA_ATTESTATION_PACKAGE=spanda-trust-jetson sh "${TPM2_SCRIPT}")"
+TPM2_JSON="$(SPANDA_ATTESTATION_CONTRACT=trust.jetson SPANDA_ATTESTATION_PACKAGE=spanda-trust-jetson bash "${TPM2_SCRIPT}")"
 echo "$TPM2_JSON" | grep -q '"boot_state"'
 
 echo "attestation smoke ok"
