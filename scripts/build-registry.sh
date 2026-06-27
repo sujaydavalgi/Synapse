@@ -21,5 +21,6 @@ for src in "$ROOT/packages/registry"/*/; do
   echo "✓ registry/packages/$name/$version"
 done
 
+python3 scripts/sync_registry_index.py
 echo "✓ Registry index: registry/index.json"
 python3 scripts/update_registry_checksums.py
