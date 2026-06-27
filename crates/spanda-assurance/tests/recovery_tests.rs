@@ -99,6 +99,14 @@ fn inject_gps_failure_simulation() {
 }
 
 #[test]
+fn inject_lidar_failure_uses_recovery_policy() {
+    let program = parse_source(SELF_HEALING);
+    let report = simulate_failure_recovery(&program, "lidar", None);
+    assert!(report.passed, "{:?}", report.results);
+    assert_eq!(report.plans[0].failure, "lidar.failed");
+}
+
+#[test]
 fn recovery_readiness_evaluated() {
     // Description:
     //     Recovery readiness evaluated.
