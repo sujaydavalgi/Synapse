@@ -5,7 +5,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 echo "[control-center-desktop] cargo check (src-tauri)"
-cargo check --manifest-path packages/control-center-desktop/src-tauri/Cargo.toml
+if [[ "${SKIP_TAURI_LINUX_CARGO_CHECK:-}" == "1" ]]; then
+  echo "[control-center-desktop] skip cargo check (SKIP_TAURI_LINUX_CARGO_CHECK=1; macOS bundle job validates desktop)"
+else
+  cargo check --manifest-path packages/control-center-desktop/src-tauri/Cargo.toml
+fi
 
 if command -v npm >/dev/null 2>&1; then
   echo "[control-center-desktop] npm install (workspace)"

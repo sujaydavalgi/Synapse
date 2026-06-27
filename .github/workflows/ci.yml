@@ -448,6 +448,8 @@ jobs:
       - run: npm ci
       - run: chmod +x scripts/build_control_center_desktop.sh
       - run: ./scripts/build_control_center_desktop.sh
+        env:
+          SKIP_TAURI_LINUX_CARGO_CHECK: "1"
 
   control-center-desktop-bundle:
     runs-on: macos-latest
