@@ -203,7 +203,7 @@ curl -sf -X POST \
 echo "== E2 CLI control-center remote API =="
 export SPANDA_CONTROL_CENTER_URL="http://${BIND}"
 echo "  dashboard"
-run_spanda control-center dashboard | grep -q '"devices"'
+run_spanda control-center dashboard | grep -q device_pool
 echo "  drift report"
 run_spanda control-center drift report --baseline-id "${BASELINE_ID}" | grep -q dimensions_checked
 echo "  drift scan"
