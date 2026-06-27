@@ -117,11 +117,9 @@ pub fn local_tarball_candidates(project_root: &Path, name: &str, version: &str) 
     // Example:
     //     let result = spanda_package::registry_fetch::local_tarball_candidates(project_roo, name, version);
 
-    let mut candidates = vec![
-        project_root
-            .join("dist")
-            .join(format!("{name}-{version}.tar.gz")),
-    ];
+    let mut candidates = vec![project_root
+        .join("dist")
+        .join(format!("{name}-{version}.tar.gz"))];
 
     // Prefer the in-repo hosted registry when vendoring from a monorepo checkout.
     let mut dir = project_root.to_path_buf();
@@ -147,9 +145,7 @@ pub fn local_tarball_candidates(project_root: &Path, name: &str, version: &str) 
         }
     }
 
-    candidates.push(
-        registry_cache_dir(project_root).join(format!("{name}-{version}.tar.gz")),
-    );
+    candidates.push(registry_cache_dir(project_root).join(format!("{name}-{version}.tar.gz")));
 
     // Emit output when global registry cache dir provides a global.
     if let Some(global) = global_registry_cache_dir() {
@@ -200,8 +196,7 @@ fn is_registry_cache_tarball(path: &Path, project_root: &Path) -> bool {
     //     let result = spanda_package::registry_fetch::is_registry_cache_tarball(path, project_roo);
 
     path.starts_with(registry_cache_dir(project_root))
-        || global_registry_cache_dir()
-            .is_some_and(|global| path.starts_with(global))
+        || global_registry_cache_dir().is_some_and(|global| path.starts_with(global))
 }
 
 fn try_local_tarball(
@@ -647,8 +642,7 @@ mod tests {
 
     #[test]
     fn local_tarball_candidates_prefers_hosted_registry_before_cache() {
-        let root =
-            std::env::temp_dir().join(format!("spanda-hosted-test-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("spanda-hosted-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join(".spanda/registry")).unwrap();
         fs::create_dir_all(root.join("registry/packages/demo")).unwrap();
