@@ -1,10 +1,11 @@
 //! Download and extract registry package tarballs.
 //!
-//! Resolution order: local `dist/` or `.spanda/registry/` tarballs, then
-//! `SPANDA_REGISTRY_URL` (supports `https://` and `file://` bases).
+//! Resolution order: local `dist/` tarballs, in-repo hosted `registry/packages/`,
+//! then `.spanda/registry/` cache and remote `SPANDA_REGISTRY_URL`.
 
 use crate::integrity::{
-    read_checksum_sidecar, registry_require_checksum, verify_sha256, write_checksum_sidecar,
+    checksum_sidecar_path, read_checksum_sidecar, registry_require_checksum, verify_sha256,
+    write_checksum_sidecar,
 };
 use crate::registry_remote::registry_base_url;
 use crate::registry_sign::{
@@ -97,6 +98,66 @@ fn dirs_home() -> Option<PathBuf> {
         .or_else(|| std::env::var("USERPROFILE").ok().map(PathBuf::from))
 }
 
+pub fn local_tarball_candidates(project_root: &Path, name: &str, version: &str) -> Vec<PathBuf> {
+    // Description:
+    //     List local tarball paths in preferred resolution order.
+    //
+    // Inputs:
+    //     project_roo: &Path
+    //         Caller-supplied project roo.
+    //     name: &str
+    //         Caller-supplied name.
+    //     version: &str
+    //         Caller-supplied version.
+    //
+    // Outputs:
+    //     result: Vec<PathBuf>
+    //         Ordered tarball paths to probe.
+    //
+    // Example:
+    //     let result = spanda_package::registry_fetch::local_tarball_candidates(project_roo, name, version);
+
+    let mut candidates = vec![
+        project_root
+            .join("dist")
+            .join(format!("{name}-{version}.tar.gz")),
+    ];
+
+    // Prefer the in-repo hosted registry when vendoring from a monorepo checkout.
+    let mut dir = project_root.to_path_buf();
+    loop {
+        candidates.push(
+            dir.join("registry")
+                .join("packages")
+                .join(name)
+                .join(version),
+        );
+        if !dir.pop() {
+            break;
+        }
+    }
+
+    // Handle the success value from var.
+    if let Ok(local) = std::env::var("SPANDA_REGISTRY_LOCAL") {
+        let trimmed = local.trim();
+
+        // Skip further work when !trimmed is empty.
+        if !trimmed.is_empty() {
+            candidates.push(PathBuf::from(trimmed).join(format!("{name}-{version}.tar.gz")));
+        }
+    }
+
+    candidates.push(
+        registry_cache_dir(project_root).join(format!("{name}-{version}.tar.gz")),
+    );
+
+    // Emit output when global registry cache dir provides a global.
+    if let Some(global) = global_registry_cache_dir() {
+        candidates.push(global.join(format!("{name}-{version}.tar.gz")));
+    }
+    candidates
+}
+
 pub fn resolve_local_tarball(project_root: &Path, name: &str, version: &str) -> Option<PathBuf> {
     // Description:
     //     Resolve local tarball.
@@ -116,29 +177,89 @@ pub fn resolve_local_tarball(project_root: &Path, name: &str, version: &str) -> 
     // Example:
     //     let result = spanda_package::registry_fetch::resolve_local_tarball(project_roo, name, version);
 
-    // Create mutable candidates for accumulating results.
-    let mut candidates = vec![
-        project_root
-            .join("dist")
-            .join(format!("{name}-{version}.tar.gz")),
-        registry_cache_dir(project_root).join(format!("{name}-{version}.tar.gz")),
-    ];
+    local_tarball_candidates(project_root, name, version)
+        .into_iter()
+        .find(|path| path.is_file())
+}
 
-    // Emit output when global registry cache dir provides a global.
-    if let Some(global) = global_registry_cache_dir() {
-        candidates.push(global.join(format!("{name}-{version}.tar.gz")));
-    }
+fn is_registry_cache_tarball(path: &Path, project_root: &Path) -> bool {
+    // Description:
+    //     Return true when `path` lives under a registry tarball cache directory.
+    //
+    // Inputs:
+    //     path: &Path
+    //         Candidate tarball path.
+    //     project_roo: &Path
+    //         Project root for project-local cache detection.
+    //
+    // Outputs:
+    //     result: bool
+    //         Whether stale cache entries may be discarded.
+    //
+    // Example:
+    //     let result = spanda_package::registry_fetch::is_registry_cache_tarball(path, project_roo);
 
-    // Handle the success value from var.
-    if let Ok(local) = std::env::var("SPANDA_REGISTRY_LOCAL") {
-        let trimmed = local.trim();
+    path.starts_with(registry_cache_dir(project_root))
+        || global_registry_cache_dir()
+            .is_some_and(|global| path.starts_with(global))
+}
 
-        // Skip further work when !trimmed is empty.
-        if !trimmed.is_empty() {
-            candidates.push(PathBuf::from(trimmed).join(format!("{name}-{version}.tar.gz")));
+fn try_local_tarball(
+    project_root: &Path,
+    name: &str,
+    version: &str,
+    dest: &Path,
+    expected_sha256: Option<&str>,
+    expected_signature: Option<&crate::registry_sign::RegistryVersionSignature>,
+) -> Result<Option<PathBuf>, String> {
+    // Description:
+    //     Extract the first verified local tarball candidate into `dest`.
+    //
+    // Inputs:
+    //     project_roo: &Path
+    //         Caller-supplied project roo.
+    //     name: &str
+    //         Caller-supplied name.
+    //     version: &str
+    //         Caller-supplied version.
+    //     des: &Path
+    //         Vendor destination directory.
+    //     expected_sha256: Option<&str>
+    //         Expected digest from the registry index.
+    //     expected_signature: Option<&crate::registry_sign::RegistryVersionSignature>
+    //         Expected signature from the registry index.
+    //
+    // Outputs:
+    //     result: Result<Option<PathBuf>, String>
+    //         Vendor path when a local tarball succeeds, otherwise `None`.
+    //
+    // Example:
+    //     let result = spanda_package::registry_fetch::try_local_tarball(project_roo, name, version, des, expected_sha256, expected_signature);
+
+    for local in local_tarball_candidates(project_root, name, version) {
+        // Skip missing candidates and continue probing the next path.
+        if !local.is_file() {
+            continue;
+        }
+
+        let sidecar_digest = read_checksum_sidecar(&local);
+        let digest = expected_sha256.or(sidecar_digest.as_deref());
+
+        // Drop stale cache entries and continue when checksum verification fails.
+        match verify_tarball_digest(&local, digest, name, version, expected_signature) {
+            Ok(()) => {
+                extract_tarball_safe(&local, dest)?;
+                return Ok(Some(dest.to_path_buf()));
+            }
+            Err(err) if is_registry_cache_tarball(&local, project_root) => {
+                let _ = fs::remove_file(&local);
+                let _ = fs::remove_file(checksum_sidecar_path(&local));
+                let _ = err;
+            }
+            Err(err) => return Err(err),
         }
     }
-    candidates.into_iter().find(|path| path.is_file())
+    Ok(None)
 }
 
 pub fn cache_registry_tarball(
@@ -220,13 +341,16 @@ pub fn fetch_registry_tarball(
     // Produce map err as the result.
     fs::create_dir_all(dest).map_err(|e| format!("create vendor dir: {e}"))?;
 
-    // Emit output when resolve local tarball provides a local.
-    if let Some(local) = resolve_local_tarball(project_root, name, version) {
-        let sidecar_digest = read_checksum_sidecar(&local);
-        let digest = expected_sha256.or(sidecar_digest.as_deref());
-        verify_tarball_digest(&local, digest, name, version, expected_signature)?;
-        extract_tarball_safe(&local, dest)?;
-        return Ok(dest.to_path_buf());
+    // Emit output when a verified local tarball is available.
+    if let Some(path) = try_local_tarball(
+        project_root,
+        name,
+        version,
+        dest,
+        expected_sha256,
+        expected_signature,
+    )? {
+        return Ok(path);
     }
     if registry_require_checksum() && expected_sha256.is_none() {
         return Err(format!(
@@ -518,6 +642,21 @@ mod tests {
         let bundle = root.join("dist/demo-0.1.0.tar.gz");
         fs::write(&bundle, b"not a real tar").unwrap();
         assert_eq!(resolve_local_tarball(&root, "demo", "0.1.0"), Some(bundle));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn local_tarball_candidates_prefers_hosted_registry_before_cache() {
+        let root =
+            std::env::temp_dir().join(format!("spanda-hosted-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join(".spanda/registry")).unwrap();
+        fs::create_dir_all(root.join("registry/packages/demo")).unwrap();
+        let stale = root.join(".spanda/registry/demo-0.1.0.tar.gz");
+        let hosted = root.join("registry/packages/demo/0.1.0");
+        fs::write(&stale, b"stale").unwrap();
+        fs::write(&hosted, b"fresh").unwrap();
+        assert_eq!(resolve_local_tarball(&root, "demo", "0.1.0"), Some(hosted));
         let _ = fs::remove_dir_all(&root);
     }
 
