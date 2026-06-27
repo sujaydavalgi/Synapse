@@ -30,7 +30,7 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Install protoc
-        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+        uses: ./.github/actions/install-protoc
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace -- -D warnings
@@ -67,6 +67,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x examples/robotics/golden_path_deploy.sh
       - run: |
@@ -80,6 +81,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/telemetry_store_golden_path.sh
       - run: |
@@ -93,6 +95,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - name: Install Mosquitto
         run: sudo apt-get update && sudo apt-get install -y mosquitto mosquitto-clients
       - run: chmod +x scripts/mqtt_golden_path.sh
@@ -105,6 +108,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/twin_cloud_golden_path.sh
       - run: |
@@ -118,6 +122,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - name: Install clang
         run: sudo apt-get update && sudo apt-get install -y clang
       - run: chmod +x scripts/llvm_golden_path.sh
@@ -132,6 +137,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - name: Install clang and aarch64 cross toolchain
         run: sudo apt-get update && sudo apt-get install -y clang gcc-aarch64-linux-gnu
       - run: chmod +x scripts/llvm_embedded_golden_path.sh
@@ -146,6 +152,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - name: Install C++ toolchain
         run: sudo apt-get update && sudo apt-get install -y g++
       - run: chmod +x scripts/cpp_native_golden_path.sh
@@ -158,6 +165,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/ledger_golden_path.sh
       - run: |
@@ -171,6 +179,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/self_host_lexer_golden_path.sh
       - run: |
@@ -184,6 +193,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/world_model_golden_path.sh
       - run: |
@@ -197,6 +207,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/killer_demo_golden_path.sh
       - run: |
@@ -210,6 +221,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/showcase_smoke.sh
       - run: |
@@ -223,6 +235,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/live_ai_golden_path.sh
       - run: |
@@ -236,6 +249,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -249,6 +263,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/registry_golden_path.sh
       - run: |
@@ -262,6 +277,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/ci_verify_golden_path.sh
       - run: |
@@ -275,6 +291,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -293,6 +310,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - name: Setup ROS 2 Humble
         env:
           ROS_APT_SOURCE_VERSION: "1.2.0"
@@ -317,6 +335,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - name: Setup ROS 2 Humble (pinned ros-apt-source)
         env:
           ROS_APT_SOURCE_VERSION: "1.2.0"
@@ -349,6 +368,7 @@ jobs:
           node-version: "24"
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/install-protoc
       - run: npm ci
       - run: cargo build -p spanda --release
       - run: npm run build --workspace=@spanda/lsp
@@ -361,6 +381,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: rustup target add wasm32-unknown-unknown
       - run: cargo check -p spanda-telemetry-store --target wasm32-unknown-unknown --no-default-features
       - run: cargo check -p spanda-wasm --target wasm32-unknown-unknown
@@ -394,6 +415,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
       - run: chmod +x scripts/enterprise_ops_smoke.sh
       - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/enterprise_ops_smoke.sh
@@ -405,6 +427,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -427,6 +450,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
       - uses: actions/setup-node@v4
         with:
           node-version: "24"

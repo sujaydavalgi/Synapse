@@ -1,0 +1,18 @@
+name: Install protoc
+description: Install protobuf-compiler for gRPC codegen in spanda-api builds.
+
+runs:
+  using: composite
+  steps:
+    - name: Install protoc
+      shell: bash
+      run: |
+        if command -v protoc >/dev/null 2>&1; then
+          exit 0
+        fi
+        if [[ "${RUNNER_OS}" == "macOS" ]]; then
+          brew install protobuf
+        else
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+        fi
