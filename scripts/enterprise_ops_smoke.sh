@@ -34,6 +34,7 @@ fi
 export SPANDA_DISCOVERY_WIFI_MATCHES="${SPANDA_DISCOVERY_WIFI_MATCHES:-smoke-wifi@192.168.1.50}"
 export SPANDA_DISCOVERY_CELLULAR_MATCHES="${SPANDA_DISCOVERY_CELLULAR_MATCHES:-lte-modem@10.0.0.1}"
 export SPANDA_DISCOVERY_SERIAL_MATCHES="${SPANDA_DISCOVERY_SERIAL_MATCHES:-gps@/dev/ttyUSB0}"
+export SPANDA_DISCOVERY_MDNS_MATCHES="${SPANDA_DISCOVERY_MDNS_MATCHES:-smoke-mdns@127.0.0.1}"
 
 export SPANDA_WS_STREAM_SECONDS=3
 echo "== start control-center on ${BIND} + gRPC ${GRPC_BIND} (warehouse config + program) =="
@@ -53,7 +54,7 @@ fetch() {
   local path="$1"
   local attempt=0
   while [[ $attempt -lt 30 ]]; do
-    if curl -sf "http://${BIND}${path}"; then
+    if curl -sf --max-time 15 "http://${BIND}${path}"; then
       return 0
     fi
     attempt=$((attempt + 1))
@@ -397,7 +398,7 @@ echo "== E4 GET /v1/reports/schedules =="
 fetch /v1/reports/schedules | grep -q schedules
 
 echo "== E2 GET /v1/discovery?transport=mdns (TLS policy summary) =="
-fetch "/v1/discovery?transport=mdns&timeout_ms=100" | grep -q '"tls"'
+fetch "/v1/discovery?transport=mdns&timeout_ms=50" | grep -q require_tls
 
 echo "== security audit prep =="
 chmod +x "${ROOT}/scripts/security_audit_prep.sh"

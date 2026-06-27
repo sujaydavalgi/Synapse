@@ -7,13 +7,13 @@ mkdir -p "$(dirname "$OUT")"
 
 echo "== Security audit prep =="
 RBAC_OK=false
-if cargo test -p spanda-security --lib 2>/dev/null | grep -q "test result: ok"; then
-  RBAC_OK=true
+if cargo test -p spanda-security --lib >/tmp/spanda-security-tests.log 2>&1; then
+  grep -q "test result: ok" /tmp/spanda-security-tests.log && RBAC_OK=true
 fi
 
 API_POLICY_OK=false
-if cargo test -p spanda-api api_policy 2>/dev/null | grep -q "test result: ok"; then
-  API_POLICY_OK=true
+if cargo test -p spanda-api api_policy >/tmp/spanda-api-policy-tests.log 2>&1; then
+  grep -q "test result: ok" /tmp/spanda-api-policy-tests.log && API_POLICY_OK=true
 fi
 
 CARGO_AUDIT_STATUS="skipped"
@@ -49,3 +49,4 @@ PY
 
 echo "Wrote $OUT"
 cat "$OUT"
+echo "security-audit-prep ok"
