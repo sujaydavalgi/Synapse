@@ -126,9 +126,13 @@ fn is_fault_alert(alert: &Alert) -> bool {
 mod tests {
     use super::*;
     use crate::alerting::AlertType;
+    use std::sync::Mutex;
+
+    static ENV_TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn slo_met_when_availability_exceeds_target() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap();
         std::env::set_var("SPANDA_SRE_SLO_PERCENT", "95");
         let status = slo_status(96.0);
         assert_eq!(status["met"], true);
@@ -162,6 +166,7 @@ mod tests {
 
     #[test]
     fn burn_rate_flags_fast_consumption() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap();
         let now = now_ms();
         let alerts = vec![
             Alert {
