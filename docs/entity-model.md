@@ -165,11 +165,11 @@ Cross-references:
 - [x] Merge digital-thread device links into entity relationship store
 - [x] Unified traceability queries across program graph and entity graph (`GET /v1/entities/traceability`)
 
-### Phase 4 — Industry extensions (Later)
+### Phase 4 — Industry extensions (Complete)
 
-- [ ] Facility, building, zone entities from solution blueprint TOML
-- [ ] Medical device and ADAS-specific entity kinds with compliance metadata
-- [ ] Custom entity kinds via package manifests
+- [x] Facility, building, zone entities from solution blueprint TOML (`spanda.facilities.toml`, `[[entity_kinds]]`)
+- [x] Medical device and ADAS-specific entity kinds with compliance metadata (`entity_kind`, `compliance_profile`, assurance/readiness/security profiles)
+- [x] Custom entity kinds via package manifests (`[entity_kinds]` on `PackageManifest`) and blueprint `[[entity_kinds]]`
 
 ### Phase 5 — Write path (Later)
 
