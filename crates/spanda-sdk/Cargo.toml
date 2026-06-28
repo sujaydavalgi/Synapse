@@ -3,6 +3,7 @@ name = "spanda-sdk"
 version.workspace = true
 edition = "2021"
 description = "Official Rust SDK for Spanda Control Center API v1"
+readme = "README.md"
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
