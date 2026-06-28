@@ -156,6 +156,8 @@ export function ControlCenterPanel({ apiBase }: Props) {
     null,
   );
   const [hriContext, setHriContext] = useState<Record<string, unknown> | null>(null);
+  const [humanTwins, setHumanTwins] = useState<Record<string, unknown>[]>([]);
+  const [missionApprovals, setMissionApprovals] = useState<Record<string, unknown>[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -473,7 +475,7 @@ export function ControlCenterPanel({ apiBase }: Props) {
   const loadHumans = async () => {
     setBusy(true);
     try {
-      const [humansRes, wearablesRes, sessionsRes, healthRes, readinessRes, collabRes, contextRes] =
+      const [humansRes, wearablesRes, sessionsRes, healthRes, readinessRes, collabRes, contextRes, twinsRes, missionApprovalsRes] =
         await Promise.all([
         fetch(`${base}/v1/humans`),
         fetch(`${base}/v1/wearables`),
@@ -482,6 +484,8 @@ export function ControlCenterPanel({ apiBase }: Props) {
         fetch(`${base}/v1/humans/readiness`),
         fetch(`${base}/v1/hri/collaboration`),
         fetch(`${base}/v1/hri/context`),
+        fetch(`${base}/v1/humans/twins`),
+        fetch(`${base}/v1/operator/mission/approvals`),
       ]);
       if (!humansRes.ok) throw new Error(`humans ${humansRes.status}`);
       const humansBody = await humansRes.json();
@@ -491,6 +495,8 @@ export function ControlCenterPanel({ apiBase }: Props) {
       const readinessBody = readinessRes.ok ? await readinessRes.json() : null;
       const collabBody = collabRes.ok ? await collabRes.json() : null;
       const contextBody = contextRes.ok ? await contextRes.json() : null;
+      const twinsBody = twinsRes.ok ? await twinsRes.json() : null;
+      const missionApprovalsBody = missionApprovalsRes.ok ? await missionApprovalsRes.json() : null;
       setHumansList((humansBody.humans as Record<string, unknown>[]) ?? []);
       setWearablesList((wearablesBody?.wearables as Record<string, unknown>[]) ?? []);
       setHriSessions((sessionsBody?.sessions as Record<string, unknown>[]) ?? []);
@@ -502,6 +508,30 @@ export function ControlCenterPanel({ apiBase }: Props) {
       setTeamReadiness(readinessBody);
       setCollaborationGraph(collabBody);
       setHriContext(contextBody);
+      setHumanTwins((twinsBody?.twins as Record<string, unknown>[]) ?? []);
+      setMissionApprovals((missionApprovalsBody?.approvals as Record<string, unknown>[]) ?? []);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resolveMissionApproval = async (approvalId: string, missionId: string, approved: boolean) => {
+    if (!apiKey) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`${base}/v1/operator/mission/approve`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          approval_id: approvalId,
+          mission_id: missionId,
+          approved,
+        }),
+      });
+      if (!res.ok) throw new Error(`mission approval ${res.status}`);
+      await loadHumans();
     } catch (e) {
       setError(String(e));
     } finally {
@@ -1426,6 +1456,89 @@ export function ControlCenterPanel({ apiBase }: Props) {
           ) : (
             <p>Context snapshot unavailable.</p>
           )}
+          <h3>Human digital twins</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Twin</th>
+                <th>Entity</th>
+                <th>Mirror fields</th>
+                <th>Replay</th>
+              </tr>
+            </thead>
+            <tbody>
+              {humanTwins.length === 0 && (
+                <tr>
+                  <td colSpan={4}>No human twins configured</td>
+                </tr>
+              )}
+              {humanTwins.map((twin) => (
+                <tr key={String(twin.id)}>
+                  <td>{String(twin.id)}</td>
+                  <td>{String(twin.entity_id)}</td>
+                  <td>{((twin.mirror as string[]) ?? []).join(", ") || "—"}</td>
+                  <td>{twin.replay === true ? "yes" : "no"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <h3>Mission approval queue</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Mission</th>
+                <th>Requested by</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {missionApprovals.length === 0 && (
+                <tr>
+                  <td colSpan={5}>No mission approvals</td>
+                </tr>
+              )}
+              {missionApprovals.map((approval) => (
+                <tr key={String(approval.id)}>
+                  <td>{String(approval.id)}</td>
+                  <td>{String(approval.mission_id)}</td>
+                  <td>{String(approval.requested_by ?? "—")}</td>
+                  <td>{String(approval.status)}</td>
+                  <td>
+                    {approval.status === "pending" && apiKey && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void resolveMissionApproval(
+                              String(approval.id),
+                              String(approval.mission_id),
+                              true,
+                            )
+                          }
+                        >
+                          Approve
+                        </button>{" "}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void resolveMissionApproval(
+                              String(approval.id),
+                              String(approval.mission_id),
+                              false,
+                            )
+                          }
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <h3>VR training</h3>
           <p>
             Record: <code>spanda sim vr-training/training_mission.sd --record</code> · Replay:{" "}
