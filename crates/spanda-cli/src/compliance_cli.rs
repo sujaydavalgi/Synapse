@@ -77,7 +77,10 @@ fn cmd_list(args: &[String]) {
                 "content_sha256": entry.content_sha256,
             })).collect::<Vec<_>>(),
         });
-        println!("{}", serde_json::to_string_pretty(&payload).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&payload).unwrap_or_default()
+        );
         return;
     }
 
@@ -91,7 +94,11 @@ fn cmd_list(args: &[String]) {
     }
     println!("\nSigned catalog:");
     for entry in signed {
-        let mark = if entry.verified { "verified" } else { "UNVERIFIED" };
+        let mark = if entry.verified {
+            "verified"
+        } else {
+            "UNVERIFIED"
+        };
         println!(
             "  {} ({}) — {}",
             entry.name, mark, entry.profile.description

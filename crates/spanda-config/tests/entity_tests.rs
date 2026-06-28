@@ -1,14 +1,13 @@
 //! Unit tests for the unified entity model.
 //!
 use spanda_config::{
-    build_entity_registry, EntityHealthStatus, EntityKind, EntityQuery, EntityReadinessStatus,
-    EntityRelationshipKind, EntityTrustStatus, ConfigResolver,
+    build_entity_registry, ConfigResolver, EntityHealthStatus, EntityKind, EntityQuery,
+    EntityReadinessStatus, EntityRelationshipKind, EntityTrustStatus,
 };
 use std::path::PathBuf;
 
 fn warehouse_config() -> spanda_config::ResolvedSystemConfig {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/warehouse");
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/warehouse");
     ConfigResolver::new()
         .resolve_from_dir(&root)
         .expect("warehouse fixture should resolve")
@@ -20,7 +19,10 @@ fn entity_registry_includes_fleet_robots_and_devices() {
     let registry = build_entity_registry(&resolved);
     assert!(!registry.entities.is_empty());
     assert!(registry.relationships.iter().any(|r| {
-        matches!(r.kind, EntityRelationshipKind::Contains | EntityRelationshipKind::Owns)
+        matches!(
+            r.kind,
+            EntityRelationshipKind::Contains | EntityRelationshipKind::Owns
+        )
     }));
 }
 
@@ -48,7 +50,10 @@ fn entity_query_filters_by_kind_and_health() {
 #[test]
 fn entity_kind_parses_extensible_types() {
     assert_eq!(EntityKind::parse("robot"), EntityKind::Robot);
-    assert_eq!(EntityKind::parse("medical_device"), EntityKind::MedicalDevice);
+    assert_eq!(
+        EntityKind::parse("medical_device"),
+        EntityKind::MedicalDevice
+    );
     assert!(matches!(
         EntityKind::parse("custom_industry_widget"),
         EntityKind::Custom(_)
@@ -57,7 +62,10 @@ fn entity_kind_parses_extensible_types() {
 
 #[test]
 fn entity_trust_and_readiness_parse_legacy_strings() {
-    assert_eq!(EntityTrustStatus::parse("verified"), EntityTrustStatus::Verified);
+    assert_eq!(
+        EntityTrustStatus::parse("verified"),
+        EntityTrustStatus::Verified
+    );
     assert_eq!(
         EntityReadinessStatus::parse("available"),
         EntityReadinessStatus::Ready

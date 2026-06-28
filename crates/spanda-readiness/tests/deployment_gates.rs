@@ -5,9 +5,7 @@ use spanda_package::{
     lockfile::{LockPackageInfo, Lockfile, LOCKFILE_FILENAME},
     MANIFEST_FILENAME,
 };
-use spanda_readiness::{
-    evaluate_deployment_gates, DeploymentGatePolicy, ReadinessOptions,
-};
+use spanda_readiness::{evaluate_deployment_gates, DeploymentGatePolicy, ReadinessOptions};
 use std::fs;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
@@ -28,11 +26,8 @@ fn minimal_program() -> spanda_ast::nodes::Program {
 
 fn temp_project() -> std::path::PathBuf {
     let id = TEMP_COUNTER.fetch_add(1, Ordering::SeqCst);
-    let root = std::env::temp_dir().join(format!(
-        "spanda-deploy-gate-{}-{}",
-        std::process::id(),
-        id
-    ));
+    let root =
+        std::env::temp_dir().join(format!("spanda-deploy-gate-{}-{}", std::process::id(), id));
     let _ = fs::remove_dir_all(&root);
     fs::create_dir_all(&root).expect("create temp project");
     root
@@ -91,7 +86,9 @@ version = "0.1.0"
 "#,
     )
     .unwrap();
-    let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = ENV_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     unsafe {
         std::env::remove_var("SPANDA_REGISTRY_REQUIRE_SIGNATURE");
     }
@@ -159,7 +156,9 @@ spanda-mqtt = "0.1.0"
         .save(&root.join(LOCKFILE_FILENAME))
         .expect("save lockfile");
 
-    let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _guard = ENV_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     unsafe {
         std::env::set_var("SPANDA_REGISTRY_REQUIRE_SIGNATURE", "1");
     }

@@ -2,9 +2,9 @@
 //!
 use super::package_stubs::{
     CloudPackageStub, ConnectivityPackageStub, FleetPackageStub, GpsPositioningStub,
-    LedgerPackageStub, MaintenancePackageStub, NavNavigationStub, SimulationPackageStub,
-    SlamPackageStub, SpatialSessionPackageStub, VisionPackageStub, WearablePackageStub,
-    HriInputPackageStub, OverlayPackageStub,
+    HriInputPackageStub, LedgerPackageStub, MaintenancePackageStub, NavNavigationStub,
+    OverlayPackageStub, SimulationPackageStub, SlamPackageStub, SpatialSessionPackageStub,
+    VisionPackageStub, WearablePackageStub,
 };
 use super::transport_adapter::TransportAdapterProvider;
 use spanda_comm::TransportKind;

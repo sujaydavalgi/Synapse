@@ -89,27 +89,29 @@ pub fn evaluate_package_trust(
     }
 
     if is_official_package(name) {
-        let (official_score, official_passed, official_detail) =
-            match project_dependency_provenance(name, project_root) {
-                Some(OfficialProvenance::UnofficialOverride) => {
-                    recommendations.push(
+        let (official_score, official_passed, official_detail) = match project_dependency_provenance(
+            name,
+            project_root,
+        ) {
+            Some(OfficialProvenance::UnofficialOverride) => {
+                recommendations.push(
                         "Use a registry version or path to packages/registry/<name> for official providers"
                             .into(),
                     );
-                    (
-                        0,
-                        false,
-                        "official package name overridden by path/git source",
-                    )
-                }
-                Some(prov) if provenance_wires_official_providers(prov) => (
-                    15,
-                    true,
-                    "official Spanda framework package with registry provenance",
-                ),
-                Some(_) => (0, false, "official package without registry provenance"),
-                None => (15, true, "official Spanda framework package"),
-            };
+                (
+                    0,
+                    false,
+                    "official package name overridden by path/git source",
+                )
+            }
+            Some(prov) if provenance_wires_official_providers(prov) => (
+                15,
+                true,
+                "official Spanda framework package with registry provenance",
+            ),
+            Some(_) => (0, false, "official package without registry provenance"),
+            None => (15, true, "official Spanda framework package"),
+        };
         factors.push(factor(
             "official_framework",
             official_score,

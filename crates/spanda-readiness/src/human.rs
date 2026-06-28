@@ -105,7 +105,16 @@ pub fn evaluate_human_collaboration(
         .human_registry
         .humans
         .iter()
-        .map(|human| score_operator(human, &cfg.human_registry, &required_caps, &weights, &today, &mut issues))
+        .map(|human| {
+            score_operator(
+                human,
+                &cfg.human_registry,
+                &required_caps,
+                &weights,
+                &today,
+                &mut issues,
+            )
+        })
         .collect();
 
     let operator_avg = average_score(&operator_scores);
@@ -205,18 +214,20 @@ fn score_operator(
         issues.push(ReadinessIssue {
             factor: "Operator".into(),
             severity: ReadinessSeverity::Medium,
-            message: format!("operator '{}' has expired or missing certifications", human.id),
+            message: format!(
+                "operator '{}' has expired or missing certifications",
+                human.id
+            ),
             suggested_action: None,
         });
         40
     };
-    let capability_score = if required_caps.is_empty()
-        || required_caps.iter().all(|cap| human.has_capability(cap))
-    {
-        100
-    } else {
-        30
-    };
+    let capability_score =
+        if required_caps.is_empty() || required_caps.iter().all(|cap| human.has_capability(cap)) {
+            100
+        } else {
+            30
+        };
     let availability_score = if human.is_available() { 100 } else { 0 };
     let trust_score = if human.trust_level_enum().is_operational() {
         100
@@ -224,20 +235,22 @@ fn score_operator(
         50
     };
     let location_score = if human.location.is_some() { 100 } else { 80 };
-    let permissions_score = if human.permissions.is_empty() { 90 } else { 100 };
+    let permissions_score = if human.permissions.is_empty() {
+        90
+    } else {
+        100
+    };
     let wearable_score = score_wearables(human, registry);
 
-    weighted_total(
-        &[
-            (cert_score, weights.certification),
-            (capability_score, weights.capability),
-            (availability_score, weights.availability),
-            (trust_score, weights.trust),
-            (location_score, weights.location),
-            (permissions_score, weights.permissions),
-            (wearable_score, weights.wearable_connectivity),
-        ],
-    )
+    weighted_total(&[
+        (cert_score, weights.certification),
+        (capability_score, weights.capability),
+        (availability_score, weights.availability),
+        (trust_score, weights.trust),
+        (location_score, weights.location),
+        (permissions_score, weights.permissions),
+        (wearable_score, weights.wearable_connectivity),
+    ])
 }
 
 fn score_wearables(human: &HumanEntity, registry: &HumanRegistry) -> u32 {
@@ -260,9 +273,10 @@ fn score_wearables(human: &HumanEntity, registry: &HumanRegistry) -> u32 {
 }
 
 fn required_role_certs_valid(human: &HumanEntity, today: &str) -> bool {
-    human.certifications.iter().all(|cert| {
-        cert_expires_on_or_after(cert.expires.as_ref(), today)
-    })
+    human
+        .certifications
+        .iter()
+        .all(|cert| cert_expires_on_or_after(cert.expires.as_ref(), today))
 }
 
 fn cert_expires_on_or_after(expires: Option<&String>, today: &str) -> bool {

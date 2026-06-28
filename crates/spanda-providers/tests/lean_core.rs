@@ -473,10 +473,7 @@ fn hri_packages_dispatch_wearable_and_spatial() {
     use spanda_providers::dispatch_official_package_call;
     use spanda_runtime::value::RuntimeValue;
 
-    let mut registry = bootstrap_providers_for_packages(&[
-        "spanda-smartwatch",
-        "spanda-hololens",
-    ]);
+    let mut registry = bootstrap_providers_for_packages(&["spanda-smartwatch", "spanda-hololens"]);
     let telemetry = dispatch_official_package_call(
         &mut registry,
         "wearable.smartwatch",

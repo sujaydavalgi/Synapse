@@ -136,12 +136,9 @@ fn iso26262_showcase_passes_profile() {
         "compliance",
         "automotive_rover.sd",
     ]));
-    let report = evaluate_compliance_profile(
-        &program,
-        "iso26262",
-        "compliance/automotive_rover.sd",
-    )
-    .unwrap();
+    let report =
+        evaluate_compliance_profile(&program, "iso26262", "compliance/automotive_rover.sd")
+            .unwrap();
     assert!(report.passed, "{:?}", report.violations);
     std::env::remove_var("SPANDA_REGISTRY_URL");
 }
@@ -154,12 +151,8 @@ fn iso13849_showcase_passes_profile() {
         "compliance",
         "machinery_rover.sd",
     ]));
-    let report = evaluate_compliance_profile(
-        &program,
-        "iso13849",
-        "compliance/machinery_rover.sd",
-    )
-    .unwrap();
+    let report =
+        evaluate_compliance_profile(&program, "iso13849", "compliance/machinery_rover.sd").unwrap();
     assert!(report.passed, "{:?}", report.violations);
 }
 
@@ -171,12 +164,8 @@ fn iec61508_showcase_passes_profile() {
         "compliance",
         "iec61508_rover.sd",
     ]));
-    let report = evaluate_compliance_profile(
-        &program,
-        "iec61508",
-        "compliance/iec61508_rover.sd",
-    )
-    .unwrap();
+    let report =
+        evaluate_compliance_profile(&program, "iec61508", "compliance/iec61508_rover.sd").unwrap();
     assert!(report.passed, "{:?}", report.violations);
 }
 

@@ -3,9 +3,9 @@
 //! Real vendor SDKs ship in optional packages; these helpers gate simulated live
 //! telemetry and spatial session metadata behind deployment env flags.
 //!
+use spanda_ast::nodes::UnitKind;
 use spanda_runtime::providers::hri::SpatialSessionInfo;
 use spanda_runtime::value::RuntimeValue;
-use spanda_ast::nodes::UnitKind;
 use std::collections::HashMap;
 
 fn env_enabled(key: &str) -> bool {
@@ -60,10 +60,7 @@ pub fn enrich_healthkit_telemetry(
             unit: UnitKind::None,
         },
     );
-    fields.insert(
-        "workout_active".into(),
-        RuntimeValue::Bool { value: false },
-    );
+    fields.insert("workout_active".into(), RuntimeValue::Bool { value: false });
     fields.insert(
         "device_id".into(),
         RuntimeValue::String {
@@ -93,14 +90,8 @@ pub fn enrich_vision_pro_overlay(package: &str, fields: &mut HashMap<String, Run
             value: "visionos-stub".into(),
         },
     );
-    fields.insert(
-        "passthrough".into(),
-        RuntimeValue::Bool { value: true },
-    );
-    fields.insert(
-        "hand_tracking".into(),
-        RuntimeValue::Bool { value: true },
-    );
+    fields.insert("passthrough".into(), RuntimeValue::Bool { value: true });
+    fields.insert("hand_tracking".into(), RuntimeValue::Bool { value: true });
 }
 
 #[cfg(test)]
