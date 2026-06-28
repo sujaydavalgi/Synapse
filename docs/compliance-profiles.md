@@ -13,6 +13,9 @@ Industry-specific verification templates — not accredited certifications.
 | `medical` | Stricter health evidence, audit trails |
 | `agriculture` | Outdoor connectivity, GPS reliance |
 | `defense` | Signed comm, capability minimization |
+| `iso26262` | Automotive functional safety (ASIL-oriented template) |
+| `iso13849` | Machinery safety (Performance Level-oriented template) |
+| `iec61508` | Functional safety / SIL-oriented industrial systems |
 | `research` | Relaxed gates with explicit warnings |
 
 ## Each profile defines
@@ -33,6 +36,9 @@ Reports include an explicit **template notice** — profiles are engineering tem
 ```bash
 spanda verify examples/showcase/policy/warehouse.sd --profile warehouse
 spanda verify rover.sd --profile medical --json
+spanda verify examples/showcase/compliance/automotive_rover.sd --profile iso26262
+spanda verify examples/showcase/compliance/machinery_rover.sd --profile iso13849
+spanda verify examples/showcase/compliance/iec61508_rover.sd --profile iec61508
 spanda readiness rover.sd --profile medical
 spanda compliance report examples/showcase/compliance/defense_rover.sd --profile defense
 spanda compliance report examples/showcase/compliance/defense_rover.sd --profile defense --json
@@ -50,7 +56,7 @@ curl -H "Authorization: Bearer $SPANDA_API_KEY" \
   "http://127.0.0.1:8080/v1/compliance/export?profile=defense"
 ```
 
-Templates ship in `crates/spanda-compliance/templates/` (defense, medical, ISO 26262). Re-sign after edits:
+Templates ship in `crates/spanda-compliance/templates/` (defense, medical, iso26262, iso13849, iec61508). Re-sign after edits:
 
 ```bash
 cargo run -p spanda-compliance --bin sign_catalog
@@ -64,6 +70,6 @@ Built on readiness, capability verification, and assurance evidence checks in `s
 
 **Disclaimer:** Profiles are **templates** for engineering discipline, not regulatory approval.
 
-Showcase: `examples/showcase/policy/warehouse.sd`, `examples/showcase/compliance/defense_rover.sd`, `examples/showcase/compliance/medical_rover.sd` · smoke: `scripts/compliance_smoke.sh`, `scripts/gaps_smoke.sh`
+Showcase: `examples/showcase/policy/warehouse.sd`, `examples/showcase/compliance/defense_rover.sd`, `examples/showcase/compliance/medical_rover.sd`, `examples/showcase/compliance/automotive_rover.sd`, `examples/showcase/compliance/machinery_rover.sd`, `examples/showcase/compliance/iec61508_rover.sd` · smoke: `scripts/compliance_smoke.sh`, `scripts/gaps_smoke.sh`
 
 See [policy-engine.md](./policy-engine.md) · [platform-maturity-roadmap.md](./platform-maturity-roadmap.md).

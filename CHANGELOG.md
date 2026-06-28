@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Alert dedup windows:** per-severity dedup before dispatch (`SPANDA_ALERT_DEDUP_WINDOW_INFO_SECS`, `WARNING`, `CRITICAL`).
+- **Compliance profiles (ISO 13849, IEC 61508):** signed catalog templates `iso13849` and `iec61508`; showcase programs `automotive_rover.sd`, `machinery_rover.sd`, `iec61508_rover.sd`; Control Center compliance tab profile selector; readiness scoring in compliance verify uses deploy target.
 - **WebSocket reconnect contract:** resume offsets, heartbeat, backpressure (`SPANDA_WS_MAX_PENDING_FRAMES`, `SPANDA_WS_HEARTBEAT_INTERVAL_MS`).
 - **SIEM mutation audit export:** `GET /v1/audit/mutations/export?format=cef|jsonl`; registry package `spanda-audit-siem`.
 - **On-call escalation templates:** registry package `spanda-alert-escalation` with tier routing guidance.
