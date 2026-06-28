@@ -46,7 +46,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Fleet mesh coordinator** | `spanda fleet mesh start` + `fleet orchestrate --mesh-url` — centralized multi-host peer relay |
 | **Adapter package verify** | `spanda verify-adapter` — validate `[adapter]` provides/requires against registry metadata |
 | **Tooling** | Native CLI (`check`, `verify`, `run`, `sim`, `fleet`, `deploy`, `fmt`, `lint`, `doc`), package manager (`init`, `build`, `test`, `install`), **prebuilt installable packages** (Linux/macOS/Windows via GitHub Releases) |
-| **Showcase demos** | `spanda demo {rover,safety,verify,fleet,health,readiness,assurance,self-healing,continuity,adas}`; `examples/showcase/*`; `examples/solutions/adas/` |
+| **Showcase demos** | `spanda demo {rover,safety,verify,fleet,health,readiness,assurance,self-healing,continuity,adas}`; `examples/showcase/*`; `examples/solutions/adas/` (**Experimental**; stable promotion gate **shipped** — [stable-hardening-adas.md](./stable-hardening-adas.md)) |
 | **Security / audit** | Capabilities, secrets, signed messages, audit records |
 | **Secure communication** | `secure_comm`, encrypted buses, trusted-source publish/receive enforcement, AES-GCM wire frames, TLS session + rustls PEM validation, `spanda security check|audit`, TS runtime parity |
 | **Digital twins** | `twin`, mirror fields, replay buffer, `twin sync` telemetry |

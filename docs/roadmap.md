@@ -123,9 +123,9 @@ Industry reference architectures built entirely on existing platform capabilitie
 | Autonomous Rover (flagship) | **Stable** | [examples/showcase/autonomous_rover/](../examples/showcase/autonomous_rover/) |
 | Compliance profiles | **Experimental** | [examples/showcase/compliance/](../examples/showcase/compliance/) |
 
-**ADAS blueprint** (2026-06): lane keeping, adaptive cruise, AEB, sensor recovery, driver takeover, highway pilot; nine application device-tree variants; scenario fixtures + sim-recorded golden traces (`behavior_tick` + `scheduler_tick`); seven automotive registry package stubs; Grafana ADAS dashboard template; automotive device tree; ISO 26262 readiness/assurance; Control Center ADAS tab; `spanda demo adas` (bundled); `./scripts/adas_smoke.sh` (CI).
+**ADAS blueprint** (2026-06): lane keeping, adaptive cruise, AEB, sensor recovery, driver takeover, highway pilot; nine application device-tree variants; scenario fixtures + sim-recorded golden traces; seven automotive registry package stubs; ROS 2 automotive bridge; Grafana ADAS dashboard; stable promotion gate (`adas_stable_promotion_gate.sh`); automotive device tree; ISO 26262 readiness/assurance; Control Center ADAS tab; `spanda demo adas` (bundled); `./scripts/adas_smoke.sh` (CI).
 
-**Planned:** warehouse operations blueprint, medical device blueprint, ROS2/Nav2 automotive stack package integration.
+**Planned:** warehouse operations blueprint, medical device blueprint; live radar/LiDAR/CAN vehicle I/O backends.
 
 **Spatial Computing & Human-Robot Collaboration** (2026-06): human entity model, operator capabilities, wearables, AR/VR/XR reference packages, collaborative missions, remote expert, human readiness — composes Device Registry, Capability Framework, Readiness, Continuity, Trust, Digital Twin, and Control Center without core language extensions. Path: [examples/solutions/spatial-computing/](../examples/solutions/spatial-computing/) · [solutions/spatial-computing.md](./solutions/spatial-computing.md) · [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md)
 

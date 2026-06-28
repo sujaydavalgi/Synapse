@@ -37,6 +37,13 @@ mount = "front"
 capabilities = ["obstacle_detection", "parking_assist"]
 
 [[fleet.robots.compute.devices]]
+id = "ultrasonic-array"
+type = "Ultrasonic"
+provider = "spanda-ultrasonic"
+mount = "bumper"
+capabilities = ["parking_assist"]
+
+[[fleet.robots.compute.devices]]
 id = "front-radar"
 type = "Radar"
 provider = "spanda-radar"

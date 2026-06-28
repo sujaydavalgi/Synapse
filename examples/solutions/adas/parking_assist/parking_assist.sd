@@ -1,4 +1,4 @@
-// Parking assist — reference workflow
+// Parking assist — reference workflow (ultrasonic array in spanda.devices.toml)
 //
 //   spanda verify parking_assist.sd --capabilities
 //   spanda sim parking_assist.sd --record
