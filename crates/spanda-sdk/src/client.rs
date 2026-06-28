@@ -299,6 +299,21 @@ impl SpandaClient {
     pub fn health_check(&self) -> SpandaResult<Value> {
         self.request("GET", "/v1/health", None, false)
     }
+
+    /// Call JSON-RPC gateway (`POST /v1/rpc`) with a gRPC-style method name.
+    pub fn rpc(&self, method: &str, params: Option<&Value>) -> SpandaResult<Value> {
+        let body = json!({
+            "method": method,
+            "params": params.unwrap_or(&json!({})),
+        });
+        self.request("POST", "/v1/rpc", Some(&body), false)
+            .and_then(|value| {
+                value
+                    .get("result")
+                    .cloned()
+                    .ok_or_else(|| SpandaError::validation("rpc response missing result"))
+            })
+    }
 }
 
 #[cfg(test)]

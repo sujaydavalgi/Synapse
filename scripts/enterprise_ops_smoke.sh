@@ -468,4 +468,29 @@ if [[ "${ws_ok}" != true ]]; then
   exit 1
 fi
 
+echo "== SDK POST /v1/programs/readiness =="
+post_json() {
+  local path="$1"
+  local body="$2"
+  curl -sf --max-time 30 -X POST \
+    -H "Content-Type: application/json" \
+    -d "$body" \
+    "http://${BIND}${path}"
+}
+post_json /v1/programs/readiness "{\"file\":\"${PROGRAM}\"}" | grep -q '"report"'
+
+echo "== SDK GET /v1/entities =="
+fetch /v1/entities | grep -q '"entities"'
+
+echo "== SDK Python SpandaClient (sdk/python) =="
+PYTHONPATH="${ROOT}/sdk/python:${PYTHONPATH:-}" \
+  SPANDA_CONTROL_CENTER_URL="http://${BIND}" \
+  python3 -c "
+from spanda import SpandaClient
+c = SpandaClient()
+assert c.list_entities()['count'] >= 0
+report = c.readiness('${PROGRAM}')
+assert 'report' in report
+"
+
 echo "Enterprise operations smoke OK"

@@ -141,6 +141,14 @@ class SpandaClient:
     def health_check(self) -> Any:
         return self._request("GET", "/v1/health")
 
+    def rpc(self, method: str, params: Optional[Mapping[str, Any]] = None) -> Any:
+        payload = self._request(
+            "POST",
+            "/v1/rpc",
+            {"method": method, "params": params or {}},
+        )
+        return payload.get("result", payload)
+
     # Backward-compatible Control Center helpers
     def dashboard(self) -> Any:
         return self._request("GET", "/v1/dashboard")

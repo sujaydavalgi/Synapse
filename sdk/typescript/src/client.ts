@@ -177,6 +177,14 @@ export class SpandaClient {
   async healthCheck(): Promise<JsonValue> {
     return this.request("GET", "/v1/health");
   }
+
+  async rpc(method: string, params: JsonValue = {}): Promise<JsonValue> {
+    const payload = await this.request("POST", "/v1/rpc", {
+      method,
+      params,
+    });
+    return (payload.result as JsonValue | undefined) ?? payload;
+  }
 }
 
 /** WebSocket event stream URL for Control Center telemetry. */

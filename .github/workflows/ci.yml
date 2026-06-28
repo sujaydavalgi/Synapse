@@ -50,6 +50,8 @@ jobs:
           ./mdbook build docs-site
       - run: chmod +x scripts/readiness_smoke.sh
       - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/readiness_smoke.sh
+      - run: chmod +x scripts/sdk_smoke.sh
+      - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/sdk_smoke.sh
       - run: chmod +x scripts/check_all_examples.sh
       - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/check_all_examples.sh
 
