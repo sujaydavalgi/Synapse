@@ -70,7 +70,8 @@ Full enterprise analysis: [enterprise-operations-roadmap.md](./enterprise-operat
 | [Platform maturity](#platform-maturity) | 16 areas shipped **Experimental** (graph, explain, gates, trust, policy, drift, …) | Stable hardening for Phase A–D deliverables |
 | [Differentiation](#differentiation--signature-capabilities) | NOW items shipped **Experimental** (contracts, explain, audit, coverage) | Stable hardening; NEXT signature capabilities |
 | Enterprise operations | E1–E4 **Experimental** (Control Center, device pool, provisioning, APIs, smoke) | **Stable promotion:** operational gates (soak, audit, releases) — code checklist **shipped** |
-| Official Solution Blueprints | ADAS & Autonomous Driving **Experimental** | Additional industry blueprints (warehouse ops, medical devices) |
+| Official Solution Blueprints | ADAS & Autonomous Driving **Experimental** | Spatial Computing & HRI blueprint; warehouse ops, medical devices |
+| Human Interaction & Spatial Computing | — | Human entity model, wearables, AR/VR/XR, collaborative missions (**Planned** H1–H4) |
 
 ---
 
@@ -126,7 +127,52 @@ Industry reference architectures built entirely on existing platform capabilitie
 
 **Planned:** warehouse operations blueprint, medical device blueprint, ROS2/Nav2 automotive stack package integration.
 
+**Spatial Computing & Human-Robot Collaboration** (2026-06): human entity model, operator capabilities, wearables, AR/VR/XR reference packages, collaborative missions, remote expert, human readiness — composes Device Registry, Capability Framework, Readiness, Continuity, Trust, Digital Twin, and Control Center without core language extensions. Path: [examples/solutions/spatial-computing/](../examples/solutions/spatial-computing/) · [solutions/spatial-computing.md](./solutions/spatial-computing.md) · [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md)
+
 Demo plan: [demo-plan-adas.md](./demo-plan-adas.md) · Website: [website/solutions.html](../website/solutions.html)
+
+---
+
+## Human Interaction & Spatial Computing
+
+**Seamless collaboration between humans, wearables, AR/VR/XR devices, robots, and autonomous systems** — integrated through packages, providers, device registry, capability framework, readiness, and solution blueprints. No AR/VR engines or proprietary wearable SDKs in core.
+
+Full analysis: [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md)
+
+### Platform pillar
+
+| # | Area | Priority | Status |
+|---|------|----------|--------|
+| 1 | Human entity model (roles, identity, certifications, trust) | NOW | **Planned** |
+| 2 | Operator capability framework | NOW | **Planned** |
+| 3 | Device tree: Human, Wearable, AR, VR nodes | NOW | **Planned** |
+| 4 | Human readiness (operator, team, mission) | NOW | **Planned** |
+| 5 | Wearable reference packages | NEXT | **Planned** |
+| 6 | AR integrations (Vision Pro, HoloLens, ARKit, ARCore) | NEXT | **Planned** |
+| 7 | VR training & mission replay | NEXT | **Planned** |
+| 8 | XR overlays (robot, mission, sensor, readiness) | NEXT | **Planned** |
+| 9 | HRI abstractions (voice, gesture, tracking, anchors) | NEXT | **Planned** |
+| 10 | Collaborative missions & remote expert | LATER | **Planned** |
+| 11 | Context awareness (geofencing, hazard zones) | LATER | **Planned** |
+| 12 | Human digital twin & optional health | LATER | **Planned** |
+| 13 | Control Center human dashboards | LATER | **Planned** |
+
+### Phased delivery
+
+| Phase | Release | Theme | Status |
+|-------|---------|-------|--------|
+| H1 | v0.6 (Q1 2027) | Human entity, operator capabilities, readiness profiles | **Planned** |
+| H2 | v0.7 (Q2 2027) | Wearables & AR reference packages | **Planned** |
+| H3 | v0.8 (Q3 2027) | HRI, collaboration, remote expert | **Planned** |
+| H4 | v1.0 (2027) | Control Center human UI, health opt-in, stable hardening | **Planned** |
+
+### Solution blueprint
+
+| Blueprint | Status | Path |
+|-----------|--------|------|
+| **Spatial Computing & Human-Robot Collaboration** | **Planned** | [examples/solutions/spatial-computing/](../examples/solutions/spatial-computing/) · [solutions/spatial-computing.md](./solutions/spatial-computing.md) |
+
+Topic guides: [human-interaction.md](./human-interaction.md) · [wearables.md](./wearables.md) · [spatial-computing.md](./spatial-computing.md) · [ar-vr-xr.md](./ar-vr-xr.md) · [hri.md](./hri.md) · [human-readiness.md](./human-readiness.md) · [remote-expert.md](./remote-expert.md) · [operator-capabilities.md](./operator-capabilities.md) · [hri-packages.md](./hri-packages.md)
 
 ---
 
@@ -623,6 +669,8 @@ See [product-strategy.md](./product-strategy.md) § v0.5 beta and [tier-3-priori
 - [differentiation-roadmap.md](./differentiation-roadmap.md) — signature capabilities, mission contracts, explainability, coverage (15 areas)
 - [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) — adoption, trust, operations expansion (16 areas)
 - [solutions/adas.md](./solutions/adas.md) — ADAS & Autonomous Driving Official Solution Blueprint
+- [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md) — Human Interaction, wearables, AR/VR/XR, collaborative autonomy (H1–H4)
+- [solutions/spatial-computing.md](./solutions/spatial-computing.md) — Spatial Computing & Human-Robot Collaboration blueprint
 - [platform-overview.md](./platform-overview.md)
 - [feature-status.md](./feature-status.md)
 - [product-strategy.md](./product-strategy.md)
