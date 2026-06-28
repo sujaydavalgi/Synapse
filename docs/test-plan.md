@@ -62,6 +62,7 @@
 | `scripts/hri_stable_promotion_gate.sh` | HRI Stable promotion (soak + audit prep + spatial smoke + Control Center HRI API probe) |
 | `scripts/adas_smoke.sh` | ADAS Solution Blueprint (verify, readiness, replay, compliance, examples) |
 | `scripts/adas_stable_promotion_gate.sh` | ADAS Stable promotion (soak + audit prep + smoke + Control Center ADAS API probe) |
+| `scripts/adas_automotive_sensors_smoke.sh` | Automotive sensor hub + live `SPANDA_*_CMD` bridge tests |
 | `scripts/hri_field_soak_init.sh` | Start 30-day HRI field soak clock |
 | `scripts/hri_security_audit_prep.sh` | HRI security audit intake artifact |
 | `scripts/security_audit_prep.sh` | Third-party audit intake artifact |

@@ -303,6 +303,22 @@ SPANDA_ROS2_LIVE=1 spanda run ros2_automotive/automotive_nav.sd
 
 Requires `spanda-ros2` in `spanda.toml`. See [`ros2_automotive/README.md`](../../examples/solutions/adas/ros2_automotive/README.md).
 
+### Live automotive sensor bridges
+
+Env-gated distance reads for radar, LiDAR, and ultrasonic packages (hub fallback when live mode is off):
+
+```bash
+export SPANDA_LIVE_RADAR=1
+export SPANDA_RADAR_CMD='echo 18.0'   # or: vendor_probe.sh {sensor}
+./scripts/adas_automotive_sensors_smoke.sh
+```
+
+| Env | Purpose |
+|-----|---------|
+| `SPANDA_LIVE_RADAR` / `SPANDA_RADAR_CMD` | Front/rear radar range (m) |
+| `SPANDA_LIVE_LIDAR` / `SPANDA_LIDAR_CMD` | LiDAR range (m) |
+| `SPANDA_LIVE_ULTRASONIC` / `SPANDA_ULTRASONIC_CMD` | Parking ultrasonic range (m) |
+
 ---
 
 ## Stable promotion

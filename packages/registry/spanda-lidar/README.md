@@ -4,4 +4,4 @@ Automotive LiDAR sensor adapters (stub) for the ADAS Solution Blueprint. See [do
 
 **Status:** Experimental stub — import-only scaffold.
 
-**Live backend (planned):** `SPANDA_LIVE_LIDAR=1` with vendor bridge command `SPANDA_LIDAR_CMD` (see [stable-hardening-adas.md](../../../docs/stable-hardening-adas.md)).
+**Live backend (experimental):** `SPANDA_LIVE_LIDAR=1` with `SPANDA_LIDAR_CMD='echo 12.0'` or `{sensor}` placeholder. Optional Python bridge when `scripts/spanda_python_bridge.py` is present.

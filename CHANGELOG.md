@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automotive registry packages:** `spanda-radar`, `spanda-lidar`, `spanda-ultrasonic`, `spanda-automotive-ethernet`, `spanda-lin`, `spanda-uds`, `spanda-v2x` (experimental stubs); ADAS device trees use dedicated radar/LiDAR providers; traffic sign and pedestrian detection examples.
 - **ADAS ROS 2 bridge:** `ros2_automotive/automotive_nav.sd` with `spanda-ros2` `/cmd_vel` publish.
 - **ADAS stable promotion gate:** `scripts/adas_stable_promotion_gate.sh`, soak/audit init scripts, [stable-hardening-adas.md](docs/stable-hardening-adas.md); ultrasonic nodes in parking device trees.
+- **ADAS live sensor bridges:** `automotive_hub` provider dispatch with `SPANDA_LIVE_RADAR` / `SPANDA_LIVE_LIDAR` / `SPANDA_LIVE_ULTRASONIC` and `SPANDA_*_CMD` env probes; `scripts/adas_automotive_sensors_smoke.sh`.
 
 - **Control Center API key generator:** `spanda control-center api-key generate [--export]`; startup warning when no keys configured; embedded UI auth banner with paste field; docs updated in [control-center.md](docs/control-center.md).
 

@@ -20,7 +20,7 @@ The ADAS Solution Blueprint is shipped at **Experimental** tier with CI smoke (`
 | Control Center ADAS tab | Embedded UI + dashboard/health/assurance endpoints | **Shipped** |
 | Field soak | 30-day ADAS pilot without regression | **Pending** — `.spanda/adas-field-soak-start.txt` |
 | Security audit | Third-party review of ISO 26262 readiness gates + CAN/OTA paths | **Pending** — `./scripts/adas_security_audit_prep.sh` |
-| Live vehicle I/O | Radar/LiDAR/CAN live backends (`SPANDA_LIVE_*`) | **Planned** — stubs sufficient for platform Stable tier |
+| Live vehicle I/O | Radar/LiDAR/ultrasonic env bridges (`SPANDA_LIVE_*`, `SPANDA_*_CMD`) | **Shipped** (experimental) — `./scripts/adas_automotive_sensors_smoke.sh` |
 
 ---
 
@@ -57,4 +57,4 @@ The gate runs:
 
 1. **30-day ADAS field soak** — separate clock from enterprise ops and HRI ([field-soak-gate.md](./field-soak-gate.md))
 2. **Security audit sign-off** — ISO 26262 readiness enforcement, secure comm, tamper policy on vehicle ECUs
-3. **Optional live sensor backends** — production radar/LiDAR/CAN adapters (registry stubs are sufficient for blueprint Stable)
+3. **Optional vendor SDK bindings** — production radar/LiDAR firmware adapters beyond env-bridge stubs
