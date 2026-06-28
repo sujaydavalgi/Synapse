@@ -164,7 +164,7 @@ Full analysis: [human-interaction-spatial-computing-roadmap.md](./human-interact
 | H1 | v0.6 (Q1 2027) | Human entity, operator capabilities, readiness profiles | **Experimental** |
 | H2 | v0.7 (Q2 2027) | Wearables & AR reference packages | **Experimental** |
 | H3 | v0.8 (Q3 2027) | HRI, collaboration, remote expert | **Experimental** |
-| H4 | v1.0 (2027) | Control Center human UI, health opt-in, stable hardening | **Planned** |
+| H4 | v1.0 (2027) | Control Center human UI, health opt-in, stable hardening | **Experimental** |
 
 ### Solution blueprint
 

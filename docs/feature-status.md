@@ -100,7 +100,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 |------|-------------|
 | **Differentiation (NEXT)** | What-If Analysis, Mission Risk Analysis, Readiness Forecasting, Trust Graph, Scorecards |
 | **Differentiation (LATER)** | Digital Mission Twin, Certification Packs, Mission Time Travel, Human/Robot Teaming (**Spatial Computing blueprint**), Autonomous Governance |
-| **Human Interaction & Spatial Computing (H1–H4)** | H1 human registry + readiness (**experimental**); H2 wearable/AR package stubs (**experimental**); H3 voice/gesture/eye + remote expert API (**experimental**); H4 Control Center human UI (**planned**) — [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md) |
+| **Human Interaction & Spatial Computing (H1–H4)** | H1 human registry + readiness (**experimental**); H2 wearable/AR stubs (**experimental**); H3 voice/gesture/eye + remote expert API (**experimental**); H4 Control Center Humans tab + health opt-in (**experimental**) — [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md) |
 | **Platform maturity (Phase A)** | `spanda graph`, `spanda deploy gate`, `spanda explain` (with `--config`/`--baseline`), `spanda trust` (package + program) — **Experimental**; see [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) |
 | **Platform maturity (Phase B)** | Threat model, mission diff, scorecard (`spanda score`), policy engine (`spanda verify --policy`, `readiness --policy`, `deploy gate --operational-policy`, runtime `--enforce-policy`) — **Experimental** |
 | **Platform maturity (Phase C)** | Chaos, readiness trends, resource estimation, compliance profiles, ADR (`spanda adr`) — **Experimental** |

@@ -35,4 +35,11 @@ robot TraineeRover {
   }
 }
 
+continuity_policy TrainingContinuity {
+  on robot.failed {
+    pause mission;
+    resume from checkpoint;
+  }
+}
+
 deploy TraineeRover to RoverV1;

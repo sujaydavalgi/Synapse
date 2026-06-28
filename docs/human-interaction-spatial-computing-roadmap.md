@@ -222,7 +222,7 @@ See [human-interaction.md](./human-interaction.md) and [operator-capabilities.md
 | **H1** | v0.6 (Q1 2027) | Human entity & readiness | **Shipped (experimental)** |
 | **H2** | v0.7 (Q2 2027) | Wearables & AR packages | **Shipped (experimental)** |
 | **H3** | v0.8 (Q3 2027) | HRI, collaboration, remote expert | **Shipped (experimental)** |
-| **H4** | v1.0 (2027) | Control Center human UI, health opt-in, stable hardening | **Planned** |
+| **H4** | v1.0 (2027) | Control Center human UI, health opt-in, stable hardening | **Shipped (experimental)** |
 
 ### H1 — Human entity & readiness
 
@@ -261,13 +261,15 @@ See [human-interaction.md](./human-interaction.md) and [operator-capabilities.md
 
 ### H4 — Control Center & stable
 
-| Deliverable | Owner |
-|-------------|-------|
-| Human dashboard, operator dashboard, wearable inventory | `@spanda/web` |
-| AR session viewer, VR training launcher, approval queue | Control Center |
-| Human health opt-in + privacy controls | `spanda-security` + blueprint |
-| Example: `vr-training/` | Examples |
-| Stable tier promotion after field soak | Ops gates |
+| Deliverable | Owner | Status |
+|-------------|-------|--------|
+| Human Interaction tab (dashboard, wearables, sessions, VR links) | `spanda-api` Control Center UI | **Experimental** |
+| REST: `GET /v1/humans`, `/wearables`, `/human-health/policy` | `spanda-api` | **Experimental** |
+| Human health opt-in gate (`SPANDA_HUMAN_HEALTH_ENABLED` + TOML) | `spanda-security` | **Experimental** |
+| VR training continuity example | `examples/solutions/spatial-computing/vr-training/` | **Experimental** |
+| Stable tier promotion after field soak | Ops gates | **Planned** |
+
+**Exit criteria:** Control Center Humans tab loads spatial blueprint config; health gate blocks telemetry until opt-in; OpenAPI documents human endpoints.
 
 ---
 

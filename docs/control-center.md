@@ -44,7 +44,7 @@ spanda control-center serve \
   --program examples/solutions/spatial-computing/warehouse-ar/pick_mission.sd
 ```
 
-**Planned (H4)** — Human Interaction tab and panels:
+**Experimental (H4)** — Human Interaction tab and panels:
 
 | Panel | Content |
 |-------|---------|
@@ -58,7 +58,18 @@ spanda control-center serve \
 | **Operator Readiness** | Team readiness rollup, blocking dimensions |
 | **Approval Queue** | Mission, recovery, and config approvals (extends E1) |
 
-Planned REST endpoints: `GET /v1/humans`, `GET /v1/humans/{id}/readiness`, `GET /v1/wearables`, `GET /v1/hri/sessions`, `POST /v1/hri/sessions/{id}/annotate`. See [solutions/spatial-computing.md](./solutions/spatial-computing.md) · [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md).
+Planned REST endpoints (experimental — humans/wearables/health and HRI sessions implemented):
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /v1/humans` | Human operator list |
+| `GET /v1/humans/{id}/readiness` | Per-operator readiness |
+| `GET /v1/wearables` | Wearable inventory |
+| `GET /v1/human-health/policy` | Health opt-in gate |
+| `GET /v1/hri/sessions` | HRI / remote expert sessions |
+| `POST /v1/hri/sessions/{id}/annotate` | AR annotation publish |
+
+See [solutions/spatial-computing.md](./solutions/spatial-computing.md) · [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md).
 
 ### Remote CLI (REST parity)
 

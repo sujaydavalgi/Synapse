@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **H4 Control Center human UI (experimental):** Humans tab in Control Center; `GET /v1/humans`, `/v1/wearables`, `/v1/human-health/policy`; `HumanHealthGate` opt-in (`SPANDA_HUMAN_HEALTH_ENABLED` + `[security.human_health]`); VR training continuity example.
+
 - **H3 HRI & collaboration (experimental):** `spanda-voice`, `spanda-gesture`, `spanda-eye-tracking` registry packages; `HriInputProvider` and `OverlayProvider` wiring; `[[spatial_sessions]]` config; Control Center `/v1/hri/sessions` API; collaborative continuity in spatial-computing blueprint examples.
 
 - **Official package provenance binding:** built-in provider bootstrap and trust scoring require registry provenance — registry lockfile source or version constraint, or a path to the canonical `packages/registry/<name>` tree; path/git overrides of official names no longer wire built-in providers; `official_provenance` validation warning; `OfficialProvenance` API in `spanda-package::official`.
