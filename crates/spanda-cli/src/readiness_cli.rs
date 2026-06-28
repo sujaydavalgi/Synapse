@@ -494,6 +494,22 @@ pub fn cmd_readiness(args: &[String]) {
         );
     }
     if let Some(profile_name) = &parsed.compliance_profile {
+        if profile_name == "human_collaboration" {
+            if let Some(ref cfg) = parsed.options.system_config {
+                let human_report =
+                    spanda_readiness::evaluate_human_collaboration(cfg.as_ref(), &program);
+                println!(
+                    "{}",
+                    spanda_readiness::format_human_readiness(&human_report)
+                );
+                if !human_report.mission_ready {
+                    process::exit(1);
+                }
+            } else {
+                eprintln!("human_collaboration profile requires --config spanda.toml");
+                process::exit(1);
+            }
+        }
         match spanda_compliance::evaluate_compliance_profile(&program, profile_name, &parsed.file) {
             Ok(compliance) => {
                 println!(

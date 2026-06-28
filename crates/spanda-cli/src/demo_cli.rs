@@ -977,6 +977,43 @@ fn demo_adas(root: &Path) {
     );
 }
 
+fn demo_spatial(root: &Path) {
+    crate::bundled_registry::ensure_bundled_registry_env();
+
+    let sc_root = root.join("examples/solutions/spatial-computing");
+    let main = sc_root.join("warehouse-ar/pick_mission.sd");
+    let main_sd = require_file(&main);
+    let main_str = main_sd.to_str().unwrap();
+    let config_str = sc_root.join("spanda.toml").to_str().unwrap().to_string();
+
+    println!("== Spatial Computing & Human-Robot Collaboration Blueprint ==\n");
+
+    run_spanda_args(&["check", main_str]);
+    run_spanda_args(&[
+        "readiness",
+        main_str,
+        "--profile",
+        "human_collaboration",
+        "--config",
+        &config_str,
+    ]);
+
+    for (file, label) in [
+        ("remote-maintenance/repair.sd", "Remote maintenance"),
+        ("operator-approval/collaborative_mission.sd", "Operator approval"),
+    ] {
+        let path = sc_root.join(file);
+        if path.is_file() {
+            println!("\n--- check {label} ---");
+            run_spanda_args(&["check", path.to_str().unwrap()]);
+        }
+    }
+
+    println!(
+        "\nDemo complete. See examples/solutions/spatial-computing/README.md and docs/solutions/spatial-computing.md"
+    );
+}
+
 pub fn demo_dispatch(args: &[String]) {
     // Description:
     //     Demo dispatch.
@@ -1012,6 +1049,7 @@ pub fn demo_dispatch(args: &[String]) {
         "gaps" | "platform-gaps" | "maturity-gaps" => demo_gaps(&root),
         "compliance" | "profiles" => demo_compliance(&root),
         "adas" | "automotive" | "highway" => demo_adas(&root),
+        "spatial" | "hri" | "human-collaboration" | "spatial-computing" => demo_spatial(&root),
         "" | "list" | "--help" | "-h" => {
             eprintln!(
                 "Spanda showcase demos\n\n\
@@ -1033,6 +1071,7 @@ pub fn demo_dispatch(args: &[String]) {
                    spoof — GPS spoof-check coverage, trace alerts, mock ML merge\n\
                    compliance — industry profile verification (defense, medical, ISO 26262, ISO 13849, IEC 61508)\n\
                    adas — ADAS & Autonomous Driving Solution Blueprint (verify, readiness, replay, compliance)\n\
+                   spatial — Human Interaction & Spatial Computing blueprint (human readiness, collaboration)\n\
                    gaps — vendor TPM, AK chain, compliance export, confidence gates\n\n\
                  Set SPANDA_ROOT to the repository root if examples are not found.\n\
                  See examples/showcase/README.md"
