@@ -284,9 +284,20 @@ If a token was exposed (chat, log, commit), **revoke it immediately** on PyPI/np
 | [publish-sdk-rust.yml](../.github/workflows/publish-sdk-rust.yml) | `crates-sdk-v*` | `spanda-sdk` |
 | [publish-sdk-python.yml](../.github/workflows/publish-sdk-python.yml) | `sdk-python-v*` | `spanda-sdk` (PyPI) |
 | [publish-sdk-typescript.yml](../.github/workflows/publish-sdk-typescript.yml) | `npm-sdk-v*` | `@davalgi-spanda/sdk` |
-| [publish-npm-web.yml](../.github/workflows/publish-npm-web.yml) | `npm-web-v*` | `@spanda/web` (separate; may need its own npm scope strategy) |
+| [publish-npm-web.yml](../.github/workflows/publish-npm-web.yml) | `npm-web-v*` | `@davalgi-spanda/web` |
 
 Legacy Python enterprise client: `packages/sdk-python` — not published by the canonical SDK workflow.
+
+### Web panel (`@davalgi-spanda/web`)
+
+Same `NPM_TOKEN` and org as the TypeScript SDK. Package lives in `packages/web/` with exports for `ControlCenterPanel` and `index.css`.
+
+```bash
+git tag npm-web-v0.4.0
+git push origin npm-web-v0.4.0
+```
+
+See [packages/web/PUBLISHING.md](../packages/web/PUBLISHING.md).
 
 ## See also
 
