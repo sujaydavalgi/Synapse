@@ -80,6 +80,26 @@ pub struct SpatialDeviceEntity {
     pub trust_level: Option<String>,
 }
 
+/// Geofenced or operational hazard zone for human–robot context awareness.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HazardZoneEntity {
+    pub id: String,
+    #[serde(rename = "type", default)]
+    pub zone_type: Option<String>,
+    #[serde(default)]
+    pub severity: Option<String>,
+    #[serde(default)]
+    pub center: Option<toml::Value>,
+    #[serde(default)]
+    pub radius_m: Option<f64>,
+    #[serde(default)]
+    pub linked_robots: Vec<String>,
+    #[serde(default)]
+    pub alert_on_entry: Option<bool>,
+    #[serde(default)]
+    pub description: Option<String>,
+}
+
 /// Remote expert or collaborative spatial session configuration.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RemoteExpertSession {
@@ -133,6 +153,8 @@ pub struct HumanRegistry {
     pub control_center: Vec<ControlCenterEntity>,
     #[serde(default)]
     pub spatial_sessions: Vec<RemoteExpertSession>,
+    #[serde(default)]
+    pub hazard_zones: Vec<HazardZoneEntity>,
 }
 
 impl HumanEntity {
@@ -208,6 +230,10 @@ impl HumanRegistry {
 
     pub fn spatial_session(&self, id: &str) -> Option<&RemoteExpertSession> {
         self.spatial_sessions.iter().find(|s| s.id == id)
+    }
+
+    pub fn hazard_zone(&self, id: &str) -> Option<&HazardZoneEntity> {
+        self.hazard_zones.iter().find(|z| z.id == id)
     }
 }
 
@@ -323,6 +349,7 @@ fn merge_fleet_humans(fleet: &FleetNode, registry: &mut HumanRegistry) {
     registry.drones.extend(fleet.drones.clone());
     registry.iot_devices.extend(fleet.iot_devices.clone());
     registry.control_center.extend(fleet.control_center.clone());
+    registry.hazard_zones.extend(fleet.hazard_zones.clone());
 }
 
 fn merge_flat_tables(raw: &toml::Value, registry: &mut HumanRegistry) {
@@ -334,6 +361,7 @@ fn merge_flat_tables(raw: &toml::Value, registry: &mut HumanRegistry) {
     append_table(raw, "iot_devices", &mut registry.iot_devices);
     append_table(raw, "control_center", &mut registry.control_center);
     append_table(raw, "spatial_sessions", &mut registry.spatial_sessions);
+    append_table(raw, "hazard_zones", &mut registry.hazard_zones);
 }
 
 fn append_table<T: for<'de> Deserialize<'de>>(raw: &toml::Value, key: &str, target: &mut Vec<T>) {
@@ -356,6 +384,7 @@ fn dedupe_registry(registry: &mut HumanRegistry) {
     dedupe_by_id(&mut registry.iot_devices, |d| d.id.clone());
     dedupe_by_id(&mut registry.control_center, |c| c.id.clone());
     dedupe_by_id(&mut registry.spatial_sessions, |s| s.id.clone());
+    dedupe_by_id(&mut registry.hazard_zones, |z| z.id.clone());
 }
 
 fn dedupe_by_id<T, F>(items: &mut Vec<T>, id_fn: F)
@@ -425,5 +454,23 @@ capabilities = ["approve_mission"]
         let registry = HumanRegistry::from_resolved_parts(&tree, &value);
         assert_eq!(registry.humans.len(), 1);
         assert_eq!(registry.humans[0].role, "supervisor");
+    }
+
+    #[test]
+    fn parses_hazard_zones_table() {
+        let toml_str = r#"
+[[hazard_zones]]
+id = "restricted-a"
+type = "restricted"
+severity = "high"
+radius_m = 50.0
+linked_robots = ["AMR"]
+alert_on_entry = true
+"#;
+        let value: toml::Value = toml::from_str(toml_str).unwrap();
+        let tree = DeviceTree::default();
+        let registry = HumanRegistry::from_resolved_parts(&tree, &value);
+        assert_eq!(registry.hazard_zones.len(), 1);
+        assert_eq!(registry.hazard_zone("restricted-a").unwrap().zone_type.as_deref(), Some("restricted"));
     }
 }

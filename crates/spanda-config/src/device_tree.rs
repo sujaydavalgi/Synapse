@@ -1,7 +1,7 @@
 //! Physical device hierarchy parsed from fleet/devices TOML.
 //!
 use crate::human_entities::{
-    ControlCenterEntity, HumanEntity, SpatialDeviceEntity, WearableEntity,
+    ControlCenterEntity, HazardZoneEntity, HumanEntity, SpatialDeviceEntity, WearableEntity,
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,6 +32,8 @@ pub struct FleetNode {
     pub iot_devices: Vec<SpatialDeviceEntity>,
     #[serde(default)]
     pub control_center: Vec<ControlCenterEntity>,
+    #[serde(default)]
+    pub hazard_zones: Vec<HazardZoneEntity>,
 }
 
 /// Robot with optional onboard compute and attached devices.
