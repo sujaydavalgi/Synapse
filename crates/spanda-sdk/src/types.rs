@@ -96,7 +96,17 @@ pub struct TrustReport {
 pub struct Entity {
     pub id: String,
     pub kind: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entity_type: Option<String>,
     pub display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub health_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub readiness_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trust_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lifecycle_state: Option<String>,
     #[serde(flatten)]
     pub raw: Value,
 }

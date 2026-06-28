@@ -31,7 +31,12 @@ export class ReadinessReport {
 export interface Entity {
   id: string;
   kind?: string;
+  entityType?: string;
   displayName?: string;
+  healthStatus?: string;
+  readinessStatus?: string;
+  trustStatus?: string;
+  lifecycleState?: string;
   raw: Record<string, unknown>;
 }
 

@@ -185,9 +185,52 @@ impl SpandaClient {
         )
     }
 
-    /// List unified entities (humans + devices).
+    /// List unified entities (all platform objects).
     pub fn list_entities(&self) -> SpandaResult<Vec<Entity>> {
         let value = self.request("GET", "/v1/entities", None, false)?;
+        Self::parse_entity_list(value)
+    }
+
+    /// Query entities with filter parameters.
+    pub fn query_entities(&self, query: &Value) -> SpandaResult<Value> {
+        self.request("POST", "/v1/entities/query", Some(query), false)
+    }
+
+    /// Fetch the full entity graph for traversal and visualization.
+    pub fn entity_graph(&self) -> SpandaResult<Value> {
+        self.request("GET", "/v1/entities/graph", None, false)
+    }
+
+    /// Get a single entity by id.
+    pub fn get_entity(&self, id: &str) -> SpandaResult<Entity> {
+        let value = self.request("GET", &format!("/v1/entities/{id}"), None, false)?;
+        let raw = value.get("entity").cloned().unwrap_or(value);
+        Ok(Self::parse_entity(raw, id))
+    }
+
+    /// Relationship edges, impact set, and dependency chain for an entity.
+    pub fn entity_relationships(&self, id: &str) -> SpandaResult<Value> {
+        self.request("GET", &format!("/v1/entities/{id}/relationships"), None, false)
+    }
+
+    /// Health snapshot for any entity kind.
+    pub fn entity_health(&self, id: &str) -> SpandaResult<HealthReport> {
+        let value = self.request("GET", &format!("/v1/entities/{id}/health"), None, false)?;
+        Ok(HealthReport { raw: value })
+    }
+
+    /// Readiness snapshot for any entity kind.
+    pub fn entity_readiness(&self, id: &str) -> SpandaResult<Value> {
+        self.request("GET", &format!("/v1/entities/{id}/readiness"), None, false)
+    }
+
+    /// Trust evaluation for any entity kind.
+    pub fn entity_trust(&self, id: &str) -> SpandaResult<TrustReport> {
+        let value = self.request("GET", &format!("/v1/entities/{id}/trust"), None, false)?;
+        Ok(TrustReport { raw: value })
+    }
+
+    fn parse_entity_list(value: Value) -> SpandaResult<Vec<Entity>> {
         let entities = value
             .get("entities")
             .and_then(|v| v.as_array())
@@ -197,37 +240,46 @@ impl SpandaClient {
             .into_iter()
             .filter_map(|raw| {
                 let id = raw.get("id")?.as_str()?.to_string();
-                Some(Entity {
-                    id,
-                    kind: raw.get("kind").and_then(|v| v.as_str()).map(String::from),
-                    display_name: raw
-                        .get("display_name")
-                        .and_then(|v| v.as_str())
-                        .map(String::from),
-                    raw,
-                })
+                Some(Self::parse_entity(raw, &id))
             })
             .collect())
     }
 
-    /// Get a single entity by id.
-    pub fn get_entity(&self, id: &str) -> SpandaResult<Entity> {
-        let value = self.request("GET", &format!("/v1/entities/{id}"), None, false)?;
-        let raw = value.get("entity").cloned().unwrap_or(value);
+    fn parse_entity(raw: Value, fallback_id: &str) -> Entity {
         let entity_id = raw
             .get("id")
             .and_then(|v| v.as_str())
-            .unwrap_or(id)
+            .unwrap_or(fallback_id)
             .to_string();
-        Ok(Entity {
+        Entity {
             id: entity_id,
             kind: raw.get("kind").and_then(|v| v.as_str()).map(String::from),
+            entity_type: raw
+                .get("entity_type")
+                .and_then(|v| v.as_str())
+                .map(String::from),
             display_name: raw
                 .get("display_name")
                 .and_then(|v| v.as_str())
                 .map(String::from),
+            health_status: raw
+                .get("health_status")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            readiness_status: raw
+                .get("readiness_status")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            trust_status: raw
+                .get("trust_status")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            lifecycle_state: raw
+                .get("lifecycle_state")
+                .and_then(|v| v.as_str())
+                .map(String::from),
             raw,
-        })
+        }
     }
 
     /// List devices in the device pool.
