@@ -6,6 +6,7 @@ pub mod drift_collect;
 pub mod drift_scheduler;
 pub mod e3;
 pub mod e4;
+pub mod entity_runtime;
 pub mod grpc;
 pub mod grpc_policy;
 pub mod handlers;

@@ -67,10 +67,29 @@ impl ControlCenterState {
     }
 
     pub fn entity_registry(&self) -> spanda_config::EntityRegistry {
-        self.resolved
+        let mut registry = self
+            .resolved
             .as_ref()
             .map(|r| r.entity_registry())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        let mut missions = Vec::new();
+        if let Some(resolved) = self.resolved.as_ref() {
+            missions.extend(spanda_config::runtime_missions_from_approval_seeds(
+                &resolved.human_registry.mission_approvals,
+            ));
+        }
+        if let Some(path) = self.program_path.as_ref() {
+            if let Ok((program, _, _)) = crate::program::parse_program_file(path) {
+                let fleet_id = self.resolved.as_ref().and_then(|r| r.fleet_id());
+                missions.extend(crate::entity_runtime::runtime_missions_from_program(
+                    &program, fleet_id,
+                ));
+            }
+        }
+        if !missions.is_empty() {
+            spanda_config::apply_runtime_mission_overlay(&mut registry, &missions);
+        }
+        registry
     }
 
     pub fn reload_config(&mut self) -> Result<(), String> {
