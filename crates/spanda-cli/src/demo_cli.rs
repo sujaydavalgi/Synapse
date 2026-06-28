@@ -943,8 +943,8 @@ fn demo_adas(root: &Path) {
 
     let adas_root = solution(root, &["adas"]);
     let main = adas_root.join("src/highway_drive.sd");
-    let trace = adas_root.join("sim_record/lane_keep_task.trace");
-    let legacy_trace = adas_root.join("src/highway_drive.trace");
+    let trace = adas_root.join("src/highway_drive.trace");
+    let task_trace = adas_root.join("sim_record/lane_keep_task.trace");
     let config = adas_root.join("spanda.toml");
     let main_sd = require_file(&main);
     let main_str = main_sd.to_str().unwrap();
@@ -976,17 +976,19 @@ fn demo_adas(root: &Path) {
     }
 
     if trace.is_file() {
-        println!("\n--- replay (sim_record/lane_keep_task.trace) ---");
+        println!("\n--- replay (highway_drive.trace) ---");
         run_spanda_args(&[
             "replay",
             trace.to_str().unwrap(),
             "--deterministic",
         ]);
-    } else if legacy_trace.is_file() {
-        println!("\n--- replay (highway_drive.trace) ---");
+    }
+
+    if task_trace.is_file() {
+        println!("\n--- replay (sim_record/lane_keep_task.trace) ---");
         run_spanda_args(&[
             "replay",
-            legacy_trace.to_str().unwrap(),
+            task_trace.to_str().unwrap(),
             "--deterministic",
         ]);
     }

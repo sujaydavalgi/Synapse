@@ -23,7 +23,7 @@ export SPANDA_ROOT=/path/to/Spanda  # if not in repo root
 | 1 | `spanda demo adas` | One command runs the full ADAS blueprint |
 | 2 | Show `src/highway_drive.sd` | Capabilities, health, assurance — no core language changes |
 | 3 | `spanda readiness src/highway_drive.sd --profile iso26262` | Go/no-go before ADAS activates |
-| 4 | `spanda replay sim_record/lane_keep_task.trace --deterministic` | Scheduler golden trace replay |
+| 4 | `spanda replay src/highway_drive.trace --deterministic` | Behavior-loop golden trace (20 ticks) |
 | 5 | `spanda diagnose src/highway_drive.sd fixtures/camera_failure_recovery.trace` | Sensor failure → recovery narrative |
 
 **Key message:** Spanda provides safety-first ADAS operations through composition, not core bloat.
@@ -66,12 +66,13 @@ spanda continuity sensor_failure_recovery/camera_failure.sd \
 ### 4. Diagnosis & replay (3 min)
 
 ```bash
+spanda replay src/highway_drive.trace --deterministic
 spanda replay sim_record/lane_keep_task.trace --deterministic
 spanda diagnose src/highway_drive.sd fixtures/camera_failure_recovery.trace
 spanda explain driver_takeover/driver_takeover.sd fixtures/driver_takeover.trace
 ```
 
-Talking points: explainable emergency braking, camera obstruction, driver takeover. Use `fixtures/` for narrative traces; `sim_record/` for scheduler golden replay.
+Talking points: explainable emergency braking, camera obstruction, driver takeover. `highway_drive.trace` captures `behavior_tick` frames; `fixtures/` hold narrative scenarios; `sim_record/` demonstrates `task` scheduler ticks.
 
 ### 5. Assurance & Control Center (3 min)
 

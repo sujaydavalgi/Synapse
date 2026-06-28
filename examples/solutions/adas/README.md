@@ -40,7 +40,7 @@ adas/
 ├── spanda.providers.toml        # Optional automotive protocol packages (future)
 └── src/
     ├── highway_drive.sd         # Primary reference program
-    └── highway_drive.trace      # Replay fixture (narrative; use sim_record/ for scheduler frames)
+    └── highway_drive.trace      # Sim-recorded behavior_tick frames (20 ticks @ 50ms)
 ├── sim_record/
 │   ├── lane_keep_task.sd        # Task-based program for sim --record
 │   └── lane_keep_task.trace     # Golden trace (20 scheduler_tick frames)
@@ -100,9 +100,11 @@ Logical capabilities verified through the existing capability framework:
 
 ## Simulation scenarios
 
-Record traces for replay and diagnosis. Programs using `task` capture `scheduler_tick` frames; `behavior` loops record narrative events via hand-authored fixtures in `fixtures/`.
+Record traces for replay and diagnosis. `behavior` loops emit `behavior_tick` frames; `task` schedules emit `scheduler_tick` frames.
 
 ```bash
+spanda sim src/highway_drive.sd --record
+spanda replay src/highway_drive.trace --deterministic
 spanda sim sim_record/lane_keep_task.sd --record
 spanda replay sim_record/lane_keep_task.trace --deterministic
 spanda replay fixtures/aeb_activation.trace --playback
