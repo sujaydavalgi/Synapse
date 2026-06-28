@@ -47,6 +47,11 @@ echo "== iec61508 functional safety showcase profile passes =="
 IEC61508="${ROOT}/examples/showcase/compliance/iec61508_rover.sd"
 run_spanda verify "$IEC61508" --profile iec61508 >/dev/null
 
+echo "== compliance list profiles =="
+LIST="$(run_spanda compliance list 2>&1)"
+echo "$LIST" | grep -q iso26262
+run_spanda compliance list --json >/dev/null
+
 echo "== compliance accreditation report =="
 ACCRED="$(run_spanda compliance report "$DEFENSE" --profile defense 2>&1 || true)"
 echo "$ACCRED" | grep -q "template_only"

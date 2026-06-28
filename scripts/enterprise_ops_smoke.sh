@@ -384,6 +384,10 @@ echo "== E4 GET /v1/compliance/export?profile=defense =="
 curl -sf -H "Authorization: Bearer ${SPANDA_API_KEY}" \
   "http://${BIND}/v1/compliance/export?profile=defense" | grep -q audit_export_id
 
+echo "== E4 GET /v1/compliance/export?profile=iso26262 =="
+curl -sf -H "Authorization: Bearer ${SPANDA_API_KEY}" \
+  "http://${BIND}/v1/compliance/export?profile=iso26262" | grep -q audit_export_id
+
 echo "== E4 GET /v1/compliance/profiles (signed catalog) =="
 fetch /v1/compliance/profiles | grep -q defense
 fetch /v1/compliance/profiles | grep -q iso26262

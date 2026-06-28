@@ -41,6 +41,14 @@ ACCRED="$(cargo run -p spanda -q -- compliance report "${DEFENSE}" --profile def
 echo "$ACCRED" | grep -q "template_only"
 echo "$ACCRED" | grep -q "Evidence checklist"
 
+echo "== compliance list and iso26262 export =="
+LIST="$(cargo run -p spanda -q -- compliance list 2>&1 || true)"
+echo "$LIST" | grep -q iso26262
+echo "$LIST" | grep -q iso13849
+AUTOMOTIVE="${ROOT}/examples/showcase/compliance/automotive_rover.sd"
+ACCRED_AUTO="$(cargo run -p spanda -q -- compliance report "${AUTOMOTIVE}" --profile iso26262 2>&1 || true)"
+echo "$ACCRED_AUTO" | grep -q "template_only"
+
 echo "== spoofing confidence gate =="
 export SPANDA_SPOOFING_MIN_CONFIDENCE=0.99
 SPOOF="$(cargo run -p spanda -q -- spoof-check "${ROOT}/examples/showcase/gps_spoofing/spoof.trace" 2>&1 || true)"
