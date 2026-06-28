@@ -29,11 +29,15 @@
     .dt-graph-wrap svg { display: block; }
     .dt-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.75rem; color: #8b9bb4; margin-bottom: 0.5rem; }
     .dt-detail { font-size: 0.85rem; margin: 0.5rem 0; }
+    .auth-setup { border-color: #854d0e; background: #1c1910; }
+    .auth-setup input { background: #0f1419; border: 1px solid #2d3a4f; color: #e8e8e8; border-radius: 6px; padding: 0.35rem 0.5rem; min-width: 16rem; }
+    .auth-setup button { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 0.35rem 0.75rem; cursor: pointer; }
   </style>
 </head>
 <body>
   <h1>Spanda Control Center</h1>
   <p class="subtitle">Enterprise operations — Dashboard · Fleet · Readiness · Device Pool</p>
+  <div id="auth-setup" class="panel auth-setup" hidden></div>
   <nav>
     <button type="button" class="active" data-tab="dashboard">Dashboard</button>
     <button type="button" data-tab="fleet">Fleet</button>
@@ -80,6 +84,30 @@
   <script>
     const tabs = ["dashboard", "fleet", "readiness", "devices", "alerts", "health", "assurance", "diagnosis", "provision", "config", "drift", "ota", "security", "sre", "operator", "audit", "digital-thread", "adas", "humans", "executive"];
     const errEl = document.getElementById("error");
+
+    function initAuthSetup() {
+      if (window.SPANDA_API_KEY) return;
+      const panel = document.getElementById("auth-setup");
+      panel.hidden = false;
+      panel.innerHTML = `
+        <h2>Operator API key</h2>
+        <p>Mutations (provision, OTA, incidents, approvals) require a Bearer token. Generate one on the host running Control Center:</p>
+        <pre>spanda control-center api-key generate --export</pre>
+        <p>Paste the token below for this browser session, or set <code>window.SPANDA_API_KEY</code> before loading the page.</p>
+        <label>
+          Bearer token
+          <input id="auth-key-input" type="password" autocomplete="off" placeholder="paste token from api-key generate" />
+        </label>
+        <button type="button" id="auth-key-save">Use token</button>`;
+      document.getElementById("auth-key-save").addEventListener("click", () => {
+        const value = (document.getElementById("auth-key-input").value || "").trim();
+        if (!value) return;
+        window.SPANDA_API_KEY = value;
+        panel.hidden = true;
+      });
+    }
+
+    initAuthSetup();
 
     document.querySelectorAll("nav button").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -363,7 +391,7 @@
           </div>
           <h3>Incidents</h3>
           <p><button type="button" onclick="sreCreateIncident()">Open incident</button>
-          ${window.SPANDA_API_KEY ? "" : " — set <code>window.SPANDA_API_KEY</code> for mutations"}</p>
+          ${window.SPANDA_API_KEY ? "" : " — run <code>spanda control-center api-key generate --export</code> and paste the token in the banner above"}</p>
           <table><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Severity</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>
           <h3>Recent traces</h3>
           <pre>${JSON.stringify((traces.traces || []).slice(-5), null, 2)}</pre>`;

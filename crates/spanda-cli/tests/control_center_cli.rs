@@ -21,4 +21,19 @@ fn control_center_help_lists_remote_subcommands() {
     assert!(help.contains("control-center devices"));
     assert!(help.contains("control-center ota"));
     assert!(help.contains("control-center sre summary"));
+    assert!(help.contains("control-center api-key generate"));
+}
+
+#[test]
+fn control_center_api_key_generate_exports_token() {
+    let output = Command::new(spanda_bin())
+        .args(["control-center", "api-key", "generate", "--export"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let line = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    assert!(line.starts_with("export SPANDA_API_KEY="));
+    let token = line.trim_start_matches("export SPANDA_API_KEY=");
+    assert_eq!(token.len(), 64);
+    assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
 }

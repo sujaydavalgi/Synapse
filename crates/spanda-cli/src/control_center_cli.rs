@@ -33,6 +33,7 @@ pub fn control_center_dispatch(args: &[String]) {
         "provision" => cmd_provision(&args[1..]),
         "secrets" => cmd_secrets(&args[1..]),
         "audit" => cmd_audit(&args[1..]),
+        "api-key" => cmd_api_key(&args[1..]),
         _ => {
             eprintln!("Unknown control-center subcommand: {}", args[0]);
             print_usage();
@@ -66,9 +67,11 @@ fn print_usage() {
          spanda control-center reports export [--format markdown|json|pdf] [--url <base>]\n  \
          spanda control-center provision run [--body <json>] [--url <base>]\n  \
          spanda control-center secrets list [--url <base>]\n  \
-         spanda control-center audit list [--url <base>]\n\n\
+         spanda control-center audit list [--url <base>]\n  \
+         spanda control-center api-key generate [--export]\n\n\
          Remote calls use SPANDA_CONTROL_CENTER_URL (default http://127.0.0.1:8080) and SPANDA_API_KEY for mutations.\n\
          serve: set SPANDA_API_KEY for authenticated mutations (PATCH devices, POST alerts/test).\n\
+         api-key generate: create a random operator token; use --export for a copy-paste export line.\n\
          serve: set SPANDA_ALERT_WEBHOOK_URL or SPANDA_ALERT_EMAIL_TO for alert delivery."
     );
 }
@@ -654,6 +657,33 @@ fn cmd_audit(args: &[String]) {
     }
     let client = client_from_args(args);
     remote_get(&client, "/v1/audit/mutations", true);
+}
+
+fn cmd_api_key(args: &[String]) {
+    if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
+        eprintln!("Usage: spanda control-center api-key generate [--export]");
+        process::exit(if args.is_empty() { 1 } else { 0 });
+    }
+    if args[0] != "generate" {
+        eprintln!("Unknown api-key subcommand: {} (use generate)", args[0]);
+        process::exit(1);
+    }
+    let export = args.iter().any(|arg| arg == "--export");
+    let token = spanda_security::generate_api_key_token();
+    if export {
+        println!("export SPANDA_API_KEY={token}");
+        return;
+    }
+    println!("Generated Control Center API key (administrator role when set as SPANDA_API_KEY):");
+    println!();
+    println!("  {token}");
+    println!();
+    println!("Start the server with this key:");
+    println!("  export SPANDA_API_KEY={token}");
+    println!("  spanda control-center serve");
+    println!();
+    println!("Re-run with --export for a single copy-paste line:");
+    println!("  spanda control-center api-key generate --export");
 }
 
 fn remote_get(client: &ControlCenterClient, path: &str, auth: bool) {

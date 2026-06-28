@@ -835,6 +835,13 @@ export function ControlCenterPanel({ apiBase }: Props) {
       <p className="demo-hint">
         API: <code>{base}</code> — run <code>spanda control-center serve --config spanda.toml</code>
       </p>
+      {!apiKey && (
+        <p className="demo-hint">
+          Mutations require an API key. Generate:{" "}
+          <code>spanda control-center api-key generate --export</code>, then set{" "}
+          <code>VITE_SPANDA_API_KEY</code> and restart the dev server.
+        </p>
+      )}
       <div className="toolbar">
         {tabs.map((name) => (
           <button

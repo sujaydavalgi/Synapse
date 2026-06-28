@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Control Center API key generator:** `spanda control-center api-key generate [--export]`; startup warning when no keys configured; embedded UI auth banner with paste field; docs updated in [control-center.md](docs/control-center.md).
+
 - **Control Center auth docs:** [control-center.md](docs/control-center.md) documents UI access paths, API key setup (`SPANDA_API_KEY`, `SPANDA_API_KEYS_FILE`), role matrix, and which endpoints require Bearer auth; [getting-started.md](docs/getting-started.md) cross-links the guide.
 
 - **H6 HRI depth (experimental):** vendor live backends (`SPANDA_LIVE_HEALTHKIT`, `SPANDA_LIVE_HOLOLENS`); `[[twins]]` and `[[mission_approvals]]` config; `GET /v1/humans/twins`, `GET /v1/operator/mission/approvals`; mission approval queue persistence; Humans tab mission approval UI; `hri_field_soak_init.sh` and `hri_security_audit_prep.sh` for Stable promotion ops.

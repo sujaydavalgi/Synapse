@@ -52,6 +52,18 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
     let listener = TcpListener::bind(&options.bind)
         .map_err(|e| format!("bind {} failed: {e}", options.bind))?;
     eprintln!("Spanda Control Center listening on http://{}", options.bind);
+    {
+        let guard = state.lock().map_err(|e| e.to_string())?;
+        if guard.api_keys.keys.is_empty() {
+            eprintln!("  warning: no API keys configured — mutations will return 401");
+            eprintln!("  generate a key: spanda control-center api-key generate --export");
+        } else {
+            eprintln!(
+                "  API keys loaded: {} (mutations require Bearer token)",
+                guard.api_keys.keys.len()
+            );
+        }
+    }
     eprintln!("  GET  /                  Control Center UI");
     eprintln!("  GET  /v1/health         liveness");
     eprintln!("  GET  /v1/version        API version policy");

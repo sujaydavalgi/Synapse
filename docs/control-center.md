@@ -10,7 +10,7 @@ Web-based operational visibility for fleets, devices, readiness, and alerts. Pha
 
 ```bash
 # Start API + UI (default http://127.0.0.1:8080)
-# Pick any secret string for local dev, or generate one — see Authentication & API keys below.
+# Generate a key: spanda control-center api-key generate --export
 export SPANDA_API_KEY="my-local-dev-key"
 spanda control-center serve
 
@@ -36,11 +36,32 @@ Read-only views and `GET /v1/*` endpoints work without authentication. Mutations
 
 ## Authentication & API keys
 
-Spanda does **not** ship a key-generation CLI. You choose the secret string and configure it on the Control Center instance. Clients send the same value as `Authorization: Bearer <token>` on mutating requests.
+Generate a random operator token with the CLI, or choose your own secret for local dev. Clients send the token as `Authorization: Bearer <token>` on mutating requests.
+
+### Generate a key (recommended)
+
+```bash
+# Human-readable output with setup steps
+spanda control-center api-key generate
+
+# Single copy-paste line for your shell
+spanda control-center api-key generate --export
+```
+
+Example:
+
+```bash
+eval "$(spanda control-center api-key generate --export)"
+spanda control-center serve
+```
+
+When `SPANDA_API_KEY` is unset and no `SPANDA_API_KEYS_FILE` is loaded, `control-center serve` prints a warning with the same generate command.
+
+The embedded Control Center UI shows an **Operator API key** banner when no token is configured — paste a generated token for the browser session. The `@spanda/web` panel prompts you to set `VITE_SPANDA_API_KEY`.
 
 ### Single operator key (local dev)
 
-Set one environment variable before `control-center serve`:
+Any string works for quick local testing:
 
 ```bash
 export SPANDA_API_KEY="my-local-dev-key"
@@ -57,9 +78,7 @@ curl -H "Authorization: Bearer $SPANDA_API_KEY" \
 
 A key from `SPANDA_API_KEY` is registered as role **administrator** (full mutation access).
 
-### Generate a stronger secret
-
-For pilot or production deployments, generate a random token:
+### Alternative: openssl or Python
 
 ```bash
 openssl rand -hex 32

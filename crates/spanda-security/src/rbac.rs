@@ -196,6 +196,28 @@ pub fn permission_matrix() -> HashMap<String, Vec<String>> {
     matrix
 }
 
+/// Generate a random 256-bit Control Center API key token (hex-encoded).
+pub fn generate_api_key_token() -> String {
+    // Produce a cryptographically random Bearer token for operator auth.
+    //
+    // Parameters:
+    // None.
+    //
+    // Returns:
+    // Lowercase hex string (64 characters).
+    //
+    // Options:
+    // None.
+    //
+    // Example:
+    // let token = generate_api_key_token();
+
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let bytes: [u8; 32] = rng.gen();
+    hex::encode(bytes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,6 +226,13 @@ mod tests {
     fn operator_can_recover_not_deploy() {
         assert!(ApiKeyStore::authorize(Role::Operator, RbacAction::Recover));
         assert!(!ApiKeyStore::authorize(Role::Operator, RbacAction::Deploy));
+    }
+
+    #[test]
+    fn generated_api_key_token_is_64_hex_chars() {
+        let token = generate_api_key_token();
+        assert_eq!(token.len(), 64);
+        assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
     }
 
     #[test]
