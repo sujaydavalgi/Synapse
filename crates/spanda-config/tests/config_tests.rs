@@ -79,6 +79,7 @@ fn parses_spatial_computing_human_collaboration_tree() {
         .human_registry
         .spatial_session("repair-session-001")
         .is_some());
+    assert!(!resolved.human_health_gate().active);
 }
 
 #[test]

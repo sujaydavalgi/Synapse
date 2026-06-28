@@ -6,6 +6,7 @@
 pub mod capability;
 pub mod encrypted;
 pub mod error;
+pub mod human_health;
 pub mod identity;
 pub mod permissions;
 pub mod policy;
@@ -29,6 +30,7 @@ pub use encrypted::{
     Certificate, EncryptedMessage, PrivateKey, PublicKey, SessionKey, TrustedSource,
     VerifiedMessage,
 };
+pub use human_health::{HumanHealthGate, HumanHealthSettings};
 pub use error::{SecurityError, SecurityResult};
 pub use identity::RobotIdentity;
 pub use permissions::PackagePermissions;
