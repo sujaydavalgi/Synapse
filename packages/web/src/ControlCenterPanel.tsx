@@ -73,6 +73,7 @@ type Tab =
   | "audit"
   | "digital-thread"
   | "adas"
+  | "humans"
   | "executive"
   | "traceability";
 
@@ -144,6 +145,12 @@ export function ControlCenterPanel({ apiBase }: Props) {
   const [adasAssurance, setAdasAssurance] = useState<Record<string, unknown> | null>(null);
   const [adasDiagnosis, setAdasDiagnosis] = useState<Record<string, unknown> | null>(null);
   const [adasTrust, setAdasTrust] = useState<Record<string, unknown> | null>(null);
+  const [humansList, setHumansList] = useState<Record<string, unknown>[]>([]);
+  const [wearablesList, setWearablesList] = useState<Record<string, unknown>[]>([]);
+  const [hriSessions, setHriSessions] = useState<Record<string, unknown>[]>([]);
+  const [humanHealthPolicy, setHumanHealthPolicy] = useState<Record<string, unknown> | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -432,6 +439,7 @@ export function ControlCenterPanel({ apiBase }: Props) {
     if (tab === "executive") void loadExecutive();
     if (tab === "digital-thread") void loadDigitalThread();
     if (tab === "adas") void loadAdas();
+    if (tab === "humans") void loadHumans();
     if (tab === "config") void loadConfig();
   }, [tab, base, trustPackageName, apiKey]);
 
@@ -450,6 +458,35 @@ export function ControlCenterPanel({ apiBase }: Props) {
       if (diagnosisRes.ok) setAdasDiagnosis(await diagnosisRes.json());
       if (trustRes.ok) setAdasTrust(await trustRes.json());
       if (otaRes.ok) setOtaStatus(await otaRes.json());
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadHumans = async () => {
+    setBusy(true);
+    try {
+      const [humansRes, wearablesRes, sessionsRes, healthRes] = await Promise.all([
+        fetch(`${base}/v1/humans`),
+        fetch(`${base}/v1/wearables`),
+        fetch(`${base}/v1/hri/sessions`),
+        fetch(`${base}/v1/human-health/policy`),
+      ]);
+      if (!humansRes.ok) throw new Error(`humans ${humansRes.status}`);
+      const humansBody = await humansRes.json();
+      const wearablesBody = wearablesRes.ok ? await wearablesRes.json() : null;
+      const sessionsBody = sessionsRes.ok ? await sessionsRes.json() : null;
+      const healthBody = healthRes.ok ? await healthRes.json() : null;
+      setHumansList((humansBody.humans as Record<string, unknown>[]) ?? []);
+      setWearablesList((wearablesBody?.wearables as Record<string, unknown>[]) ?? []);
+      setHriSessions((sessionsBody?.sessions as Record<string, unknown>[]) ?? []);
+      setHumanHealthPolicy(
+        (healthBody?.policy as Record<string, unknown>) ??
+          (wearablesBody?.human_health as Record<string, unknown>) ??
+          null,
+      );
     } catch (e) {
       setError(String(e));
     } finally {
@@ -717,6 +754,7 @@ export function ControlCenterPanel({ apiBase }: Props) {
 
   const tabLabel = (name: Tab): string => {
     if (name === "adas") return "ADAS";
+    if (name === "humans") return "Humans";
     if (name === "sre") return "SRE";
     if (name === "ota") return "OTA";
     return name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, " ");
@@ -741,6 +779,7 @@ export function ControlCenterPanel({ apiBase }: Props) {
     "audit",
     "digital-thread",
     "adas",
+    "humans",
     "executive",
     "traceability",
   ];
@@ -1241,6 +1280,134 @@ export function ControlCenterPanel({ apiBase }: Props) {
           <p>
             <code>GET /v1/compliance/export?profile=iso26262</code> — use Compliance tab with
             profile <code>iso26262</code>.
+          </p>
+        </div>
+      )}
+
+      {tab === "humans" && (
+        <div>
+          <p className="demo-hint">
+            Serve with{" "}
+            <code>
+              spanda control-center serve --config spanda.toml --program
+              warehouse-ar/pick_mission.sd
+            </code>
+          </p>
+          <dl>
+            <dt>Operators</dt>
+            <dd>{humansList.length}</dd>
+            <dt>Wearables</dt>
+            <dd>{wearablesList.length}</dd>
+            <dt>HRI sessions</dt>
+            <dd>{hriSessions.length}</dd>
+            <dt>Health telemetry</dt>
+            <dd>
+              {humanHealthPolicy?.active === true ? "opt-in active" : "gated"}
+            </dd>
+          </dl>
+          <h3>Human dashboard</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Role</th>
+                <th>Name</th>
+                <th>Availability</th>
+                <th>Capabilities</th>
+                <th>Wearables</th>
+              </tr>
+            </thead>
+            <tbody>
+              {humansList.length === 0 && (
+                <tr>
+                  <td colSpan={6}>No humans configured</td>
+                </tr>
+              )}
+              {humansList.map((human) => (
+                <tr key={String(human.id)}>
+                  <td>{String(human.id)}</td>
+                  <td>{String(human.role ?? "—")}</td>
+                  <td>{String(human.display_name ?? "—")}</td>
+                  <td>{String(human.availability ?? "—")}</td>
+                  <td>{((human.capabilities as string[]) ?? []).join(", ") || "—"}</td>
+                  <td>{String(human.wearable_count ?? 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <h3>Wearable inventory</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Human</th>
+                <th>Provider</th>
+                <th>Health</th>
+              </tr>
+            </thead>
+            <tbody>
+              {wearablesList.length === 0 && (
+                <tr>
+                  <td colSpan={5}>No wearables configured</td>
+                </tr>
+              )}
+              {wearablesList.map((wearable) => (
+                <tr key={String(wearable.id)}>
+                  <td>{String(wearable.id)}</td>
+                  <td>{String(wearable.type ?? "—")}</td>
+                  <td>{String(wearable.human_id ?? "—")}</td>
+                  <td>{String(wearable.provider ?? "—")}</td>
+                  <td>
+                    {wearable.health_telemetry_allowed === true ? "allowed" : "gated"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <h3>AR sessions &amp; live collaboration</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Session</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Field</th>
+                <th>Expert</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hriSessions.length === 0 && (
+                <tr>
+                  <td colSpan={5}>No sessions configured</td>
+                </tr>
+              )}
+              {hriSessions.map((session) => (
+                <tr key={String(session.id)}>
+                  <td>{String(session.id)}</td>
+                  <td>{String(session.session_type ?? "—")}</td>
+                  <td>{String(session.status ?? "—")}</td>
+                  <td>{String(session.field_human_id ?? "—")}</td>
+                  <td>{String(session.expert_human_id ?? "—")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <h3>VR training</h3>
+          <p>
+            Record: <code>spanda sim vr-training/training_mission.sd --record</code> · Replay:{" "}
+            <code>spanda replay training_mission.trace --playback</code>
+          </p>
+          <h3>Health opt-in policy</h3>
+          {humanHealthPolicy ? (
+            <pre>{JSON.stringify(humanHealthPolicy, null, 2)}</pre>
+          ) : (
+            <p>Load with spatial-computing security config.</p>
+          )}
+          <h3>Operator readiness</h3>
+          <p>
+            Per operator: <code>GET /v1/humans/&#123;id&#125;/readiness</code> · Annotate:{" "}
+            <code>POST /v1/hri/sessions/&#123;id&#125;/annotate</code>
           </p>
         </div>
       )}
