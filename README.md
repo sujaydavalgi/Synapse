@@ -16,6 +16,18 @@ Repository: [github.com/Davalgi/Spanda](https://github.com/Davalgi/Spanda)
 
 ---
 
+## Philosophy
+
+Hardware is the body.  
+Sensors are the senses.  
+AI models are the mind.  
+Actuators are the muscles.  
+Spanda is the intelligent pulse that transforms perception into action.
+
+**Spanda** (*Pronounced **SPUN-duh** (/ˈspʌndə/)*) is a Sanskrit term meaning *the divine pulse* — the creative vibration of consciousness and energy that manifests as expansion and contraction in all entities, bridging stillness and movement within consciousness; and the first stir of awareness that creates and sustains the universe.
+
+---
+
 ## What is Spanda?
 
 Spanda is an **autonomous systems platform** built around the **Spanda Language** — a typed programming language where sensors, AI models, actuators, safety rules, and deployment targets are first-class concepts in source code.
@@ -42,7 +54,7 @@ robot SafePatrol {
 }
 ```
 
-Philosophy and positioning: [docs/overview/philosophy.md](docs/overview/philosophy.md) · What Spanda is / isn't: [docs/overview/what-spanda-is.md](docs/overview/what-spanda-is.md)
+What Spanda is / isn't: [docs/overview/what-spanda-is.md](docs/overview/what-spanda-is.md) · Why Spanda (detail): [docs/overview/philosophy.md](docs/overview/philosophy.md)
 
 ---
 

@@ -2,7 +2,7 @@
 
 [← Overview](./README.md)
 
-> **Project home:** [README.md](../../README.md) · **What Spanda is:** [what-spanda-is.md](./what-spanda-is.md)  
+> **Landing summary:** [README § Philosophy](../../README.md#philosophy) · **What Spanda is:** [what-spanda-is.md](./what-spanda-is.md)  
 > **Code sample:** [code-samples.md](./code-samples.md) (patrol agent and deploy examples)
 
 This page adds depth beyond the root README — not a second copy of the same prose.

@@ -27,7 +27,7 @@ Expanded home linked from the root [README.md](../../README.md). For hands-on st
 
 | Page | Contents |
 |------|----------|
-| [philosophy.md](./philosophy.md) | Philosophy, pronunciation (SPUN-duh), etymology & why |
+| [philosophy.md](./philosophy.md) | Why Spanda (detail) — philosophy summary lives on [root README](../../README.md#philosophy) |
 | [differentiators.md](./differentiators.md) | What makes Spanda different — pillars and matrix |
 
 ## Develop & explore
