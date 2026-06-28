@@ -283,6 +283,18 @@ See [human-interaction.md](./human-interaction.md) and [operator-capabilities.md
 
 **Exit criteria:** Blueprint lists hazard zones; `/v1/humans/readiness`, `/v1/hri/collaboration`, `/v1/hri/context` return JSON; promotion gate probes new endpoints; operator approval queue remains via E1 `POST /v1/operator/mission/approve`.
 
+### H6 — Vendor backends, twins, mission approvals & Stable ops
+
+| Deliverable | Owner | Status |
+|-------------|-------|--------|
+| Live vendor backends (HealthKit, HoloLens env gates) | `spanda-providers` | **Experimental** |
+| `[[twins]]` + `GET /v1/humans/twins` | `spanda-config` + `spanda-api` | **Experimental** |
+| Mission approval queue + `GET /v1/operator/mission/approvals` | `spanda-config` + `spanda-api` | **Experimental** |
+| Humans tab: twins + mission approval UI | `spanda-api` + `@spanda/web` | **Experimental** |
+| Field soak init + HRI security audit prep scripts | `scripts/` | **Shipped** |
+
+**Exit criteria:** `SPANDA_LIVE_HEALTHKIT=1` enriches smartwatch telemetry; blueprint lists twins and pending mission approvals; promotion gate checks audit prep artifact (skip with `SPANDA_HRI_SKIP_AUDIT=1`); soak started via `./scripts/hri_field_soak_init.sh`.
+
 ---
 
 ## 5. Solution blueprint

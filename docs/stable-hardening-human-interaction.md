@@ -19,10 +19,11 @@ Phases **H1–H4** are shipped at **Experimental** tier with CI smoke (`scripts/
 | H3 packages | Voice / gesture / eye + `/v1/hri/sessions` API | **Shipped** (experimental) |
 | H4 UI | Embedded HTML Humans tab + `@spanda/web` `ControlCenterPanel` parity | **Shipped** |
 | H5 APIs | Team readiness, collaboration graph, hazard zones / context | **Shipped** (experimental) |
+| H6 APIs | Human twins, mission approval queue, vendor live backends | **Shipped** (experimental) |
 | Health opt-in | `HumanHealthGate` — config + `SPANDA_HUMAN_HEALTH_ENABLED` | **Shipped** |
 | OpenAPI | `/v1/humans`, `/wearables`, `/human-health/policy`, HRI sessions documented | **Shipped** (parity CI) |
 | Field soak | 30-day HRI pilot without regression | **Pending** — `SPANDA_HRI_FIELD_SOAK_START_FILE` (default `.spanda/hri-field-soak-start.txt`) |
-| Security audit | Third-party review of health opt-in + AR session RBAC | **Pending** — reuse [security-audit-third-party.md](./security-audit-third-party.md) |
+| Security audit | Third-party review of health opt-in + AR session RBAC | **Pending** — run `./scripts/hri_security_audit_prep.sh` then [security-audit-third-party.md](./security-audit-third-party.md) |
 | Vendor SDK bindings | Real HoloLens / HealthKit / ARKit backends (optional packages) | **Planned** — stubs sufficient for Stable platform tier |
 
 ---
@@ -30,15 +31,18 @@ Phases **H1–H4** are shipped at **Experimental** tier with CI smoke (`scripts/
 ## Running the promotion gate
 
 ```bash
-# Start 30-day pilot clock (UTC)
-date -u +%Y-%m-%d > .spanda/hri-field-soak-start.txt
+# Start 30-day pilot clock (UTC) — one-time; do not reset during pilot
+./scripts/hri_field_soak_init.sh
 
-# After soak period (or CI without soak):
+# Generate HRI security audit intake artifact for reviewers
+./scripts/hri_security_audit_prep.sh
+
+# After soak period (or CI without soak/audit):
 chmod +x scripts/hri_stable_promotion_gate.sh
 ./scripts/hri_stable_promotion_gate.sh
 
-# CI / local dev without waiting for soak:
-SPANDA_HRI_SKIP_SOAK=1 ./scripts/hri_stable_promotion_gate.sh
+# CI / local dev without waiting for soak or audit artifact:
+SPANDA_HRI_SKIP_SOAK=1 SPANDA_HRI_SKIP_AUDIT=1 ./scripts/hri_stable_promotion_gate.sh
 ```
 
 The gate runs:

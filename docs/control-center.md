@@ -10,7 +10,8 @@ Web-based operational visibility for fleets, devices, readiness, and alerts. Pha
 
 ```bash
 # Start API + UI (default http://127.0.0.1:8080)
-export SPANDA_API_KEY="your-operator-key"
+# Pick any secret string for local dev, or generate one — see Authentication & API keys below.
+export SPANDA_API_KEY="my-local-dev-key"
 spanda control-center serve
 
 # With project configuration (device pool from spanda.toml)
@@ -20,7 +21,108 @@ spanda control-center serve --config spanda.toml --bind 0.0.0.0:8080
 spanda control-center serve --grpc-bind 127.0.0.1:50051
 ```
 
-Open `http://127.0.0.1:8080/` for the Control Center UI, or use the **Control Center** view in `@spanda/web` (set API URL to the serve address).
+### Access the UI
+
+| Method | How |
+|--------|-----|
+| **Embedded UI** | Open `http://127.0.0.1:8080/` in a browser (default bind address) |
+| **Web package** | Use the **Control Center** view in `@spanda/web`; set the API URL to your serve address |
+| **Desktop (Tauri)** | Start the API first, then `npm run control-center:desktop:dev` (Vite on port **5174**); optional `VITE_CONTROL_CENTER_URL=http://host:port` |
+| **Remote CLI** | `export SPANDA_CONTROL_CENTER_URL=http://127.0.0.1:8080` then `spanda control-center dashboard` (see [Remote CLI](#remote-cli-rest-parity)) |
+
+Read-only views and `GET /v1/*` endpoints work without authentication. Mutations (`POST`, `PATCH`, `DELETE`) require a Bearer token — configure keys on the server before calling those endpoints.
+
+---
+
+## Authentication & API keys
+
+Spanda does **not** ship a key-generation CLI. You choose the secret string and configure it on the Control Center instance. Clients send the same value as `Authorization: Bearer <token>` on mutating requests.
+
+### Single operator key (local dev)
+
+Set one environment variable before `control-center serve`:
+
+```bash
+export SPANDA_API_KEY="my-local-dev-key"
+spanda control-center serve
+```
+
+Use the **same value** from clients:
+
+```bash
+export SPANDA_API_KEY="my-local-dev-key"
+curl -H "Authorization: Bearer $SPANDA_API_KEY" \
+  -X POST http://127.0.0.1:8080/v1/alerts/test
+```
+
+A key from `SPANDA_API_KEY` is registered as role **administrator** (full mutation access).
+
+### Generate a stronger secret
+
+For pilot or production deployments, generate a random token:
+
+```bash
+openssl rand -hex 32
+# or
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Export the output as `SPANDA_API_KEY` on the server and distribute it securely to operators. Do not commit tokens to git.
+
+### Multiple keys with roles
+
+For several operators with different permissions, write a JSON file and point the server at it:
+
+```bash
+export SPANDA_API_KEYS_FILE=~/.spanda/api-keys.json
+spanda control-center serve
+```
+
+Example `api-keys.json`:
+
+```json
+[
+  {
+    "key_id": "alice",
+    "token": "alice-admin-token-here",
+    "role": "administrator",
+    "tenant_id": "default"
+  },
+  {
+    "key_id": "bob",
+    "token": "bob-operator-token-here",
+    "role": "operator",
+    "tenant_id": "default"
+  }
+]
+```
+
+Keys from `SPANDA_API_KEYS_FILE` are **merged** with any key from `SPANDA_API_KEY`.
+
+| Role | Typical use |
+|------|-------------|
+| `administrator` | Full access (default for `SPANDA_API_KEY`) |
+| `supervisor` | All actions except delete |
+| `developer` | Deploy and operate |
+| `operator` | Operate, shutdown, recover |
+| `safety_officer` | Operate, approve, shutdown |
+| `auditor` | Read-only (no mutations) |
+| `guest` | Read-only (no mutations) |
+
+Inspect the live permission matrix: `GET /v1/rbac/matrix`.
+
+### What requires authentication
+
+| Access | Auth required? |
+|--------|----------------|
+| Embedded UI at `/` | No (read-only panels) |
+| `GET /v1/*` (dashboard, devices, health, OpenAPI, …) | No |
+| `POST` / `PATCH` / `PUT` / `DELETE` (provision, OTA, approvals, quarantine, …) | Yes — `Authorization: Bearer <token>` |
+| gRPC mutating RPCs | Same Bearer token in metadata |
+
+**Multi-tenant isolation:** Set `SPANDA_TENANT_ID` on the Control Center instance (default `default`). Each key may include a `tenant_id` field; authenticated requests with a mismatched tenant return `403`.
+
+**Storage:** Tokens are matched as plain strings (not hashed). Treat them like passwords — restrict file permissions on `SPANDA_API_KEYS_FILE` and rotate on compromise.
 
 ### ADAS dashboard
 
@@ -74,6 +176,8 @@ Planned REST endpoints (experimental — humans/wearables/health and HRI session
 | `GET /v1/hri/sessions` | HRI / remote expert sessions |
 | `GET /v1/hri/collaboration` | Live collaboration participant graph (H5) |
 | `GET /v1/hri/context` | Hazard zones and human location context (H5) |
+| `GET /v1/humans/twins` | Human digital twin metadata (H6) |
+| `GET /v1/operator/mission/approvals` | Mission approval queue (H6) |
 | `POST /v1/hri/sessions/{id}/annotate` | AR annotation publish |
 
 See [solutions/spatial-computing.md](./solutions/spatial-computing.md) · [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md).
@@ -227,9 +331,7 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/audit/mutations` | GET | Bearer | Hash-chained mutation audit trail |
 | `/v1/audit/mutations/export` | GET | Bearer | SIEM export (`?format=cef` or `jsonl`) |
 
-Authenticate mutations with `Authorization: Bearer <SPANDA_API_KEY>`.
-
-**Multi-tenant isolation:** Set `SPANDA_TENANT_ID` on the Control Center instance (default `default`). API keys may include a `tenant_id` field in `SPANDA_API_KEYS_FILE` JSON; authenticated requests with a mismatched tenant return `403`.
+Authenticate mutations with `Authorization: Bearer <token>`. See [Authentication & API keys](#authentication--api-keys) for how to create and configure tokens.
 
 **HA persistence:** Alert history and API trace log hydrate from `.spanda/control-center-alerts.json` and `.spanda/control-center-traces.json` on startup (override directory with `SPANDA_CONTROL_CENTER_STATE_DIR`).
 

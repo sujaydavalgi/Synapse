@@ -25,6 +25,19 @@ Spanda enterprise operations promotion requires an independent review of authent
 - Customer-managed OTLP collector infrastructure
 - Physical device vendor firmware
 
+## Human Interaction addendum (HRI)
+
+For **Spatial Computing & Human-Robot Collaboration** promotion, also review:
+
+| Area | Evidence |
+|------|----------|
+| Health opt-in | `GET /v1/human-health/policy`, `SPANDA_HUMAN_HEALTH_ENABLED` |
+| Wearable telemetry | `SPANDA_LIVE_HEALTHKIT` gate, health mirror stripping on twins |
+| AR session RBAC | `POST /v1/hri/sessions/{id}/annotate` requires Approve role |
+| Mission approvals | `GET /v1/operator/mission/approvals`, persisted queue |
+
+Run `./scripts/hri_security_audit_prep.sh` and attach `.spanda/hri-security-audit-prep.json` alongside the enterprise ops packet.
+
 ## Registry package
 
 See [packages/registry/spanda-security-audit/README.md](../packages/registry/spanda-security-audit/README.md) for the audit checklist template.

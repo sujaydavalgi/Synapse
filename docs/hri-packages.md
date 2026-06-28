@@ -81,7 +81,10 @@ H2 wearable and spatial packages ship in the curated registry (`registry/index.j
 
 ```bash
 export SPANDA_LIVE_WEARABLE=1
+export SPANDA_LIVE_HEALTHKIT=1      # HealthKit-style fields on spanda-smartwatch
+export SPANDA_LIVE_HOLOLENS=1       # HoloLens session metadata
 export SPANDA_HOLOLENS_SESSION=1   # or SPANDA_SPATIAL_SESSION=1
+export SPANDA_LIVE_VISION_PRO=1    # Vision Pro overlay enrichment
 ```
 
 Existing registry packages used by blueprints today:

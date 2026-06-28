@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Control Center auth docs:** [control-center.md](docs/control-center.md) documents UI access paths, API key setup (`SPANDA_API_KEY`, `SPANDA_API_KEYS_FILE`), role matrix, and which endpoints require Bearer auth; [getting-started.md](docs/getting-started.md) cross-links the guide.
+
+- **H6 HRI depth (experimental):** vendor live backends (`SPANDA_LIVE_HEALTHKIT`, `SPANDA_LIVE_HOLOLENS`); `[[twins]]` and `[[mission_approvals]]` config; `GET /v1/humans/twins`, `GET /v1/operator/mission/approvals`; mission approval queue persistence; Humans tab mission approval UI; `hri_field_soak_init.sh` and `hri_security_audit_prep.sh` for Stable promotion ops.
+
 - **H5 HRI engineering expansion (experimental):** `[[hazard_zones]]` config; `GET /v1/humans/readiness` team rollup; `GET /v1/hri/collaboration` participant graph; `GET /v1/hri/context` hazard and location snapshot; Control Center Humans tab panels for team readiness, collaboration, and context awareness.
 
 - **HRI stable promotion gate:** `scripts/hri_stable_promotion_gate.sh` and [stable-hardening-human-interaction.md](docs/stable-hardening-human-interaction.md); `@spanda/web` `ControlCenterPanel` Humans tab parity with embedded Control Center.

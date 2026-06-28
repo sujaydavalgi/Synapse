@@ -59,7 +59,9 @@
 | `scripts/enterprise_ops_smoke.sh` | Control Center E1–E4 API surface (compliance catalog, report schedules, discovery TLS, audit prep) |
 | `scripts/field_soak_gate.sh` | 30-day field pilot gate before Stable promotion |
 | `scripts/spatial_computing_smoke.sh` | Spatial Computing blueprint (human registry, readiness, examples) |
-| `scripts/hri_stable_promotion_gate.sh` | HRI Stable promotion (soak + spatial smoke + Control Center HRI API probe) |
+| `scripts/hri_stable_promotion_gate.sh` | HRI Stable promotion (soak + audit prep + spatial smoke + Control Center HRI API probe) |
+| `scripts/hri_field_soak_init.sh` | Start 30-day HRI field soak clock |
+| `scripts/hri_security_audit_prep.sh` | HRI security audit intake artifact |
 | `scripts/security_audit_prep.sh` | Third-party audit intake artifact |
 | `scripts/verify_sdk_publish_ready.sh` | PyPI + npm pack readiness (no publish) |
 

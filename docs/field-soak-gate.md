@@ -36,4 +36,4 @@ chmod +x scripts/field_soak_gate.sh
 
 Add `./scripts/field_soak_gate.sh` to your fleet promotion pipeline after the soak period. Until the clock elapses, the script exits non-zero by design.
 
-For **Human Interaction** (separate 30-day clock), use `.spanda/hri-field-soak-start.txt` and `./scripts/hri_stable_promotion_gate.sh` — see [stable-hardening-human-interaction.md](./stable-hardening-human-interaction.md).
+For **Human Interaction** (separate 30-day clock), use `.spanda/hri-field-soak-start.txt` and `./scripts/hri_stable_promotion_gate.sh` — see [stable-hardening-human-interaction.md](./stable-hardening-human-interaction.md). Start the clock with `./scripts/hri_field_soak_init.sh` (one-time).

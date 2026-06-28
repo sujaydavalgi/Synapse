@@ -166,6 +166,7 @@ Full analysis: [human-interaction-spatial-computing-roadmap.md](./human-interact
 | H3 | v0.8 (Q3 2027) | HRI, collaboration, remote expert | **Experimental** |
 | H4 | v1.0 (2027) | Control Center human UI, health opt-in, stable hardening | **Experimental** (promotion gate **shipped**) |
 | H5 | v1.1 (2027) | Team readiness, collaboration graph, hazard zones / context | **Experimental** |
+| H6 | v1.2 (2027) | Vendor live backends, human twins, mission approval queue, soak/audit ops | **Experimental** |
 
 ### Solution blueprint
 
