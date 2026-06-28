@@ -491,18 +491,14 @@ pub fn dispatch_official_package_call(
                         failed,
                     );
                     result
-                        .map(|events| {
-                            RuntimeValue::Number {
-                                value: events.len() as f64,
-                                unit: spanda_ast::nodes::UnitKind::None,
-                            }
+                        .map(|events| RuntimeValue::Number {
+                            value: events.len() as f64,
+                            unit: spanda_ast::nodes::UnitKind::None,
                         })
                         .unwrap_or(RuntimeValue::Void)
                 })
         }
-        ("spatial.hololens", "subscribe_overlay")
-            if registry.has_capability("hri.overlay") =>
-        {
+        ("spatial.hololens", "subscribe_overlay") if registry.has_capability("hri.overlay") => {
             let layer = wearable_device_arg(args);
             let device_id = args
                 .get(1)
@@ -512,7 +508,9 @@ pub fn dispatch_official_package_call(
                 })
                 .unwrap_or("");
             registry
-                .with_overlay(&key, |provider| provider.subscribe_overlay(layer, device_id))
+                .with_overlay(&key, |provider| {
+                    provider.subscribe_overlay(layer, device_id)
+                })
                 .map(|result| {
                     let failed = result.is_err();
                     record_call(

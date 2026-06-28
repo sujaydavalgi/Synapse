@@ -163,7 +163,8 @@ pub fn humans_readiness_team(state: &ControlCenterState) -> HttpResponse {
     if let Some(path) = state.program_path.as_ref() {
         if let Ok((program, _, _)) = crate::program::parse_program_file(path) {
             let report = evaluate_human_collaboration(resolved, &program);
-            payload["team_readiness"] = serde_json::to_value(&report).unwrap_or(serde_json::json!({}));
+            payload["team_readiness"] =
+                serde_json::to_value(&report).unwrap_or(serde_json::json!({}));
         }
     }
     json_ok(&payload)

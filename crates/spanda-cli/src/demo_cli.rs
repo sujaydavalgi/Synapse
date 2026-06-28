@@ -977,20 +977,12 @@ fn demo_adas(root: &Path) {
 
     if trace.is_file() {
         println!("\n--- replay (highway_drive.trace) ---");
-        run_spanda_args(&[
-            "replay",
-            trace.to_str().unwrap(),
-            "--deterministic",
-        ]);
+        run_spanda_args(&["replay", trace.to_str().unwrap(), "--deterministic"]);
     }
 
     if task_trace.is_file() {
         println!("\n--- replay (sim_record/lane_keep_task.trace) ---");
-        run_spanda_args(&[
-            "replay",
-            task_trace.to_str().unwrap(),
-            "--deterministic",
-        ]);
+        run_spanda_args(&["replay", task_trace.to_str().unwrap(), "--deterministic"]);
     }
 
     if config.is_file() {
@@ -1007,11 +999,7 @@ fn demo_adas(root: &Path) {
     let camera_fixture = adas_root.join("fixtures/camera_failure_recovery.trace");
     if camera_fixture.is_file() {
         println!("\n--- diagnose (camera failure scenario) ---");
-        run_spanda_args(&[
-            "diagnose",
-            main_str,
-            camera_fixture.to_str().unwrap(),
-        ]);
+        run_spanda_args(&["diagnose", main_str, camera_fixture.to_str().unwrap()]);
     }
 
     let takeover_sd = adas_root.join("driver_takeover/driver_takeover.sd");
@@ -1027,15 +1015,30 @@ fn demo_adas(root: &Path) {
 
     let examples = [
         ("lane_keeping/lane_keeping.sd", "Lane Keeping Assist"),
-        ("adaptive_cruise/adaptive_cruise.sd", "Adaptive Cruise Control"),
-        ("automatic_emergency_braking/aeb.sd", "Automatic Emergency Braking"),
+        (
+            "adaptive_cruise/adaptive_cruise.sd",
+            "Adaptive Cruise Control",
+        ),
+        (
+            "automatic_emergency_braking/aeb.sd",
+            "Automatic Emergency Braking",
+        ),
         ("parking_assist/parking_assist.sd", "Parking Assist"),
-        ("blind_spot_monitoring/blind_spot.sd", "Blind Spot Monitoring"),
-        ("traffic_sign_recognition/traffic_sign.sd", "Traffic Sign Recognition"),
+        (
+            "blind_spot_monitoring/blind_spot.sd",
+            "Blind Spot Monitoring",
+        ),
+        (
+            "traffic_sign_recognition/traffic_sign.sd",
+            "Traffic Sign Recognition",
+        ),
         ("pedestrian_detection/pedestrian.sd", "Pedestrian Detection"),
         ("ros2_automotive/automotive_nav.sd", "ROS 2 Automotive Nav"),
         ("canbus_gateway/canbus_gateway.sd", "CAN Bus Gateway"),
-        ("sensor_failure_recovery/camera_failure.sd", "Sensor failure recovery"),
+        (
+            "sensor_failure_recovery/camera_failure.sd",
+            "Sensor failure recovery",
+        ),
         ("driver_takeover/driver_takeover.sd", "Driver takeover"),
     ];
 
@@ -1043,20 +1046,14 @@ fn demo_adas(root: &Path) {
         let path = adas_root.join(file);
         if path.is_file() {
             println!("\n--- verify {label} ---");
-            run_spanda_args(&[
-                "verify",
-                path.to_str().unwrap(),
-                "--capabilities",
-            ]);
+            run_spanda_args(&["verify", path.to_str().unwrap(), "--capabilities"]);
         }
     }
 
     println!("\n--- compliance report (iso26262) ---");
     run_spanda_args(&["compliance", "report", main_str, "--profile", "iso26262"]);
 
-    println!(
-        "\nDemo complete. See examples/solutions/adas/README.md and docs/solutions/adas.md"
-    );
+    println!("\nDemo complete. See examples/solutions/adas/README.md and docs/solutions/adas.md");
 }
 
 fn demo_spatial(root: &Path) {
@@ -1082,7 +1079,10 @@ fn demo_spatial(root: &Path) {
 
     for (file, label) in [
         ("remote-maintenance/repair.sd", "Remote maintenance"),
-        ("operator-approval/collaborative_mission.sd", "Operator approval"),
+        (
+            "operator-approval/collaborative_mission.sd",
+            "Operator approval",
+        ),
     ] {
         let path = sc_root.join(file);
         if path.is_file() {

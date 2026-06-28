@@ -42,8 +42,8 @@ pub use gates::{
     evaluate_deployment_gates, DeploymentGate, DeploymentGatePolicy, DeploymentGateReport,
 };
 pub use human::{
-    evaluate_human_collaboration, format_human_readiness, HumanDimensionScore, HumanReadinessReport,
-    HumanReadinessWeights,
+    evaluate_human_collaboration, format_human_readiness, HumanDimensionScore,
+    HumanReadinessReport, HumanReadinessWeights,
 };
 pub use mission::{verify_mission, verify_mission_source, MissionVerificationReport};
 pub use report::{

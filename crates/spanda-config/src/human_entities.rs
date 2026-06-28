@@ -188,7 +188,10 @@ impl HumanEntity {
 
     pub fn is_available(&self) -> bool {
         matches!(
-            self.availability.as_deref().map(str::to_ascii_lowercase).as_deref(),
+            self.availability
+                .as_deref()
+                .map(str::to_ascii_lowercase)
+                .as_deref(),
             Some("available") | None
         )
     }
@@ -198,9 +201,9 @@ impl HumanEntity {
     }
 
     pub fn has_valid_certification(&self, cert_id: &str, today: &str) -> bool {
-        self.certifications.iter().any(|cert| {
-            cert.id == cert_id && cert_expires_on_or_after(&cert.expires, today)
-        })
+        self.certifications
+            .iter()
+            .any(|cert| cert.id == cert_id && cert_expires_on_or_after(&cert.expires, today))
     }
 }
 
@@ -343,11 +346,7 @@ pub fn records_from_human_registry(registry: &HumanRegistry) -> Vec<DeviceIdenti
     out
 }
 
-fn spatial_to_identity(
-    id: &str,
-    kind: &str,
-    entity: &SpatialDeviceEntity,
-) -> DeviceIdentityRecord {
+fn spatial_to_identity(id: &str, kind: &str, entity: &SpatialDeviceEntity) -> DeviceIdentityRecord {
     DeviceIdentityRecord {
         id: id.into(),
         device_type: kind.into(),
@@ -474,7 +473,10 @@ capabilities = ["heart_rate"]
         let registry = HumanRegistry::from_resolved_parts(&tree, &value);
         assert_eq!(registry.humans.len(), 1);
         assert_eq!(registry.wearables.len(), 1);
-        assert!(registry.human("operator-001").unwrap().has_capability("operate_robot"));
+        assert!(registry
+            .human("operator-001")
+            .unwrap()
+            .has_capability("operate_robot"));
     }
 
     #[test]
@@ -507,6 +509,13 @@ alert_on_entry = true
         let tree = DeviceTree::default();
         let registry = HumanRegistry::from_resolved_parts(&tree, &value);
         assert_eq!(registry.hazard_zones.len(), 1);
-        assert_eq!(registry.hazard_zone("restricted-a").unwrap().zone_type.as_deref(), Some("restricted"));
+        assert_eq!(
+            registry
+                .hazard_zone("restricted-a")
+                .unwrap()
+                .zone_type
+                .as_deref(),
+            Some("restricted")
+        );
     }
 }

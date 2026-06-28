@@ -84,9 +84,7 @@ impl ResolvedSystemConfig {
             .raw
             .get("security")
             .and_then(|security| security.get("human_health"))
-            .and_then(|section| {
-                toml::from_str(&toml::to_string(section).unwrap_or_default()).ok()
-            })
+            .and_then(|section| toml::from_str(&toml::to_string(section).unwrap_or_default()).ok())
             .unwrap_or_default();
         spanda_security::HumanHealthGate::resolve(&settings)
     }

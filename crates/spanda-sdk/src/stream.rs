@@ -46,7 +46,9 @@ impl EventStream {
     pub fn local() -> Self {
         let http = std::env::var("SPANDA_CONTROL_CENTER_URL")
             .unwrap_or_else(|_| "http://127.0.0.1:8080".into());
-        let ws_url = http.replacen("http://", "ws://", 1).replacen("https://", "wss://", 1);
+        let ws_url = http
+            .replacen("http://", "ws://", 1)
+            .replacen("https://", "wss://", 1);
         Self {
             ws_url: format!("{ws_url}/v1/stream/telemetry"),
         }

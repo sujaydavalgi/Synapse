@@ -7,7 +7,9 @@ use crate::official::{
     unofficial_official_overrides_from_lockfile, unofficial_official_overrides_from_manifest,
 };
 use crate::registry_remote::{find_remote_entry, RemoteRegistryEntry};
-use crate::registry_sign::{registry_require_signature, registry_trust_key, verify_registry_signature};
+use crate::registry_sign::{
+    registry_require_signature, registry_trust_key, verify_registry_signature,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -61,16 +63,19 @@ pub fn evaluate_project_provenance_gate(project_root: &Path) -> ProjectProvenanc
     let registry_signature_env_enabled = registry_require_signature();
     let mut registry_signature_failures = Vec::new();
     if !registry_signature_env_enabled {
-        registry_signature_failures
-            .push("SPANDA_REGISTRY_REQUIRE_SIGNATURE is not enabled (set to 1 for production)"
-                .into());
+        registry_signature_failures.push(
+            "SPANDA_REGISTRY_REQUIRE_SIGNATURE is not enabled (set to 1 for production)".into(),
+        );
     }
     if lock_path.is_file() {
         if let Ok(lockfile) = Lockfile::load(&lock_path) {
-            registry_signature_failures
-                .extend(registry_lockfile_signature_failures(project_root, &lockfile));
+            registry_signature_failures.extend(registry_lockfile_signature_failures(
+                project_root,
+                &lockfile,
+            ));
         } else {
-            registry_signature_failures.push("failed to parse spanda.lock for signature audit".into());
+            registry_signature_failures
+                .push("failed to parse spanda.lock for signature audit".into());
         }
     } else {
         registry_signature_failures
@@ -140,8 +145,8 @@ fn registry_version_artifacts(
 ) -> Option<(String, crate::registry_sign::RegistryVersionSignature)> {
     // Resolve checksum and signature for one registry package version.
 
-    if let Some(entry) = find_hosted_registry_entry(name, project_root)
-        .or_else(|| find_remote_entry(name))
+    if let Some(entry) =
+        find_hosted_registry_entry(name, project_root).or_else(|| find_remote_entry(name))
     {
         let digest = entry.version_checksums.get(version)?.clone();
         let signature = entry.version_signatures.get(version)?.clone();
@@ -220,7 +225,9 @@ spanda-mqtt = {{ path = "{}" }}
         .unwrap();
         let report = evaluate_project_provenance_gate(root.path());
         assert!(!report.passed_official_provenance());
-        assert!(report.official_overrides.contains(&"spanda-mqtt".to_string()));
+        assert!(report
+            .official_overrides
+            .contains(&"spanda-mqtt".to_string()));
     }
 
     #[test]
@@ -242,7 +249,8 @@ version = "0.1.0"
 
     #[test]
     fn hosted_registry_lockfile_signatures_verify_for_spanda_mqtt() {
-        let index_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../registry/index.json");
+        let index_path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../registry/index.json");
         if !index_path.is_file() {
             return;
         }

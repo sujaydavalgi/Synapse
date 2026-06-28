@@ -235,9 +235,7 @@ pub fn handle_request(
         );
         return (response, correlation_id);
     }
-    if let Some(response) =
-        route_sdk_entities(state, path, &request.method, query, &request.body)
-    {
+    if let Some(response) = route_sdk_entities(state, path, &request.method, query, &request.body) {
         e3::record_trace(
             state,
             &correlation_id,
@@ -302,9 +300,7 @@ pub fn handle_request(
             crate::sdk_ops::program_readiness(state, &request.body)
         }
         ("/v1/programs/assure", "POST") => crate::sdk_ops::program_assure(state, &request.body),
-        ("/v1/programs/diagnose", "POST") => {
-            crate::sdk_ops::program_diagnose(state, &request.body)
-        }
+        ("/v1/programs/diagnose", "POST") => crate::sdk_ops::program_diagnose(state, &request.body),
         ("/v1/programs/recovery/heal", "POST") => {
             crate::sdk_ops::program_heal(state, &request.body)
         }
@@ -942,11 +938,7 @@ fn route_sdk_entities(
     None
 }
 
-fn route_humans(
-    state: &ControlCenterState,
-    path: &str,
-    method: &str,
-) -> Option<HttpResponse> {
+fn route_humans(state: &ControlCenterState, path: &str, method: &str) -> Option<HttpResponse> {
     if path == "/v1/humans" && method == "GET" {
         return Some(crate::humans::humans_list(state));
     }

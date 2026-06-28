@@ -336,10 +336,7 @@ robot R {
     .expect("run with trace");
     let trace = result.mission_trace.expect("mission trace");
     assert_eq!(trace.frames.len(), 3);
-    assert!(trace
-        .frames
-        .iter()
-        .all(|f| f.event == "behavior_tick"));
+    assert!(trace.frames.iter().all(|f| f.event == "behavior_tick"));
 }
 
 #[test]

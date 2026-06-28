@@ -487,10 +487,8 @@ pub fn evaluate_readiness_with_runtime(
             ReadinessSeverity::Critical | ReadinessSeverity::High
         )
     });
-    let mission_ready = total >= policy.minimum_score
-        && hw_report.compatible
-        && !has_critical
-        && human_mission_ok;
+    let mission_ready =
+        total >= policy.minimum_score && hw_report.compatible && !has_critical && human_mission_ok;
     let status = if mission_ready {
         if issues.iter().any(|i| {
             matches!(

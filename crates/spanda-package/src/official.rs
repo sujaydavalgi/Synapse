@@ -197,8 +197,7 @@ pub fn official_packages_from_manifest(
         .iter()
         .filter_map(|(name, spec)| {
             let provenance = dependency_provenance(name, spec, project_root);
-            provenance_wires_official_providers(provenance)
-                .then(|| name.clone())
+            provenance_wires_official_providers(provenance).then(|| name.clone())
         })
         .collect();
     found.sort_unstable();
@@ -228,8 +227,7 @@ pub fn official_packages_from_lockfile(lockfile: &Lockfile, project_root: &Path)
         .iter()
         .filter_map(|(name, dep)| {
             let provenance = locked_dependency_provenance(name, dep, project_root);
-            provenance_wires_official_providers(provenance)
-                .then(|| name.clone())
+            provenance_wires_official_providers(provenance).then(|| name.clone())
         })
         .collect();
     found.sort_unstable();

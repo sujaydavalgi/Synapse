@@ -56,9 +56,9 @@ pub use manifest::{find_project_root, PackageManifest, PackageSection, MANIFEST_
 pub use official::{
     dependency_provenance, installed_official_packages, is_official_package,
     load_official_packages_for_project, load_official_packages_for_source,
-    locked_dependency_provenance, official_packages_from_lockfile,
-    official_packages_from_manifest, provenance_wires_official_providers, OfficialProvenance,
-    unofficial_official_overrides_from_lockfile, unofficial_official_overrides_from_manifest,
+    locked_dependency_provenance, official_packages_from_lockfile, official_packages_from_manifest,
+    provenance_wires_official_providers, unofficial_official_overrides_from_lockfile,
+    unofficial_official_overrides_from_manifest, OfficialProvenance,
 };
 pub use project::{add_dependency, collect_source_files, init_package, remove_dependency};
 pub use provenance_gate::{
@@ -89,6 +89,7 @@ pub use safety::{SafetyLevel, SafetyMetadata};
 pub use tar_extract::extract_tarball_safe;
 pub use trust::{evaluate_package_trust, TrustFactor, TrustScoreReport};
 pub use validation::{
-    validate_package, validate_package_in, ApplicationPermissions, ValidationIssue, ValidationReport, ValidationSeverity,
+    validate_package, validate_package_in, ApplicationPermissions, ValidationIssue,
+    ValidationReport, ValidationSeverity,
 };
 pub use vendor::{vendor_dependencies, VendorReport};
