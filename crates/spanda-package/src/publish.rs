@@ -462,6 +462,7 @@ mod tests {
             adapter: Default::default(),
             categories: vec![],
             license_compat: vec![],
+            entity_kinds: vec![],
         };
         let report = bundle_package(root, &manifest).expect("bundle");
         assert!(report.bundle_path.exists());

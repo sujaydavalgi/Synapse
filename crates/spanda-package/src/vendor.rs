@@ -312,6 +312,7 @@ mod tests {
             adapter: Default::default(),
             categories: vec![],
             license_compat: vec![],
+            entity_kinds: vec![],
         };
         let lockfile = Lockfile::new(&manifest, deps);
         let report = vendor_dependencies(&root, &lockfile).unwrap();

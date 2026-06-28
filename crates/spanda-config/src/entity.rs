@@ -8,8 +8,11 @@
 use crate::device_identity::{DeviceIdentityRecord, DeviceRegistry};
 use crate::device_pool::DeviceLifecycleState;
 use crate::device_tree::{ComputeNode, DeviceNode, DeviceTree, FleetNode, RobotNode};
+use crate::facility::{
+    BuildingEntity, DeclaredEntityKind, FacilityEntity, FacilityRegistry, ZoneEntity,
+};
 use crate::human_entities::{
-    HazardZoneEntity, HumanEntity, HumanRegistry, TwinEntity, WearableEntity,
+    HazardZoneEntity, HumanEntity, HumanRegistry, RemoteExpertSession, TwinEntity, WearableEntity,
 };
 use crate::mapping::LogicalPhysicalMap;
 use crate::resolved::ResolvedSystemConfig;
@@ -736,6 +739,13 @@ pub fn build_entity_registry(resolved: &ResolvedSystemConfig) -> EntityRegistry 
     ingest_human_registry(&mut registry, &resolved.human_registry);
     ingest_logical_map(&mut registry, &resolved.logical_map);
     ingest_packages_and_providers(&mut registry, &resolved.packages, &resolved.providers);
+    ingest_facilities(
+        &mut registry,
+        &FacilityRegistry::from_raw(&resolved.raw),
+        resolved.fleet_id(),
+    );
+    link_zone_references(&mut registry);
+    apply_compliance_metadata(&mut registry, resolved);
 
     if let Some(fleet_id) = resolved.fleet_id() {
         if let Some(org_id) = registry
@@ -954,7 +964,7 @@ fn ingest_device_tree(
         upsert_control_center(registry, cc, &fleet.id);
     }
     for zone in &fleet.hazard_zones {
-        upsert_hazard_zone(registry, zone, &fleet.id);
+        upsert_hazard_zone(registry, zone, Some(&fleet.id));
     }
     for twin in &human_registry.twins {
         upsert_twin(registry, twin);
@@ -979,21 +989,49 @@ fn upsert_fleet(registry: &mut EntityRegistry, fleet: &FleetNode) {
     );
 }
 
+fn robot_entity_kind(robot: &RobotNode) -> EntityKind {
+    if let Some(kind) = robot.entity_kind.as_deref() {
+        return EntityKind::parse(kind);
+    }
+    if robot
+        .model
+        .as_deref()
+        .is_some_and(|model| is_automotive_model(model))
+    {
+        return EntityKind::Vehicle;
+    }
+    EntityKind::Robot
+}
+
+fn is_automotive_model(model: &str) -> bool {
+    matches!(
+        model.to_ascii_lowercase().as_str(),
+        "passengersedan" | "passenger_sedan" | "vehicle" | "automotive" | "adas_platform"
+    )
+}
+
 fn upsert_robot(registry: &mut EntityRegistry, robot: &RobotNode, fleet_id: &str) {
+    let entity_type = robot_entity_kind(robot);
+    let kind_tag = entity_type.as_str().to_string();
+    let mut metadata = HashMap::new();
+    if let Some(profile) = robot.compliance_profile.as_ref() {
+        metadata.insert("compliance.profile".into(), profile.clone());
+    }
     registry.entities.insert(
         robot.id.clone(),
         EntityRecord {
             id: robot.id.clone(),
             name: Some(robot.id.clone()),
             display_name: Some(robot.id.clone()),
-            entity_type: EntityKind::Robot,
+            entity_type,
             model: robot.model.clone(),
             parent_id: Some(fleet_id.to_string()),
             lifecycle_state: EntityLifecycleState::Active,
             health_status: EntityHealthStatus::Healthy,
             readiness_status: EntityReadinessStatus::Ready,
             trust_status: EntityTrustStatus::Trusted,
-            tags: vec!["robot".into()],
+            tags: vec![kind_tag],
+            metadata,
             ..Default::default()
         },
     );
@@ -1039,7 +1077,11 @@ fn upsert_device_node(
     parent_id: &str,
     robot_id: Option<&str>,
 ) {
-    let entity_type = EntityKind::from_device_type(&device.device_type);
+    let entity_type = device
+        .entity_kind
+        .as_deref()
+        .map(EntityKind::parse)
+        .unwrap_or_else(|| EntityKind::from_device_type(&device.device_type));
     let trust = device
         .trust_level
         .as_deref()
@@ -1079,6 +1121,11 @@ fn upsert_device_node(
                 ..Default::default()
             }),
             tags: vec![device.device_type.clone()],
+            metadata: device
+                .compliance_profile
+                .as_ref()
+                .map(|profile| HashMap::from([("compliance.profile".into(), profile.clone())]))
+                .unwrap_or_default(),
             ..Default::default()
         },
     );
@@ -1205,6 +1252,12 @@ fn ingest_human_registry(registry: &mut EntityRegistry, human_registry: &HumanRe
     for twin in &human_registry.twins {
         upsert_twin(registry, twin);
     }
+    for zone in &human_registry.hazard_zones {
+        upsert_hazard_zone(registry, zone, None);
+    }
+    for session in &human_registry.spatial_sessions {
+        upsert_spatial_session(registry, session, None);
+    }
 }
 
 fn upsert_human(registry: &mut EntityRegistry, human: &HumanEntity, fleet_id: Option<&str>) {
@@ -1241,6 +1294,11 @@ fn upsert_human(registry: &mut EntityRegistry, human: &HumanEntity, fleet_id: Op
             trust_status: trust,
             location: human.location.as_ref().map(|loc| EntityLocation {
                 coordinates: Some(loc.clone()),
+                zone_id: loc
+                    .get("zone")
+                    .or_else(|| loc.get("zone_id"))
+                    .and_then(|value| value.as_str())
+                    .map(String::from),
                 ..Default::default()
             }),
             security: Some(EntitySecurityIdentity {
@@ -1394,7 +1452,11 @@ fn upsert_control_center(
     );
 }
 
-fn upsert_hazard_zone(registry: &mut EntityRegistry, zone: &HazardZoneEntity, fleet_id: &str) {
+fn upsert_hazard_zone(
+    registry: &mut EntityRegistry,
+    zone: &HazardZoneEntity,
+    fleet_id: Option<&str>,
+) {
     registry.entities.insert(
         zone.id.clone(),
         EntityRecord {
@@ -1402,7 +1464,7 @@ fn upsert_hazard_zone(registry: &mut EntityRegistry, zone: &HazardZoneEntity, fl
             name: Some(zone.id.clone()),
             display_name: Some(zone.id.clone()),
             entity_type: EntityKind::Hazard,
-            parent_id: Some(fleet_id.to_string()),
+            parent_id: fleet_id.map(String::from),
             location: zone.center.as_ref().map(|center| EntityLocation {
                 coordinates: Some(center.clone()),
                 zone_id: Some(zone.id.clone()),
@@ -1425,13 +1487,15 @@ fn upsert_hazard_zone(registry: &mut EntityRegistry, zone: &HazardZoneEntity, fl
             ..Default::default()
         },
     );
-    link(
-        registry,
-        fleet_id,
-        &zone.id,
-        EntityRelationshipKind::Contains,
-        None,
-    );
+    if let Some(fleet) = fleet_id {
+        link(
+            registry,
+            fleet,
+            &zone.id,
+            EntityRelationshipKind::Contains,
+            None,
+        );
+    }
     for robot_id in &zone.linked_robots {
         link(
             registry,
@@ -1827,6 +1891,362 @@ fn link_if_absent(
         return;
     }
     link(registry, from, to, kind, label);
+}
+
+fn ingest_facilities(
+    registry: &mut EntityRegistry,
+    facilities: &FacilityRegistry,
+    fleet_id: Option<&str>,
+) {
+    for facility in &facilities.facilities {
+        upsert_facility(registry, facility, fleet_id);
+    }
+    for building in &facilities.buildings {
+        upsert_building(registry, building);
+    }
+    for zone in &facilities.zones {
+        upsert_operational_zone(registry, zone);
+    }
+    for declared in &facilities.entity_kinds {
+        upsert_declared_entity_kind(registry, declared, fleet_id);
+    }
+}
+
+fn upsert_facility(
+    registry: &mut EntityRegistry,
+    facility: &FacilityEntity,
+    fleet_id: Option<&str>,
+) {
+    let mut metadata = HashMap::new();
+    if let Some(profile) = facility.compliance_profile.as_ref() {
+        metadata.insert("compliance.profile".into(), profile.clone());
+    }
+    if let Some(facility_type) = facility.facility_type.as_ref() {
+        metadata.insert("facility_type".into(), facility_type.clone());
+    }
+    registry.entities.insert(
+        facility.id.clone(),
+        EntityRecord {
+            id: facility.id.clone(),
+            name: facility.name.clone().or_else(|| Some(facility.id.clone())),
+            display_name: facility.name.clone(),
+            entity_type: EntityKind::Facility,
+            parent_id: fleet_id.map(String::from),
+            location: facility.location.as_ref().map(|loc| EntityLocation {
+                coordinates: Some(loc.clone()),
+                ..Default::default()
+            }),
+            lifecycle_state: EntityLifecycleState::Active,
+            health_status: EntityHealthStatus::Healthy,
+            readiness_status: EntityReadinessStatus::Ready,
+            trust_status: EntityTrustStatus::Trusted,
+            metadata,
+            tags: vec!["facility".into()],
+            ..Default::default()
+        },
+    );
+    if let Some(fleet) = fleet_id {
+        link(
+            registry,
+            fleet,
+            &facility.id,
+            EntityRelationshipKind::Contains,
+            None,
+        );
+    }
+}
+
+fn upsert_building(registry: &mut EntityRegistry, building: &BuildingEntity) {
+    registry.entities.insert(
+        building.id.clone(),
+        EntityRecord {
+            id: building.id.clone(),
+            name: building.name.clone().or_else(|| Some(building.id.clone())),
+            display_name: building.name.clone(),
+            entity_type: EntityKind::Building,
+            parent_id: building.facility_id.clone(),
+            lifecycle_state: EntityLifecycleState::Active,
+            health_status: EntityHealthStatus::Healthy,
+            readiness_status: EntityReadinessStatus::Ready,
+            trust_status: EntityTrustStatus::Trusted,
+            metadata: building
+                .building_type
+                .as_ref()
+                .map(|kind| HashMap::from([("building_type".into(), kind.clone())]))
+                .unwrap_or_default(),
+            tags: vec!["building".into()],
+            ..Default::default()
+        },
+    );
+    if let Some(facility_id) = building.facility_id.as_ref() {
+        if registry.entities.contains_key(facility_id) {
+            link(
+                registry,
+                facility_id,
+                &building.id,
+                EntityRelationshipKind::Contains,
+                None,
+            );
+        }
+    }
+}
+
+fn upsert_operational_zone(registry: &mut EntityRegistry, zone: &ZoneEntity) {
+    registry.entities.insert(
+        zone.id.clone(),
+        EntityRecord {
+            id: zone.id.clone(),
+            name: Some(zone.id.clone()),
+            display_name: Some(zone.id.clone()),
+            entity_type: EntityKind::Zone,
+            parent_id: zone
+                .building_id
+                .clone()
+                .or_else(|| zone.facility_id.clone()),
+            location: zone.center.as_ref().map(|center| EntityLocation {
+                coordinates: Some(center.clone()),
+                zone_id: Some(zone.id.clone()),
+                ..Default::default()
+            }),
+            lifecycle_state: EntityLifecycleState::Active,
+            health_status: EntityHealthStatus::Healthy,
+            readiness_status: EntityReadinessStatus::Ready,
+            trust_status: EntityTrustStatus::Trusted,
+            metadata: HashMap::from([(
+                "zone_type".into(),
+                zone.zone_type
+                    .clone()
+                    .unwrap_or_else(|| "operational".into()),
+            )]),
+            tags: vec!["zone".into()],
+            ..Default::default()
+        },
+    );
+    let parent = zone.building_id.as_deref().or(zone.facility_id.as_deref());
+    if let Some(parent_id) = parent {
+        if registry.entities.contains_key(parent_id) {
+            link(
+                registry,
+                parent_id,
+                &zone.id,
+                EntityRelationshipKind::Contains,
+                None,
+            );
+        }
+    }
+}
+
+fn upsert_declared_entity_kind(
+    registry: &mut EntityRegistry,
+    declared: &DeclaredEntityKind,
+    fleet_id: Option<&str>,
+) {
+    let entity_type = EntityKind::parse(&declared.kind);
+    let mut metadata = HashMap::new();
+    if let Some(package) = declared.package.as_ref() {
+        metadata.insert("package".into(), package.clone());
+    }
+    if let Some(profile) = declared.compliance_profile.as_ref() {
+        metadata.insert("compliance.profile".into(), profile.clone());
+    }
+    let parent = declared
+        .parent_id
+        .clone()
+        .or_else(|| fleet_id.map(String::from));
+    registry.entities.insert(
+        declared.id.clone(),
+        EntityRecord {
+            id: declared.id.clone(),
+            name: Some(declared.id.clone()),
+            display_name: declared
+                .display_name
+                .clone()
+                .or_else(|| Some(declared.id.clone())),
+            entity_type,
+            parent_id: parent.clone(),
+            capabilities: declared.capabilities.clone(),
+            lifecycle_state: EntityLifecycleState::Active,
+            health_status: EntityHealthStatus::Healthy,
+            readiness_status: EntityReadinessStatus::Ready,
+            trust_status: EntityTrustStatus::Trusted,
+            metadata,
+            tags: vec!["declared".into(), declared.kind.clone()],
+            ..Default::default()
+        },
+    );
+    if let Some(parent_id) = parent.as_ref() {
+        if registry.entities.contains_key(parent_id) {
+            link(
+                registry,
+                parent_id,
+                &declared.id,
+                EntityRelationshipKind::Contains,
+                Some("entity_kind"),
+            );
+        }
+    }
+}
+
+fn upsert_spatial_session(
+    registry: &mut EntityRegistry,
+    session: &RemoteExpertSession,
+    fleet_id: Option<&str>,
+) {
+    registry.entities.insert(
+        session.id.clone(),
+        EntityRecord {
+            id: session.id.clone(),
+            name: Some(session.id.clone()),
+            display_name: Some(session.id.clone()),
+            entity_type: EntityKind::SpatialSession,
+            parent_id: fleet_id.map(String::from),
+            capabilities: session.capabilities.clone(),
+            lifecycle_state: EntityLifecycleState::Active,
+            health_status: EntityHealthStatus::Healthy,
+            readiness_status: EntityReadinessStatus::Ready,
+            trust_status: EntityTrustStatus::Trusted,
+            metadata: session
+                .session_type
+                .as_ref()
+                .map(|kind| HashMap::from([("session_type".into(), kind.clone())]))
+                .unwrap_or_default(),
+            tags: vec!["spatial_session".into()],
+            ..Default::default()
+        },
+    );
+    if let Some(fleet) = fleet_id {
+        link(
+            registry,
+            fleet,
+            &session.id,
+            EntityRelationshipKind::Contains,
+            None,
+        );
+    }
+    if let Some(human_id) = session.field_human_id.as_ref() {
+        if registry.entities.contains_key(human_id) {
+            link(
+                registry,
+                human_id,
+                &session.id,
+                EntityRelationshipKind::ParticipatesIn,
+                Some("field"),
+            );
+        }
+    }
+    if let Some(robot_id) = session.robot_id.as_ref() {
+        if registry.entities.contains_key(robot_id) {
+            link(
+                registry,
+                robot_id,
+                &session.id,
+                EntityRelationshipKind::ParticipatesIn,
+                Some("robot"),
+            );
+        }
+    }
+}
+
+fn link_zone_references(registry: &mut EntityRegistry) {
+    let entity_ids: Vec<String> = registry.entities.keys().cloned().collect();
+    for entity_id in entity_ids {
+        let Some(entity) = registry.entities.get(&entity_id).cloned() else {
+            continue;
+        };
+        let Some(zone_id) = entity
+            .location
+            .as_ref()
+            .and_then(|loc| loc.zone_id.clone())
+            .or_else(|| zone_id_from_coordinates(entity.location.as_ref()))
+        else {
+            continue;
+        };
+        if !registry.entities.contains_key(&zone_id) {
+            continue;
+        }
+        link_if_absent(
+            registry,
+            &entity_id,
+            &zone_id,
+            EntityRelationshipKind::LocatedIn,
+            None,
+        );
+    }
+}
+
+fn zone_id_from_coordinates(location: Option<&EntityLocation>) -> Option<String> {
+    let coordinates = location?.coordinates.as_ref()?;
+    coordinates
+        .get("zone")
+        .or_else(|| coordinates.get("zone_id"))
+        .and_then(|value| value.as_str())
+        .map(String::from)
+}
+
+fn apply_compliance_metadata(registry: &mut EntityRegistry, resolved: &ResolvedSystemConfig) {
+    let assurance_profile = resolved
+        .assurance_config()
+        .and_then(|cfg| cfg.get("profile"))
+        .and_then(|value| value.as_str())
+        .map(String::from);
+    let readiness_profile = resolved
+        .readiness_config()
+        .and_then(|cfg| cfg.get("profile"))
+        .and_then(|value| value.as_str())
+        .map(String::from);
+    let security_profile = resolved
+        .section("security")
+        .and_then(|cfg| cfg.get("profile"))
+        .and_then(|value| value.as_str())
+        .map(String::from);
+    if assurance_profile.is_none() && readiness_profile.is_none() && security_profile.is_none() {
+        return;
+    }
+    if let Some(fleet_id) = resolved.fleet_id() {
+        stamp_compliance_metadata(
+            registry,
+            fleet_id,
+            assurance_profile.as_deref(),
+            readiness_profile.as_deref(),
+            security_profile.as_deref(),
+        );
+    }
+    for robot_id in resolved.robot_ids() {
+        stamp_compliance_metadata(
+            registry,
+            robot_id,
+            assurance_profile.as_deref(),
+            readiness_profile.as_deref(),
+            security_profile.as_deref(),
+        );
+    }
+}
+
+fn stamp_compliance_metadata(
+    registry: &mut EntityRegistry,
+    entity_id: &str,
+    assurance: Option<&str>,
+    readiness: Option<&str>,
+    security: Option<&str>,
+) {
+    let Some(entity) = registry.entities.get_mut(entity_id) else {
+        return;
+    };
+    if let Some(profile) = assurance {
+        entity
+            .metadata
+            .insert("assurance.profile".into(), profile.to_string());
+    }
+    if let Some(profile) = readiness {
+        entity
+            .metadata
+            .insert("readiness.profile".into(), profile.to_string());
+    }
+    if let Some(profile) = security {
+        entity
+            .metadata
+            .insert("security.profile".into(), profile.to_string());
+    }
 }
 
 impl Default for EntityRecord {

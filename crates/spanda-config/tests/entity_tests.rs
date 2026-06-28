@@ -177,6 +177,43 @@ fn traceability_overlay_merges_device_capability_links() {
 }
 
 #[test]
+fn entity_registry_projects_facilities_and_declared_kinds() {
+    let resolved = warehouse_config();
+    let registry = build_entity_registry(&resolved);
+    assert!(registry.get("warehouse-a").is_some());
+    assert!(registry.get("north-wing").is_some());
+    assert!(registry.get("calibration-bay").is_some());
+    assert!(registry.relationships.iter().any(|edge| {
+        edge.from_id == "warehouse-fleet"
+            && edge.to_id == "warehouse-a"
+            && edge.kind == EntityRelationshipKind::Contains
+    }));
+}
+
+#[test]
+fn flat_hazard_zones_project_into_registry() {
+    use spanda_config::human_entities::HazardZoneEntity;
+
+    let mut resolved = warehouse_config();
+    resolved.human_registry.hazard_zones.push(HazardZoneEntity {
+        id: "restricted-a".into(),
+        zone_type: Some("restricted".into()),
+        severity: Some("high".into()),
+        center: None,
+        radius_m: None,
+        linked_robots: Vec::new(),
+        alert_on_entry: None,
+        description: None,
+    });
+    let registry = build_entity_registry(&resolved);
+    assert!(registry.get("restricted-a").is_some());
+    assert_eq!(
+        registry.get("restricted-a").unwrap().entity_type,
+        EntityKind::Hazard
+    );
+}
+
+#[test]
 fn impact_analysis_traverses_relationships() {
     let resolved = warehouse_config();
     let registry = build_entity_registry(&resolved);

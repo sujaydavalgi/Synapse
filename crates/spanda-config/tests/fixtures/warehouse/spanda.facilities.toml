@@ -1,0 +1,19 @@
+[[facilities]]
+id = "warehouse-a"
+name = "Warehouse A"
+compliance_profile = "iso13849"
+
+[[buildings]]
+id = "north-wing"
+facility_id = "warehouse-a"
+
+[[zones]]
+id = "north-wing"
+building_id = "north-wing"
+type = "operational"
+
+[[entity_kinds]]
+id = "calibration-bay"
+kind = "calibration_station"
+capabilities = ["calibrate"]
+package = "acme.calibration"

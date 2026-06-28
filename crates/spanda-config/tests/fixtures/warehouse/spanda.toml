@@ -5,6 +5,7 @@ language = "0.2"
 
 [config]
 devices = "spanda.devices.toml"
+facilities = "spanda.facilities.toml"
 network_devices = "spanda.network-devices.toml"
 providers = "spanda.providers.toml"
 health = "spanda.health.toml"

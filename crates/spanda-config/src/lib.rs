@@ -22,6 +22,7 @@ pub mod discovery_transport;
 pub mod drift;
 pub mod entity;
 pub mod error;
+pub mod facility;
 pub mod human_entities;
 pub mod integration;
 pub mod json;
@@ -105,6 +106,9 @@ pub use entity::{
     EntityTrustStatus, ProgramGraphTraceabilityEdge, RuntimeMissionEntity,
 };
 pub use error::{ConfigError, ConfigResult};
+pub use facility::{
+    BuildingEntity, DeclaredEntityKind, FacilityEntity, FacilityRegistry, ZoneEntity,
+};
 pub use human_entities::{
     is_operator_capability, operator_capability_names, records_from_human_registry,
     CertificationRecord, ControlCenterEntity, HumanEntity, HumanRegistry, RemoteExpertSession,

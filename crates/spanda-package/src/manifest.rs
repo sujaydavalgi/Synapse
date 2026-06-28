@@ -35,6 +35,18 @@ pub struct PackageManifest {
     pub categories: Vec<PackageCategory>,
     #[serde(default)]
     pub license_compat: Vec<String>,
+    #[serde(default)]
+    pub entity_kinds: Vec<PackageEntityKindDecl>,
+}
+
+/// Declarative custom entity kind exported by a Spanda package.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PackageEntityKindDecl {
+    pub kind: String,
+    #[serde(default)]
+    pub display_name: Option<String>,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -52,7 +52,9 @@ pub use integrity::{
     verify_sha256, write_checksum_sidecar,
 };
 pub use lockfile::{Lockfile, LOCKFILE_FILENAME};
-pub use manifest::{find_project_root, PackageManifest, PackageSection, MANIFEST_FILENAME};
+pub use manifest::{
+    find_project_root, PackageEntityKindDecl, PackageManifest, PackageSection, MANIFEST_FILENAME,
+};
 pub use official::{
     dependency_provenance, installed_official_packages, is_official_package,
     load_official_packages_for_project, load_official_packages_for_source,

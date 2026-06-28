@@ -82,6 +82,7 @@ pub fn init_package(
         adapter: Default::default(),
         categories: vec![],
         license_compat: vec![],
+        entity_kinds: vec![],
     };
     manifest.save(&dir.join(MANIFEST_FILENAME))?;
     fs::write(dir.join("src/main.sd"), DEFAULT_MAIN).map_err(PackageError::from)?;

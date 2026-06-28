@@ -45,6 +45,10 @@ pub struct RobotNode {
     #[serde(default)]
     pub hardware_profile: Option<String>,
     #[serde(default)]
+    pub entity_kind: Option<String>,
+    #[serde(default)]
+    pub compliance_profile: Option<String>,
+    #[serde(default)]
     pub compute: Option<ComputeNode>,
 }
 
@@ -100,6 +104,10 @@ pub struct DeviceNode {
     pub trust_level: Option<String>,
     #[serde(default)]
     pub safety_critical: Option<bool>,
+    #[serde(default)]
+    pub entity_kind: Option<String>,
+    #[serde(default)]
+    pub compliance_profile: Option<String>,
     #[serde(default)]
     pub serial: Option<String>,
     #[serde(default, alias = "mac")]

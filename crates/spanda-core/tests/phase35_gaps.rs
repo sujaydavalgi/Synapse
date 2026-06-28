@@ -180,6 +180,7 @@ fn publish_mirrors_bundle_to_local_registry_when_present() {
         adapter: Default::default(),
         categories: vec![],
         license_compat: vec![],
+        entity_kinds: vec![],
     };
     let report = bundle_package(root, &manifest).expect("bundle");
     let mirrored = mirror_bundle_to_local_registry(root, &manifest, &report.bundle_path)
