@@ -36,6 +36,8 @@ Reports include an explicit **template notice** — profiles are engineering tem
 ```bash
 spanda verify examples/showcase/policy/warehouse.sd --profile warehouse
 spanda verify rover.sd --profile medical --json
+spanda compliance list
+spanda compliance list --json
 spanda verify examples/showcase/compliance/automotive_rover.sd --profile iso26262
 spanda verify examples/showcase/compliance/machinery_rover.sd --profile iso13849
 spanda verify examples/showcase/compliance/iec61508_rover.sd --profile iec61508

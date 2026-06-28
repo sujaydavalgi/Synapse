@@ -159,8 +159,8 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/operator/mission/approve` | POST | Bearer | Approve or reject a mission |
 | `/v1/rpc` | POST | — | gRPC-compatible JSON gateway |
 | **gRPC (tonic)** | — | — | Native `ControlCenter` service on `--grpc-bind` (60 RPCs; full REST parity except JSON-RPC gateway) |
-| `/v1/compliance/export` | GET/POST | Bearer | Accreditation bundle (`?profile=defense`); appends immutable evidence log |
-| `/v1/compliance/profiles` | GET | — | Signed profile catalog (defense, medical, ISO 26262) with Ed25519 verification |
+| `/v1/compliance/export` | GET/POST | Bearer | Accreditation bundle (`?profile=defense`, `iso26262`, …); appends immutable evidence log |
+| `/v1/compliance/profiles` | GET | — | Signed profile catalog (defense, medical, iso26262, iso13849, iec61508) with Ed25519 verification |
 | `/v1/compliance/evidence` | GET | Bearer | List append-only compliance evidence records |
 | `/v1/digital-thread/query` | GET | — | Trace chain (`?capability=`, `?device_id=`, `?lifecycle_phase=`) |
 | `/v1/executive/scorecard` | GET | — | Mission scorecard rollup |
@@ -217,6 +217,7 @@ The `@spanda/web` Control Center panel includes:
 | Mapping | Logical ↔ physical mapping export |
 | Health | Pool health rollup |
 | Readiness | Readiness impact check |
+| Compliance | Signed profile picker + accreditation export + evidence log |
 | Digital Thread | Interactive capability→device graph with filters |
 | Traceability | Trust and identity trace view |
 
