@@ -8,7 +8,7 @@ use spanda_runtime::scheduler::SchedulerClock;
 use spanda_runtime::telemetry::RuntimeTelemetry;
 use spanda_typecheck::ModuleRegistry;
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct RunOptions {
     #[serde(default)]
     pub entry_behavior: Option<String>,
@@ -86,6 +86,49 @@ pub struct RunOptions {
     pub system_config: Option<std::sync::Arc<spanda_config::ResolvedSystemConfig>>,
 }
 
+impl Default for RunOptions {
+    fn default() -> Self {
+        // Match serde defaults so CLI `RunOptions::default()` agrees with deserialized configs.
+        Self {
+            entry_behavior: None,
+            max_loop_iterations: default_max_loop_iterations(),
+            simulation_steps: None,
+            obstacles: Vec::new(),
+            initial_pose: None,
+            lidar_range: default_lidar_range(),
+            module_registry: None,
+            trace_scheduler: false,
+            trace_tasks: false,
+            replay_trace: false,
+            trace_triggers: false,
+            trace_events: false,
+            trace_providers: false,
+            trace_realtime: false,
+            record_trace: false,
+            trace_source: None,
+            trace_output: None,
+            metrics_json: false,
+            replay_deterministic: false,
+            replay_from_ms: None,
+            scheduler_clock: SchedulerClock::Sim,
+            playback_wall_clock: false,
+            twin_export_path: None,
+            secure_mode: false,
+            inject_security_faults: false,
+            enforce_certify: false,
+            official_packages: Vec::new(),
+            trigger_kill_switch: None,
+            kill_switch_signature: None,
+            inject_health_faults: false,
+            persist_telemetry: false,
+            enforce_policy: None,
+            inbound_comm_messages: Vec::new(),
+            ffi_registry: None,
+            system_config: None,
+        }
+    }
+}
+
 fn default_max_loop_iterations() -> usize {
     // Description:
     //     Default max loop iterations.
@@ -120,6 +163,31 @@ fn default_lidar_range() -> f64 {
     //     let result = spanda_interpreter::options::default_lidar_range();
 
     10.0
+}
+
+#[cfg(test)]
+mod run_options_tests {
+    use super::{default_lidar_range, default_max_loop_iterations, RunOptions};
+
+    #[test]
+    fn default_run_options_use_simulator_lidar_range() {
+        // Description:
+        //     Default run options must not zero lidar range (breaks stop_if in sim).
+        //
+        // Inputs:
+        //     None.
+        //
+        // Outputs:
+        //     None.
+        //
+        // Example:
+        //     let result = spanda_interpreter::options::run_options_tests::default_run_options_use_simulator_lidar_range();
+
+        let opts = RunOptions::default();
+        assert_eq!(opts.lidar_range, default_lidar_range());
+        assert_eq!(opts.max_loop_iterations, default_max_loop_iterations());
+        assert!(opts.lidar_range > 1.0);
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

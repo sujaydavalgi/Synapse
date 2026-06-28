@@ -7,7 +7,7 @@ use spanda_core::lexer;
 use spanda_core::parser;
 use spanda_core::runtime::{Interpreter, InterpreterOptions};
 use spanda_core::simulator::{create_default_simulator, Obstacle, SimulatorConfig};
-use spanda_core::{RobotState, SpandaError};
+use spanda_core::{run, RobotState, RunOptions, SpandaError};
 
 fn compile_and_run(source: &str, max_iters: usize) -> Result<RobotState, SpandaError> {
     // Description:
@@ -213,4 +213,140 @@ fn enforces_safety_in_interpreter() {
     let state = interp.run(&program, None).unwrap();
     assert!(!blocked.borrow().is_empty());
     assert!(state.emergency_stop);
+}
+
+#[test]
+fn stop_if_nearest_distance_does_not_block_clear_path() {
+    // Description:
+    //     Stop-if lidar.nearest_distance must not E-stop when nearest obstacle is beyond threshold.
+    //
+    // Inputs:
+    //     None.
+    //
+    // Outputs:
+    //     None.
+    //
+    // Example:
+    //     let result = spanda_core::runtime_smoke::stop_if_nearest_distance_does_not_block_clear_path();
+
+    let source = r#"
+      robot R {
+        sensor lidar: Lidar;
+        actuator wheels: DifferentialDrive;
+        safety {
+          stop_if lidar.nearest_distance < 0.5 m;
+        }
+        behavior go() {
+          wheels.drive(linear: 0.5 m/s, angular: 0.0 rad/s);
+        }
+      }
+    "#;
+    let tokens = lexer::tokenize(source).unwrap();
+    let program = parser::parse(tokens).unwrap();
+    let sim = create_default_simulator(SimulatorConfig::default());
+    let mut interp = Interpreter::new(
+        sim,
+        InterpreterOptions {
+            max_loop_iterations: 1,
+            ..Default::default()
+        },
+    );
+    let state = interp.run(&program, None).unwrap();
+    assert!(
+        state.velocity.linear > 0.0,
+        "expected motion when default sim obstacles are beyond 0.5 m"
+    );
+    assert!(!state.emergency_stop);
+}
+
+#[test]
+fn stop_if_with_mission_does_not_block_clear_path() {
+    // Description:
+    //     Mission-declared robots must evaluate stop_if against live lidar readings.
+    //
+    // Inputs:
+    //     None.
+    //
+    // Outputs:
+    //     None.
+    //
+    // Example:
+    //     let result = spanda_core::runtime_smoke::stop_if_with_mission_does_not_block_clear_path();
+
+    let source = r#"
+      robot Vehicle {
+        sensor front_lidar: Lidar;
+        actuator wheels: DifferentialDrive;
+        safety {
+          stop_if front_lidar.nearest_distance < 0.5 m;
+        }
+        mission M {
+          drive_once;
+        }
+        behavior drive_once() {
+          wheels.drive(linear: 0.5 m/s, angular: 0.0 rad/s);
+        }
+      }
+    "#;
+    let tokens = lexer::tokenize(source).unwrap();
+    let program = parser::parse(tokens).unwrap();
+    let sim = create_default_simulator(SimulatorConfig::default());
+    let mut interp = Interpreter::new(
+        sim,
+        InterpreterOptions {
+            max_loop_iterations: 20,
+            ..Default::default()
+        },
+    );
+    let state = interp.run(&program, None).unwrap();
+    assert!(
+        state.velocity.linear > 0.0,
+        "mission robots should drive when lidar path is clear"
+    );
+    assert!(!state.emergency_stop);
+}
+
+#[test]
+fn stop_if_mission_via_driver_run_does_not_block_clear_path() {
+    // Description:
+    //     CLI/driver run path must not false-trigger stop_if on clear lidar paths.
+    //
+    // Inputs:
+    //     None.
+    //
+    // Outputs:
+    //     None.
+    //
+    // Example:
+    //     let result = spanda_core::runtime_smoke::stop_if_mission_via_driver_run_does_not_block_clear_path();
+
+    let source = r#"
+      robot Vehicle {
+        sensor front_lidar: Lidar;
+        actuator wheels: DifferentialDrive;
+        safety {
+          stop_if front_lidar.nearest_distance < 0.5 m;
+        }
+        mission M {
+          drive_once;
+        }
+        behavior drive_once() {
+          wheels.drive(linear: 0.5 m/s, angular: 0.0 rad/s);
+        }
+      }
+    "#;
+    let result = run(
+        source,
+        RunOptions {
+            max_loop_iterations: 20,
+            official_packages: vec![],
+            ..Default::default()
+        },
+    )
+    .expect("driver run without packages");
+    assert!(
+        result.state.velocity.linear > 0.0,
+        "driver run should move when lidar path is clear"
+    );
+    assert!(!result.state.emergency_stop);
 }
