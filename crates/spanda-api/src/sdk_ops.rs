@@ -429,6 +429,23 @@ pub fn entity_graph(state: &ControlCenterState) -> HttpResponse {
     }))
 }
 
+/// GET /v1/entities/traceability — unified entity + program + digital-thread traceability.
+pub fn entity_traceability(state: &ControlCenterState, query: &str) -> HttpResponse {
+    let params = crate::handlers::parse_query(query);
+    let thread_query = crate::entity_traceability::EntityTraceabilityQuery {
+        entity_id: params.get("entity_id").cloned(),
+        capability: params.get("capability").cloned(),
+        device_id: params.get("device_id").cloned(),
+    };
+    match crate::entity_traceability::build_entity_traceability_report(state, &thread_query) {
+        Ok(report) => json_ok(&serde_json::json!({
+            "version": API_VERSION,
+            "traceability": report,
+        })),
+        Err(message) => bad_request(&message),
+    }
+}
+
 /// POST /v1/entities/query — entity query language endpoint.
 pub fn entity_query(state: &ControlCenterState, body: &str) -> HttpResponse {
     let query: EntityQuery = serde_json::from_str(body).unwrap_or_default();

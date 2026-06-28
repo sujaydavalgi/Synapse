@@ -84,6 +84,7 @@ pub fn run_control_center_server(options: &ControlCenterOptions) -> Result<(), S
     eprintln!("  POST /v1/ota/execute    remote fleet rollout (dry-run supported)");
     eprintln!("  POST /v1/rpc            gRPC-compatible JSON gateway");
     eprintln!("  GET  /v1/digital-thread/query  capability-to-device trace");
+    eprintln!("  GET  /v1/entities/traceability unified entity + program trace");
     eprintln!("  GET  /v1/compliance/export     accreditation bundle");
     eprintln!("  WS   /v1/stream/telemetry        live telemetry + traces");
     eprintln!("  GET  /v1/observability/backend     OTLP collector endpoint summary");

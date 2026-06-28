@@ -89,6 +89,7 @@ impl ControlCenterState {
         if !missions.is_empty() {
             spanda_config::apply_runtime_mission_overlay(&mut registry, &missions);
         }
+        crate::entity_traceability::enrich_entity_registry(self, &mut registry);
         registry
     }
 

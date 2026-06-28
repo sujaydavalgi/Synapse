@@ -916,6 +916,9 @@ fn route_sdk_entities(
     if path == "/v1/entities/graph" && method == "GET" {
         return Some(crate::sdk_ops::entity_graph(state));
     }
+    if path == "/v1/entities/traceability" && method == "GET" {
+        return Some(crate::sdk_ops::entity_traceability(state, query));
+    }
     if path == "/v1/entities/query" && method == "POST" {
         return Some(crate::sdk_ops::entity_query(state, body));
     }
