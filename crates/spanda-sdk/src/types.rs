@@ -26,9 +26,7 @@ impl ReadinessReport {
             .get("status")
             .and_then(|v| v.as_str())
             .map(String::from);
-        let mission_ready = report
-            .get("mission_ready")
-            .and_then(|v| v.as_bool());
+        let mission_ready = report.get("mission_ready").and_then(|v| v.as_bool());
         Self {
             score,
             status,

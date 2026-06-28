@@ -30,15 +30,18 @@ pub use encrypted::{
     Certificate, EncryptedMessage, PrivateKey, PublicKey, SessionKey, TrustedSource,
     VerifiedMessage,
 };
-pub use human_health::{HumanHealthGate, HumanHealthSettings};
 pub use error::{SecurityError, SecurityResult};
+pub use human_health::{HumanHealthGate, HumanHealthSettings};
 pub use identity::RobotIdentity;
 pub use permissions::PackagePermissions;
 pub use policy::{
     AuthenticationMode, BusSecurityConfig, EncryptionMode, IntegrityMode, SecureCommPolicy,
 };
 pub use rate_limit::RateLimiter;
-pub use rbac::{generate_api_key_token, permission_matrix, ApiKeyRecord, ApiKeyStore, RbacAction, RbacContext, Role};
+pub use rbac::{
+    generate_api_key_token, permission_matrix, ApiKeyRecord, ApiKeyStore, RbacAction, RbacContext,
+    Role,
+};
 pub use runtime::{SecurityContext, SecuritySnapshot};
 pub use secret_vault::{ManagedSecretVault, SecretMetadata, SecretVaultBackend};
 pub use secrets::{SecretHandle, SecretSource, SecretStore};

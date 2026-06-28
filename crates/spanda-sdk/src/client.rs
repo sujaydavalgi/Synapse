@@ -88,7 +88,10 @@ impl SpandaClient {
     }
 
     fn correlation_id() -> String {
-        format!("rust-sdk-{}", &uuid::Uuid::new_v4().simple().to_string()[..12])
+        format!(
+            "rust-sdk-{}",
+            &uuid::Uuid::new_v4().simple().to_string()[..12]
+        )
     }
 
     fn request(
@@ -104,7 +107,11 @@ impl SpandaClient {
             "GET" => agent.get(&url),
             "POST" => agent.post(&url),
             "PATCH" => agent.patch(&url),
-            _ => return Err(SpandaError::validation(format!("unsupported method {method}"))),
+            _ => {
+                return Err(SpandaError::validation(format!(
+                    "unsupported method {method}"
+                )))
+            }
         };
         req = req.set("Accept", "application/json");
         req = req.set("X-Correlation-ID", &Self::correlation_id());
@@ -115,10 +122,14 @@ impl SpandaClient {
         }
         if let Some(payload) = body {
             req = req.set("Content-Type", "application/json");
-            let resp = req.send_json(payload).map_err(|e| SpandaError::connection(e.to_string()))?;
+            let resp = req
+                .send_json(payload)
+                .map_err(|e| SpandaError::connection(e.to_string()))?;
             return Self::parse_response(resp);
         }
-        let resp = req.call().map_err(|e| SpandaError::connection(e.to_string()))?;
+        let resp = req
+            .call()
+            .map_err(|e| SpandaError::connection(e.to_string()))?;
         Self::parse_response(resp)
     }
 
@@ -210,7 +221,12 @@ impl SpandaClient {
 
     /// Relationship edges, impact set, and dependency chain for an entity.
     pub fn entity_relationships(&self, id: &str) -> SpandaResult<Value> {
-        self.request("GET", &format!("/v1/entities/{id}/relationships"), None, false)
+        self.request(
+            "GET",
+            &format!("/v1/entities/{id}/relationships"),
+            None,
+            false,
+        )
     }
 
     /// Health snapshot for any entity kind.

@@ -89,9 +89,7 @@ impl HriSessionStore {
             .unwrap_or_else(|| format!("hri-session-{}", self.active.len() + 1));
         let record = HriSessionRecord {
             id: id.clone(),
-            session_type: req
-                .session_type
-                .unwrap_or_else(|| "remote_expert".into()),
+            session_type: req.session_type.unwrap_or_else(|| "remote_expert".into()),
             field_human_id: req.field_human_id,
             expert_human_id: req.expert_human_id,
             robot_id: req.robot_id,
@@ -197,10 +195,7 @@ pub fn hri_session_annotate(
         Ok(value) => value,
         Err(error) => return bad_request(&error.to_string()),
     };
-    match state
-        .hri_session_store
-        .annotate(session_id, req, now_ms)
-    {
+    match state.hri_session_store.annotate(session_id, req, now_ms) {
         Some(session) => json_ok(&serde_json::json!({
             "version": "v1",
             "ok": true,

@@ -1,5 +1,6 @@
 //! Package-scoped provider stubs registered when official packages are installed.
 //!
+use spanda_ast::nodes::UnitKind;
 use spanda_audit::{sha256, Hash, LedgerBackend, MockLedgerBackend};
 use spanda_runtime::providers::hri::{
     HriInputProvider, OverlayProvider, SpatialSessionInfo, SpatialSessionProvider,
@@ -14,7 +15,6 @@ use spanda_runtime::providers::types::{
 };
 use spanda_runtime::robot_state::RobotState;
 use spanda_runtime::value::{runtime_pose, RuntimeValue};
-use spanda_ast::nodes::UnitKind;
 use std::collections::HashMap;
 
 fn package_metadata(package: &str, name: &str, description: &str) -> ProviderMetadata {
@@ -1443,7 +1443,10 @@ impl SpatialSessionProvider for SpatialSessionPackageStub {
     fn start_session(&mut self, device_id: &str) -> ProviderResult<SpatialSessionInfo> {
         let live = std::env::var(format!(
             "SPANDA_{}_SESSION",
-            self.package.replace("spanda-", "").replace('-', "_").to_uppercase()
+            self.package
+                .replace("spanda-", "")
+                .replace('-', "_")
+                .to_uppercase()
         ))
         .or_else(|_| std::env::var("SPANDA_SPATIAL_SESSION"))
         .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
@@ -1526,10 +1529,7 @@ impl HriInputProvider for HriInputPackageStub {
                 value: event_kind.into(),
             },
         );
-        fields.insert(
-            "active".into(),
-            RuntimeValue::Bool { value: live },
-        );
+        fields.insert("active".into(), RuntimeValue::Bool { value: live });
         Ok(vec![RuntimeValue::Object {
             type_name: "HriEvent".into(),
             fields,

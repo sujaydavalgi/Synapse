@@ -290,7 +290,10 @@ pub fn package_contributions() -> Vec<PackageCapabilityContribution> {
         contrib("spanda-moveit", &["manipulation"]),
         contrib("spanda-cloud", &["telemetry_streaming"]),
         contrib("spanda-slam", &["autonomous_navigation"]),
-        contrib("spanda-mission-continuity", &["mission_continuity", "human_takeover"]),
+        contrib(
+            "spanda-mission-continuity",
+            &["mission_continuity", "human_takeover"],
+        ),
         contrib(
             "spanda-smartwatch",
             &["heart_rate", "battery_level", "connectivity_status"],
@@ -319,23 +322,14 @@ pub fn package_contributions() -> Vec<PackageCapabilityContribution> {
             "spanda-vision-pro",
             &["spatial_anchors", "hand_tracking", "robot_overlay"],
         ),
-        contrib(
-            "spanda-magic-leap",
-            &["spatial_anchors", "robot_overlay"],
-        ),
+        contrib("spanda-magic-leap", &["spatial_anchors", "robot_overlay"]),
         contrib(
             "spanda-openxr",
             &["vr_training", "mission_replay", "digital_twin_view"],
         ),
         contrib("spanda-voice", &["voice_command"]),
-        contrib(
-            "spanda-gesture",
-            &["gesture_recognition", "hand_tracking"],
-        ),
-        contrib(
-            "spanda-eye-tracking",
-            &["eye_tracking", "gaze_target"],
-        ),
+        contrib("spanda-gesture", &["gesture_recognition", "hand_tracking"]),
+        contrib("spanda-eye-tracking", &["eye_tracking", "gaze_target"]),
     ]
 }
 
@@ -346,13 +340,19 @@ fn operator_capability_defs() -> Vec<CapabilityDefinition> {
             "Human operator authorized to control robots",
         ),
         operator_def("approve_mission", "Supervisor approval for mission start"),
-        operator_def("approve_recovery", "Supervisor approval for recovery execution"),
+        operator_def(
+            "approve_recovery",
+            "Supervisor approval for recovery execution",
+        ),
         operator_def("emergency_override", "Emergency safety override authority"),
         operator_def("drone_pilot", "Licensed drone pilot operator"),
         operator_def("medical_responder", "Medical responder certification"),
         operator_def("hazmat_certified", "Hazmat zone entry certification"),
         operator_def("remote_expert", "Remote expert assist authority"),
-        operator_def("maintenance_technician", "Maintenance technician certification"),
+        operator_def(
+            "maintenance_technician",
+            "Maintenance technician certification",
+        ),
         operator_def("forklift_operator", "Forklift operator certification"),
         operator_def(
             "search_rescue_operator",

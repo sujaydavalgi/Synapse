@@ -141,7 +141,8 @@ impl ConfigResolver {
         }
 
         let device_tree = DeviceTree::from_toml_value(&merged);
-        let human_registry = crate::human_entities::HumanRegistry::from_resolved_parts(&device_tree, &merged);
+        let human_registry =
+            crate::human_entities::HumanRegistry::from_resolved_parts(&device_tree, &merged);
         let device_registry = DeviceRegistry::from_resolved_parts(&device_tree, &merged);
         let logical_map =
             LogicalPhysicalMap::from_device_tree_and_registry(&device_tree, &device_registry);

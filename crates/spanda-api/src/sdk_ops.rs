@@ -10,7 +10,9 @@ use spanda_assurance::{
     assure_program_with_config, diagnose_from_trace, diagnose_program_with_config,
     evaluate_recovery, MissionAssuranceSummary,
 };
-use spanda_capability::{capability_traceability, evaluate_health_checks, infer_robot_capabilities};
+use spanda_capability::{
+    capability_traceability, evaluate_health_checks, infer_robot_capabilities,
+};
 use spanda_config::verify_with_system_config;
 use spanda_config::EntityQuery;
 use spanda_deploy_http::HttpResponse;
@@ -70,10 +72,16 @@ fn resolve_program_path(state: &ControlCenterState, file: Option<&str>) -> Resul
         .ok_or_else(|| "no program file specified (set file in body or --program)".to_string())
 }
 
-fn load_program(state: &ControlCenterState, file: Option<&str>) -> Result<(spanda_ast::nodes::Program, PathBuf, String), HttpResponse> {
+fn load_program(
+    state: &ControlCenterState,
+    file: Option<&str>,
+) -> Result<(spanda_ast::nodes::Program, PathBuf, String), HttpResponse> {
     let path = resolve_program_path(state, file).map_err(|msg| bad_request(&msg))?;
     if !path.exists() {
-        return Err(entity_not_found(&format!("program not found: {}", path.display())));
+        return Err(entity_not_found(&format!(
+            "program not found: {}",
+            path.display()
+        )));
     }
     let (program, _source, label) = parse_program_file(&path).map_err(|e| bad_request(&e))?;
     Ok((program, path, label))
@@ -100,8 +108,7 @@ pub fn program_readiness(state: &ControlCenterState, body: &str) -> HttpResponse
     if let Some(cfg) = system_config_ref(state) {
         options.system_config = Some(std::sync::Arc::new(cfg.clone()));
     }
-    let report: ReadinessReport =
-        evaluate_readiness_with_runtime(&program, &options, None);
+    let report: ReadinessReport = evaluate_readiness_with_runtime(&program, &options, None);
     json_ok(&serde_json::json!({
         "version": API_VERSION,
         "file": path.display().to_string(),
@@ -249,12 +256,8 @@ pub fn trust_program(state: &ControlCenterState, query: &str) -> HttpResponse {
         Ok(v) => v,
         Err(e) => return bad_request(&e),
     };
-    let report = evaluate_composite_trust(
-        &program,
-        &source,
-        &label,
-        &CompositeTrustOptions::default(),
-    );
+    let report =
+        evaluate_composite_trust(&program, &source, &label, &CompositeTrustOptions::default());
     json_ok(&serde_json::json!({
         "version": API_VERSION,
         "file": path.display().to_string(),
@@ -271,11 +274,8 @@ pub fn list_entities(state: &ControlCenterState) -> HttpResponse {
 pub fn list_entities_filtered(state: &ControlCenterState, query: &EntityQuery) -> HttpResponse {
     let registry = state.entity_registry();
     let result = registry.query(query);
-    let entities: Vec<serde_json::Value> = result
-        .entities
-        .iter()
-        .map(|e| e.summary_json())
-        .collect();
+    let entities: Vec<serde_json::Value> =
+        result.entities.iter().map(|e| e.summary_json()).collect();
     json_ok(&serde_json::json!({
         "version": API_VERSION,
         "entities": entities,

@@ -94,10 +94,11 @@ pub fn save_mission_approval_queue(path: &Path, queue: &MissionApprovalQueue) ->
             path: path.to_path_buf(),
             source,
         })?;
-    file.write_all(text.as_bytes()).map_err(|source| ConfigError::Io {
-        path: path.to_path_buf(),
-        source,
-    })?;
+    file.write_all(text.as_bytes())
+        .map_err(|source| ConfigError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
     Ok(())
 }
 

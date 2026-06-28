@@ -708,7 +708,11 @@ pub fn build_entity_registry(resolved: &ResolvedSystemConfig) -> EntityRegistry 
         );
     }
 
-    ingest_device_tree(&mut registry, &resolved.device_tree, &resolved.human_registry);
+    ingest_device_tree(
+        &mut registry,
+        &resolved.device_tree,
+        &resolved.human_registry,
+    );
     ingest_device_registry(&mut registry, &resolved.device_registry);
     ingest_human_registry(&mut registry, &resolved.human_registry);
     ingest_logical_map(&mut registry, &resolved.logical_map);
@@ -735,10 +739,7 @@ pub fn build_entity_registry(resolved: &ResolvedSystemConfig) -> EntityRegistry 
 }
 
 fn matches_query(entity: &EntityRecord, query: &EntityQuery, registry: &EntityRegistry) -> bool {
-    let type_filter = query
-        .entity_type
-        .as_deref()
-        .or(query.kind.as_deref());
+    let type_filter = query.entity_type.as_deref().or(query.kind.as_deref());
     if let Some(kind) = type_filter {
         if entity.kind() != kind && entity.entity_type.as_str() != kind {
             return false;
@@ -885,16 +886,40 @@ fn ingest_device_tree(
         upsert_wearable(registry, wearable, Some(&fleet.id));
     }
     for ar in &fleet.ar_devices {
-        upsert_spatial(registry, ar.id.as_str(), EntityKind::ArDevice, ar, Some(&fleet.id));
+        upsert_spatial(
+            registry,
+            ar.id.as_str(),
+            EntityKind::ArDevice,
+            ar,
+            Some(&fleet.id),
+        );
     }
     for vr in &fleet.vr_devices {
-        upsert_spatial(registry, vr.id.as_str(), EntityKind::VrDevice, vr, Some(&fleet.id));
+        upsert_spatial(
+            registry,
+            vr.id.as_str(),
+            EntityKind::VrDevice,
+            vr,
+            Some(&fleet.id),
+        );
     }
     for drone in &fleet.drones {
-        upsert_spatial(registry, drone.id.as_str(), EntityKind::Drone, drone, Some(&fleet.id));
+        upsert_spatial(
+            registry,
+            drone.id.as_str(),
+            EntityKind::Drone,
+            drone,
+            Some(&fleet.id),
+        );
     }
     for iot in &fleet.iot_devices {
-        upsert_spatial(registry, iot.id.as_str(), EntityKind::IotDevice, iot, Some(&fleet.id));
+        upsert_spatial(
+            registry,
+            iot.id.as_str(),
+            EntityKind::IotDevice,
+            iot,
+            Some(&fleet.id),
+        );
     }
     for cc in &fleet.control_center {
         upsert_control_center(registry, cc, &fleet.id);
@@ -995,7 +1020,10 @@ fn upsert_device_node(
         device.id.clone(),
         EntityRecord {
             id: device.id.clone(),
-            name: device.logical_name.clone().or_else(|| Some(device.id.clone())),
+            name: device
+                .logical_name
+                .clone()
+                .or_else(|| Some(device.id.clone())),
             display_name: device.logical_name.clone(),
             entity_type,
             parent_id: Some(parent_id.to_string()),
@@ -1078,7 +1106,10 @@ fn upsert_device_record(registry: &mut EntityRegistry, record: &DeviceIdentityRe
     let entity_type = EntityKind::from_device_type(&record.device_type);
     let entry = EntityRecord {
         id: record.id.clone(),
-        name: record.logical_name.clone().or_else(|| Some(record.id.clone())),
+        name: record
+            .logical_name
+            .clone()
+            .or_else(|| Some(record.id.clone())),
         display_name: record.logical_name.clone(),
         entity_type,
         provider: record.provider.clone(),
@@ -1168,7 +1199,10 @@ fn upsert_human(registry: &mut EntityRegistry, human: &HumanEntity, fleet_id: Op
         EntityRecord {
             id: human.id.clone(),
             name: Some(human.id.clone()),
-            display_name: human.display_name.clone().or_else(|| Some(human.id.clone())),
+            display_name: human
+                .display_name
+                .clone()
+                .or_else(|| Some(human.id.clone())),
             entity_type: EntityKind::Human,
             parent_id: fleet_id.map(String::from),
             capabilities: human.capabilities.clone(),
@@ -1200,7 +1234,11 @@ fn upsert_human(registry: &mut EntityRegistry, human: &HumanEntity, fleet_id: Op
     }
 }
 
-fn upsert_wearable(registry: &mut EntityRegistry, wearable: &WearableEntity, fleet_id: Option<&str>) {
+fn upsert_wearable(
+    registry: &mut EntityRegistry,
+    wearable: &WearableEntity,
+    fleet_id: Option<&str>,
+) {
     let trust = wearable
         .trust_level
         .as_deref()
@@ -1453,11 +1491,7 @@ fn ingest_packages_and_providers(
                 health_status: EntityHealthStatus::Healthy,
                 readiness_status: EntityReadinessStatus::Ready,
                 trust_status: EntityTrustStatus::Verified,
-                capabilities: vec![
-                    "install".into(),
-                    "update".into(),
-                    "validate".into(),
-                ],
+                capabilities: vec!["install".into(), "update".into(), "validate".into()],
                 tags: vec!["package".into()],
                 ..Default::default()
             },
@@ -1484,7 +1518,9 @@ fn ingest_packages_and_providers(
 
 fn readiness_from_lifecycle(lifecycle: EntityLifecycleState) -> EntityReadinessStatus {
     match lifecycle {
-        EntityLifecycleState::Active | EntityLifecycleState::Assigned => EntityReadinessStatus::Ready,
+        EntityLifecycleState::Active | EntityLifecycleState::Assigned => {
+            EntityReadinessStatus::Ready
+        }
         EntityLifecycleState::Degraded | EntityLifecycleState::Suspended => {
             EntityReadinessStatus::Partial
         }

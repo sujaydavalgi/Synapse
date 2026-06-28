@@ -8,7 +8,7 @@ use serde::Deserialize;
 use spanda_certify::build_certification_proof_summary;
 use spanda_config::{
     default_mission_approvals_path, default_snapshots_dir, detect_operational_drift_full,
-    load_config_snapshot,     load_mission_approval_queue, merge_mission_approval_seeds,
+    load_config_snapshot, load_mission_approval_queue, merge_mission_approval_seeds,
     resolve_mission_approval, save_mission_approval_queue, DeviceLifecycleState,
     MissionApprovalStatus,
 };
@@ -509,27 +509,27 @@ pub fn operator_mission_approve(body: &str, ctx: Option<&RbacContext>) -> HttpRe
         .approval_id
         .as_deref()
         .unwrap_or(req.mission_id.as_str());
-    let record = match resolve_mission_approval(&mut queue, lookup, req.approved, &resolver, now_ms())
-    {
-        Ok(record) => record,
-        Err(_) => {
-            queue.requests.push(spanda_config::MissionApprovalRecord {
-                id: format!("mission-{}", req.mission_id),
-                mission_id: req.mission_id.clone(),
-                requested_by: None,
-                status: if req.approved {
-                    MissionApprovalStatus::Approved
-                } else {
-                    MissionApprovalStatus::Rejected
-                },
-                created_at_ms: now_ms(),
-                resolved_at_ms: Some(now_ms()),
-                resolver: Some(resolver.clone()),
-                note: req.note.clone(),
-            });
-            queue.requests.last().unwrap().clone()
-        }
-    };
+    let record =
+        match resolve_mission_approval(&mut queue, lookup, req.approved, &resolver, now_ms()) {
+            Ok(record) => record,
+            Err(_) => {
+                queue.requests.push(spanda_config::MissionApprovalRecord {
+                    id: format!("mission-{}", req.mission_id),
+                    mission_id: req.mission_id.clone(),
+                    requested_by: None,
+                    status: if req.approved {
+                        MissionApprovalStatus::Approved
+                    } else {
+                        MissionApprovalStatus::Rejected
+                    },
+                    created_at_ms: now_ms(),
+                    resolved_at_ms: Some(now_ms()),
+                    resolver: Some(resolver.clone()),
+                    note: req.note.clone(),
+                });
+                queue.requests.last().unwrap().clone()
+            }
+        };
     let _ = save_mission_approval_queue(&path, &queue);
     json_ok(&serde_json::json!({
         "version": "v1",
@@ -552,10 +552,7 @@ pub fn rpc_gateway(state: &mut ControlCenterState, body: &str) -> HttpResponse {
         .get("body_json")
         .and_then(|v| v.as_str())
         .unwrap_or("{}");
-    let query = params
-        .get("query")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let query = params.get("query").and_then(|v| v.as_str()).unwrap_or("");
     let entity_id = params
         .get("entity_id")
         .and_then(|v| v.as_str())
@@ -604,20 +601,18 @@ pub fn rpc_gateway(state: &mut ControlCenterState, body: &str) -> HttpResponse {
             serde_json::from_str(&crate::sdk_ops::program_heal_json(state, body_json))
                 .unwrap_or_default()
         }
-        "spanda.v1.ControlCenter/VerifyProgramHardware" => {
-            serde_json::from_str(&crate::sdk_ops::program_verify_hardware_json(state, body_json))
-                .unwrap_or_default()
-        }
-        "spanda.v1.ControlCenter/VerifyProgramCapabilities" => {
-            serde_json::from_str(
-                &crate::sdk_ops::program_verify_capabilities_json(state, body_json),
-            )
-            .unwrap_or_default()
-        }
-        "spanda.v1.ControlCenter/VerifyProgramMission" => {
-            serde_json::from_str(&crate::sdk_ops::program_verify_mission_json(state, body_json))
-                .unwrap_or_default()
-        }
+        "spanda.v1.ControlCenter/VerifyProgramHardware" => serde_json::from_str(
+            &crate::sdk_ops::program_verify_hardware_json(state, body_json),
+        )
+        .unwrap_or_default(),
+        "spanda.v1.ControlCenter/VerifyProgramCapabilities" => serde_json::from_str(
+            &crate::sdk_ops::program_verify_capabilities_json(state, body_json),
+        )
+        .unwrap_or_default(),
+        "spanda.v1.ControlCenter/VerifyProgramMission" => serde_json::from_str(
+            &crate::sdk_ops::program_verify_mission_json(state, body_json),
+        )
+        .unwrap_or_default(),
         "spanda.v1.ControlCenter/RunProgramSimulation" => {
             serde_json::from_str(&crate::sdk_ops::program_simulation_json(state, body_json))
                 .unwrap_or_default()
