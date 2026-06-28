@@ -126,6 +126,10 @@ export function ControlCenterPanel({ apiBase }: Props) {
   const [trustPackageName, setTrustPackageName] = useState("spanda-mqtt");
   const [otaStatus, setOtaStatus] = useState<Record<string, unknown> | null>(null);
   const [complianceExport, setComplianceExport] = useState<Record<string, unknown> | null>(null);
+  const [complianceProfile, setComplianceProfile] = useState("defense");
+  const [complianceProfiles, setComplianceProfiles] = useState<
+    { name: string; description?: string; verified?: boolean }[]
+  >([]);
   const [auditData, setAuditData] = useState<Record<string, unknown> | null>(null);
   const [scorecard, setScorecard] = useState<Record<string, unknown> | null>(null);
   const [digitalThread, setDigitalThread] = useState<Record<string, unknown> | null>(null);
@@ -418,7 +422,7 @@ export function ControlCenterPanel({ apiBase }: Props) {
     if (tab === "alerts") void loadAlerts();
     if (tab === "security") void loadSecurity();
     if (tab === "ota") void loadOta();
-    if (tab === "compliance") void loadCompliance();
+    if (tab === "compliance") void loadComplianceProfiles();
     if (tab === "audit") void loadAudit();
     if (tab === "executive") void loadExecutive();
     if (tab === "digital-thread") void loadDigitalThread();
@@ -553,7 +557,9 @@ export function ControlCenterPanel({ apiBase }: Props) {
     setBusy(true);
     try {
       const [exportRes, evidenceRes] = await Promise.all([
-        fetch(`${base}/v1/compliance/export?profile=defense`, { headers: authHeaders() }),
+        fetch(`${base}/v1/compliance/export?profile=${encodeURIComponent(complianceProfile)}`, {
+          headers: authHeaders(),
+        }),
         fetch(`${base}/v1/compliance/evidence`, { headers: authHeaders() }),
       ]);
       if (!exportRes.ok) throw new Error(`compliance ${exportRes.status}`);
@@ -566,6 +572,29 @@ export function ControlCenterPanel({ apiBase }: Props) {
       setError(String(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const loadComplianceProfiles = async () => {
+    try {
+      const res = await fetch(`${base}/v1/compliance/profiles`);
+      if (!res.ok) throw new Error(`profiles ${res.status}`);
+      const body = await res.json();
+      const signed = Array.isArray(body.signed_catalog) ? body.signed_catalog : [];
+      const builtin = Array.isArray(body.profiles) ? body.profiles : [];
+      const merged = signed.length
+        ? signed.map((entry: { name: string; description?: string; verified?: boolean }) => ({
+            name: entry.name,
+            description: entry.description,
+            verified: entry.verified,
+          }))
+        : builtin.map((name: string) => ({ name }));
+      setComplianceProfiles(merged);
+      if (merged.length && !merged.some((entry) => entry.name === complianceProfile)) {
+        setComplianceProfile(merged[0]?.name ?? "defense");
+      }
+    } catch (e) {
+      setError(String(e));
     }
   };
 
@@ -1074,9 +1103,28 @@ export function ControlCenterPanel({ apiBase }: Props) {
 
       {tab === "compliance" && (
         <div>
-          <button type="button" onClick={() => void loadCompliance()} disabled={busy || !apiKey}>
-            Export defense profile
-          </button>
+          <div className="digital-thread-filters">
+            <label>
+              Profile
+              <select
+                value={complianceProfile}
+                onChange={(event) => setComplianceProfile(event.target.value)}
+              >
+                {(complianceProfiles.length
+                  ? complianceProfiles
+                  : [{ name: "defense" }, { name: "medical" }, { name: "iso26262" }]
+                ).map((entry) => (
+                  <option key={entry.name} value={entry.name}>
+                    {entry.name}
+                    {entry.verified ? " (signed)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" onClick={() => void loadCompliance()} disabled={busy || !apiKey}>
+              Export profile
+            </button>
+          </div>
           {!apiKey && (
             <p className="demo-hint">
               Set <code>VITE_SPANDA_API_KEY</code> for compliance export.
