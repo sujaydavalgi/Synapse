@@ -228,3 +228,151 @@ pub fn hri_session_replay(state: &ControlCenterState, session_id: &str) -> HttpR
         })),
     }
 }
+
+pub fn hri_collaboration_graph(state: &ControlCenterState) -> HttpResponse {
+    let Some(resolved) = state.resolved.as_ref() else {
+        return bad_request("no resolved configuration loaded");
+    };
+    let registry = &resolved.human_registry;
+    let mut nodes = Vec::new();
+    let mut edges = Vec::new();
+
+    for human in &registry.humans {
+        nodes.push(serde_json::json!({
+            "id": human.id,
+            "kind": "human",
+            "role": human.role,
+            "availability": human.availability,
+        }));
+        if let Some(assignments) = human.assignments.as_ref().and_then(|v| v.as_table()) {
+            if let Some(robot_id) = assignments.get("robot_id").and_then(|v| v.as_str()) {
+                edges.push(serde_json::json!({
+                    "from": human.id,
+                    "to": robot_id,
+                    "relation": "assignment",
+                }));
+            }
+            if let Some(mission_id) = assignments.get("mission_id").and_then(|v| v.as_str()) {
+                edges.push(serde_json::json!({
+                    "from": human.id,
+                    "to": mission_id,
+                    "relation": "mission",
+                }));
+            }
+        }
+    }
+
+    if let Some(ref tree) = resolved.device_tree.fleet {
+        for robot in &tree.robots {
+            nodes.push(serde_json::json!({
+                "id": robot.id,
+                "kind": "robot",
+                "model": robot.model,
+            }));
+        }
+        for drone in &tree.drones {
+            nodes.push(serde_json::json!({
+                "id": drone.id,
+                "kind": "drone",
+                "type": drone.device_type,
+            }));
+        }
+    }
+
+    for session in &registry.spatial_sessions {
+        nodes.push(serde_json::json!({
+            "id": session.id,
+            "kind": "session",
+            "session_type": session.session_type,
+        }));
+        if let Some(field_id) = session.field_human_id.as_deref() {
+            edges.push(serde_json::json!({
+                "from": field_id,
+                "to": session.id,
+                "relation": "field_operator",
+            }));
+        }
+        if let Some(expert_id) = session.expert_human_id.as_deref() {
+            edges.push(serde_json::json!({
+                "from": expert_id,
+                "to": session.id,
+                "relation": "remote_expert",
+            }));
+        }
+        if let Some(robot_id) = session.robot_id.as_deref() {
+            edges.push(serde_json::json!({
+                "from": session.id,
+                "to": robot_id,
+                "relation": "session_robot",
+            }));
+        }
+    }
+
+    let active = state.hri_session_store.list_sessions(state);
+    for session in &active {
+        if session.status == "active" {
+            edges.push(serde_json::json!({
+                "from": session.id,
+                "to": session.status,
+                "relation": "live_status",
+            }));
+        }
+    }
+
+    json_ok(&serde_json::json!({
+        "version": "v1",
+        "node_count": nodes.len(),
+        "edge_count": edges.len(),
+        "nodes": nodes,
+        "edges": edges,
+        "active_session_count": active.iter().filter(|s| s.status == "active").count(),
+    }))
+}
+
+pub fn hri_context_snapshot(state: &ControlCenterState) -> HttpResponse {
+    let Some(resolved) = state.resolved.as_ref() else {
+        return bad_request("no resolved configuration loaded");
+    };
+    let registry = &resolved.human_registry;
+    let hazard_zones: Vec<_> = registry
+        .hazard_zones
+        .iter()
+        .map(|zone| {
+            serde_json::json!({
+                "id": zone.id,
+                "type": zone.zone_type,
+                "severity": zone.severity,
+                "center": zone.center,
+                "radius_m": zone.radius_m,
+                "linked_robots": zone.linked_robots,
+                "alert_on_entry": zone.alert_on_entry,
+                "description": zone.description,
+            })
+        })
+        .collect();
+    let human_locations: Vec<_> = registry
+        .humans
+        .iter()
+        .filter(|human| human.location.is_some())
+        .map(|human| {
+            serde_json::json!({
+                "human_id": human.id,
+                "role": human.role,
+                "location": human.location,
+            })
+        })
+        .collect();
+    json_ok(&serde_json::json!({
+        "version": "v1",
+        "hazard_zone_count": hazard_zones.len(),
+        "hazard_zones": hazard_zones,
+        "human_locations": human_locations,
+        "spatial_session_count": registry.spatial_sessions.len(),
+        "active_hri_sessions": state
+            .hri_session_store
+            .list_sessions(state)
+            .iter()
+            .filter(|s| s.status == "active")
+            .count(),
+    }))
+}

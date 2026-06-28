@@ -287,6 +287,14 @@ pub const REST_V1_ROUTES: &[ApiRoute] = &[
         path: "/v1/hri/sessions",
     },
     ApiRoute {
+        method: "GET",
+        path: "/v1/hri/collaboration",
+    },
+    ApiRoute {
+        method: "GET",
+        path: "/v1/hri/context",
+    },
+    ApiRoute {
         method: "POST",
         path: "/v1/hri/sessions",
     },
@@ -301,6 +309,10 @@ pub const REST_V1_ROUTES: &[ApiRoute] = &[
     ApiRoute {
         method: "GET",
         path: "/v1/humans",
+    },
+    ApiRoute {
+        method: "GET",
+        path: "/v1/humans/readiness",
     },
     ApiRoute {
         method: "GET",

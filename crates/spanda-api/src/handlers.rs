@@ -847,6 +847,12 @@ fn route_hri_session(
     if path == "/v1/hri/sessions" && method == "GET" {
         return Some(crate::hri::hri_sessions_list(state));
     }
+    if path == "/v1/hri/collaboration" && method == "GET" {
+        return Some(crate::hri::hri_collaboration_graph(state));
+    }
+    if path == "/v1/hri/context" && method == "GET" {
+        return Some(crate::hri::hri_context_snapshot(state));
+    }
     if path == "/v1/hri/sessions" && method == "POST" {
         return Some(crate::hri::hri_sessions_create(state, body, ctx));
     }
@@ -874,6 +880,9 @@ fn route_humans(
     }
     if path == "/v1/human-health/policy" && method == "GET" {
         return Some(crate::humans::human_health_policy(state));
+    }
+    if path == "/v1/humans/readiness" && method == "GET" {
+        return Some(crate::humans::humans_readiness_team(state));
     }
     let rest = path.strip_prefix("/v1/humans/")?;
     let (human_id, action) = rest.split_once('/').unwrap_or((rest, ""));

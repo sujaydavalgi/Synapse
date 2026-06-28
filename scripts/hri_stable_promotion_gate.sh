@@ -86,9 +86,12 @@ fetch() {
 
 for path in \
   /v1/humans \
+  /v1/humans/readiness \
   /v1/wearables \
   /v1/human-health/policy \
   /v1/hri/sessions \
+  /v1/hri/collaboration \
+  /v1/hri/context \
   "/v1/humans/operator-001/readiness"
 do
   echo "GET ${path}"

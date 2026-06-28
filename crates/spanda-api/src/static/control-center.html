@@ -578,11 +578,14 @@
     async function loadHumans() {
       try {
         errEl.hidden = true;
-        const [humans, wearables, sessions, health] = await Promise.all([
+        const [humans, wearables, sessions, health, readiness, collaboration, context] = await Promise.all([
           api("/v1/humans"),
           api("/v1/wearables"),
           api("/v1/hri/sessions"),
           api("/v1/human-health/policy"),
+          api("/v1/humans/readiness"),
+          api("/v1/hri/collaboration"),
+          api("/v1/hri/context"),
         ]);
         const humanRows = (humans.humans || []).map((h) =>
           `<tr><td>${h.id}</td><td>${h.role}</td><td>${h.display_name || "—"}</td><td>${h.availability || "—"}</td><td>${(h.capabilities || []).join(", ")}</td><td>${h.wearable_count}</td></tr>`
@@ -609,7 +612,13 @@
           <table><thead><tr><th>ID</th><th>Type</th><th>Human</th><th>Provider</th><th>Health</th></tr></thead><tbody>${wearableRows || "<tr><td colspan=5>none</td></tr>"}</tbody></table>
           <h3>AR session viewer &amp; live collaboration</h3>
           <table><thead><tr><th>Session</th><th>Type</th><th>Status</th><th>Field</th><th>Expert</th><th>Capabilities</th></tr></thead><tbody>${sessionRows || "<tr><td colspan=6>none</td></tr>"}</tbody></table>
-          <p>Annotate: <code>POST /v1/hri/sessions/{id}/annotate</code> · Operator readiness: <code>GET /v1/humans/{id}/readiness</code></p>
+          <h3>Team readiness</h3>
+          <pre>${JSON.stringify(readiness.team_readiness || readiness, null, 2)}</pre>
+          <h3>Collaboration graph</h3>
+          <pre>${JSON.stringify(collaboration, null, 2)}</pre>
+          <h3>Context awareness</h3>
+          <pre>${JSON.stringify(context, null, 2)}</pre>
+          <p>Annotate: <code>POST /v1/hri/sessions/{id}/annotate</code> · Operator readiness: <code>GET /v1/humans/{id}/readiness</code> · Team: <code>GET /v1/humans/readiness</code></p>
           <h3>VR training</h3>
           <p>Record: <code>spanda sim vr-training/training_mission.sd --record</code> · Replay: <code>spanda replay training_mission.trace --playback</code></p>
           <h3>Health opt-in policy</h3>

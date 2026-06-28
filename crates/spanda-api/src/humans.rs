@@ -127,3 +127,44 @@ pub fn human_readiness_get(state: &ControlCenterState, human_id: &str) -> HttpRe
     }
     json_ok(&payload)
 }
+
+pub fn humans_readiness_team(state: &ControlCenterState) -> HttpResponse {
+    let Some(resolved) = state.resolved.as_ref() else {
+        return bad_request("no resolved configuration loaded");
+    };
+    let today = chrono::Utc::now().date_naive().to_string();
+    let operators: Vec<_> = resolved
+        .human_registry
+        .humans
+        .iter()
+        .map(|human| {
+            let certs_valid = human.certifications.iter().all(|cert| {
+                cert.expires
+                    .as_ref()
+                    .map(|date| date.as_str() >= today.as_str())
+                    .unwrap_or(true)
+            });
+            serde_json::json!({
+                "id": human.id,
+                "role": human.role,
+                "display_name": human.display_name,
+                "available": human.is_available(),
+                "certifications_valid": certs_valid,
+                "trust_level": human.trust_level,
+                "wearable_count": resolved.human_registry.wearables_for_human(&human.id).len(),
+            })
+        })
+        .collect();
+    let mut payload = serde_json::json!({
+        "version": "v1",
+        "operator_count": operators.len(),
+        "operators": operators,
+    });
+    if let Some(path) = state.program_path.as_ref() {
+        if let Ok((program, _, _)) = crate::program::parse_program_file(path) {
+            let report = evaluate_human_collaboration(resolved, &program);
+            payload["team_readiness"] = serde_json::to_value(&report).unwrap_or(serde_json::json!({}));
+        }
+    }
+    json_ok(&payload)
+}

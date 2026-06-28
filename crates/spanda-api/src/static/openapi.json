@@ -669,10 +669,28 @@
         "responses": { "200": { "description": "Replay metadata" } }
       }
     },
+    "/v1/hri/collaboration": {
+      "get": {
+        "summary": "Live collaboration participant graph (humans, robots, sessions)",
+        "responses": { "200": { "description": "Collaboration graph" } }
+      }
+    },
+    "/v1/hri/context": {
+      "get": {
+        "summary": "Hazard zones and human location context snapshot",
+        "responses": { "200": { "description": "Context awareness snapshot" } }
+      }
+    },
     "/v1/humans": {
       "get": {
         "summary": "List configured human operators and collaborators",
         "responses": { "200": { "description": "Human entity list" } }
+      }
+    },
+    "/v1/humans/readiness": {
+      "get": {
+        "summary": "Team readiness rollup with per-operator summary",
+        "responses": { "200": { "description": "Team readiness report" } }
       }
     },
     "/v1/humans/{id}/readiness": {
