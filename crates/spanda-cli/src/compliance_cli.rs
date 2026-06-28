@@ -1,6 +1,9 @@
 //! CLI for compliance profile accreditation export bundles.
 //!
-use spanda_compliance::{format_accreditation_report, generate_accreditation_report};
+use spanda_compliance::{
+    format_accreditation_report, generate_accreditation_report, list_compliance_profiles,
+    load_signed_profile_catalog,
+};
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
 use std::fs;
@@ -22,15 +25,23 @@ fn parse_program(path: &Path) -> spanda_ast::nodes::Program {
     })
 }
 
-/// `spanda compliance report <file.sd> --profile <name> [--json] [--format markdown]`
+fn print_usage() {
+    eprintln!(
+        "Usage:\n\
+           spanda compliance list [--json]\n\
+           spanda compliance report <file.sd> --profile <name> [--json] [--format markdown]"
+    );
+}
+
+/// Dispatch `spanda compliance` subcommands (`list`, `report`).
 pub fn compliance_dispatch(args: &[String]) {
-    // Dispatch compliance accreditation export commands.
+    // Route compliance list and report subcommands.
     //
     // Parameters:
     // - `args` — CLI arguments after `spanda compliance`
     //
     // Returns:
-    // None (prints report and may exit non-zero on failure).
+    // None (prints output and may exit non-zero on failure).
     //
     // Options:
     // None.
@@ -38,16 +49,59 @@ pub fn compliance_dispatch(args: &[String]) {
     // Example:
     // compliance_cli::compliance_dispatch(&args[2..]);
 
-    if args.first().map(String::as_str) != Some("report") {
-        eprintln!(
-            "Usage: spanda compliance report <file.sd> --profile <name> [--json] [--format markdown]"
-        );
-        process::exit(1);
+    match args.first().map(String::as_str) {
+        Some("list") => cmd_list(&args[1..]),
+        Some("report") => cmd_report(&args[1..]),
+        Some("--help") | Some("-h") | None => print_usage(),
+        Some(other) => {
+            eprintln!("Unknown compliance subcommand '{other}'");
+            print_usage();
+            process::exit(1);
+        }
+    }
+}
+
+fn cmd_list(args: &[String]) {
+    let json = args.iter().any(|arg| arg == "--json");
+    let builtins = list_compliance_profiles();
+    let signed = load_signed_profile_catalog().unwrap_or_default();
+
+    if json {
+        let payload = serde_json::json!({
+            "profiles": builtins,
+            "signed_catalog": signed.iter().map(|entry| serde_json::json!({
+                "name": entry.name,
+                "version": entry.version,
+                "verified": entry.verified,
+                "description": entry.profile.description,
+                "content_sha256": entry.content_sha256,
+            })).collect::<Vec<_>>(),
+        });
+        println!("{}", serde_json::to_string_pretty(&payload).unwrap_or_default());
+        return;
     }
 
+    println!("Built-in compliance profiles:");
+    for name in &builtins {
+        println!("  {name}");
+    }
+    if signed.is_empty() {
+        println!("\nSigned catalog: unavailable");
+        return;
+    }
+    println!("\nSigned catalog:");
+    for entry in signed {
+        let mark = if entry.verified { "verified" } else { "UNVERIFIED" };
+        println!(
+            "  {} ({}) — {}",
+            entry.name, mark, entry.profile.description
+        );
+    }
+}
+
+fn cmd_report(args: &[String]) {
     let file = args
         .iter()
-        .skip(1)
         .find(|arg| !arg.starts_with('-'))
         .cloned()
         .unwrap_or_else(|| {

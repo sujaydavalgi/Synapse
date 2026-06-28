@@ -881,6 +881,39 @@ fn demo_gaps(root: &Path) {
     println!("\nDemo complete. See docs/platform-maturity-roadmap.md and scripts/gaps_smoke.sh");
 }
 
+fn demo_compliance(root: &Path) {
+    crate::bundled_registry::ensure_bundled_registry_env();
+
+    let showcases = [
+        ("defense_rover.sd", "defense"),
+        ("medical_rover.sd", "medical"),
+        ("automotive_rover.sd", "iso26262"),
+        ("machinery_rover.sd", "iso13849"),
+        ("iec61508_rover.sd", "iec61508"),
+    ];
+
+    println!("== Compliance profile showcases ==\n");
+    run_spanda_args(&["compliance", "list"]);
+
+    let mut defense_sd = None;
+    for (file, profile) in showcases {
+        let path = showcase(root, &["compliance", file]);
+        let sd = require_file(&path);
+        if profile == "defense" {
+            defense_sd = Some(sd.to_str().unwrap().to_string());
+        }
+        println!("\n--- verify {profile} ({file}) ---");
+        run_spanda_args(&["verify", sd.to_str().unwrap(), "--profile", profile]);
+    }
+
+    if let Some(defense) = defense_sd.as_deref() {
+        println!("\n--- accreditation export (defense) ---");
+        run_spanda_args(&["compliance", "report", defense, "--profile", "defense"]);
+    }
+
+    println!("\nDemo complete. See examples/showcase/compliance/README.md and docs/compliance-profiles.md");
+}
+
 pub fn demo_dispatch(args: &[String]) {
     // Description:
     //     Demo dispatch.
@@ -914,6 +947,7 @@ pub fn demo_dispatch(args: &[String]) {
         "trust" | "tamper" | "security-trust" => demo_trust(&root),
         "spoof" | "spoofing" | "gps-spoofing" => demo_spoof(&root),
         "gaps" | "platform-gaps" | "maturity-gaps" => demo_gaps(&root),
+        "compliance" | "profiles" => demo_compliance(&root),
         "" | "list" | "--help" | "-h" => {
             eprintln!(
                 "Spanda showcase demos\n\n\
@@ -933,6 +967,7 @@ pub fn demo_dispatch(args: &[String]) {
                    maturity — Phase A graph, explain, trust, deployment gates\n\
                    trust — package/mission tampering, spoofing, runtime intrusion, tamper_policy\n\
                    spoof — GPS spoof-check coverage, trace alerts, mock ML merge\n\
+                   compliance — industry profile verification (defense, medical, ISO 26262, ISO 13849, IEC 61508)\n\
                    gaps — vendor TPM, AK chain, compliance export, confidence gates\n\n\
                  Set SPANDA_ROOT to the repository root if examples are not found.\n\
                  See examples/showcase/README.md"
