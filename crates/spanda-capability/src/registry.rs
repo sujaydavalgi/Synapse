@@ -381,7 +381,7 @@ fn operator_def(name: &str, description: &str) -> CapabilityDefinition {
 }
 
 pub fn is_operator_capability(name: &str) -> bool {
-    operator_capability_names().iter().any(|cap| *cap == name)
+    operator_capability_names().contains(&name)
 }
 
 fn operator_capability_names() -> &'static [&'static str] {

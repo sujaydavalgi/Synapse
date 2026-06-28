@@ -258,13 +258,13 @@ pub fn unofficial_official_overrides_from_manifest(
     manifest
         .dependencies
         .iter()
-        .filter_map(|(name, spec)| {
+        .filter(|(name, spec)| {
             matches!(
                 dependency_provenance(name, spec, project_root),
                 OfficialProvenance::UnofficialOverride
             )
-            .then(|| name.clone())
         })
+        .map(|(name, _spec)| name.clone())
         .collect()
 }
 
@@ -291,13 +291,13 @@ pub fn unofficial_official_overrides_from_lockfile(
     lockfile
         .dependencies
         .iter()
-        .filter_map(|(name, dep)| {
+        .filter(|(name, dep)| {
             matches!(
                 locked_dependency_provenance(name, dep, project_root),
                 OfficialProvenance::UnofficialOverride
             )
-            .then(|| name.clone())
         })
+        .map(|(name, _dep)| name.clone())
         .collect()
 }
 
