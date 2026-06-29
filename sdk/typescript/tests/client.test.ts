@@ -13,6 +13,34 @@ describe("SpandaClient", () => {
     const err = SpandaError.fromStatus(403, "forbidden");
     expect(err.name).toBe("PermissionError");
   });
+
+  it("entityReadiness uses readiness path", async () => {
+    const client = SpandaClient.local();
+    let captured = "";
+    (client as unknown as { request: typeof client["request"] }).request = async (
+      method,
+      path,
+    ) => {
+      captured = `${method} ${path}`;
+      return {};
+    };
+    await client.entityReadiness("rover-001");
+    expect(captured).toBe("GET /v1/entities/rover-001/readiness");
+  });
+
+  it("entityRelationships uses relationships path", async () => {
+    const client = SpandaClient.local();
+    let captured = "";
+    (client as unknown as { request: typeof client["request"] }).request = async (
+      method,
+      path,
+    ) => {
+      captured = `${method} ${path}`;
+      return {};
+    };
+    await client.entityRelationships("rover-001");
+    expect(captured).toBe("GET /v1/entities/rover-001/relationships");
+  });
 });
 
 describe("ReadinessReport", () => {

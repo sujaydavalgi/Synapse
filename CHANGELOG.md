@@ -22,9 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rust SDK crates.io packaging:** make `tonic-build` a required build-dependency so `cargo package` verifies without the `grpc` feature.
 - **Sim `stop_if` false E-stop:** `RunOptions::default()` now sets `lidar_range = 10.0 m` (was `0.0` from derived `Default`, forcing `nearest_distance = 0.01 m` and spurious `stop_if` triggers in `spanda sim` / `spanda run`).
 - **Behavior loop trace recording:** `loop every` in behaviors now emits `behavior_tick` mission trace frames when `--record` is enabled (ADAS `highway_drive.trace` replays deterministically).
+- **Config snapshot encryption tests:** shared env lock prevents parallel `SPANDA_CONFIG_SNAPSHOT_KEY` races between `snapshot_encryption` and `config_snapshots` unit tests.
 
 ### Added
 
+- **Entity SDK parity:** TypeScript `entityReadiness` / `entityRelationships`; Rust gRPC `entity_health` / `entity_trust` wrappers.
 - **Platform lifecycle events:** `ReadinessChanged`, `MissionStarted`, and `MissionCompleted` platform events from readiness evaluation and interpreter orchestration (when audit runtime is active).
 - **Platform event emission:** entity mutation REST handlers emit `PlatformEvent` envelopes (`EntityCreated`, `EntityTagged`, …) via `AuditRuntime::record_platform_event`.
 - **Platform Architecture v2.1 hardening:** TypeScript layer validation (37 baseline waivers), manifest YAML/JSON sync check, blueprint governance validator (`validate_blueprints.py`), `PlatformEvent` envelope in `spanda-audit`, waiver burn-down plan [architecture-waiver-burn-down.md](docs/architecture-waiver-burn-down.md).

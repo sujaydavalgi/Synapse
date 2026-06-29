@@ -36,17 +36,15 @@ Smoke test (all three SDKs): `scripts/entity_model_smoke.sh`
 | Query | `query_entities(&json)` | `queryEntities(body)` | `query_entities(body)` | `query_entities(&json)` |
 | Graph | `entity_graph()` | `entityGraph()` | `entity_graph()` | `entity_graph()` |
 | Traceability | `entity_traceability(…)` | `entityTraceability(…)` | `entity_traceability(…)` | `entity_traceability(…)` |
-| Relationships | `entity_relationships(id)` | — (use `rpc` or REST) | `entity_relationships(id)` | `entity_relationships(id)` |
-| Health | `entity_health(id)` | `getHealth(id)` | `get_health(id)` | — |
-| Readiness | `entity_readiness(id)` | — (use `rpc` or REST) | `entity_readiness(id)` | `entity_readiness(id)` |
-| Trust | `entity_trust(id)` | `getTrust(id)` | `get_trust(id)` | — |
+| Relationships | `entity_relationships(id)` | `entityRelationships(id)` | `entity_relationships(id)` | `entity_relationships(id)` |
+| Health | `entity_health(id)` | `getHealth(id)` | `get_health(id)` | `entity_health(id)` |
+| Readiness | `entity_readiness(id)` | `entityReadiness(id)` | `entity_readiness(id)` | `entity_readiness(id)` |
+| Trust | `entity_trust(id)` | `getTrust(id)` | `get_trust(id)` | `entity_trust(id)` |
 | Verify | `entity_verify(id, body)` | `verifyEntity(id, body)` | `entity_verify(id, …)` | `entity_verify(id, &json)` |
 | Register | `register_entity(&json)` | `registerEntity(body)` | `register_entity(body)` | `register_entity(&json)` |
 | Tag | `tag_entity(id, &json)` | `tagEntity(id, body)` | `tag_entity(id, body)` | `tag_entity(id, &json)` |
 | Relate | `relate_entities(&json)` | `relateEntities(body)` | `relate_entities(body)` | `relate_entities(&json)` |
 | Sync | `sync_entities()` | `syncEntities()` | `sync_entities()` | `sync_entities()` |
-
-TypeScript gaps (`entityRelationships`, `entityReadiness`) can be filled with `client.rpc("GetEntityRelationships", { entity_id })` or a direct `GET` until dedicated helpers ship.
 
 API shapes: [entity-apis.md](./entity-apis.md)
 

@@ -172,6 +172,14 @@ export class SpandaClient {
     return this.request("GET", `/v1/entities/${entityId}/health`);
   }
 
+  async entityReadiness(entityId: string): Promise<JsonValue> {
+    return this.request("GET", `/v1/entities/${entityId}/readiness`);
+  }
+
+  async entityRelationships(entityId: string): Promise<JsonValue> {
+    return this.request("GET", `/v1/entities/${entityId}/relationships`);
+  }
+
   async getTrust(entityId: string): Promise<JsonValue> {
     return this.request("GET", `/v1/entities/${entityId}/trust`);
   }

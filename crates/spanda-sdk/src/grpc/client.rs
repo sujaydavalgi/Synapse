@@ -207,11 +207,35 @@ impl GrpcClient {
         Self::parse_json(resp.into_inner().json)
     }
 
+    /// Health snapshot via `GetEntityHealth`.
+    pub async fn entity_health(&mut self, entity_id: &str) -> SpandaResult<Value> {
+        let resp = self
+            .inner
+            .get_entity_health(EntityIdRequest {
+                entity_id: entity_id.to_string(),
+            })
+            .await
+            .map_err(|e| SpandaError::connection(e.to_string()))?;
+        Self::parse_json(resp.into_inner().json)
+    }
+
     /// Readiness snapshot via `GetEntityReadiness`.
     pub async fn entity_readiness(&mut self, entity_id: &str) -> SpandaResult<Value> {
         let resp = self
             .inner
             .get_entity_readiness(EntityIdRequest {
+                entity_id: entity_id.to_string(),
+            })
+            .await
+            .map_err(|e| SpandaError::connection(e.to_string()))?;
+        Self::parse_json(resp.into_inner().json)
+    }
+
+    /// Trust evaluation via `GetEntityTrust`.
+    pub async fn entity_trust(&mut self, entity_id: &str) -> SpandaResult<Value> {
+        let resp = self
+            .inner
+            .get_entity_trust(EntityIdRequest {
                 entity_id: entity_id.to_string(),
             })
             .await

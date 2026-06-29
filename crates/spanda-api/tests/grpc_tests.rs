@@ -1,6 +1,6 @@
 //! gRPC server smoke tests for Control Center.
 use spanda_api::grpc::spanda_v1::control_center_client::ControlCenterClient;
-use spanda_api::grpc::spanda_v1::{DeviceBodyRequest, DeviceIdRequest, EntityBodyRequest};
+use spanda_api::grpc::spanda_v1::{DeviceBodyRequest, DeviceIdRequest, EntityBodyRequest, EntityIdRequest};
 use spanda_api::grpc::spanda_v1::{Empty, QueryRequest, ReadinessRequest, TrustPackageRequest};
 use spanda_api::{run_control_center_server, ControlCenterOptions};
 use std::net::TcpListener;
@@ -438,6 +438,24 @@ async fn grpc_entity_graph_and_mutations_with_warehouse_config() {
         .expect("verify entity")
         .into_inner();
     assert!(verified.json.contains("entity_id"));
+
+    let health = client
+        .get_entity_health(EntityIdRequest {
+            entity_id: "rover-001".into(),
+        })
+        .await
+        .expect("entity health")
+        .into_inner();
+    assert!(health.json.contains("health_status"));
+
+    let trust = client
+        .get_entity_trust(EntityIdRequest {
+            entity_id: "rover-001".into(),
+        })
+        .await
+        .expect("entity trust")
+        .into_inner();
+    assert!(trust.json.contains("trust_status"));
 
     let mut register_req = tonic::Request::new(spanda_api::grpc::spanda_v1::JsonBodyRequest {
         body_json: r#"{

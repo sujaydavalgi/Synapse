@@ -11,15 +11,19 @@ The Unified Entity Model integrates registry, graph, query, traceability, verifi
 
 | Deliverable | Status | Location |
 |-------------|--------|----------|
-| Entity verification engine | ✅ | `crates/spanda-readiness/src/entity_verify.rs` |
-| REST API | ✅ | `POST /v1/entities/{id}/verify` |
-| CLI | ✅ | `spanda entity *` (list, inspect, graph, relationships, traceability, readiness, health, trust, verify, query, search) |
-| Rust SDK | ✅ | `SpandaClient::entity_verify` |
-| TypeScript SDK | ✅ | `verifyEntity` |
-| Python SDK | ✅ | `entity_verify` |
+| Entity registry & graph | ✅ | `crates/spanda-config/src/entity.rs` |
+| Verification engine | ✅ | `crates/spanda-readiness/src/entity_verify.rs` |
+| Readiness / health / trust engines | ✅ | `entity_readiness.rs`, `entity_health.rs`, `spanda-trust/entity_trust.rs` |
+| REST API (14 routes) | ✅ | `crates/spanda-api/src/sdk_ops.rs`, `entity_mutations.rs` |
+| gRPC entity RPCs (proto 1.0.3) | ✅ | `crates/spanda-api/proto/spanda/v1/control_center.proto` |
+| CLI | ✅ | `spanda entity *` in `crates/spanda-cli/src/entity_cli.rs` |
+| Rust / TS / Python SDK | ✅ | `crates/spanda-sdk`, `sdk/typescript`, `sdk/python` |
+| Control Center Entities tab | ✅ | `packages/web/src/EntityGraphPanel.tsx` |
 | CI smoke | ✅ | `scripts/entity_model_smoke.sh` |
-| Documentation | ✅ | [entity-verification.md](./entity-verification.md) |
-| Examples | ✅ | `examples/entity/` |
+| API reference | ✅ | [entity-apis.md](./entity-apis.md) |
+| SDK reference | ✅ | [entity-sdk.md](./entity-sdk.md) |
+| Topic guides | ✅ | verification, readiness, health, trust, graph, query, migration |
+| Examples (8 programs) | ✅ | `examples/entity/` |
 
 ## Architecture change
 
