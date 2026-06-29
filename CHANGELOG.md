@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Platform lifecycle events:** `ReadinessChanged`, `MissionStarted`, and `MissionCompleted` platform events from readiness evaluation and interpreter orchestration (when audit runtime is active).
 - **Platform event emission:** entity mutation REST handlers emit `PlatformEvent` envelopes (`EntityCreated`, `EntityTagged`, …) via `AuditRuntime::record_platform_event`.
 - **Platform Architecture v2.1 hardening:** TypeScript layer validation (37 baseline waivers), manifest YAML/JSON sync check, blueprint governance validator (`validate_blueprints.py`), `PlatformEvent` envelope in `spanda-audit`, waiver burn-down plan [architecture-waiver-burn-down.md](docs/architecture-waiver-burn-down.md).
 - **Platform Architecture v2.0:** Official layered architecture, dependency governance, ownership boundaries, and CI validation — [platform-architecture.md](docs/platform-architecture.md), [layered-architecture.md](docs/layered-architecture.md), [dependency-rules.md](docs/dependency-rules.md), [module-ownership.md](docs/module-ownership.md), [platform-services.md](docs/platform-services.md), [event-model.md](docs/event-model.md), [design-principles.md](docs/design-principles.md); manifest at [scripts/architecture-manifest.yaml](scripts/architecture-manifest.yaml); validator [scripts/validate_architecture.py](scripts/validate_architecture.py) in CI; dependency graph [docs/architecture-dependency-graph.dot](docs/architecture-dependency-graph.dot).
