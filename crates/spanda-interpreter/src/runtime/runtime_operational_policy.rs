@@ -2,7 +2,7 @@
 //!
 
 use super::{Interpreter, MotionCommand, RobotBackend};
-use spanda_policy::{check_runtime_policy_motion, RuntimePolicyMonitor};
+use spanda_runtime::operational_policy::RuntimePolicyMonitor;
 
 impl<B: RobotBackend> Interpreter<B> {
     pub(super) fn load_runtime_policy(
@@ -47,7 +47,7 @@ impl<B: RobotBackend> Interpreter<B> {
         // if let Some(reason) = self.check_runtime_policy_before_motion(0.8) { ... }
 
         let monitor = self.runtime_policy.as_ref()?;
-        match check_runtime_policy_motion(monitor, linear_mps) {
+        match spanda_runtime::operational_policy::check_runtime_policy_motion(monitor, linear_mps) {
             Ok(()) => None,
             Err(violation) => Some(format!(
                 "Policy {}:{} — {}",

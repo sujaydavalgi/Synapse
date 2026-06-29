@@ -40,6 +40,9 @@ pub fn apply_system_config_to_run_options(
             opts.module_registry = Some(registry);
         }
     }
+    if opts.runtime_hooks.is_none() {
+        opts.runtime_hooks = Some(crate::runtime_hooks::default_runtime_hooks());
+    }
     opts
 }
 

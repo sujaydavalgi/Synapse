@@ -30,6 +30,7 @@ mod network_cli;
 mod package;
 mod readiness_cli;
 mod recovery_cli;
+mod runtime_hooks;
 mod replay_cli;
 mod ros2_cli;
 mod score_cli;

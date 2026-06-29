@@ -48,7 +48,7 @@ spanda-capability = { path = "../spanda-capability" }
 spanda-readiness = { path = "../spanda-readiness" }
 spanda-config = { path = "../spanda-config" }
 spanda-runtime-faults = { path = "../spanda-runtime-faults" }
-spanda-assurance = { path = "../spanda-assurance" }
+spanda-assurance = { path = "../spanda-assurance", features = ["certify-runtime"] }
 spanda-contract = { path = "../spanda-contract" }
 spanda-explain = { path = "../spanda-explain" }
 spanda-graph = { path = "../spanda-graph" }

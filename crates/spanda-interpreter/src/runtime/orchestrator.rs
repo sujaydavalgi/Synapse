@@ -31,7 +31,7 @@ use spanda_runtime::world_model::WorldModelRuntime;
 use spanda_runtime_host::core_runtime_host;
 use spanda_safety::{Pose2d, SafetyMonitor, SafetyZoneRuntime};
 use spanda_security::SecurityContext;
-use spanda_tamper::{TamperPolicySpec, TamperSeverity};
+use spanda_runtime::tamper_policy::{TamperPolicySpec, TamperSeverity};
 use spanda_transport_routing::RoutingCommBus;
 use spanda_typecheck::ModuleRegistry;
 use std::cell::RefCell;
@@ -447,7 +447,7 @@ pub struct Interpreter<B: RobotBackend> {
     mission_approval_actions: std::collections::HashSet<String>,
     recovery_knowledge_path: std::path::PathBuf,
     recovery_speed_cap: Option<f64>,
-    runtime_policy: Option<spanda_policy::RuntimePolicyMonitor>,
+    runtime_policy: Option<spanda_runtime::operational_policy::RuntimePolicyMonitor>,
 }
 
 impl<B: RobotBackend> Interpreter<B> {
@@ -1291,7 +1291,10 @@ impl<B: RobotBackend> Interpreter<B> {
         self.cache_fault_program(program);
         self.cache_kill_switches(program);
         if let Some(ref policy_name) = self.options.enforce_policy.clone() {
-            let monitor = spanda_policy::build_runtime_policy_monitor(program, policy_name)
+            let monitor = spanda_runtime::operational_policy::build_runtime_policy_monitor(
+                program,
+                policy_name,
+            )
                 .map_err(|message| RuntimeError::new(message, 0).into_spanda())?;
             self.load_runtime_policy(monitor)?;
         }

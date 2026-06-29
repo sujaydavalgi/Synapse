@@ -2469,7 +2469,6 @@ dependencies = [
  "spanda-lexer",
  "spanda-lib-registry",
  "spanda-parser",
- "spanda-policy",
  "spanda-providers",
  "spanda-regex-lang",
  "spanda-runtime",
@@ -2477,7 +2476,6 @@ dependencies = [
  "spanda-runtime-host",
  "spanda-safety",
  "spanda-security",
- "spanda-tamper",
  "spanda-telemetry-store",
  "spanda-transport",
  "spanda-transport-routing",
@@ -2622,6 +2620,7 @@ dependencies = [
  "spanda-lexer",
  "spanda-parser",
  "spanda-readiness",
+ "spanda-runtime",
 ]
 
 [[package]]
@@ -2687,6 +2686,7 @@ dependencies = [
 name = "spanda-runtime"
 version = "0.4.0"
 dependencies = [
+ "chrono",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2825,6 +2825,7 @@ dependencies = [
  "spanda-package",
  "spanda-parser",
  "spanda-readiness",
+ "spanda-runtime",
  "spanda-security",
  "spanda-spoofing",
  "spanda-threat",

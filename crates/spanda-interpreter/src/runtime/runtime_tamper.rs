@@ -3,8 +3,9 @@
 use super::super::super::fleet_http::{ingest_fleet_tamper_trace, FleetTamperIngestRequest};
 use super::{Interpreter, RobotBackend};
 use spanda_ast::nodes::Program;
-use spanda_tamper::{
-    actions_for_tamper_event, extract_tamper_policies, MissionTrace, TamperSeverity, TraceFrame,
+use spanda_runtime::replay::{MissionTrace, TraceFrame};
+use spanda_runtime::tamper_policy::{
+    actions_for_tamper_event, extract_tamper_policies, TamperSeverity,
 };
 
 impl<B: RobotBackend> Interpreter<B> {
@@ -125,6 +126,7 @@ impl<B: RobotBackend> Interpreter<B> {
                     "severity": format!("{:?}", severity),
                     "robot": robot_id,
                 }),
+                state: None,
             }],
         };
         let trace_json = serde_json::to_string(&trace).unwrap_or_default();

@@ -724,5 +724,18 @@ fn print_event(event: &TelemetryEvent) {
             "[runtime_metrics] {timestamp_ms}ms session={session_id} keys={}",
             metrics.as_object().map(|object| object.len()).unwrap_or(0)
         ),
+        TelemetryEvent::Platform {
+            event_type,
+            source,
+            entity_id,
+            timestamp_ms,
+            ..
+        } => println!(
+            "[platform] {timestamp_ms}ms type={event_type} source={source}{}{session}",
+            entity_id
+                .as_ref()
+                .map(|id| format!(" entity={id}"))
+                .unwrap_or_default()
+        ),
     }
 }

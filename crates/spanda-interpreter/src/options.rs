@@ -2,6 +2,7 @@
 //!
 use serde::{Deserialize, Serialize};
 use spanda_ffi::FfiRegistry;
+use spanda_runtime::hooks::SharedRuntimeHooks;
 use spanda_runtime::replay::MissionTrace;
 use spanda_runtime::robot_state::{PoseState, RobotState};
 use spanda_runtime::scheduler::SchedulerClock;
@@ -84,6 +85,9 @@ pub struct RunOptions {
     pub ffi_registry: Option<FfiRegistry>,
     #[serde(skip)]
     pub system_config: Option<std::sync::Arc<spanda_config::ResolvedSystemConfig>>,
+    /// Platform service hooks injected by `spanda-driver` or the API layer.
+    #[serde(skip)]
+    pub runtime_hooks: Option<SharedRuntimeHooks>,
 }
 
 impl Default for RunOptions {
@@ -125,6 +129,7 @@ impl Default for RunOptions {
             inbound_comm_messages: Vec::new(),
             ffi_registry: None,
             system_config: None,
+            runtime_hooks: None,
         }
     }
 }
