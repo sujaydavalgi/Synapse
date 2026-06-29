@@ -1,7 +1,7 @@
 //! One-command showcase demos for evaluators (`spanda demo <name>`).
 //!
-use spanda_driver::{check, run, verify_compatibility_with_registry, RunOptions};
-use spanda_hardware::VerifyOptions;
+use spanda_driver::{check, compile, run, RunOptions};
+use spanda_hardware::{verify_program_compatibility, CompatSeverity, VerifyOptions};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
@@ -464,10 +464,15 @@ fn demo_verify(root: &Path) {
     println!("→ Mission on robot without Lidar (must fail)");
     let source = read_source(fail_sd);
     let options = VerifyOptions::default();
-    let report = verify_compatibility_with_registry(&source, &options, None).unwrap_or_else(|e| {
-        eprintln!("Verify failed: {e}");
+    let program = compile(&source).unwrap_or_else(|e| {
+        eprintln!("Compile failed: {e}");
         process::exit(1);
     });
+    let mut report = verify_program_compatibility(&program.program, &options);
+    report.compatible = !report
+        .items
+        .iter()
+        .any(|item| item.severity == CompatSeverity::Error);
     if report.compatible {
         eprintln!("Expected verification failure for {}", fail_sd.display());
         process::exit(1);

@@ -68,6 +68,8 @@ spanda-spoofing = { path = "../spanda-spoofing" }
 spanda-decision = { path = "../spanda-decision" }
 spanda-telemetry-store = { path = "../spanda-telemetry-store", features = ["sqlite", "push"] }
 spanda-lint = { path = "../spanda-lint" }
+spanda-lib-registry = { path = "../spanda-lib-registry" }
+spanda-runtime-host = { path = "../spanda-runtime-host" }
 spanda-llvm = { path = "../spanda-llvm", optional = true }
 spanda-modules = { path = "../spanda-modules" }
 spanda-ota = { path = "../spanda-ota" }

@@ -50,6 +50,8 @@ mod trace_cli;
 mod trust_cli;
 
 use serde::Serialize;
+use spanda_lib_registry::list_libraries;
+use spanda_runtime_host::core_type_check_host;
 use spanda_ast::comm_decl::PeerRobotDecl;
 use spanda_ast::foundations::{DeployDecl, TaskDecl};
 use spanda_ast::nodes::{BehaviorDecl, Program, RobotDecl};
@@ -2631,7 +2633,19 @@ fn main() {
             }
         }
         "reference" => {
-            let markdown = generate_language_reference();
+            let libs: Vec<_> = list_libraries()
+                .iter()
+                .map(|l| {
+                    (
+                        l.id.clone(),
+                        format!(
+                            "{} — {} v{}: {}",
+                            l.name, l.vendor, l.version, l.description
+                        ),
+                    )
+                })
+                .collect();
+            let markdown = generate_language_reference(core_type_check_host(), &libs);
 
             // Take this path when let Some(ref out) = out path.
             if let Some(ref out) = out_path {
