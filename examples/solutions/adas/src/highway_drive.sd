@@ -9,6 +9,8 @@
 // Demonstrates safety-first ADAS workflows without automotive-specific core extensions.
 // Radar and ECU actuators are modeled in spanda.devices.toml; programs use Lidar/Camera/DifferentialDrive.
 
+module highway_drive;
+
 import trust.jetson;
 
 hardware JetsonAutomotive {

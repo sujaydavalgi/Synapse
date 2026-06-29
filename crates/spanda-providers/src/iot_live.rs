@@ -641,6 +641,7 @@ fn bridge_script_path() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::radar_env_lock::RadarEnvLock;
 
     #[test]
     fn live_modbus_disabled_by_default() {
@@ -664,6 +665,7 @@ mod tests {
 
     #[test]
     fn live_radar_disabled_by_default() {
+        let _lock = RadarEnvLock::acquire().expect("radar env lock");
         std::env::remove_var("SPANDA_LIVE_RADAR");
         assert!(!live_radar_enabled());
         assert!(read_radar_distance_live("front-radar").is_none());
@@ -671,6 +673,9 @@ mod tests {
 
     #[test]
     fn live_radar_external_cmd_parses_stdout() {
+        let _lock = RadarEnvLock::acquire().expect("radar env lock");
+        std::env::remove_var("SPANDA_LIVE_RADAR");
+        std::env::remove_var("SPANDA_RADAR_CMD");
         std::env::set_var("SPANDA_LIVE_RADAR", "1");
         std::env::set_var("SPANDA_RADAR_CMD", "echo 42.5");
         assert_eq!(read_radar_distance_live("front-radar"), Some(42.5));

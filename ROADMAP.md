@@ -82,6 +82,7 @@ Unified Entity Model (all platform objects)
 | **Graph unification** | Align `spanda-graph` + digital thread with entity IDs; `GET /v1/entities/traceability` | **Experimental** | Now | Core |
 | **Industry extensions** | Facility/building/zone TOML, ADAS/medical compliance metadata, package entity kinds | **Experimental** | Now | Core |
 | **Entity mutation API** | Register, tag, relate, sync overlay to TOML with audit | **Experimental** | Now | Core |
+| **Entity stabilization** | CI `entity_model_smoke.sh`, Control Center write UI, TypeScript SDK parity | **Experimental** | Now | Core + Control Center |
 
 **Design rule:** Before introducing a new top-level platform abstraction, determine whether it should be a new **Entity kind** instead.
 
@@ -987,7 +988,7 @@ Maturity-based horizons — **not arbitrary calendar dates**.
 | VS Code Marketplace listing | **Partial** — needs `VSCE_PAT` |
 | Mission Contracts, Explainability, Audit Trail, Coverage CLIs | **Stable** |
 
-**Exit criteria:** Marketplace publish + `spanda demo differentiation` + `scripts/differentiation_smoke.sh`
+**Exit criteria:** Marketplace publish + `spanda demo differentiation` + `scripts/differentiation_smoke.sh` (CI job: `differentiation-smoke`)
 
 ### v0.3 / v0.2 — Complete
 

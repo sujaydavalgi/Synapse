@@ -480,6 +480,19 @@ jobs:
       - run: chmod +x scripts/entity_model_smoke.sh
       - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/entity_model_smoke.sh
 
+  differentiation-smoke:
+    runs-on: ubuntu-latest
+    needs: rust
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
+      - run: cargo build -p spanda --release
+      - run: chmod +x scripts/differentiation_smoke.sh
+      - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/differentiation_smoke.sh
+
   control-center-desktop:
     runs-on: ubuntu-latest
     needs: rust

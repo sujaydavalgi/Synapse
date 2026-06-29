@@ -8,6 +8,7 @@ pub mod iot_hub;
 pub mod iot_live;
 pub mod package_dispatch;
 pub mod package_stubs;
+pub mod radar_env_lock;
 pub mod transport_adapter;
 
 pub use automotive_hub::{
