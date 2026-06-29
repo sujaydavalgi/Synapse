@@ -109,7 +109,13 @@ See also: [entity-relationships.md](./entity-relationships.md), [entity-registry
 | GET | `/v1/entities/{id}/relationships` | Edges, impact analysis, dependency chain |
 | GET | `/v1/entities/{id}/health` | Health snapshot |
 | GET | `/v1/entities/{id}/readiness` | Readiness snapshot |
-| GET | `/v1/entities/{id}/trust` | Trust and security metadata |
+| GET | `/v1/entities/traceability` | Unified traceability (entity + program graph) |
+| POST | `/v1/entities/register` | Register or update entity overlay (Bearer) |
+| POST | `/v1/entities/{id}/tags` | Add or remove tags (Bearer) |
+| POST | `/v1/entities/relationships` | Relate two entities (Bearer) |
+| POST | `/v1/entities/sync` | Sync overlay to TOML fragments (Bearer) |
+
+**gRPC (tonic):** same JSON payloads via `GetEntityGraph`, `GetEntityTraceability`, `QueryEntities`, `GetEntityRelationships`, `GetEntityReadiness`, `RegisterEntity`, `TagEntity`, `RelateEntities`, `SyncEntities` on `--grpc-bind`. Mutations require Bearer metadata (Rust `GrpcClient` reads `SPANDA_API_KEY`). JSON-RPC gateway exposes read-only entity methods via `POST /v1/rpc`.
 
 Existing routes (`/v1/devices`, `/v1/robots`, `/v1/fleets`, `/v1/humans`, …) are unchanged.
 
@@ -180,7 +186,7 @@ Cross-references:
 
 - [x] CI smoke script `scripts/entity_model_smoke.sh` (graph, traceability, query, mutations, TypeScript + Python SDK)
 - [x] Control Center **Entities** tab write UI (register, tag, relate, sync) with API key auth
-- [x] SDK parity: `registerEntity` / `register_entity`, `tagEntity` / `tag_entity`, `relateEntities` / `relate_entities`, `syncEntities` / `sync_entities`, `entityGraph` / `entity_graph`, `entityTraceability` / `entity_traceability`, `queryEntities` / `query_entities` (TypeScript, Python, Rust)
+- [x] SDK parity: `registerEntity` / `register_entity`, `tagEntity` / `tag_entity`, `relateEntities` / `relate_entities`, `syncEntities` / `sync_entities`, `entityGraph` / `entity_graph`, `entityTraceability` / `entity_traceability`, `queryEntities` / `query_entities` (TypeScript, Python, Rust REST + Rust `GrpcClient` gRPC)
 - [x] Stable promotion gate: `scripts/entity_model_stable_promotion_gate.sh` + CI `entity-model-promotion-gate` — [entity-model-stable-promotion.md](./entity-model-stable-promotion.md)
 
 ### Promotion to Stable

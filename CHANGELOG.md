@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **gRPC entity model parity:** nine new `ControlCenter` RPCs — `GetEntityGraph`, `GetEntityTraceability`, `QueryEntities`, `GetEntityRelationships`, `GetEntityReadiness`, `RegisterEntity`, `TagEntity`, `RelateEntities`, `SyncEntities` (proto semver **1.0.2**, 82 RPCs); JSON-RPC gateway read paths for graph/traceability/query/relationships/readiness; `GrpcClient` helpers with `SPANDA_API_KEY` Bearer on mutations; warehouse fixture tests in `grpc_tests.rs`.
 - **Python SDK entity helpers:** `entity_graph`, `entity_traceability`, `query_entities`, `register_entity`, `tag_entity`, `relate_entities`, `sync_entities` — parity with TypeScript and Rust SDKs; covered in `scripts/entity_model_smoke.sh`.
 - **Rust SDK `entity_traceability`:** query helper for `GET /v1/entities/traceability`.
 - **Agriculture solution blueprint CI:** `scripts/agriculture_smoke.sh` validates `examples/solutions/agriculture/field_patrol.sd` (`agriculture-smoke` job).

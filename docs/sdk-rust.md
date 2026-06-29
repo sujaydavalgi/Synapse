@@ -93,9 +93,18 @@ rt.block_on(async {
 | `replay(file, deterministic, playback)` | `ReplayProgram` |
 | `list_entities()` | `ListEntities` |
 | `get_entity(id)` | `GetEntity` |
+| `entity_graph()` | `GetEntityGraph` |
+| `entity_traceability(query)` | `GetEntityTraceability` |
+| `query_entities(body)` | `QueryEntities` |
+| `entity_relationships(id)` | `GetEntityRelationships` |
+| `entity_readiness(id)` | `GetEntityReadiness` |
+| `register_entity(body)` | `RegisterEntity` (Bearer via `SPANDA_API_KEY`) |
+| `tag_entity(id, body)` | `TagEntity` (Bearer via `SPANDA_API_KEY`) |
+| `relate_entities(body)` | `RelateEntities` (Bearer via `SPANDA_API_KEY`) |
+| `sync_entities()` | `SyncEntities` (Bearer via `SPANDA_API_KEY`) |
 | `list_devices()` | `ListDevices` |
 
-REST + `rpc()` remain the default; gRPC requires `--grpc-bind` on Control Center. See [Publishing SDKs](sdk-publishing.md) for crates.io release (`crates-sdk-v*` tag, `CRATES_IO_TOKEN`).
+REST + `rpc()` remain the default; gRPC requires `--grpc-bind` on Control Center. Set `SPANDA_API_KEY` before `GrpcClient::connect` so mutation RPCs send Bearer metadata. See [Publishing SDKs](sdk-publishing.md) for crates.io release (`crates-sdk-v*` tag, `CRATES_IO_TOKEN`).
 
 ## Error handling
 

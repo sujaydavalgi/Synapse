@@ -356,7 +356,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 |------|-------|------|----------|-----------|
 | **CLI** | `check`, `verify`, `run`, `sim`, `fleet`, `fmt`, `lint`, … | **Stable** | Now | Core |
 | **REST API** | `spanda-api` REST v1, OpenAPI | **Experimental** | Now | Core |
-| **gRPC** | tonic gRPC (73 RPCs), program-level SDK parity | **Experimental** | Now | Core |
+| **gRPC** | tonic gRPC (82 RPCs), program-level SDK parity | **Experimental** | Now | Core |
 | **SDKs** | Rust (`spanda-sdk`), Python (`sdk/python`), TypeScript (`@davalgi-spanda/sdk`), WebSocket telemetry | **Experimental** — **published** to crates.io, PyPI, npm (v0.4.x) | Now | Core |
 | **GitHub Pages** | mdBook docs site | **Stable** | Now | Core |
 | **Examples** | 9 bundled demos, showcase library | **Stable** | Now | Core |

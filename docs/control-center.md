@@ -268,8 +268,19 @@ spanda control-center api post /v1/ota/plan --body '{"strategy":"canary","versio
 | `ApproveConfigApproval` | Approve and publish snapshot (`POST /v1/config/approvals/{id}/approve`) |
 | `RejectConfigApproval` | Reject pending approval (`POST /v1/config/approvals/{id}/reject`) |
 | `DetectDrift` | Operational drift report (`baseline_id` in request) |
+| `ListEntities` | Entity inventory (`GET /v1/entities` parity) |
+| `GetEntity` | Entity detail (`GET /v1/entities/{id}` parity) |
+| `GetEntityGraph` | Full entity graph (`GET /v1/entities/graph`) |
+| `GetEntityTraceability` | Unified traceability (`GET /v1/entities/traceability`) |
+| `QueryEntities` | Structured entity query (`POST /v1/entities/query`) |
+| `GetEntityRelationships` | Relationship edges (`GET /v1/entities/{id}/relationships`) |
+| `GetEntityReadiness` | Readiness snapshot (`GET /v1/entities/{id}/readiness`) |
+| `RegisterEntity` | Register entity overlay (`POST /v1/entities/register`; Bearer) |
+| `TagEntity` | Add/remove tags (`POST /v1/entities/{id}/tags`; Bearer) |
+| `RelateEntities` | Relate entities (`POST /v1/entities/relationships`; Bearer) |
+| `SyncEntities` | Sync overlay to TOML (`POST /v1/entities/sync`; Bearer) |
 
-Proto: `crates/spanda-api/proto/spanda/v1/control_center.proto` — **proto semver `1.0.0`** (package `spanda.v1`). gRPC reflection is disabled; pin the proto file or read `GET /v1/version` → `grpc.proto_semver` and `grpc.rpc_count`.
+Proto: `crates/spanda-api/proto/spanda/v1/control_center.proto` — **proto semver `1.0.2`** (package `spanda.v1`). gRPC reflection is disabled; pin the proto file or read `GET /v1/version` → `grpc.proto_semver` and `grpc.rpc_count`.
 
 ```bash
 # Example with grpcurl (reflection not enabled — use proto file)
@@ -337,7 +348,7 @@ grpcurl -plaintext -import-path crates/spanda-api/proto -proto spanda/v1/control
 | `/v1/operator/quarantine` | POST | Bearer | Quarantine a device |
 | `/v1/operator/mission/approve` | POST | Bearer | Approve or reject a mission |
 | `/v1/rpc` | POST | — | gRPC-compatible JSON gateway |
-| **gRPC (tonic)** | — | — | Native `ControlCenter` service on `--grpc-bind` (60 RPCs; full REST parity except JSON-RPC gateway) |
+| **gRPC (tonic)** | — | — | Native `ControlCenter` service on `--grpc-bind` (82 RPCs; full REST parity except JSON-RPC gateway) |
 | `/v1/compliance/export` | GET/POST | Bearer | Accreditation bundle (`?profile=defense`, `iso26262`, …); appends immutable evidence log |
 | `/v1/compliance/profiles` | GET | — | Signed profile catalog (defense, medical, iso26262, iso13849, iec61508) with Ed25519 verification |
 | `/v1/compliance/evidence` | GET | Bearer | List append-only compliance evidence records |
