@@ -65,6 +65,11 @@ if [[ -x "$ROOT/scripts/ota_fleet_soak.sh" ]]; then
   SPANDA_OTA_FLEET_SOAK_QUICK=1 "$ROOT/scripts/ota_fleet_soak.sh"
 fi
 
+echo "--- Entity model smoke ---"
+if [[ -x "$ROOT/scripts/entity_model_smoke.sh" ]]; then
+  "$ROOT/scripts/entity_model_smoke.sh"
+fi
+
 echo ""
 echo "Enterprise operations stable promotion gate passed."
 echo "Remaining operational steps: third-party audit sign-off, production registry releases."

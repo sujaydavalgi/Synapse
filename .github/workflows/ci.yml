@@ -480,7 +480,7 @@ jobs:
   enterprise-ops-promotion-gate:
     runs-on: ubuntu-latest
     needs: enterprise-ops-smoke
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -510,9 +510,33 @@ jobs:
           node-version: "24"
           cache: npm
       - run: cargo build -p spanda --release
+      - run: cargo build -p spanda-sdk --examples
       - run: npm ci
       - run: chmod +x scripts/entity_model_smoke.sh
       - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/entity_model_smoke.sh
+
+  entity-model-promotion-gate:
+    runs-on: ubuntu-latest
+    needs: entity-model-smoke
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: cargo build -p spanda --release
+      - run: cargo build -p spanda-sdk --examples
+      - run: npm ci
+      - run: chmod +x scripts/entity_model_stable_promotion_gate.sh scripts/entity_model_smoke.sh
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          export SPANDA_BIN="${{ github.workspace }}/target/release/spanda"
+          SPANDA_ENTITY_MODEL_SKIP_SOAK=1 SPANDA_ENTITY_MODEL_SKIP_AUDIT=1 \
+            ./scripts/entity_model_stable_promotion_gate.sh
 
   differentiation-smoke:
     runs-on: ubuntu-latest

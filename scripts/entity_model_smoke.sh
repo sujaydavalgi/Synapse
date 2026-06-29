@@ -143,4 +143,11 @@ print("py-sdk entity smoke ok")
 PY
 fi
 
+echo "== Rust SDK entity mutations =="
+if command -v cargo >/dev/null 2>&1; then
+  SPANDA_CONTROL_CENTER_URL="http://${BIND}" \
+  SPANDA_API_KEY="${SPANDA_API_KEY}" \
+  cargo run -q -p spanda-sdk --example entity_mutations
+fi
+
 echo "Entity model smoke OK"
