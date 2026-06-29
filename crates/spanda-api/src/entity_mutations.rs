@@ -33,6 +33,7 @@ fn record_entity_audit(state: &mut ControlCenterState, action: &str, payload: &s
         event
     };
     let _ = state.mutation_audit.record_platform_event(&event);
+    let _ = spanda_telemetry_store::record_platform_event(&event);
 }
 
 /// POST /v1/entities/register — register or update an entity in the overlay.

@@ -94,7 +94,7 @@ Recommended order:
 | Entity API mutations | `EntityCreated`, `EntityTagged`, `EntityRelated`, `EntityUpdated` | **Shipped** (`spanda-api` → `record_platform_event`) |
 | Readiness | `ReadinessChanged` | **Shipped** (`spanda-readiness` → Control Center audit on entity readiness GET) |
 | Interpreter | `MissionStarted`, `MissionCompleted` | **Shipped** (when program declares `audit` block) |
-| Telemetry store | Persist all platform events | Planned |
+| Telemetry store | Persist all platform events | **Shipped** (`record_platform_event` + `TelemetryEvent::Platform`) |
 
 See [event-model.md](./event-model.md).
 

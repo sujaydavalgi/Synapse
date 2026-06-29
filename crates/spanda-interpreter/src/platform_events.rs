@@ -32,6 +32,7 @@ pub(crate) fn emit_mission_platform_event(
     )
     .with_entity_id(format!("mission/{mission_key}"));
     let _ = rt.record_platform_event(&event);
+    let _ = spanda_telemetry_store::record_platform_event(&event);
 }
 
 pub(crate) fn emit_mission_started(

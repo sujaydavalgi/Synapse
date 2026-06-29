@@ -25,4 +25,5 @@ pub fn record_readiness_platform_event(
     )
     .with_entity_id(report.entity_id.clone());
     let _ = audit.record_platform_event(&event);
+    let _ = spanda_telemetry_store::record_platform_event(&event);
 }

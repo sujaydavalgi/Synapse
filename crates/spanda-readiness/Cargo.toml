@@ -25,6 +25,7 @@ spanda-runtime = { path = "../spanda-runtime" }
 spanda-security = { path = "../spanda-security" }
 spanda-config = { path = "../spanda-config" }
 spanda-package = { path = "../spanda-package" }
+spanda-telemetry-store = { path = "../spanda-telemetry-store" }
 
 [dev-dependencies]
 serde_json = "1"
