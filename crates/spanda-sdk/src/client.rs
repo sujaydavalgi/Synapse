@@ -253,12 +253,7 @@ impl SpandaClient {
 
     /// Add or remove tags on an entity overlay record.
     pub fn tag_entity(&self, id: &str, body: &Value) -> SpandaResult<Value> {
-        self.request(
-            "POST",
-            &format!("/v1/entities/{id}/tags"),
-            Some(body),
-            true,
-        )
+        self.request("POST", &format!("/v1/entities/{id}/tags"), Some(body), true)
     }
 
     /// Relate two entities in the mutation overlay.

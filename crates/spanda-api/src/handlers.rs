@@ -235,9 +235,14 @@ pub fn handle_request(
         );
         return (response, correlation_id);
     }
-    if let Some(response) =
-        route_sdk_entities(state, path, &request.method, query, &request.body, ctx.as_ref())
-    {
+    if let Some(response) = route_sdk_entities(
+        state,
+        path,
+        &request.method,
+        query,
+        &request.body,
+        ctx.as_ref(),
+    ) {
         e3::record_trace(
             state,
             &correlation_id,
@@ -944,9 +949,9 @@ fn route_sdk_entities(
             ("relationships", "GET") => {
                 Some(crate::sdk_ops::entity_relationships(state, entity_id))
             }
-            ("tags", "POST") => {
-                Some(crate::entity_mutations::entity_tag(state, entity_id, body, ctx))
-            }
+            ("tags", "POST") => Some(crate::entity_mutations::entity_tag(
+                state, entity_id, body, ctx,
+            )),
             _ => None,
         };
     }
