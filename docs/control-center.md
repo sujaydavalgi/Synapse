@@ -236,6 +236,12 @@ REST endpoints (experimental, shipped):
 | Endpoint | Description |
 |----------|-------------|
 | `GET /v1/smart-spaces/summary` | Blueprint rollup (facilities, energy, emergency) |
+| `GET /v1/smart-spaces/devices` | IoT device inventory (`?facility_id=`) |
+| `GET /v1/facilities/{id}/floor-map` | Zone tree floor map |
+| `GET /v1/facilities/{id}/security` | Access control and lockdown status |
+| `GET /v1/facilities/{id}/health` | Device pool health for facility |
+| `GET /v1/zones/{id}/environment` | CO₂, temperature, humidity, AQ |
+| `GET /v1/energy/systems/{id}` | SOC, generation, EV session detail |
 | `GET /v1/facilities` | Building / facility entity list with zones and gateways |
 | `GET /v1/facilities/{id}/readiness` | Per-building readiness rollup |
 | `GET /v1/zones/{id}/occupancy` | Zone occupancy twin |

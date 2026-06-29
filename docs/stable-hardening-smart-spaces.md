@@ -21,8 +21,9 @@ The Smart Spaces Solution Blueprint is shipped at **Experimental** tier with CI 
 | Golden traces | Emergency / mode-change deterministic replay | **Shipped** — fire, gateway failover, power island, water leak fixtures |
 | Bundled offline registry | Smart Spaces packages in `bundled-registry` | **Shipped** |
 | Live building I/O | BACnet/KNX/Thread/Z-Wave/HA env bridges | **Shipped** (experimental) — `SPANDA_LIVE_*` + `scripts/smart_spaces_live_iot_smoke.sh` |
-| Field soak | 30-day smart-building pilot without regression | **Pending** — `.spanda/smart-spaces-field-soak-start.txt` |
-| Security audit | Third-party review of life-safety and access-control paths | **Pending** — `./scripts/smart_spaces_security_audit_prep.sh` |
+| Field soak | 30-day smart-building pilot without regression | **Pending** (operational) — `./scripts/smart_spaces_stable_init.sh` |
+| Security audit | Third-party review of life-safety and access-control paths | **Pending** (operational) — automated self-audit **shipped** |
+| Extended panels API | devices, health, security, environment, floor-map, energy detail | **Shipped** |
 
 ---
 
@@ -58,8 +59,9 @@ The gate runs:
 
 ## Remaining before Stable tier label
 
-1. **30-day field soak** — commercial or residential pilot with gateway failover exercised
-2. **Security audit sign-off** — life-safety overrides, access control, health opt-in, tamper policy on edge gateways
-3. **Live protocol bridges** — production BACnet/KNX/Matter/Thread adapters beyond stub dispatch
-4. **Simulation matrix** — fire, flood, power loss, gateway failure scenarios with recorded traces (`fixtures/*.trace`)
-5. **gRPC parity** — tonic RPCs for Smart Spaces REST surface | **Shipped** (proto semver 1.0.4, 89 RPCs)
+1. **30-day field soak** — run `./scripts/smart_spaces_stable_init.sh` then pilot; gate with `SPANDA_SMART_SPACES_SKIP_SOAK=0`
+2. **Third-party security audit sign-off** — human review after `./scripts/smart_spaces_security_self_audit.sh` (automated config checks ship)
+3. **Production protocol adapters** — hardware-specific BACnet/KNX/Matter libraries beyond env-bridge pattern (env bridges **shipped**)
+4. **Simulation matrix** — **Shipped** — ten golden traces under `fixtures/*.trace`
+5. **gRPC parity** — **Shipped** (proto semver 1.0.4, 89 RPCs)
+6. **Extended Control Center panels** — **Shipped** — devices, health, security, environmental, floor map, occupancy timeline, energy detail

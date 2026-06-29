@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Smart Spaces gRPC parity:** six `ControlCenter` RPCs (`GetSmartSpacesSummary`, `ListFacilities`, `GetFacilityReadiness`, `GetZoneOccupancy`, `ListEnergySystems`, `GetEmergencyStatus`); proto semver **1.0.4**, **89 RPCs**; `grpc_tests.rs` smart-spaces blueprint coverage.
 - **Smart Spaces live building I/O:** BACnet/KNX/Thread/Z-Wave/Home Assistant env bridges in `iot_live.rs` with Python bridge mock handlers; `scripts/smart_spaces_live_iot_smoke.sh`; golden trace fixtures `gateway_failover`, `power_loss_island`, `water_leak_basement`; demo replay wiring.
 - **Smart Spaces live readiness:** weighted factor scoring from `spanda.readiness.toml` (gateways, devices, sensors, emergency); robots/wearables/trust panels in Control Center UI; `spanda control-center smart-spaces` CLI; REST/gRPC SDK wrappers (`smart_spaces_summary`, `facility_readiness`, …).
+- **Smart Spaces extended panels:** device inventory, facility health/security/floor-map, zone environment, energy detail, occupancy timeline; six additional golden traces; `smart_spaces_stable_init.sh` and `smart_spaces_security_self_audit.sh`.
 
 ### Changed
 

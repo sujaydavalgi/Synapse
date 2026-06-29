@@ -46,6 +46,23 @@ Smoke test (all three SDKs): `scripts/entity_model_smoke.sh`
 | Relate | `relate_entities(&json)` | `relateEntities(body)` | `relate_entities(body)` | `relate_entities(&json)` |
 | Sync | `sync_entities()` | `syncEntities()` | `sync_entities()` | `sync_entities()` |
 
+### Smart Spaces (Control Center blueprint)
+
+| Operation | Rust `SpandaClient` | TypeScript | Python |
+|-----------|---------------------|------------|--------|
+| Summary | `smart_spaces_summary()` | `smartSpacesSummary()` | `smart_spaces_summary()` |
+| Facilities | `list_facilities()` | `listFacilities()` | `list_facilities()` |
+| Readiness | `facility_readiness(id)` | `facilityReadiness(id)` | `facility_readiness(id)` |
+| Occupancy | `zone_occupancy(id)` | `zoneOccupancy(id)` | `zone_occupancy(id)` |
+| Devices | `smart_spaces_devices(facility)` | `smartSpacesDevices(id)` | `smart_spaces_devices(id)` |
+| Health | `facility_health(id)` | `facilityHealth(id)` | `facility_health(id)` |
+| Security | `facility_security(id)` | `facilitySecurity(id)` | `facility_security(id)` |
+| Environment | `zone_environment(id)` | `zoneEnvironment(id)` | `zone_environment(id)` |
+| Energy detail | `energy_system(id)` | `energySystem(id)` | `energy_system(id)` |
+| Floor map | `facility_floor_map(id)` | `facilityFloorMap(id)` | `facility_floor_map(id)` |
+
+gRPC: `smart_spaces_summary`, `list_facilities`, `facility_readiness`, `zone_occupancy`, `list_energy_systems`, `emergency_status` on `GrpcClient` (`grpc` feature).
+
 API shapes: [entity-apis.md](./entity-apis.md)
 
 ## Rust — REST
