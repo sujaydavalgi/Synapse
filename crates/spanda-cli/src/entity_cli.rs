@@ -275,15 +275,17 @@ fn cmd_readiness(args: &[String]) {
         process::exit(1);
     }
     let program = program_from_args(args);
+    let mut readiness_options = EntityReadinessOptions {
+        program,
+        now_ms: 0.0,
+        include_dependencies: args.iter().any(|a| a == "--dependencies"),
+        platform_audit: None,
+    };
     let report = evaluate_entity_readiness(
         &id,
         &registry,
         &resolved,
-        &EntityReadinessOptions {
-            program,
-            now_ms: 0.0,
-            include_dependencies: args.iter().any(|a| a == "--dependencies"),
-        },
+        &mut readiness_options,
     )
     .expect("entity readiness report");
     if json_output(args) {

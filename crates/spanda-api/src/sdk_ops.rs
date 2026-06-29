@@ -352,7 +352,7 @@ pub fn entity_health(state: &ControlCenterState, entity_id: &str) -> HttpRespons
 }
 
 /// GET /v1/entities/{id}/readiness — readiness snapshot for any entity.
-pub fn entity_readiness(state: &ControlCenterState, entity_id: &str) -> HttpResponse {
+pub fn entity_readiness(state: &mut ControlCenterState, entity_id: &str) -> HttpResponse {
     let registry = state.entity_registry();
     let Some(entity) = registry.get(entity_id) else {
         return entity_not_found(&format!("entity '{entity_id}' not found"));
@@ -418,15 +418,17 @@ pub fn entity_readiness(state: &ControlCenterState, entity_id: &str) -> HttpResp
             });
         }
         let program = resolve_verify_program(state, None);
+        let mut readiness_options = EntityReadinessOptions {
+            program,
+            now_ms: crate::correlation::now_ms(),
+            include_dependencies: false,
+            platform_audit: Some(&mut state.mutation_audit),
+        };
         if let Some(report) = evaluate_entity_readiness(
             entity_id,
             &registry,
             resolved,
-            &EntityReadinessOptions {
-                program,
-                now_ms: crate::correlation::now_ms(),
-                include_dependencies: false,
-            },
+            &mut readiness_options,
         ) {
             payload["mission_ready"] = serde_json::json!(report.mission_ready);
             payload["report"] = serde_json::to_value(report).unwrap_or_default();
@@ -845,7 +847,7 @@ pub fn entity_relationships_json(state: &ControlCenterState, entity_id: &str) ->
 }
 
 /// JSON body for gRPC `GetEntityReadiness`.
-pub fn entity_readiness_json(state: &ControlCenterState, entity_id: &str) -> String {
+pub fn entity_readiness_json(state: &mut ControlCenterState, entity_id: &str) -> String {
     entity_readiness(state, entity_id).body
 }
 

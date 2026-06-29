@@ -1,6 +1,7 @@
 //! High-level run helpers for parsed Spanda programs.
 //!
 use crate::options::{RunOptions, RunResult, TestRunResult};
+use crate::platform_events::emit_mission_completed;
 use crate::runtime::{Interpreter, InterpreterOptions, RobotBackend};
 use crate::simulator::{create_default_simulator, Obstacle, SimulatorConfig};
 use spanda_ast::nodes::Program;
@@ -30,6 +31,11 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
     // Example:
 
     //     let result = spanda_interpreter::run::run_program(progra, options);
+
+    #[cfg(feature = "certify")]
+    {
+        spanda_assurance::enforce_runtime_certification(program, options.enforce_certify)?;
+    }
 
     spanda_telemetry_store::configure_session_persist(options.persist_telemetry);
     let trace_source = options.trace_source.clone();
@@ -114,7 +120,17 @@ pub fn run_program(program: &Program, options: RunOptions) -> Result<RunResult, 
             ..Default::default()
         },
     );
-    let state = interp.run(program, options.entry_behavior.as_deref())?;
+    let trace_source = options.trace_source.clone();
+    let run_outcome = interp.run(program, options.entry_behavior.as_deref());
+    if run_outcome.is_err() {
+        emit_mission_completed(
+            interp.audit_runtime_mut(),
+            program,
+            trace_source.as_deref(),
+            false,
+        );
+    }
+    let state = run_outcome?;
     let sim_time_ms = interp.sim_time_ms();
     let events = interp.robot_backend().event_log();
     let metrics = interp.take_telemetry();

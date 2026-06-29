@@ -20,6 +20,7 @@ pub mod fleet_verify;
 pub mod gates;
 pub mod human;
 pub mod mission;
+pub mod platform_events;
 pub mod report;
 pub mod root_cause;
 pub mod runtime;
@@ -46,6 +47,7 @@ pub use entity_readiness::{
     evaluate_entity_readiness, EntityReadinessFinding, EntityReadinessOptions,
     EntityReadinessReport,
 };
+pub use platform_events::record_readiness_platform_event;
 pub use entity_verify::{
     verify_entity, EntityVerifyFinding, EntityVerifyOptions, EntityVerifyReport,
 };

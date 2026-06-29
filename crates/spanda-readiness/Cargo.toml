@@ -13,6 +13,7 @@ chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 spanda-ast = { path = "../spanda-ast" }
+spanda-audit = { path = "../spanda-audit" }
 spanda-capability = { path = "../spanda-capability" }
 spanda-certify = { path = "../spanda-certify" }
 spanda-error = { path = "../spanda-error" }

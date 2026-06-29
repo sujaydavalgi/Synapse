@@ -1,5 +1,6 @@
 //! runtime support for Spanda.
 //!
+use crate::platform_events::{emit_mission_completed, emit_mission_started};
 use spanda_ai::{AgentRuntime, AiModel};
 use spanda_ast::comm_decl::{QosDecl, TransportKind};
 use spanda_ast::foundations::{CapabilityDecl, TaskPriority};
@@ -1336,6 +1337,11 @@ impl<B: RobotBackend> Interpreter<B> {
             for (index, robot) in robots.iter().enumerate() {
                 self.setup_robot(robot)?;
                 if index == 0 {
+                    emit_mission_started(
+                        self.audit_runtime.as_mut(),
+                        program,
+                        self.options.trace_source.as_deref(),
+                    );
                     if self.options.inject_health_faults {
                         for fault in ["GPSDegraded", "CameraOffline", "RobotHealthCritical"] {
                             self.hardware_monitor.inject_fault(fault.to_string());
@@ -1356,6 +1362,12 @@ impl<B: RobotBackend> Interpreter<B> {
             for robot in robots {
                 self.setup_robot(robot)?;
             }
+
+            emit_mission_started(
+                self.audit_runtime.as_mut(),
+                program,
+                self.options.trace_source.as_deref(),
+            );
 
             if self.options.inject_health_faults {
                 for fault in ["GPSDegraded", "CameraOffline", "RobotHealthCritical"] {
@@ -1388,7 +1400,18 @@ impl<B: RobotBackend> Interpreter<B> {
                 self.trace_replay_log(format!("captured {frames} replay frame(s)"));
             }
         }
+        // Record mission completion when audit runtime is active.
+        emit_mission_completed(
+            self.audit_runtime.as_mut(),
+            program,
+            self.options.trace_source.as_deref(),
+            true,
+        );
         Ok(self.backend.get_state())
+    }
+
+    pub(crate) fn audit_runtime_mut(&mut self) -> Option<&mut AuditRuntime> {
+        self.audit_runtime.as_mut()
     }
 
     fn execute_robot_entry(

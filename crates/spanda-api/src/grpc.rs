@@ -995,7 +995,7 @@ impl ControlCenter for GrpcControlCenter {
     ) -> Result<Response<JsonResponse>, Status> {
         self.guard_request(&request)?;
         let entity_id = request.into_inner().entity_id;
-        self.with_state(|state| crate::sdk_ops::entity_readiness_json(state, &entity_id))
+        self.with_state_mut(|state| crate::sdk_ops::entity_readiness_json(state, &entity_id))
             .map(Response::new)
     }
 

@@ -1,6 +1,7 @@
 //! Unified entity readiness — routes readiness engines through [`EntityRegistry`].
 //!
 use crate::human::evaluate_human_collaboration;
+use crate::platform_events::record_readiness_platform_event;
 use crate::types::{ReadinessOptions, ReadinessSeverity};
 use serde::{Deserialize, Serialize};
 use spanda_ast::nodes::Program;
@@ -10,11 +11,12 @@ use spanda_config::{
 };
 
 /// Options for entity-scoped readiness evaluation.
-#[derive(Debug, Clone, Default)]
-pub struct EntityReadinessOptions {
+#[derive(Debug, Default)]
+pub struct EntityReadinessOptions<'a> {
     pub program: Option<Program>,
     pub now_ms: f64,
     pub include_dependencies: bool,
+    pub platform_audit: Option<&'a mut spanda_audit::AuditRuntime>,
 }
 
 /// Readiness finding for an entity evaluation.
@@ -44,7 +46,7 @@ pub fn evaluate_entity_readiness(
     entity_id: &str,
     registry: &EntityRegistry,
     config: &ResolvedSystemConfig,
-    options: &EntityReadinessOptions,
+    options: &mut EntityReadinessOptions<'_>,
 ) -> Option<EntityReadinessReport> {
     // Evaluate operational readiness for one entity using kind-appropriate engines.
     //
@@ -120,7 +122,7 @@ pub fn evaluate_entity_readiness(
         .any(|i| i.severity == "high" || i.severity == "critical")
         && entity.readiness_status != EntityReadinessStatus::NotReady;
     let score = readiness_score(&issues, entity);
-    Some(EntityReadinessReport {
+    let report = EntityReadinessReport {
         entity_id: entity.id.clone(),
         entity_type: entity.kind().to_string(),
         readiness_status: entity.readiness_status.as_str().to_string(),
@@ -130,7 +132,11 @@ pub fn evaluate_entity_readiness(
         capabilities: entity.capabilities.clone(),
         children_checked,
         sources,
-    })
+    };
+    if let Some(audit) = options.platform_audit.as_mut() {
+        record_readiness_platform_event(audit, &report);
+    }
+    Some(report)
 }
 
 fn is_device_kind(kind: &EntityKind) -> bool {
@@ -184,7 +190,7 @@ fn evaluate_robot_readiness(
     entity: &EntityRecord,
     registry: &EntityRegistry,
     config: &ResolvedSystemConfig,
-    options: &EntityReadinessOptions,
+    options: &EntityReadinessOptions<'_>,
     issues: &mut Vec<EntityReadinessFinding>,
 ) -> usize {
     let impact = readiness_impact(&config.device_registry, options.now_ms);
@@ -251,7 +257,7 @@ fn evaluate_fleet_entity_readiness(
     entity: &EntityRecord,
     registry: &EntityRegistry,
     config: &ResolvedSystemConfig,
-    options: &EntityReadinessOptions,
+    options: &EntityReadinessOptions<'_>,
     issues: &mut Vec<EntityReadinessFinding>,
 ) -> usize {
     let members: Vec<String> = registry
@@ -323,7 +329,7 @@ fn evaluate_mission_readiness(
 fn evaluate_human_readiness(
     entity: &EntityRecord,
     config: &ResolvedSystemConfig,
-    options: &EntityReadinessOptions,
+    options: &EntityReadinessOptions<'_>,
     issues: &mut Vec<EntityReadinessFinding>,
 ) {
     if let Some(human) = config
@@ -517,14 +523,15 @@ mod tests {
     fn evaluate_robot_readiness_returns_report() {
         let config = warehouse_config();
         let registry = build_entity_registry(&config);
+        let mut readiness_options = EntityReadinessOptions {
+                now_ms: 0.0,
+                ..Default::default()
+            };
         let report = evaluate_entity_readiness(
             "rover-001",
             &registry,
             &config,
-            &EntityReadinessOptions {
-                now_ms: 0.0,
-                ..Default::default()
-            },
+            &mut readiness_options,
         )
         .expect("rover-001");
         assert_eq!(report.entity_id, "rover-001");
