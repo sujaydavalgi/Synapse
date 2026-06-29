@@ -1,7 +1,10 @@
 //! Connectivity and positioning type catalogs extracted from Spanda core.
 //!
 pub mod adapter_bridge;
+pub mod hardware_types;
 pub mod runtime_sim;
+
+pub use hardware_types::{CompatItem, CompatSeverity, HardwareProfile};
 
 use serde::{Deserialize, Serialize};
 

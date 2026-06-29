@@ -6,10 +6,6 @@ pub mod connectivity_validate;
 mod profiles;
 pub mod verify;
 
-pub use connectivity_validate::{
-    validate_connectivity_policy, validate_geofence, verify_requires_connectivity,
-};
-
 pub use compat::{CompatItem, CompatSeverity};
 pub use profiles::{builtin_profiles, list_hardware_profiles, HardwareProfile};
 pub use verify::{

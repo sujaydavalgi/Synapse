@@ -1,7 +1,7 @@
 //! Hardware profiles and compile-time deployment compatibility verification.
 
 use crate::compat::{CompatItem, CompatSeverity};
-use crate::connectivity_validate::{
+use spanda_connectivity_runtime::connectivity_validate::{
     validate_connectivity_policy, validate_geofence, verify_requires_connectivity,
 };
 pub use crate::profiles::{builtin_profiles, list_hardware_profiles, HardwareProfile};

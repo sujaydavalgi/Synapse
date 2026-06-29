@@ -1,25 +1,10 @@
 //! Builtin hardware profile catalog for package validation and verify.
 //!
+//! `HardwareProfile` is now defined in `spanda-connectivity::hardware_types`; re-exported here.
+
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct HardwareProfile {
-    pub name: String,
-    pub cpu: Option<String>,
-    pub memory_mb: Option<f64>,
-    pub storage_mb: Option<f64>,
-    pub gpu_tops: Option<f64>,
-    pub gpu_required: bool,
-    pub sensors: Vec<String>,
-    pub actuators: Vec<String>,
-    pub connectivity: Vec<String>,
-    pub battery_wh: Option<f64>,
-    pub network_bandwidth_mbps: Option<f64>,
-    pub network_latency_ms: Option<f64>,
-    pub packet_loss_pct: Option<f64>,
-    pub min_control_period_ms: f64,
-    pub power_draw_w: f64,
-}
+pub use spanda_connectivity::HardwareProfile;
 
 pub fn builtin_profiles() -> HashMap<String, HardwareProfile> {
     // Description:

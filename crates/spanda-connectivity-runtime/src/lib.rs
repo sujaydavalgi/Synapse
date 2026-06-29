@@ -6,7 +6,7 @@
 //!
 use serde::{Deserialize, Serialize};
 use spanda_ast::foundations::{ConnectivityPolicyDecl, GeofenceDecl, SimFaultDecl};
-use spanda_hardware::HardwareProfile;
+use spanda_connectivity::HardwareProfile;
 use std::collections::HashSet;
 
 pub use spanda_connectivity::{
@@ -17,7 +17,9 @@ pub use spanda_connectivity::{
     positioning_types, ConnectivityRequirement, GeofenceRuntime,
 };
 
-pub use spanda_hardware::connectivity_validate::{
+pub mod connectivity_validate;
+
+pub use connectivity_validate::{
     validate_connectivity_policy, validate_geofence, verify_requires_connectivity,
 };
 

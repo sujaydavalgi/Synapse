@@ -13,6 +13,7 @@ serde = { version = "1", features = ["derive"] }
 spanda-ast = { path = "../spanda-ast" }
 spanda-comm = { path = "../spanda-comm" }
 spanda-connectivity = { path = "../spanda-connectivity" }
+spanda-connectivity-runtime = { path = "../spanda-connectivity-runtime" }
 
 [dev-dependencies]
 spanda-driver = { path = "../spanda-driver" }
