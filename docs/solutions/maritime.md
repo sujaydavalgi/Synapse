@@ -64,7 +64,7 @@ Vessel Stack
 
 ## Example projects
 
-- [examples/solutions/maritime/](../../examples/solutions/maritime/) — `harbor_patrol.sd` coastal patrol scaffold (CI: `scripts/solution_blueprints_smoke.sh`)
+- [examples/solutions/maritime/](../../examples/solutions/maritime/) — `harbor_patrol.sd`, `convoy_escort.sd`, `docking_assist.sd` (CI: `scripts/solution_blueprints_smoke.sh`)
 
 ## Simulation & replay
 

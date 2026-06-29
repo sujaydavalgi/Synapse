@@ -60,7 +60,7 @@ Sensor Network
 
 ## Example projects
 
-- [examples/solutions/environmental-monitoring/](../../examples/solutions/environmental-monitoring/) — `sensor_mesh.sd` mesh node scaffold (CI: `scripts/solution_blueprints_smoke.sh`)
+- [examples/solutions/environmental-monitoring/](../../examples/solutions/environmental-monitoring/) — `sensor_mesh.sd`, `gateway_bridge.sd` (CI: `scripts/solution_blueprints_smoke.sh`)
 
 ## Simulation & replay
 

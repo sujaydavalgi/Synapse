@@ -60,9 +60,9 @@ Field Robot (.sd)
 - [self-healing.md](../self-healing.md)
 - ADAS agricultural application variant: [solutions/adas.md](./adas.md) (low-speed autonomy profile)
 
-## Example projects (planned)
+## Example projects
 
-- `examples/solutions/agriculture/` — field patrol, spray mission, harvest convoy
+- [examples/solutions/agriculture/](../../examples/solutions/agriculture/) — `field_patrol.sd`, `spray_mission.sd`, `harvest_convoy.sd` (CI: `scripts/solution_blueprints_smoke.sh`)
 
 ## Simulation & replay
 

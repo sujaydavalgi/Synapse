@@ -555,7 +555,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | **Device Tree** | Tractor, implement, drone, base station |
 | **Packages** | `spanda-gps`, `spanda-cellular`, `spanda-lora`, `spanda-opencv` |
 | **Providers** | GPS, LTE, LoRa |
-| **Mission Examples** | Geofenced patrol patterns — [docs/geofencing.md](docs/geofencing.md) |
+| **Mission Examples** | `field_patrol.sd`, `spray_mission.sd`, `harvest_convoy.sd` |
 | **Health Policies** | Connectivity + battery require |
 | **Readiness** | Weather and connectivity gates |
 | **Assurance** | Crop anomaly detection |
@@ -605,7 +605,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | **Device Tree** | Sensor node, gateway, cloud ingest |
 | **Packages** | `spanda-lora`, `spanda-mqtt`, `spanda-cellular`, `spanda-otel-collector` |
 | **Providers** | LoRa, MQTT, cellular |
-| **Mission Examples** | Scheduled sampling missions |
+| **Mission Examples** | `sensor_mesh.sd`, `gateway_bridge.sd` |
 | **Health Policies** | Battery + connectivity require |
 | **Readiness** | Calibration gates — [docs/calibration.md](docs/calibration.md) |
 | **Assurance** | Drift on sensor baselines |
@@ -631,7 +631,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | **Device Tree** | Vessel, payload, shore station |
 | **Packages** | `spanda-gps`, `spanda-radar`, `spanda-cellular`, `spanda-prognostics` |
 | **Providers** | GNSS, radar, SATCOM |
-| **Mission Examples** | `harbor_patrol.sd` |
+| **Mission Examples** | `harbor_patrol.sd`, `convoy_escort.sd`, `docking_assist.sd` |
 | **Health Policies** | Redundant navigation require |
 | **Readiness** | Pre-departure checklist |
 | **Assurance** | Hull/machinery prognostics |
