@@ -406,6 +406,65 @@ impl SpandaClient {
         self.request("GET", "/v1/emergency/status", None, false)
     }
 
+    /// Smart Spaces device inventory.
+    pub fn smart_spaces_devices(&self, facility_id: Option<&str>) -> SpandaResult<Value> {
+        let path = match facility_id {
+            Some(id) => format!("/v1/smart-spaces/devices?facility_id={id}"),
+            None => "/v1/smart-spaces/devices".into(),
+        };
+        self.request("GET", &path, None, false)
+    }
+
+    /// Facility device pool health.
+    pub fn facility_health(&self, facility_id: &str) -> SpandaResult<Value> {
+        self.request(
+            "GET",
+            &format!("/v1/facilities/{facility_id}/health"),
+            None,
+            false,
+        )
+    }
+
+    /// Facility security status.
+    pub fn facility_security(&self, facility_id: &str) -> SpandaResult<Value> {
+        self.request(
+            "GET",
+            &format!("/v1/facilities/{facility_id}/security"),
+            None,
+            false,
+        )
+    }
+
+    /// Zone environmental readings.
+    pub fn zone_environment(&self, zone_id: &str) -> SpandaResult<Value> {
+        self.request(
+            "GET",
+            &format!("/v1/zones/{zone_id}/environment"),
+            None,
+            false,
+        )
+    }
+
+    /// Energy system detail.
+    pub fn energy_system(&self, system_id: &str) -> SpandaResult<Value> {
+        self.request(
+            "GET",
+            &format!("/v1/energy/systems/{system_id}"),
+            None,
+            false,
+        )
+    }
+
+    /// Facility floor map zone tree.
+    pub fn facility_floor_map(&self, facility_id: &str) -> SpandaResult<Value> {
+        self.request(
+            "GET",
+            &format!("/v1/facilities/{facility_id}/floor-map"),
+            None,
+            false,
+        )
+    }
+
     /// Provision a device (requires auth).
     pub fn provision_device(&self, device_id: &str, body: &Value) -> SpandaResult<Value> {
         self.request(

@@ -664,7 +664,7 @@ fn cmd_audit(args: &[String]) {
 fn cmd_smart_spaces(args: &[String]) {
     if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
         eprintln!(
-            "Usage: spanda control-center smart-spaces summary|facilities|readiness|occupancy|energy|emergency [--facility-id <id>] [--zone-id <id>] [--url <base>]"
+            "Usage: spanda control-center smart-spaces summary|facilities|readiness|occupancy|energy|emergency|devices|health|security|environment|floor-map [--facility-id <id>] [--zone-id <id>] [--url <base>]"
         );
         process::exit(if args.is_empty() { 1 } else { 0 });
     }
@@ -685,6 +685,35 @@ fn cmd_smart_spaces(args: &[String]) {
         }
         "energy" => remote_get(&client, "/v1/energy/systems", false),
         "emergency" => remote_get(&client, "/v1/emergency/status", false),
+        "devices" => {
+            let facility_id =
+                flag_value(args, "--facility-id").unwrap_or_else(|| "tower-demo".into());
+            let path = format!("/v1/smart-spaces/devices?facility_id={facility_id}");
+            remote_get(&client, &path, false);
+        }
+        "health" => {
+            let facility_id =
+                flag_value(args, "--facility-id").unwrap_or_else(|| "tower-demo".into());
+            let path = format!("/v1/facilities/{facility_id}/health");
+            remote_get(&client, &path, false);
+        }
+        "security" => {
+            let facility_id =
+                flag_value(args, "--facility-id").unwrap_or_else(|| "tower-demo".into());
+            let path = format!("/v1/facilities/{facility_id}/security");
+            remote_get(&client, &path, false);
+        }
+        "environment" => {
+            let zone_id = flag_value(args, "--zone-id").unwrap_or_else(|| "room-lobby".into());
+            let path = format!("/v1/zones/{zone_id}/environment");
+            remote_get(&client, &path, false);
+        }
+        "floor-map" => {
+            let facility_id =
+                flag_value(args, "--facility-id").unwrap_or_else(|| "tower-demo".into());
+            let path = format!("/v1/facilities/{facility_id}/floor-map");
+            remote_get(&client, &path, false);
+        }
         other => {
             eprintln!("Unknown smart-spaces subcommand: {other}");
             process::exit(1);

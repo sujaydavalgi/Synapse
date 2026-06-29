@@ -273,6 +273,31 @@ export class SpandaClient {
     return this.request("GET", "/v1/emergency/status");
   }
 
+  async smartSpacesDevices(facilityId?: string): Promise<JsonValue> {
+    const qs = facilityId ? `?facility_id=${encodeURIComponent(facilityId)}` : "";
+    return this.request("GET", `/v1/smart-spaces/devices${qs}`);
+  }
+
+  async facilityHealth(facilityId: string): Promise<JsonValue> {
+    return this.request("GET", `/v1/facilities/${facilityId}/health`);
+  }
+
+  async facilitySecurity(facilityId: string): Promise<JsonValue> {
+    return this.request("GET", `/v1/facilities/${facilityId}/security`);
+  }
+
+  async zoneEnvironment(zoneId: string): Promise<JsonValue> {
+    return this.request("GET", `/v1/zones/${zoneId}/environment`);
+  }
+
+  async energySystem(systemId: string): Promise<JsonValue> {
+    return this.request("GET", `/v1/energy/systems/${systemId}`);
+  }
+
+  async facilityFloorMap(facilityId: string): Promise<JsonValue> {
+    return this.request("GET", `/v1/facilities/${facilityId}/floor-map`);
+  }
+
   async rpc(method: string, params: JsonValue = {}): Promise<JsonValue> {
     const payload = await this.request("POST", "/v1/rpc", {
       method,
