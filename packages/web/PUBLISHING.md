@@ -22,7 +22,7 @@ npm pack
 
 ## CI publish
 
-`.github/workflows/publish-npm-web.yml` runs `npm publish --dry-run` on every PR and publishes on tags:
+`.github/workflows/publish-npm-web.yml` runs `npm pack --dry-run` on every PR and publishes on tags:
 
 ```text
 npm-web-v0.4.0
