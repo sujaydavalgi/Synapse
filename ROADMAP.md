@@ -408,7 +408,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | [Connected Healthcare](#connected-healthcare) | **Planned** | Next | Verification, Security, Device & Fleet |
 | [ADAS & Autonomous Driving](#adas--autonomous-driving) | **Experimental** | Now | Verification, Device & Fleet, Security |
 | [Smart Factory](#smart-factory) | **Experimental** | Now | Verification, Device & Fleet, Operations |
-| [Agriculture](#agriculture) | **Planned** | Later | Device & Fleet, Verification, Packages |
+| [Agriculture](#agriculture) | **Experimental** (scaffold) | Later | Device & Fleet, Verification, Packages |
 | [Critical Infrastructure](#critical-infrastructure) | **Experimental** | Next | Security, Verification, Operations |
 | [Environmental Monitoring](#environmental-monitoring) | **Planned** | Later | Device & Fleet, Operations, Packages |
 | [Maritime](#maritime) | **Planned** | Later | Device & Fleet, Verification, Security |
@@ -561,14 +561,14 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | **Assurance** | Crop anomaly detection |
 | **Recovery** | Return-to-base on link loss |
 | **Control Center** | Fleet map, readiness trends |
-| **Example Projects** | **Planned** — `examples/solutions/agriculture/` |
+| **Example Projects** | [examples/solutions/agriculture/](examples/solutions/agriculture/) (`field_patrol.sd` scaffold) |
 | **Documentation** | [solutions/agriculture.md](docs/solutions/agriculture.md) |
 | **Simulation** | Terrain + weather fault injection |
 | **Replay** | Season trace archive |
 
 **Uses pillars:** Device & Fleet Platform · Verification Platform · Packages & Ecosystem · Operations Platform
 
-**Status:** **Planned**
+**Status:** **Experimental** (scaffold) — CI `scripts/agriculture_smoke.sh`
 
 ---
 

@@ -2,7 +2,7 @@
 
 Autonomous field robots, precision row following, and crop monitoring — composed from GPS, geofencing, health policies, and recovery without core language extensions.
 
-**Profile:** `agriculture` · **Status:** Planned (scaffold) · **Doc:** [docs/solutions/agriculture.md](../../docs/solutions/agriculture.md)
+**Profile:** `agriculture` · **Status:** Experimental (scaffold) · **Doc:** [docs/solutions/agriculture.md](../../docs/solutions/agriculture.md)
 
 ---
 

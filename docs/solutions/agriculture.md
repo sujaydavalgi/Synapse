@@ -1,6 +1,6 @@
 # Agriculture — Solution Blueprint
 
-**Status:** Planned · **Timeline:** Later · **Path:** (scaffold pending)
+**Status:** Experimental (scaffold) · **Timeline:** Later · **Path:** [examples/solutions/agriculture/](../../examples/solutions/agriculture/)
 
 Official Solution Blueprint for autonomous field robots, precision agriculture, and crop monitoring — composed from existing platform capabilities.
 

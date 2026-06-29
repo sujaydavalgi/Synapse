@@ -103,6 +103,7 @@ Index of regression and promotion gates organized by **Platform Pillar** and **S
 | **ADAS** | `adas_automotive_sensors_smoke.sh` | Live radar/LiDAR/ultrasonic |
 | **ADAS** | `adas_field_soak_init.sh` | Field soak prep |
 | **ADAS** | `adas_security_audit_prep.sh` | Audit prep |
+| **Agriculture** | `agriculture_smoke.sh` | Scaffold (`field_patrol.sd`) |
 | **Spatial HRI** | `spatial_computing_smoke.sh` | — |
 | **Spatial HRI** | `hri_stable_promotion_gate.sh` | Stable promotion |
 | **Spatial HRI** | `hri_field_soak_init.sh` | Field soak prep |
