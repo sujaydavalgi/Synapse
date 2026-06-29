@@ -377,11 +377,16 @@ See [control-center.md](../control-center.md#smart-spaces-dashboard)
 
 Simulation scenarios: fire, flood, power failure, network failure, gateway failure, HVAC failure, robot failure, medical emergency, security breach, water leak — via `spanda sim` and fault injection.
 
-**Golden trace (emergency):**
+**Golden traces (deterministic replay):**
 
 ```bash
 spanda replay examples/solutions/smart-spaces/fixtures/fire_panel_activation.trace --deterministic
+spanda replay examples/solutions/smart-spaces/fixtures/gateway_failover.trace --deterministic
+spanda replay examples/solutions/smart-spaces/fixtures/power_loss_island.trace --deterministic
+spanda replay examples/solutions/smart-spaces/fixtures/water_leak_basement.trace --deterministic
 ```
+
+Or run all via `spanda demo smart-spaces`.
 
 ---
 

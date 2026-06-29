@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "source": "smart-home/leak_response.sd",
+  "deterministic": true,
+  "frames": [
+    {
+      "sim_time_ms": 0.0,
+      "event": "readiness_check",
+      "payload": {
+        "profile": "smart_space",
+        "facility_id": "residence-demo",
+        "score": 86,
+        "passed": true
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 7200000.0,
+      "event": "sensor_alert",
+      "payload": {
+        "device_id": "leak-basement",
+        "type": "WaterLeak",
+        "zone": "zone-basement",
+        "severity": "high"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 7200050.0,
+      "event": "mission_started",
+      "payload": {
+        "mission": "LeakResponse",
+        "robot": "HomeOrchestrator"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 7201000.0,
+      "event": "actuator_command",
+      "payload": {
+        "device_id": "main-shutoff",
+        "action": "close_valve",
+        "zone": "zone-basement"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 7205000.0,
+      "event": "sensor_alert",
+      "payload": {
+        "device_id": "leak-basement",
+        "type": "WaterLeak",
+        "zone": "zone-basement",
+        "severity": "cleared"
+      },
+      "state": null
+    }
+  ]
+}

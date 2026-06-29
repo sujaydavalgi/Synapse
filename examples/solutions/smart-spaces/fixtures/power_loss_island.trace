@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "source": "energy-management/demand_response.sd",
+  "deterministic": true,
+  "frames": [
+    {
+      "sim_time_ms": 0.0,
+      "event": "readiness_check",
+      "payload": {
+        "profile": "smart_space",
+        "facility_id": "tower-demo",
+        "score": 88,
+        "passed": true
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 300000.0,
+      "event": "power_event",
+      "payload": {
+        "type": "grid_outage",
+        "facility_id": "tower-demo",
+        "severity": "critical"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 300100.0,
+      "event": "energy_island",
+      "payload": {
+        "system_id": "battery-001",
+        "mode": "island",
+        "backup_power": true
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 301000.0,
+      "event": "mission_started",
+      "payload": {
+        "mission": "DemandResponse",
+        "robot": "EnergyOrchestrator"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 360000.0,
+      "event": "power_event",
+      "payload": {
+        "type": "grid_restored",
+        "facility_id": "tower-demo",
+        "severity": "info"
+      },
+      "state": null
+    }
+  ]
+}

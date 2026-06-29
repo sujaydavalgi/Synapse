@@ -1142,6 +1142,18 @@ fn demo_smart_spaces(root: &Path) {
         run_spanda_args(&["replay", fire_trace.to_str().unwrap(), "--deterministic"]);
     }
 
+    for (label, name) in [
+        ("gateway_failover", "gateway_failover.trace"),
+        ("power_loss_island", "power_loss_island.trace"),
+        ("water_leak_basement", "water_leak_basement.trace"),
+    ] {
+        let trace = ss_root.join("fixtures").join(name);
+        if trace.is_file() {
+            println!("\n--- replay ({label}.trace) ---");
+            run_spanda_args(&["replay", trace.to_str().unwrap(), "--deterministic"]);
+        }
+    }
+
     println!(
         "\nDemo complete. Serve Control Center:\n  spanda control-center serve --config {} --program smart-building/floor_readiness.sd",
         config_str

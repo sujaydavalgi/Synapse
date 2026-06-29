@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "source": "smart-office/gateway_continuity.sd",
+  "deterministic": true,
+  "frames": [
+    {
+      "sim_time_ms": 0.0,
+      "event": "readiness_check",
+      "payload": {
+        "profile": "smart_space",
+        "facility_id": "tower-demo",
+        "score": 90,
+        "passed": true
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 120000.0,
+      "event": "gateway_degraded",
+      "payload": {
+        "gateway_id": "bacnet-gw-primary",
+        "protocol": "BACnet",
+        "status": "unreachable"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 120500.0,
+      "event": "continuity_failover",
+      "payload": {
+        "primary": "bacnet-gw-primary",
+        "backup": "bacnet-gw-backup",
+        "on_failure": "activate_backup"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 121000.0,
+      "event": "mission_started",
+      "payload": {
+        "mission": "GatewayContinuity",
+        "robot": "BuildingOrchestrator"
+      },
+      "state": null
+    },
+    {
+      "sim_time_ms": 125000.0,
+      "event": "readiness_check",
+      "payload": {
+        "profile": "smart_space",
+        "facility_id": "tower-demo",
+        "score": 87,
+        "passed": true,
+        "active_gateway": "bacnet-gw-backup"
+      },
+      "state": null
+    }
+  ]
+}
