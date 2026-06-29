@@ -419,6 +419,38 @@
         "responses": { "200": { "description": "Entity graph" } }
       }
     },
+    "/v1/entities/traceability": {
+      "get": {
+        "summary": "Unified entity, program, and digital-thread traceability",
+        "parameters": [
+          { "name": "entity_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "capability", "in": "query", "schema": { "type": "string" } },
+          { "name": "device_id", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Traceability report" } }
+      }
+    },
+    "/v1/entities/register": {
+      "post": {
+        "summary": "Register entity in mutation overlay",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Registered entity" } }
+      }
+    },
+    "/v1/entities/relationships": {
+      "post": {
+        "summary": "Relate two entities in mutation overlay",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Relationship edge" } }
+      }
+    },
+    "/v1/entities/sync": {
+      "post": {
+        "summary": "Sync mutation overlay entities to TOML fragments",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Sync result" } }
+      }
+    },
     "/v1/entities/query": {
       "post": {
         "summary": "Structured entity query",
@@ -432,6 +464,16 @@
           { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": { "200": { "description": "Entity record" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/entities/{id}/tags": {
+      "post": {
+        "summary": "Add or remove tags on an entity overlay record",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Updated entity tags" } }
       }
     },
     "/v1/entities/{id}/relationships": {
