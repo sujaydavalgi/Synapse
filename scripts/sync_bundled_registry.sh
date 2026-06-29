@@ -20,6 +20,16 @@ names = {
     "spanda-trust-pi",
     "spanda-gps",
     "spanda-fusion",
+    "spanda-matter",
+    "spanda-thread",
+    "spanda-zwave",
+    "spanda-bacnet",
+    "spanda-knx",
+    "spanda-home-assistant",
+    "spanda-energy",
+    "spanda-building",
+    "spanda-smart-locks",
+    "spanda-environment",
 }
 
 entries = json.loads(src_index.read_text())
