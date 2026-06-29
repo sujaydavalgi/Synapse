@@ -36,6 +36,5 @@ fleet-http = ["dep:spanda-deploy-http"]
 live-ai = []
 
 [dev-dependencies]
-spanda-fleet = { path = "../spanda-fleet" }
 spanda-lexer = { path = "../spanda-lexer" }
 spanda-parser = { path = "../spanda-parser" }

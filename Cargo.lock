@@ -2466,7 +2466,6 @@ dependencies = [
  "spanda-deploy-http",
  "spanda-error",
  "spanda-ffi",
- "spanda-fleet",
  "spanda-hal",
  "spanda-lexer",
  "spanda-lib-registry",
