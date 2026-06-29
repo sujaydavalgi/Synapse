@@ -15,7 +15,7 @@ spanda registry search openai
 
 ## Curated packages (hosted)
 
-All **44** curated packages under `packages/registry/` are published in the hosted index. Tarballs live at `registry/packages/<name>/<version>` with SHA-256 digests and Ed25519 signatures in `registry/index.json` (`version_checksums`, `version_signatures`). Rebuild with `./scripts/build-registry.sh` (runs `scripts/update_registry_checksums.py`, which delegates to `registry-index-maintain`). CI verifies signatures against the trust key in `registry/TRUST_KEY` (hosted signing material: `spanda-hosted-registry-v1` unless `SPANDA_REGISTRY_SIGN_KEY` is set).
+All **53** curated packages under `packages/registry/` are published in the hosted index. Tarballs live at `registry/packages/<name>/<version>` with SHA-256 digests and Ed25519 signatures in `registry/index.json` (`version_checksums`, `version_signatures`). Rebuild with `./scripts/build-registry.sh` (runs `scripts/update_registry_checksums.py`, which delegates to `registry-index-maintain`). CI verifies signatures against the trust key in `registry/TRUST_KEY` (hosted signing material: `spanda-hosted-registry-v1` unless `SPANDA_REGISTRY_SIGN_KEY` is set).
 
 | Package | Category | Import paths |
 |---------|----------|--------------|
@@ -48,6 +48,15 @@ All **44** curated packages under `packages/registry/` are published in the host
 | `spanda-lora` | iot | `iot.lora` |
 | `spanda-matter` | iot | `iot.matter` |
 | `spanda-canbus` | iot | `iot.canbus` |
+| `spanda-thread` | iot | `iot.thread` |
+| `spanda-zwave` | iot | `iot.zwave` |
+| `spanda-bacnet` | iot | `iot.bacnet` |
+| `spanda-knx` | iot | `iot.knx` |
+| `spanda-home-assistant` | bridge | `bridge.home_assistant` |
+| `spanda-energy` | energy | `energy.solar` |
+| `spanda-building` | building | `building.entity` |
+| `spanda-smart-locks` | access | `access.lock` |
+| `spanda-environment` | environment | `environment.aq` |
 | `spanda-radar` | sensors | `sensors.radar` |
 | `spanda-lidar` | sensors | `sensors.lidar` |
 | `spanda-ultrasonic` | sensors | `sensors.ultrasonic` |

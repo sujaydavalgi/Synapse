@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Smart Spaces CI and registry:** `smart-spaces-smoke` GitHub Actions job; provider dispatch for nine Smart Spaces packages; package `.sd` module stubs; registry index rebuilt with new packages; example syntax fixes so smoke passes.
 - **Smart Spaces & Ambient Intelligence — Official Solution Blueprint:** Safety-first orchestration for intelligent environments (home through smart city) without competing with home automation platforms. Adds `docs/solutions/smart-spaces.md`, topic guides (`building-automation`, `ambient-intelligence`, `energy-management`, `smart-space-security`, `smart-space-readiness`, `smart-space-device-tree`, `smart-space-packages`), example tree `examples/solutions/smart-spaces/` (six application scaffolds), nine optional registry package stubs (`spanda-thread`, `spanda-zwave`, `spanda-home-assistant`, `spanda-bacnet`, `spanda-knx`, `spanda-energy`, `spanda-building`, `spanda-smart-locks`, `spanda-environment`), Control Center Smart Spaces dashboard spec, website blueprint page, roadmap entry #15, and `scripts/smart_spaces_smoke.sh`.
 - **Entity SDK parity:** TypeScript `entityReadiness` / `entityRelationships`; Rust gRPC `entity_health` / `entity_trust` wrappers.
 - **Platform lifecycle events:** `ReadinessChanged`, `MissionStarted`, and `MissionCompleted` platform events from readiness evaluation and interpreter orchestration (when audit runtime is active).
