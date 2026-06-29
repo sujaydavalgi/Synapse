@@ -462,6 +462,24 @@ jobs:
       - run: chmod +x scripts/enterprise_ops_smoke.sh
       - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/enterprise_ops_smoke.sh
 
+  entity-model-smoke:
+    runs-on: ubuntu-latest
+    needs: rust
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: cargo build -p spanda --release
+      - run: npm ci
+      - run: chmod +x scripts/entity_model_smoke.sh
+      - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/entity_model_smoke.sh
+
   control-center-desktop:
     runs-on: ubuntu-latest
     needs: rust
