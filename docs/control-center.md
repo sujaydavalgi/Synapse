@@ -201,6 +201,46 @@ Planned REST endpoints (experimental — humans/wearables/health and HRI session
 
 See [solutions/spatial-computing.md](./solutions/spatial-computing.md) · [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md).
 
+### Smart Spaces dashboard
+
+Launch with the Smart Spaces & Ambient Intelligence blueprint:
+
+```bash
+spanda control-center serve \
+  --config examples/solutions/smart-spaces/spanda.toml \
+  --program examples/solutions/smart-spaces/smart-building/floor_readiness.sd
+```
+
+The **Smart Spaces** tab (experimental) shows building and facility operations across residential, commercial, and campus deployments. See [solutions/smart-spaces.md](./solutions/smart-spaces.md).
+
+**Experimental** — Smart Spaces tab and panels:
+
+| Panel | Content |
+|-------|---------|
+| **Buildings** | Facility list, floor map, readiness rollup per building |
+| **Rooms & zones** | Zone tree, occupancy counts, ambient context |
+| **Occupancy** | Presence timeline, flow between zones |
+| **Devices** | IoT inventory, gateway primary/backup role, battery quorum |
+| **Robots** | Vacuum, service, inspection robot status and missions |
+| **Wearables** | Linked wearables, health opt-in indicator |
+| **Health** | Device pool health, degraded critical sensors |
+| **Readiness** | Pre-mode blockers (night, lockdown, evac) |
+| **Trust** | Lock/camera attestation, package trust scores |
+| **Energy** | Generation, storage SOC, EV sessions, demand-response events |
+| **Security** | Access audit, tamper alerts, lockdown state |
+| **Environmental** | CO₂, AQ, temperature baselines vs actuals |
+| **Emergency** | Fire, leak, power failure status and active missions |
+
+Planned REST endpoints (experimental):
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /v1/facilities` | Building / facility entity list |
+| `GET /v1/facilities/{id}/readiness` | Per-building readiness rollup |
+| `GET /v1/zones/{id}/occupancy` | Zone occupancy twin |
+| `GET /v1/energy/systems` | Solar, battery, EV, meter summary |
+| `GET /v1/emergency/status` | Active emergency missions and system paths |
+
 ### Remote CLI (REST parity)
 
 Query a running Control Center without curl — uses `SPANDA_CONTROL_CENTER_URL` (default `http://127.0.0.1:8080`) and `SPANDA_API_KEY` for mutations:

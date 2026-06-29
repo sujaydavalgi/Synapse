@@ -6,7 +6,7 @@
 
 ## Why the move?
 
-The roadmap outgrew a single `docs/` guide. It now spans language, runtime, verification, device/fleet, security, operations, developer tooling, packages, and 14 industry solution blueprints. Root-level **`ROADMAP.md`** improves discoverability for new visitors and aligns Spanda's presentation as a **product ecosystem** rather than only a GitHub repository.
+The roadmap outgrew a single `docs/` guide. It now spans language, runtime, verification, device/fleet, security, operations, developer tooling, packages, and 15 industry solution blueprints. Root-level **`ROADMAP.md`** improves discoverability for new visitors and aligns Spanda's presentation as a **product ecosystem** rather than only a GitHub repository.
 
 ## Quick links
 

@@ -209,6 +209,14 @@
 | [solutions/adas.md](./solutions/adas.md) | **ADAS & Autonomous Driving blueprint** |
 | [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md) | **Human Interaction, wearables, AR/VR/XR roadmap (H1–H4)** |
 | [solutions/spatial-computing.md](./solutions/spatial-computing.md) | **Spatial Computing & Human-Robot Collaboration blueprint** |
+| [solutions/smart-spaces.md](./solutions/smart-spaces.md) | **Smart Spaces & Ambient Intelligence blueprint** |
+| [building-automation.md](./building-automation.md) | **Building automation and BMS integration** |
+| [ambient-intelligence.md](./ambient-intelligence.md) | **Context-aware ambient intelligence** |
+| [energy-management.md](./energy-management.md) | **Smart space energy management** |
+| [smart-space-readiness.md](./smart-space-readiness.md) | **Smart space readiness gates** |
+| [smart-space-security.md](./smart-space-security.md) | **Smart space security and access** |
+| [smart-space-device-tree.md](./smart-space-device-tree.md) | **Smart space device tree examples** |
+| [smart-space-packages.md](./smart-space-packages.md) | **Smart space packages and integration strategy** |
 | [human-interaction.md](./human-interaction.md) | **Human entity model and device tree** |
 | [operator-capabilities.md](./operator-capabilities.md) | **Operator capability verification** |
 | [wearables.md](./wearables.md) | **Wearable device registry and packages** |

@@ -51,7 +51,7 @@ Unified Entity Model (all platform objects)
 | Section | Jump |
 |---------|------|
 | [Platform Pillars](#platform-pillars) | 8 pillars — language through ecosystem |
-| [Official Solution Blueprints](#official-solution-blueprints) | 14 industry reference architectures |
+| [Official Solution Blueprints](#official-solution-blueprints) | 15 industry reference architectures |
 | [Feature ownership model](#feature-ownership-model) | Core vs package vs blueprint |
 | [Dependency map](#dependency-map) | Pillars → packages → providers → blueprints |
 | [Roadmap timeline](#roadmap-timeline) | Now / Next / Later / Long Term / Research |
@@ -417,6 +417,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | [Defense](#defense) | **Experimental** | Next | Security, Verification, Operations |
 | [Research & Education](#research--education) | **Stable** | Now | Developer Platform, Language |
 | [Spatial Computing & HRI](#spatial-computing--human-robot-collaboration) | **Experimental** | Next | Device & Fleet, Operations, Developer |
+| [Smart Spaces & Ambient Intelligence](#smart-spaces--ambient-intelligence) | **Experimental** (scaffold) | Next | Verification, Device & Fleet, Operations, Security |
 
 **Index:** [docs/solutions/README.md](docs/solutions/README.md) · **Website:** [website/solutions.html](website/solutions.html)
 
@@ -770,7 +771,33 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 
 **Phased delivery (H1–H6):** all **Experimental**. Promotion: [docs/stable-hardening-human-interaction.md](docs/stable-hardening-human-interaction.md)
 
-**Also ships:** Autonomous Rover (flagship) **Stable** — [examples/showcase/autonomous_rover/](examples/showcase/autonomous_rover/)
+---
+
+### Smart Spaces & Ambient Intelligence
+
+| Section | Reference |
+|---------|-----------|
+| **Purpose** | Safety-first verification, orchestration, readiness, assurance, and trust for intelligent environments (home → city) — not a home automation competitor |
+| **Reference Architecture** | [docs/solutions/smart-spaces.md](docs/solutions/smart-spaces.md) · [examples/solutions/smart-spaces/](examples/solutions/smart-spaces/) |
+| **Device Tree** | [docs/smart-space-device-tree.md](docs/smart-space-device-tree.md) — building, zone, gateway, IoT, robot, energy, human nodes |
+| **Packages** | [docs/smart-space-packages.md](docs/smart-space-packages.md) — Matter, BACnet, KNX, energy, building, HA bridge |
+| **Providers** | Matter, Thread, Zigbee, Z-Wave, MQTT, BACnet, KNX, Modbus, Home Assistant interop |
+| **Mission Examples** | Night mode, fire response, demand response, patient monitoring, building lockdown |
+| **Health Policies** | Gateway, battery, critical sensor quorum — [docs/health-checks.md](docs/health-checks.md) |
+| **Readiness** | [docs/smart-space-readiness.md](docs/smart-space-readiness.md) — pre-mode and emergency gates |
+| **Assurance** | Security, emergency systems, energy, medical device evidence |
+| **Recovery** | Gateway failover, emergency lighting, robot reassignment — [docs/mission-continuity.md](docs/mission-continuity.md) |
+| **Control Center** | Smart Spaces tab — buildings, occupancy, energy, emergency |
+| **Example Projects** | `smart-home/`, `smart-office/`, `smart-building/`, `hospital-at-home/`, `energy-management/`, `emergency-response/` |
+| **Documentation** | [building-automation.md](docs/building-automation.md) · [ambient-intelligence.md](docs/ambient-intelligence.md) · [energy-management.md](docs/energy-management.md) · [smart-space-security.md](docs/smart-space-security.md) |
+| **Simulation** | Fire, flood, power loss, gateway failure, HVAC failure, medical emergency |
+| **Replay** | Mode-change and emergency incident timelines |
+
+**Uses pillars:** Verification Platform · Device & Fleet Platform · Operations Platform · Security Platform · Packages & Ecosystem
+
+**Integrates:** [Connected Healthcare](#connected-healthcare) · [Spatial Computing & HRI](#spatial-computing--human-robot-collaboration) · [Environmental Monitoring](#environmental-monitoring)
+
+**Status:** **Experimental** (scaffold) — CI via `scripts/smart_spaces_smoke.sh`
 
 ---
 

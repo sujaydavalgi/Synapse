@@ -102,6 +102,7 @@
       <div class="card"><h3>Defense</h3><p>Experimental · secure autonomy</p></div>
       <div class="card"><h3>Research &amp; Education</h3><p>Stable · Spanda 101</p></div>
       <div class="card"><h3>Spatial Computing &amp; HRI</h3><p>Experimental · AR/VR/XR</p></div>
+      <div class="card"><h3>Smart Spaces &amp; Ambient Intelligence</h3><p>Experimental · buildings &amp; IoT</p></div>
     </div>
     <p><a href="https://github.com/Davalgi/Spanda/blob/main/ROADMAP.md#official-solution-blueprints">Full blueprint detail in ROADMAP.md →</a></p>
 
@@ -210,6 +211,62 @@ spanda control-center serve --config spanda.toml --program warehouse-ar/pick_mis
         <a href="https://github.com/Davalgi/Spanda/tree/main/examples/solutions/spatial-computing">Blueprint source</a> ·
         <a href="https://github.com/Davalgi/Spanda/blob/main/docs/solutions/spatial-computing.md">Architecture docs</a> ·
         <a href="https://github.com/Davalgi/Spanda/blob/main/docs/human-interaction-spatial-computing-roadmap.md">Roadmap</a>
+      </p>
+    </article>
+
+    <article class="blueprint">
+      <span class="badge">Experimental</span>
+      <h2>Smart Spaces &amp; Ambient Intelligence</h2>
+      <p>
+        Safety-first verification, orchestration, readiness, assurance, and trust for intelligent environments —
+        from smart homes and offices to hospitals, factories, campuses, and cities. Spanda composes above Matter hubs,
+        BMS systems, and ecosystems like Home Assistant; it does not replace home automation platforms.
+      </p>
+
+      <div class="diagram">Platform Layer (existing)
+├── spanda verify · readiness · assurance · diagnose · explain
+├── Mission continuity · self-healing · trust · digital twin · replay
+└── Control Center (Smart Spaces dashboard tab — planned)
+
+Blueprint Layer (examples/solutions/smart-spaces/)
+├── Unified entity model (building, zone, occupant, gateway, device)
+├── Optional protocol packages (Matter, BACnet, KNX, Zigbee, …)
+├── Energy + environment + smart-lock packages
+└── Home Assistant interop bridge (provider only)
+
+Intelligent Environment Stack
+  Building → Gateway → IoT + Robots + Wearables + Energy → Control Center</div>
+
+      <h3>Reference workflows</h3>
+      <pre><code>spanda check examples/solutions/smart-spaces/smart-home/night_mode.sd
+spanda readiness smart-home/night_mode.sd --profile smart_space --config spanda.toml
+spanda verify smart-building/floor_readiness.sd --capabilities --config spanda.toml
+spanda control-center serve --config spanda.toml --program smart-building/floor_readiness.sd
+./scripts/smart_spaces_smoke.sh</code></pre>
+
+      <h3>Example dashboards (planned)</h3>
+      <div class="grid">
+        <div class="card"><h3>Buildings</h3><p>Facility readiness rollup, floor map</p></div>
+        <div class="card"><h3>Occupancy</h3><p>Zone presence, flow, ambient context</p></div>
+        <div class="card"><h3>Devices</h3><p>Gateway health, sensor battery quorum</p></div>
+        <div class="card"><h3>Energy</h3><p>Solar, battery SOC, EV sessions, demand response</p></div>
+        <div class="card"><h3>Emergency</h3><p>Fire, leak, evacuation status</p></div>
+        <div class="card"><h3>Trust &amp; security</h3><p>Lock attestation, access audit trail</p></div>
+      </div>
+
+      <h3>Supported packages</h3>
+      <p>
+        <code>spanda-matter</code> · <code>spanda-thread</code> · <code>spanda-zigbee</code> ·
+        <code>spanda-zwave</code> · <code>spanda-bacnet</code> · <code>spanda-knx</code> ·
+        <code>spanda-energy</code> · <code>spanda-building</code> · <code>spanda-smart-locks</code> ·
+        <code>spanda-environment</code> · <code>spanda-home-assistant</code> (interop) ·
+        <code>spanda-mission-continuity</code>
+      </p>
+
+      <p>
+        <a href="https://github.com/Davalgi/Spanda/tree/main/examples/solutions/smart-spaces">Blueprint source</a> ·
+        <a href="https://github.com/Davalgi/Spanda/blob/main/docs/solutions/smart-spaces.md">Architecture docs</a> ·
+        <a href="https://github.com/Davalgi/Spanda/blob/main/docs/smart-space-packages.md">Integration strategy</a>
       </p>
     </article>
 

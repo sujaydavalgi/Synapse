@@ -24,10 +24,11 @@ Spanda ships **Official Solution Blueprints** — reference architectures built 
 | **Defense** | Experimental | Next | [defense.md](./defense.md) · [examples/showcase/secure_boot/](../../examples/showcase/secure_boot/) |
 | **Research & Education** | Stable | Now | [examples/showcase/autonomous_rover/](../../examples/showcase/autonomous_rover/) |
 | **Spatial Computing & HRI** | Experimental | Next | [examples/solutions/spatial-computing/](../../examples/solutions/spatial-computing/) · [spatial-computing.md](./spatial-computing.md) |
+| **Smart Spaces & Ambient Intelligence** | Experimental (scaffold) | Next | [smart-spaces.md](./smart-spaces.md) · [examples/solutions/smart-spaces/](../../examples/solutions/smart-spaces/) |
 
 **Also:** Compliance profiles showcase — [examples/showcase/compliance/](../../examples/showcase/compliance/)
 
-**Scaffold CI:** `./scripts/solution_blueprints_smoke.sh` (agriculture, environmental monitoring, maritime)
+**Scaffold CI:** `./scripts/solution_blueprints_smoke.sh` (agriculture, environmental monitoring, maritime) · `./scripts/smart_spaces_smoke.sh` (smart spaces)
 
 ---
 
@@ -83,6 +84,26 @@ Human–robot collaboration, wearables, AR/VR/XR, and collaborative autonomy —
 
 ```bash
 cd examples/solutions/spatial-computing && spanda check warehouse-ar/pick_mission.sd
+```
+
+---
+
+## Smart Spaces & Ambient Intelligence
+
+Safety-first orchestration for intelligent environments — IoT, robots, wearables, connected healthcare, and energy — without competing with Home Assistant or home automation hubs.
+
+- **Architecture:** [smart-spaces.md](./smart-spaces.md)
+- **Building automation:** [building-automation.md](../building-automation.md)
+- **Ambient intelligence:** [ambient-intelligence.md](../ambient-intelligence.md)
+- **Energy:** [energy-management.md](../energy-management.md)
+- **Readiness:** [smart-space-readiness.md](../smart-space-readiness.md)
+- **Security:** [smart-space-security.md](../smart-space-security.md)
+- **Packages:** [smart-space-packages.md](../smart-space-packages.md)
+- **Pillars used:** Verification · Device & Fleet · Operations · Security · Packages
+
+```bash
+cd examples/solutions/smart-spaces && spanda check smart-home/night_mode.sd
+./scripts/smart_spaces_smoke.sh
 ```
 
 ---
