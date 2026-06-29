@@ -94,8 +94,20 @@ Enable live reads with environment flags (build with `--features live-iot` on `s
 | `SPANDA_LIVE_LORA=1` | Read LoRa payloads via Python bridge |
 | `SPANDA_LIVE_MATTER=1` | Read Matter clusters via Python bridge |
 | `SPANDA_LIVE_CANBUS=1` | Read CAN frames via Python bridge |
+| `SPANDA_LIVE_BACNET=1` | Read BACnet points via `SPANDA_BACNET_CMD` or Python bridge |
+| `SPANDA_BACNET_CMD` | Shell template for BACnet reads (`{device}`, `{object_id}`) |
+| `SPANDA_LIVE_KNX=1` | Read KNX group addresses via `SPANDA_KNX_CMD` or Python bridge |
+| `SPANDA_KNX_CMD` | Shell template for KNX reads (`{address}`) |
+| `SPANDA_LIVE_THREAD=1` | Read Thread endpoints via `SPANDA_THREAD_CMD` or Python bridge |
+| `SPANDA_THREAD_CMD` | Shell template for Thread reads (`{device}`) |
+| `SPANDA_LIVE_ZWAVE=1` | Read Z-Wave values via `SPANDA_ZWAVE_CMD` or Python bridge |
+| `SPANDA_ZWAVE_CMD` | Shell template for Z-Wave reads (`{device}`, `{object_id}`) |
+| `SPANDA_LIVE_HOME_ASSISTANT=1` | Read HA entity state via `SPANDA_HOME_ASSISTANT_CMD` or Python bridge |
+| `SPANDA_HOME_ASSISTANT_CMD` | Shell template for HA reads (`{entity}`) |
 
 Golden path (mock fallback without hardware): `./scripts/live_iot_golden_path.sh`
+
+Smart Spaces building I/O smoke: `./scripts/smart_spaces_live_iot_smoke.sh`
 
 ## Persistent storage
 

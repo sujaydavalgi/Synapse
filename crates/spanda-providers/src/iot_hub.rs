@@ -664,18 +664,30 @@ pub fn read_matter_cluster(node: &str, cluster: &str) -> f64 {
 }
 
 pub fn read_bacnet_point(device: &str, object_id: &str) -> String {
+    if let Some(value) = crate::iot_live::read_bacnet_point_live(device, object_id) {
+        return value;
+    }
     hub().lock().unwrap().read_bacnet_point(device, object_id)
 }
 
 pub fn read_knx_group(address: &str) -> String {
+    if let Some(value) = crate::iot_live::read_knx_group_live(address) {
+        return value;
+    }
     hub().lock().unwrap().read_knx_group(address)
 }
 
 pub fn read_thread_endpoint(device: &str) -> String {
+    if let Some(value) = crate::iot_live::read_thread_endpoint_live(device) {
+        return value;
+    }
     hub().lock().unwrap().read_thread_endpoint(device)
 }
 
 pub fn read_zwave_value(device: &str, command_class: &str) -> String {
+    if let Some(value) = crate::iot_live::read_zwave_value_live(device, command_class) {
+        return value;
+    }
     hub().lock().unwrap().read_zwave_value(device, command_class)
 }
 

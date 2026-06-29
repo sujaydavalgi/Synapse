@@ -766,6 +766,31 @@ def _matter_read_cluster(node: str, cluster: str) -> float:
     return float((hash(f"{node}:{cluster}") % 100) + 1)
 
 
+def _bacnet_read_point(device: str, object_id: str) -> str:
+    """Read BACnet object present-value (mock when no bacpypes)."""
+    return f"mock-bacnet:{device}:{object_id}"
+
+
+def _knx_read_group(address: str) -> str:
+    """Read KNX group address value (mock when no xknx)."""
+    return f"mock-knx:{address}"
+
+
+def _thread_read_endpoint(device: str) -> str:
+    """Read Thread endpoint state (mock when no OpenThread CLI)."""
+    return f"mock-thread:{device}"
+
+
+def _zwave_read_value(device: str, command_class: str) -> str:
+    """Read Z-Wave command-class value (mock when no openzwave)."""
+    return f"mock-zwave:{device}:{command_class}"
+
+
+def _home_assistant_get_state(entity_id: str) -> str:
+    """Read Home Assistant entity state (mock when no HA REST token)."""
+    return f"mock-ha:{entity_id}"
+
+
 def _canbus_read_frame(can_id: int) -> float:
 
 
@@ -2159,6 +2184,11 @@ HANDLERS: dict[str, Handler] = {
     "zigbee_read_attribute": _zigbee_read_attribute,
     "lora_read_payload": _lora_read_payload,
     "matter_read_cluster": _matter_read_cluster,
+    "bacnet_read_point": _bacnet_read_point,
+    "knx_read_group": _knx_read_group,
+    "thread_read_endpoint": _thread_read_endpoint,
+    "zwave_read_value": _zwave_read_value,
+    "home_assistant_get_state": _home_assistant_get_state,
     "canbus_read_frame": _canbus_read_frame,
     "onnx_complete": _onnx_complete,
     "onnx_anomaly_infer": _onnx_anomaly_infer,

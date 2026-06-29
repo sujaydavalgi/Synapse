@@ -202,6 +202,31 @@ pub fn live_canbus_enabled() -> bool {
     live_iot_flag("SPANDA_LIVE_CANBUS")
 }
 
+/// Return true when live BACnet bridge reads are enabled.
+pub fn live_bacnet_enabled() -> bool {
+    live_iot_flag("SPANDA_LIVE_BACNET")
+}
+
+/// Return true when live KNX bridge reads are enabled.
+pub fn live_knx_enabled() -> bool {
+    live_iot_flag("SPANDA_LIVE_KNX")
+}
+
+/// Return true when live Thread bridge reads are enabled.
+pub fn live_thread_enabled() -> bool {
+    live_iot_flag("SPANDA_LIVE_THREAD")
+}
+
+/// Return true when live Z-Wave bridge reads are enabled.
+pub fn live_zwave_enabled() -> bool {
+    live_iot_flag("SPANDA_LIVE_ZWAVE")
+}
+
+/// Return true when live Home Assistant bridge reads are enabled.
+pub fn live_home_assistant_enabled() -> bool {
+    live_iot_flag("SPANDA_LIVE_HOME_ASSISTANT")
+}
+
 /// Return true when live automotive radar reads are enabled.
 pub fn live_radar_enabled() -> bool {
     live_iot_flag("SPANDA_LIVE_RADAR")
@@ -302,6 +327,72 @@ pub fn read_matter_cluster_live(node: &str, cluster: &str) -> Option<f64> {
     )
 }
 
+pub fn read_bacnet_point_live(device: &str, object_id: &str) -> Option<String> {
+    if !live_bacnet_enabled() {
+        return None;
+    }
+    read_string_via_external_cmd_pair("SPANDA_BACNET_CMD", device, object_id).or_else(|| {
+        read_string_via_python_bridge(
+            "bacnet_read_point",
+            vec![
+                serde_json::Value::String(device.to_string()),
+                serde_json::Value::String(object_id.to_string()),
+            ],
+        )
+    })
+}
+
+pub fn read_knx_group_live(address: &str) -> Option<String> {
+    if !live_knx_enabled() {
+        return None;
+    }
+    read_string_via_external_cmd_single("SPANDA_KNX_CMD", address).or_else(|| {
+        read_string_via_python_bridge(
+            "knx_read_group",
+            vec![serde_json::Value::String(address.to_string())],
+        )
+    })
+}
+
+pub fn read_thread_endpoint_live(device: &str) -> Option<String> {
+    if !live_thread_enabled() {
+        return None;
+    }
+    read_string_via_external_cmd_single("SPANDA_THREAD_CMD", device).or_else(|| {
+        read_string_via_python_bridge(
+            "thread_read_endpoint",
+            vec![serde_json::Value::String(device.to_string())],
+        )
+    })
+}
+
+pub fn read_zwave_value_live(device: &str, command_class: &str) -> Option<String> {
+    if !live_zwave_enabled() {
+        return None;
+    }
+    read_string_via_external_cmd_pair("SPANDA_ZWAVE_CMD", device, command_class).or_else(|| {
+        read_string_via_python_bridge(
+            "zwave_read_value",
+            vec![
+                serde_json::Value::String(device.to_string()),
+                serde_json::Value::String(command_class.to_string()),
+            ],
+        )
+    })
+}
+
+pub fn read_home_assistant_state_live(entity_id: &str) -> Option<String> {
+    if !live_home_assistant_enabled() {
+        return None;
+    }
+    read_string_via_external_cmd_single("SPANDA_HOME_ASSISTANT_CMD", entity_id).or_else(|| {
+        read_string_via_python_bridge(
+            "home_assistant_get_state",
+            vec![serde_json::Value::String(entity_id.to_string())],
+        )
+    })
+}
+
 pub fn read_canbus_frame_live(can_id: u32) -> Option<f64> {
     // Description:
     //     Read canbus frame live.
@@ -397,6 +488,42 @@ fn read_distance_via_external_cmd(cmd_env: &str, sensor_id: &str) -> Option<f64>
         .trim()
         .parse()
         .ok()
+}
+
+fn read_string_via_external_cmd_single(cmd_env: &str, arg: &str) -> Option<String> {
+    let template = std::env::var(cmd_env)
+        .ok()
+        .filter(|value| !value.trim().is_empty())?;
+    let command = template.replace("{entity}", arg).replace("{device}", arg);
+    read_command_stdout(&command)
+}
+
+fn read_string_via_external_cmd_pair(cmd_env: &str, device: &str, object_id: &str) -> Option<String> {
+    let template = std::env::var(cmd_env)
+        .ok()
+        .filter(|value| !value.trim().is_empty())?;
+    let command = template
+        .replace("{device}", device)
+        .replace("{object_id}", object_id)
+        .replace("{address}", object_id);
+    read_command_stdout(&command)
+}
+
+fn read_command_stdout(command: &str) -> Option<String> {
+    let output = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(command)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let line = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .next()?
+        .trim()
+        .to_string();
+    if line.is_empty() { None } else { Some(line) }
 }
 
 fn read_string_via_python_bridge(fn_name: &str, args: Vec<serde_json::Value>) -> Option<String> {
@@ -681,5 +808,19 @@ mod tests {
         assert_eq!(read_radar_distance_live("front-radar"), Some(42.5));
         std::env::remove_var("SPANDA_LIVE_RADAR");
         std::env::remove_var("SPANDA_RADAR_CMD");
+    }
+
+    #[test]
+    fn live_bacnet_external_cmd_parses_stdout() {
+        std::env::remove_var("SPANDA_LIVE_BACNET");
+        std::env::remove_var("SPANDA_BACNET_CMD");
+        std::env::set_var("SPANDA_LIVE_BACNET", "1");
+        std::env::set_var("SPANDA_BACNET_CMD", "echo live-bacnet:{device}:{object_id}");
+        assert_eq!(
+            read_bacnet_point_live("ahu-12", "present-value"),
+            Some("live-bacnet:ahu-12:present-value".into())
+        );
+        std::env::remove_var("SPANDA_LIVE_BACNET");
+        std::env::remove_var("SPANDA_BACNET_CMD");
     }
 }
