@@ -264,11 +264,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: ./.github/actions/install-protoc
       - run: cargo build -p spanda --release
-      - run: chmod +x scripts/agriculture_smoke.sh
+      - run: chmod +x scripts/solution_blueprints_smoke.sh scripts/agriculture_smoke.sh
       - run: |
           export PATH="${{ github.workspace }}/target/release:$PATH"
           export SPANDA_BIN="${{ github.workspace }}/target/release/spanda"
-          ./scripts/agriculture_smoke.sh
+          ./scripts/solution_blueprints_smoke.sh
 
   adas-promotion-gate:
     runs-on: ubuntu-latest

@@ -1,0 +1,13 @@
+[package]
+name = "environmental-monitoring-blueprint"
+version = "0.1.0"
+description = "Environmental Monitoring Official Solution Blueprint — sensor mesh scaffold"
+
+[config]
+readiness_profile = "environmental"
+
+[dependencies]
+# Optional when live backends are enabled:
+# spanda-lora = "0.1.0"
+# spanda-mqtt = "0.1.0"
+# spanda-cellular = "0.1.0"

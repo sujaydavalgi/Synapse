@@ -1,0 +1,13 @@
+[package]
+name = "maritime-blueprint"
+version = "0.1.0"
+description = "Maritime Official Solution Blueprint — harbor patrol scaffold"
+
+[config]
+readiness_profile = "maritime"
+
+[dependencies]
+# Optional when live backends are enabled:
+# spanda-gps = "0.1.0"
+# spanda-radar = "0.1.0"
+# spanda-cellular = "0.1.0"

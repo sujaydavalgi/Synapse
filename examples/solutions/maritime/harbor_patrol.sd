@@ -1,0 +1,58 @@
+// Harbor patrol — coastal vessel navigation with redundant sensing and shore handoff
+//
+//   spanda check harbor_patrol.sd
+//   spanda verify harbor_patrol.sd --target CoastalVesselV1
+//   spanda sim harbor_patrol.sd
+
+hardware CoastalVesselV1 {
+  cpu: CortexA55;
+  memory: 4 GB;
+  sensors [ GPS, IMU, Camera, Lidar ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 200 Wh; }
+}
+
+robot HarborPatrol {
+  sensor gps: GPS;
+  sensor imu: IMU;
+  sensor camera: Camera;
+  sensor lidar: Lidar;
+  actuator propulsion: DifferentialDrive;
+
+  exposes capabilities [ coastal_navigation, collision_avoidance, shore_handoff ];
+
+  safety {
+    max_speed = 3.0 m/s;
+    stop_if lidar.nearest_distance < 5.0 m;
+  }
+
+  mission PatrolChannel {
+    requires capabilities [ coastal_navigation, collision_avoidance ];
+    patrol_channel;
+  }
+
+  behavior patrol_channel() {
+    loop every 500ms {
+      propulsion.drive(linear: 1.5 m/s, angular: 0.0 rad/s);
+    }
+  }
+}
+
+health_check VesselHealth for robot HarborPatrol {
+  check gps.status == Healthy;
+  check lidar.status == Healthy;
+}
+
+health_policy VesselPolicy {
+  on Degraded { propulsion.drive(linear: 0.5 m/s, angular: 0.0 rad/s); }
+  on Critical { emergency_stop; }
+}
+
+recovery_policy VesselRecovery {
+  on connectivity.lost {
+    reassign mission;
+    mode degraded;
+  }
+}
+
+deploy HarborPatrol to CoastalVesselV1;

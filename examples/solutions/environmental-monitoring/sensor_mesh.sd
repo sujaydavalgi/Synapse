@@ -1,0 +1,57 @@
+// Sensor mesh — distributed environmental sampling with battery and link gates
+//
+//   spanda check sensor_mesh.sd
+//   spanda verify sensor_mesh.sd --target SensorNodeV1
+//   spanda sim sensor_mesh.sd
+
+hardware SensorNodeV1 {
+  cpu: CortexM4;
+  memory: 512 MB;
+  sensors [ GPS, IMU, Lidar ];
+  actuators [ DifferentialDrive ];
+  battery { capacity: 20 Wh; }
+}
+
+robot FieldSensor {
+  sensor gps: GPS;
+  sensor imu: IMU;
+  sensor lidar: Lidar;
+  actuator wheels: DifferentialDrive;
+
+  exposes capabilities [ environmental_sampling, mesh_telemetry, calibration_gate ];
+
+  safety {
+    max_speed = 0.5 m/s;
+    stop_if lidar.nearest_distance < 0.8 m;
+  }
+
+  mission SampleLoop {
+    requires capabilities [ environmental_sampling ];
+    sample_and_uplink;
+  }
+
+  behavior sample_and_uplink() {
+    loop every 60s {
+      wheels.stop();
+    }
+  }
+}
+
+health_check SensorHealth for robot FieldSensor {
+  check gps.status == Healthy;
+  check imu.status == Healthy;
+}
+
+health_policy SensorPolicy {
+  on Degraded { wheels.stop(); }
+  on Critical { emergency_stop; }
+}
+
+recovery_policy SensorRecovery {
+  on connectivity.lost {
+    reassign mission;
+    mode degraded;
+  }
+}
+
+deploy FieldSensor to SensorNodeV1;
