@@ -30,6 +30,17 @@ IoT integrations live in official packages. Core defines generic contracts; pack
 | `spanda-zigbee` | Zigbee (stub + live bridge) |
 | `spanda-lora` | LoRa (stub + live bridge) |
 | `spanda-matter` | Matter (stub + live bridge) |
+| `spanda-thread` | Thread mesh (stub) |
+| `spanda-zwave` | Z-Wave (stub) |
+| `spanda-bacnet` | BACnet building automation (stub) |
+| `spanda-knx` | KNX building bus (stub) |
+| `spanda-home-assistant` | Home Assistant bridge (stub) |
+| `spanda-energy` | Solar, battery, and demand-response (stub) |
+| `spanda-building` | Facility zones and readiness orchestration (stub) |
+| `spanda-smart-locks` | Smart lock and access control (stub) |
+| `spanda-environment` | Air quality and environmental sensing (stub) |
+
+See [solutions/smart-spaces.md](solutions/smart-spaces.md) for the Smart Spaces Solution Blueprint.
 
 ## Example
 
@@ -58,6 +69,15 @@ When official IoT packages are installed, module imports dispatch through `packa
 | `iot.lora` | `read_payload` | `spanda-lora` |
 | `iot.matter` | `read_cluster` | `spanda-matter` |
 | `iot.canbus` | `read_frame` | `spanda-canbus` |
+| `iot.thread` | `read_endpoint` | `spanda-thread` |
+| `iot.zwave` | `read_value` | `spanda-zwave` |
+| `iot.bacnet` | `read_point` | `spanda-bacnet` |
+| `iot.knx` | `read_group_address` | `spanda-knx` |
+| `bridge.home_assistant` | `get_state` | `spanda-home-assistant` |
+| `energy.solar` | `read_generation` | `spanda-energy` |
+| `building.entity` | `facility_readiness` | `spanda-building` |
+| `access.lock` | `lock_state` | `spanda-smart-locks` |
+| `environment.aq` | `read_aq` | `spanda-environment` |
 
 ## Live hardware (optional)
 

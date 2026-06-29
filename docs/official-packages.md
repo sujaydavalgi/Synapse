@@ -62,6 +62,22 @@ Specialized adapter packages (examples under `examples/packages/`):
 
 See [solutions/adas.md](solutions/adas.md) for the ADAS Solution Blueprint.
 
+## Smart spaces and building automation
+
+| Package | Import path | Description |
+|---------|-------------|-------------|
+| `spanda-thread` | `iot.thread` | Thread mesh networking |
+| `spanda-zwave` | `iot.zwave` | Z-Wave home automation |
+| `spanda-bacnet` | `iot.bacnet` | BACnet building automation |
+| `spanda-knx` | `iot.knx` | KNX building control bus |
+| `spanda-home-assistant` | `bridge.home_assistant` | Home Assistant bridge |
+| `spanda-energy` | `energy.solar` | Solar, battery, and demand response |
+| `spanda-building` | `building.entity` | Facility zones and readiness |
+| `spanda-smart-locks` | `access.lock` | Smart lock and access control |
+| `spanda-environment` | `environment.aq` | Air quality and environmental sensing |
+
+See [solutions/smart-spaces.md](solutions/smart-spaces.md) for the Smart Spaces Solution Blueprint.
+
 Aliases: `spanda-sim-gazebo`, `spanda-sim-webots` (registry metadata).
 
 ## Platform services

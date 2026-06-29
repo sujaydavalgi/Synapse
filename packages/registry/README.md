@@ -22,7 +22,8 @@ Install: `spanda install spanda-gps` · Index: [docs/registry.md](../docs/regist
 
 | Category | Examples |
 |----------|----------|
-| **Transport / IoT** | `spanda-mqtt`, `spanda-ble`, `spanda-opcua`, `spanda-matter`, `spanda-canbus` |
+| **Transport / IoT** | `spanda-mqtt`, `spanda-ble`, `spanda-opcua`, `spanda-matter`, `spanda-canbus`, `spanda-thread`, `spanda-zwave`, `spanda-bacnet`, `spanda-knx`, `spanda-home-assistant` |
+| **Smart spaces** | `spanda-energy`, `spanda-building`, `spanda-smart-locks`, `spanda-environment` |
 | **Robotics** | `spanda-ros2`, `spanda-nav`, `spanda-moveit`, `spanda-slam`, `spanda-gazebo` |
 | **Automotive** | `spanda-v2x`, `spanda-radar`, `spanda-lidar`, `spanda-uds`, `spanda-lin` |
 | **Vision / AI** | `spanda-opencv`, `spanda-onnx`, `spanda-openai` |

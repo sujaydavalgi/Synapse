@@ -546,6 +546,60 @@ pub fn framework_packages() -> &'static [FrameworkPackage] {
             category: super::category::PackageCategory::Hardware,
             import_paths: &["trust.pi"],
         },
+        FrameworkPackage {
+            name: "spanda-thread",
+            description: "Thread mesh networking for smart devices",
+            category: super::category::PackageCategory::Hardware,
+            import_paths: &["iot.thread"],
+        },
+        FrameworkPackage {
+            name: "spanda-zwave",
+            description: "Z-Wave home automation protocol",
+            category: super::category::PackageCategory::Hardware,
+            import_paths: &["iot.zwave"],
+        },
+        FrameworkPackage {
+            name: "spanda-bacnet",
+            description: "BACnet building automation protocol",
+            category: super::category::PackageCategory::Hardware,
+            import_paths: &["iot.bacnet"],
+        },
+        FrameworkPackage {
+            name: "spanda-knx",
+            description: "KNX building control bus",
+            category: super::category::PackageCategory::Hardware,
+            import_paths: &["iot.knx"],
+        },
+        FrameworkPackage {
+            name: "spanda-home-assistant",
+            description: "Home Assistant bridge for consumer IoT",
+            category: super::category::PackageCategory::Mqtt,
+            import_paths: &["bridge.home_assistant"],
+        },
+        FrameworkPackage {
+            name: "spanda-energy",
+            description: "Solar, battery, and demand-response energy systems",
+            category: super::category::PackageCategory::Hardware,
+            import_paths: &["energy.solar"],
+        },
+        FrameworkPackage {
+            name: "spanda-building",
+            description: "Facility zones, gateways, and readiness orchestration",
+            category: super::category::PackageCategory::DigitalTwin,
+            import_paths: &["building.entity"],
+        },
+        FrameworkPackage {
+            name: "spanda-smart-locks",
+            description: "Smart lock and access control adapters",
+            category: super::category::PackageCategory::Safety,
+            import_paths: &["access.lock"],
+        },
+        FrameworkPackage {
+            name: "spanda-environment",
+            description: "Air quality and environmental sensing",
+            category: super::category::PackageCategory::Sensors,
+            import_paths: &["environment.aq"],
+        },
     ]
 }
 
