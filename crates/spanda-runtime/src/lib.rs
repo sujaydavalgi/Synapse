@@ -1,6 +1,9 @@
 //! Spanda runtime kernel primitives extracted for the Phase 4 lean-core split.
 //!
 pub mod assurance_runtime;
+pub mod readiness_runtime;
+pub mod fleet_tamper_runtime;
+pub mod fleet_telemetry_runtime;
 pub mod classification;
 pub mod fault_primitives;
 pub mod fault_runtime;
@@ -43,7 +46,18 @@ pub mod value;
 pub mod world_model;
 
 pub use assurance_runtime::{
-    default_assurance_runtime, AssuranceRuntime, BuiltinAssuranceRuntime, SharedAssuranceRuntime,
+    default_assurance_runtime, platform_assurance_runtime, set_platform_assurance_runtime,
+    AssuranceRuntime, BuiltinAssuranceRuntime, SharedAssuranceRuntime,
+};
+pub use readiness_runtime::{
+    readiness_runtime, set_readiness_runtime, NoopReadinessRuntime, ReadinessRuntime,
+};
+pub use fleet_tamper_runtime::{
+    fleet_tamper_runtime, set_fleet_tamper_runtime, FleetTamperRuntime, NoopFleetTamperRuntime,
+};
+pub use fleet_telemetry_runtime::{
+    fleet_telemetry_runtime, set_fleet_telemetry_runtime, FleetTelemetryRuntime,
+    NoopFleetTelemetryRuntime,
 };
 pub use fault_primitives::{
     empty_fault_scan_report, faults_from_hardware_signals, record_fault_in_trace,

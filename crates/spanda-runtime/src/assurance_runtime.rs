@@ -111,6 +111,21 @@ pub trait AssuranceRuntime: Send + Sync {
     ) -> Option<MissionStateSnapshot>;
 
     fn parse_trigger(&self, s: &str) -> ContinuityTrigger;
+
+    /// Evaluate recovery plans for a compiled program with no external context.
+    ///
+    /// Parameters:
+    /// - `program` — compiled AST program
+    ///
+    /// Returns:
+    /// RecoveryReport summarising plan coverage and gate results.
+    ///
+    /// Options:
+    /// None.
+    ///
+    /// Example:
+    /// let report = platform_assurance_runtime().evaluate_recovery_program(&program);
+    fn evaluate_recovery_program(&self, program: &Program) -> crate::recovery_types::RecoveryReport;
 }
 
 /// Minimal built-in assurance runtime with permissive validation defaults.
@@ -395,6 +410,54 @@ impl AssuranceRuntime for BuiltinAssuranceRuntime {
     fn parse_trigger(&self, s: &str) -> ContinuityTrigger {
         parse_trigger(s)
     }
+
+    fn evaluate_recovery_program(
+        &self,
+        _program: &Program,
+    ) -> crate::recovery_types::RecoveryReport {
+        // Return a default passing report when no real assurance engine is wired.
+        let default_readiness = crate::recovery_types::RecoveryReadiness {
+            recovery_ready: true,
+            risk: "none".into(),
+            readiness_score: 100,
+            blockers: Vec::new(),
+        };
+        crate::recovery_types::RecoveryReport {
+            passed: true,
+            policies: Vec::new(),
+            plans: Vec::new(),
+            safe_actions: Vec::new(),
+            results: Vec::new(),
+            audit: Vec::new(),
+            readiness: default_readiness.clone(),
+            assurance: crate::recovery_types::RecoveryAssuranceMetrics {
+                recovery_evidence: Vec::new(),
+                recovery_readiness: default_readiness,
+                success_rate: 1.0,
+                traceability: Vec::new(),
+            },
+            fleet_plans: Vec::new(),
+            knowledge: crate::recovery_types::RecoveryKnowledgeBase::default(),
+        }
+    }
+}
+
+static PLATFORM_ASSURANCE_RUNTIME: std::sync::OnceLock<SharedAssuranceRuntime> =
+    std::sync::OnceLock::new();
+
+/// Inject a real assurance runtime from a higher-layer crate (e.g. spanda-assurance bridge).
+pub fn set_platform_assurance_runtime(runtime: SharedAssuranceRuntime) {
+    // Accept the first injection; subsequent calls are silently ignored via OnceLock semantics.
+    let _ = PLATFORM_ASSURANCE_RUNTIME.set(runtime);
+}
+
+/// Return the active platform assurance runtime, falling back to the built-in default.
+pub fn platform_assurance_runtime() -> SharedAssuranceRuntime {
+    // Return the injected runtime if set, otherwise use the default built-in.
+    PLATFORM_ASSURANCE_RUNTIME
+        .get()
+        .cloned()
+        .unwrap_or_else(default_assurance_runtime)
 }
 
 /// Shared assurance runtime handle passed through run options at the driver boundary.
