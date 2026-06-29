@@ -228,14 +228,18 @@ pub fn agent_health(entry: &FleetAgentEntry) -> Result<bool, String> {
     let response = http_request("GET", &url, None, entry.token.as_deref())?;
     let body: serde_json::Value = decode_response(response)?;
     let ok = body.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
-    if ok && spanda_telemetry_store::persist_enabled() {
-        let _ = spanda_telemetry_store::record_device_heartbeat(
-            &entry.robot_name,
-            spanda_telemetry_store::wall_timestamp_ms(),
-            Some(entry.robot_name.as_str()),
-            Some("fleet-agent"),
-            5000.0,
-        );
+    if ok {
+        // Record heartbeat via the injected device telemetry sink.
+        let sink = spanda_runtime::device_telemetry_sink::device_telemetry_sink();
+        if sink.persist_enabled() {
+            let _ = sink.record_device_heartbeat(
+                &entry.robot_name,
+                sink.wall_timestamp_ms(),
+                Some(entry.robot_name.as_str()),
+                Some("fleet-agent"),
+                5000.0,
+            );
+        }
     }
     Ok(ok)
 }

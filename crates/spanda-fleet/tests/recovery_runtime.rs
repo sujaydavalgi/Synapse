@@ -1,15 +1,13 @@
 //! Interpreter fleet recovery coordination integration tests.
 
-use spanda_assurance::AssuranceBackedRuntime;
 use spanda_interpreter::{run_program, RunOptions};
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
-use spanda_runtime::assurance_runtime::SharedAssuranceRuntime;
-use std::sync::Arc;
+use spanda_runtime::assurance_runtime::platform_assurance_runtime;
 
 fn assurance_run_options() -> RunOptions {
     RunOptions {
-        assurance_runtime: Some(Arc::new(AssuranceBackedRuntime) as SharedAssuranceRuntime),
+        assurance_runtime: Some(platform_assurance_runtime()),
         ..Default::default()
     }
 }

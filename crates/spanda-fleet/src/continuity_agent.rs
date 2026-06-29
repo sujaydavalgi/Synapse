@@ -1,14 +1,15 @@
 //! Assurance-backed and interpreter-backed takeover execution on fleet agents.
 
 use crate::agent::{apply_continuity_takeover, FleetAgentState};
-use spanda_assurance::{
-    parse_trigger, plan_takeover, ContinuityContext, ContinuityTrigger, SuccessionScope,
-    TakeoverReport, AssuranceBackedRuntime,
-};
 use spanda_deploy_http::FleetContinuityRequest;
 use spanda_interpreter::{execute_continuity_on_program, ContinuityRunOptions};
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
+use spanda_runtime::assurance_runtime::platform_assurance_runtime;
+use spanda_runtime::{
+    ContinuityContext, ContinuityEvidence, ContinuityTrigger, ContinuationDecision,
+    MissionStateSnapshot, MissionStateTransfer, SuccessionScope, TakeoverMode, TakeoverReport,
+};
 use spanda_runtime::security_runtime::default_security_runtime_factory;
 use spanda_transport_routing::runtime_bridge::routing_comm_bus_factory_fn;
 
@@ -20,7 +21,7 @@ fn continuity_context_from_request(request: &FleetContinuityRequest) -> Continui
     let trigger = request
         .trigger
         .as_deref()
-        .map(parse_trigger)
+        .map(|s| platform_assurance_runtime().parse_trigger(s))
         .unwrap_or(ContinuityTrigger::RobotFailed);
     ContinuityContext {
         mission: request
@@ -72,7 +73,7 @@ pub fn execute_interpreter_continuity_on_agent(
                 .ok()
                 .is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true")),
             inbound_comm_messages: Vec::new(),
-            assurance_runtime: Some(std::sync::Arc::new(AssuranceBackedRuntime)),
+            assurance_runtime: Some(platform_assurance_runtime()),
             security_runtime_factory: Some(default_security_runtime_factory()),
             comm_bus_factory: Some(routing_comm_bus_factory_fn()),
         },
@@ -91,7 +92,7 @@ pub fn execute_assurance_continuity_on_agent(
     let tokens = tokenize(program_source).map_err(|e| e.to_string())?;
     let program = parse(tokens).map_err(|e| e.to_string())?;
     let context = continuity_context_from_request(request);
-    let report = plan_takeover(&program, &context, request.successor.as_deref());
+    let report = platform_assurance_runtime().plan_takeover(&program, &context, request.successor.as_deref());
     apply_continuity_takeover(state, &report, request);
     state.continuity_engine = Some("assurance".into());
     state.continuity_validation = Some(if report.succeeded {
@@ -131,12 +132,12 @@ pub fn handle_fleet_takeover_command(state: &mut FleetAgentState, step: &str) {
                 .successor
                 .clone()
                 .unwrap_or_else(|| "NoSuccessor".into()),
-            mode: spanda_assurance::TakeoverMode::Resume,
-            decision: spanda_assurance::ContinuationDecision::Continue,
-            state_transfer: spanda_assurance::MissionStateTransfer {
+            mode: TakeoverMode::Resume,
+            decision: ContinuationDecision::Continue,
+            state_transfer: MissionStateTransfer {
                 from_entity: request.failed_robot.clone(),
                 to_entity: request.successor.clone().unwrap_or_default(),
-                snapshot: spanda_assurance::MissionStateSnapshot {
+                snapshot: MissionStateSnapshot {
                     mission: request.mission.clone().unwrap_or_default(),
                     completed_steps: Vec::new(),
                     current_goal: None,
@@ -147,7 +148,7 @@ pub fn handle_fleet_takeover_command(state: &mut FleetAgentState, step: &str) {
                 transfer_notes: vec!["fallback takeover".into()],
             },
             safety_gates: Vec::new(),
-            evidence: spanda_assurance::ContinuityEvidence {
+            evidence: ContinuityEvidence {
                 takeover_evidence: vec!["fallback".into()],
                 delegation_evidence: Vec::new(),
                 continuity_evidence: Vec::new(),

@@ -2,7 +2,8 @@
 
 use spanda_ast::nodes::Program;
 use spanda_deploy_http::{ensure_agent_auth, DeployAgentTls};
-use spanda_driver::{build_deploy_plan, compile};
+use spanda_ota::build_deploy_plan;
+use spanda_driver::compile;
 use spanda_fleet::{
     agent_health as fleet_agent_health, agent_readiness as fleet_agent_readiness,
     default_fleet_agents_path, fleet_agent_state_path_for, load_fleet_agent_registry,

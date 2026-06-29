@@ -1,7 +1,8 @@
 //! Swarm member continuity handoff planning and mesh relay.
 
 use serde::{Deserialize, Serialize};
-use spanda_assurance::{plan_takeover, ContinuityContext, ContinuityTrigger, SuccessionScope};
+use spanda_runtime::assurance_runtime::platform_assurance_runtime;
+use spanda_runtime::{ContinuityContext, ContinuityTrigger, SuccessionScope};
 use spanda_ast::nodes::Program;
 use spanda_deploy_http::FleetContinuityRequest;
 
@@ -37,7 +38,7 @@ pub fn plan_swarm_member_continuity(
         current_step: None,
         checkpoints: Vec::new(),
     };
-    let report = plan_takeover(program, &context, None);
+    let report = platform_assurance_runtime().plan_takeover(program, &context, None);
     if !report.succeeded {
         return None;
     }

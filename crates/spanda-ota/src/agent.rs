@@ -365,12 +365,9 @@ pub fn handle_agent_request(state: &mut AgentState, request: HttpRequest) -> Htt
             };
             let include_runtime = query_flag(&request.path, "runtime");
             let inject = query_flag(&request.path, "inject_health_faults");
-            match spanda_readiness::evaluate_agent_readiness_json(
-                program,
-                target,
-                include_runtime,
-                inject,
-            ) {
+            match spanda_runtime::readiness_runtime::readiness_runtime()
+                .evaluate_agent_readiness_json(program, target, include_runtime, inject)
+            {
                 Ok(body) => HttpResponse { status: 200, body },
                 Err(err) => HttpResponse {
                     status: 500,

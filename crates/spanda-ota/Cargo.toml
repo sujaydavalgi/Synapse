@@ -18,8 +18,7 @@ spanda-audit = { path = "../spanda-audit" }
 spanda-ast = { path = "../spanda-ast" }
 spanda-certify = { path = "../spanda-certify" }
 spanda-deploy-http = { path = "../spanda-deploy-http" }
-spanda-readiness = { path = "../spanda-readiness" }
-spanda-telemetry-store = { path = "../spanda-telemetry-store", default-features = false }
+spanda-runtime = { path = "../spanda-runtime" }
 
 [dev-dependencies]
 spanda-driver = { path = "../spanda-driver" }

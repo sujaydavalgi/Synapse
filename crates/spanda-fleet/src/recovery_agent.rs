@@ -1,13 +1,12 @@
 //! Assurance-backed and interpreter-backed recovery execution on fleet agents.
 
 use crate::agent::{apply_recovery_action, FleetAgentState};
-use spanda_assurance::{
-    classify_failure, extract_recovery_policies, validate_recovery_plan, AssuranceBackedRuntime,
-    RecoveryContext, RecoveryLevel, RecoveryPlanner, RecoveryReport, RecoveryStatus,
-};
 use spanda_interpreter::{execute_recovery_on_program, RecoveryRunOptions, RecoveryRunResult};
 use spanda_lexer::tokenize;
 use spanda_parser::parse;
+use spanda_runtime::assurance_runtime::platform_assurance_runtime;
+use spanda_runtime::recovery_primitives::{classify_failure, extract_recovery_policies};
+use spanda_runtime::{RecoveryContext, RecoveryLevel, RecoveryReport, RecoveryStatus};
 use spanda_runtime::security_runtime::default_security_runtime_factory;
 use spanda_transport_routing::runtime_bridge::routing_comm_bus_factory_fn;
 
@@ -221,14 +220,14 @@ pub fn execute_interpreter_recovery_on_agent(
             robot_name,
             grant_operator_approval: operator_approval_enabled(),
             inbound_comm_messages: Vec::new(),
-            assurance_runtime: Some(std::sync::Arc::new(AssuranceBackedRuntime)),
+            assurance_runtime: Some(platform_assurance_runtime()),
             security_runtime_factory: Some(default_security_runtime_factory()),
             comm_bus_factory: Some(routing_comm_bus_factory_fn()),
         },
     )
     .map_err(|e| e.to_string())?;
     sync_agent_from_interpreter(state, &outcome);
-    let report = spanda_assurance::evaluate_recovery(&program, None, None);
+    let report = platform_assurance_runtime().evaluate_recovery_program(&program);
     state.recovery_validation =
         Some(validation_label_for_recovery(outcome.recovery.status, report.passed).into());
     state.last_recovery_evidence = serde_json::to_value(&outcome.recovery.evidence).ok();
@@ -269,8 +268,9 @@ pub fn execute_assurance_recovery_on_agent(
         classification: Some(classify_failure(&issue)),
         level: RecoveryLevel::Level3AutomaticWithValidation,
     };
-    let plan = RecoveryPlanner::plan(&program, &context);
-    let safe_actions = validate_recovery_plan(&program, &plan);
+    let rt = platform_assurance_runtime();
+    let plan = rt.plan_recovery(&program, &context);
+    let safe_actions = rt.validate_recovery_plan(&program, &plan);
     let mut executed_any = false;
 
     for safe in &safe_actions {
@@ -292,7 +292,7 @@ pub fn execute_assurance_recovery_on_agent(
         apply_recovery_action(state, trigger_action);
     }
 
-    let report = spanda_assurance::evaluate_recovery(&program, None, None);
+    let report = platform_assurance_runtime().evaluate_recovery_program(&program);
     state.recovery_engine = Some("assurance".into());
     state.recovery_validation = Some(if report.passed {
         "PASS".into()

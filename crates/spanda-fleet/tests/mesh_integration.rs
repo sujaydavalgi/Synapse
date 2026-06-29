@@ -9,9 +9,18 @@ use spanda_fleet::{
     save_fleet_agent_registry, spawn_test_fleet_agent, spawn_test_fleet_mesh, FleetAgentRegistry,
     FleetContinuityRequest, FleetRecoveryRequest, PeerDelivery,
 };
-use spanda_telemetry_store::FleetTelemetryShard;
 use std::thread;
 use std::time::Duration;
+
+static RUNTIME_INIT: std::sync::Once = std::sync::Once::new();
+
+fn init_runtimes() {
+    // Register real tamper and telemetry runtimes once per test process.
+    RUNTIME_INIT.call_once(|| {
+        spanda_tamper::runtime_bridge::register();
+        spanda_telemetry_store::fleet_runtime_bridge::register();
+    });
+}
 
 #[test]
 fn mesh_coordinator_relays_to_registered_agents() {
@@ -321,16 +330,15 @@ fn fleet_agent_forwards_to_downstream_peer() {
 
 #[test]
 fn mesh_coordinator_ingests_and_merges_fleet_telemetry() {
+    init_runtimes();
     let registry = FleetAgentRegistry::default();
     let (mesh_port, _mesh) = spawn_test_fleet_mesh(&registry).expect("spawn mesh");
     thread::sleep(Duration::from_millis(30));
     let otlp = r#"{"resourceMetrics":[{"resource":{"attributes":[]},"scopeMetrics":[]}]}"#;
     let ingest_a = ingest_fleet_telemetry(
         &format!("http://127.0.0.1:{mesh_port}"),
-        &FleetTelemetryShard {
-            robot_id: "rover-a".into(),
-            otlp_json: otlp.into(),
-        },
+        "rover-a",
+        otlp,
         None,
     )
     .expect("ingest rover-a");
@@ -338,10 +346,8 @@ fn mesh_coordinator_ingests_and_merges_fleet_telemetry() {
     assert_eq!(ingest_a.robots, 1);
     let ingest_b = ingest_fleet_telemetry(
         &format!("http://127.0.0.1:{mesh_port}"),
-        &FleetTelemetryShard {
-            robot_id: "rover-b".into(),
-            otlp_json: otlp.into(),
-        },
+        "rover-b",
+        otlp,
         None,
     )
     .expect("ingest rover-b");
@@ -361,6 +367,7 @@ fn mesh_coordinator_ingests_and_merges_fleet_telemetry() {
 
 #[test]
 fn mesh_coordinator_correlates_ingested_tamper_traces() {
+    init_runtimes();
     use spanda_deploy_http::{ingest_fleet_tamper_trace, FleetTamperIngestRequest};
     use spanda_fleet::fetch_live_fleet_tamper_report;
 

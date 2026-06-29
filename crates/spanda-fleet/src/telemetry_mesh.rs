@@ -3,7 +3,7 @@
 use crate::mesh::FleetMeshState;
 use serde::{Deserialize, Serialize};
 use spanda_deploy_http::{http_request, HttpResponse};
-use spanda_telemetry_store::fleet::{merge_fleet_otlp_json, shards_from_map, FleetTelemetryShard};
+use spanda_runtime::fleet_telemetry_runtime::fleet_telemetry_runtime;
 
 /// OTLP ingest payload from a fleet agent or robot runtime.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,8 +52,10 @@ pub fn handle_fleet_telemetry_ingest_post(body: &str, state: &mut FleetMeshState
 
 /// Handle `GET /v1/fleet/telemetry` — merged OTLP/JSON across ingested robots.
 pub fn handle_fleet_telemetry_get(state: &FleetMeshState) -> HttpResponse {
-    let shards = shards_from_map(&state.telemetry_shards);
-    match merge_fleet_otlp_json(&shards) {
+    // Delegate merge to the injected fleet telemetry runtime.
+    let shards: std::collections::HashMap<String, String> =
+        state.telemetry_shards.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    match fleet_telemetry_runtime().merge_fleet_otlp_json(&shards) {
         Ok(body) => HttpResponse { status: 200, body },
         Err(error) => HttpResponse {
             status: 500,
@@ -82,7 +84,8 @@ pub fn fetch_fleet_telemetry(mesh_url: &str, token: Option<&str>) -> Result<Stri
 /// Ingest a robot OTLP snapshot into the mesh coordinator.
 pub fn ingest_fleet_telemetry(
     mesh_url: &str,
-    shard: &FleetTelemetryShard,
+    robot_id: &str,
+    otlp_json: &str,
     token: Option<&str>,
 ) -> Result<FleetTelemetryIngestResponse, String> {
     let url = if mesh_url.ends_with('/') {
@@ -91,8 +94,8 @@ pub fn ingest_fleet_telemetry(
         format!("{mesh_url}/v1/fleet/telemetry/ingest")
     };
     let payload = FleetTelemetryIngestRequest {
-        robot_id: shard.robot_id.clone(),
-        otlp_json: shard.otlp_json.clone(),
+        robot_id: robot_id.to_string(),
+        otlp_json: otlp_json.to_string(),
     };
     let body = serde_json::to_string(&payload).map_err(|error| error.to_string())?;
     let response = http_request("POST", &url, Some(&body), token)?;

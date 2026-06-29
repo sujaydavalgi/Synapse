@@ -255,7 +255,7 @@ fn clear_fleet_agent_on_identity_change(state: &mut FleetAgentState, new_robot_n
 
 pub(crate) fn apply_continuity_takeover(
     state: &mut FleetAgentState,
-    report: &spanda_assurance::TakeoverReport,
+    report: &spanda_runtime::TakeoverReport,
     request: &spanda_deploy_http::FleetContinuityRequest,
 ) {
     state.continuity_active = Some(format!("takeover:{}", report.successor));
@@ -406,12 +406,13 @@ pub fn handle_fleet_agent_request(
             };
             let include_runtime = query_flag(&request.path, "runtime");
             let inject = query_flag(&request.path, "inject_health_faults");
-            match spanda_readiness::evaluate_agent_readiness_json(
-                program,
-                Some(&state.robot_name),
-                include_runtime,
-                inject,
-            ) {
+            match spanda_runtime::readiness_runtime::readiness_runtime()
+                .evaluate_agent_readiness_json(
+                    program,
+                    Some(&state.robot_name),
+                    include_runtime,
+                    inject,
+                ) {
                 Ok(body) => HttpResponse { status: 200, body },
                 Err(err) => HttpResponse {
                     status: 500,

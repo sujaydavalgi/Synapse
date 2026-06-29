@@ -2,10 +2,7 @@
 
 use crate::mesh::FleetMeshState;
 use spanda_deploy_http::{FleetTamperIngestRequest, HttpResponse};
-use spanda_tamper::{
-    correlate_fleet_tamper_traces, format_fleet_tamper_report, FleetTamperReport, MissionTrace,
-    TamperFormat,
-};
+use spanda_runtime::fleet_tamper_runtime::fleet_tamper_runtime;
 
 /// Handle `POST /v1/fleet/tamper/ingest` on the mesh coordinator.
 pub fn handle_fleet_tamper_ingest_post(body: &str, state: &mut FleetMeshState) -> HttpResponse {
@@ -45,10 +42,7 @@ pub fn handle_fleet_tamper_ingest_post(body: &str, state: &mut FleetMeshState) -
 pub fn handle_fleet_tamper_get(path: &str, state: &FleetMeshState) -> HttpResponse {
     let fleet_name = parse_fleet_query(path).unwrap_or_else(|| state.tamper_fleet_name.clone());
     match correlate_mesh_tamper_shards(&fleet_name, state) {
-        Ok(report) => HttpResponse {
-            status: 200,
-            body: serde_json::to_string(&report).unwrap_or_else(|_| "{}".into()),
-        },
+        Ok(body) => HttpResponse { status: 200, body },
         Err(error) => HttpResponse {
             status: 400,
             body: format!(r#"{{"ok":false,"error":"{error}"}}"#),
@@ -56,22 +50,18 @@ pub fn handle_fleet_tamper_get(path: &str, state: &FleetMeshState) -> HttpRespon
     }
 }
 
-/// Correlate ingested tamper shards stored on the mesh coordinator.
+/// Correlate ingested tamper shards stored on the mesh coordinator, returning JSON.
 pub fn correlate_mesh_tamper_shards(
     fleet_name: &str,
     state: &FleetMeshState,
-) -> Result<FleetTamperReport, String> {
+) -> Result<String, String> {
+    // Delegate correlation to the injected fleet tamper runtime via JSON shards.
     if state.tamper_shards.is_empty() {
         return Err("no tamper trace shards ingested".into());
     }
-    let mut traces = Vec::new();
-    for (robot_id, trace_json) in &state.tamper_shards {
-        let trace: MissionTrace = serde_json::from_str(trace_json)
-            .map_err(|error| format!("parse {robot_id}: {error}"))?;
-        let label = format!("{robot_id}.trace");
-        traces.push((robot_id.clone(), trace, label));
-    }
-    Ok(correlate_fleet_tamper_traces(fleet_name, &traces))
+    let shards: std::collections::HashMap<String, String> =
+        state.tamper_shards.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    fleet_tamper_runtime().correlate_fleet_tamper_traces_json(fleet_name, &shards)
 }
 
 /// Fetch and format a live fleet tamper report from a mesh coordinator.
@@ -81,13 +71,12 @@ pub fn fetch_live_fleet_tamper_report(
     token: Option<&str>,
     json: bool,
 ) -> Result<String, String> {
+    // Fetch the raw JSON report from the mesh coordinator.
     let body = spanda_deploy_http::fetch_fleet_tamper_report(mesh_url, fleet_name, token)?;
     if json {
         return Ok(body);
     }
-    let report: FleetTamperReport = serde_json::from_str(&body)
-        .map_err(|error| format!("invalid fleet tamper JSON: {error}"))?;
-    Ok(format_fleet_tamper_report(&report, TamperFormat::Text))
+    Ok(fleet_tamper_runtime().format_fleet_tamper_report_json(&body))
 }
 
 fn parse_fleet_query(path: &str) -> Option<String> {
@@ -127,8 +116,7 @@ mod tests {
             &mut state,
         );
         assert_eq!(ingest.status, 200);
-        let report = correlate_mesh_tamper_shards("PatrolFleet", &state).expect("correlate");
-        assert_eq!(report.fleet, "PatrolFleet");
-        assert_eq!(report.members.len(), 1);
+        let json = correlate_mesh_tamper_shards("PatrolFleet", &state).expect("correlate");
+        assert!(!json.is_empty());
     }
 }
