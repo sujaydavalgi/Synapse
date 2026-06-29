@@ -9,6 +9,12 @@ mkdir -p .spanda
 date -u +%Y-%m-%d > .spanda/field-soak-start.txt
 ```
 
+Or use the init helper:
+
+```bash
+./scripts/enterprise_ops_field_soak_init.sh
+```
+
 Commit the start date to your pilot branch or store it in fleet configuration management.
 
 ## Run the gate
@@ -17,6 +23,8 @@ Commit the start date to your pilot branch or store it in fleet configuration ma
 chmod +x scripts/field_soak_gate.sh
 ./scripts/field_soak_gate.sh
 ```
+
+For the full **Stable promotion** workflow (soak + audit prep + smokes), see [enterprise-ops-stable-promotion.md](./enterprise-ops-stable-promotion.md) and `./scripts/enterprise_ops_stable_promotion_gate.sh`.
 
 ### Environment
 

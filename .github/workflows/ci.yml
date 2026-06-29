@@ -477,6 +477,25 @@ jobs:
       - run: chmod +x scripts/enterprise_ops_smoke.sh
       - run: SPANDA_BIN=${{ github.workspace }}/target/release/spanda ./scripts/enterprise_ops_smoke.sh
 
+  enterprise-ops-promotion-gate:
+    runs-on: ubuntu-latest
+    needs: enterprise-ops-smoke
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/install-protoc
+      - run: cargo build -p spanda --release
+      - run: |
+          chmod +x scripts/enterprise_ops_stable_promotion_gate.sh
+          chmod +x scripts/failover_drill_smoke.sh scripts/ota_fleet_soak.sh 2>/dev/null || true
+      - run: |
+          export PATH="${{ github.workspace }}/target/release:$PATH"
+          export SPANDA_BIN="${{ github.workspace }}/target/release/spanda"
+          SPANDA_ENTERPRISE_OPS_SKIP_SOAK=1 SPANDA_ENTERPRISE_OPS_SKIP_AUDIT=1 \
+            ./scripts/enterprise_ops_stable_promotion_gate.sh
+
   entity-model-smoke:
     runs-on: ubuntu-latest
     needs: rust

@@ -64,6 +64,7 @@ Index of regression and promotion gates organized by **Platform Pillar** and **S
 | Script | Validates |
 |--------|-----------|
 | `enterprise_ops_smoke.sh` | Control Center E1–E4 exit criteria |
+| `enterprise_ops_stable_promotion_gate.sh` | Enterprise ops Experimental → Stable (soak + audit + smokes) |
 | `entity_model_smoke.sh` | Unified entity model read + mutation + traceability APIs (REST, TypeScript SDK, Python SDK) |
 | `control_center_desktop_smoke.sh` | Tauri desktop shell |
 | `telemetry_store_golden_path.sh` | Persistent telemetry |
@@ -120,8 +121,9 @@ Index of regression and promotion gates organized by **Platform Pillar** and **S
 
 | Gate | Script | Doc |
 |------|--------|-----|
-| Enterprise ops Stable | `field_soak_gate.sh` | [field-soak-gate.md](../../docs/field-soak-gate.md) |
 | ADAS Stable | `adas_stable_promotion_gate.sh` | [stable-hardening-adas.md](../../docs/stable-hardening-adas.md) |
+| Enterprise ops Stable | `field_soak_gate.sh` | [field-soak-gate.md](../../docs/field-soak-gate.md) |
+| Enterprise ops Stable | `enterprise_ops_stable_promotion_gate.sh` | [enterprise-ops-stable-promotion.md](../../docs/enterprise-ops-stable-promotion.md) |
 | HRI Stable | `hri_stable_promotion_gate.sh` | [stable-hardening-human-interaction.md](../../docs/stable-hardening-human-interaction.md) |
 
 ---

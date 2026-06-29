@@ -121,10 +121,12 @@ When promoting a pillar from **Experimental** → **Stable**, verify:
 
 **Operational gates still required** before updating `docs/feature-status.md` to **Stable**:
 
-1. **30-day field soak** — [field-soak-gate.md](./field-soak-gate.md) (`scripts/field_soak_gate.sh`)
+1. **30-day field soak** — [field-soak-gate.md](./field-soak-gate.md) (`scripts/enterprise_ops_field_soak_init.sh`, `scripts/field_soak_gate.sh`, `scripts/enterprise_ops_stable_promotion_gate.sh`)
 2. **Third-party security audit sign-off** — [security-audit-third-party.md](./security-audit-third-party.md) (`scripts/security_audit_prep.sh`)
 3. **First production releases** — PyPI/npm/desktop tags with registry and signing secrets ([desktop-release-runbook.md](./desktop-release-runbook.md))
-4. **CI green** — `enterprise_ops_smoke.sh`, `showcase_smoke.sh`, OpenAPI parity tests
+4. **CI green** — `enterprise_ops_smoke.sh`, `enterprise_ops_stable_promotion_gate.sh` (soak/audit skipped on PR), `showcase_smoke.sh`, OpenAPI parity tests
+
+**Runbook:** [enterprise-ops-stable-promotion.md](./enterprise-ops-stable-promotion.md)
 
 ---
 
