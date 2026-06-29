@@ -6,10 +6,25 @@
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import type { Program } from "./ast/nodes.js";
-import {
-  buildCertificationProofSummary,
-  type CertificationProofSummary,
-} from "./certify-prover.js";
+
+export type CertificationProofSummary = {
+  passed: boolean;
+  passedStrict: boolean;
+  summary: string;
+  errorCount: number;
+  warningCount: number;
+};
+
+export type CertificationProver = {
+  buildProofSummary(program: Program, programPath: string): CertificationProofSummary;
+};
+
+let deployCertificationProver: CertificationProver | undefined;
+
+export function setDeployCertificationProver(prover: CertificationProver): void {
+  // Set the default certification prover for buildDeployPlan when none is passed.
+  deployCertificationProver = prover;
+}
 
 export type RolloutStrategy = "all" | "canary" | "staged";
 
@@ -84,7 +99,12 @@ export function hashProgramArtifact(programPath: string): string | undefined {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-export function buildDeployPlan(program: Program, programPath: string, version: string): DeployPlan {
+export function buildDeployPlan(
+  program: Program,
+  programPath: string,
+  version: string,
+  prover?: CertificationProver,
+): DeployPlan {
   // Extract deploy targets and certification metadata from the program AST.
   const assignments: DeployAssignment[] = [];
   for (const deploy of program.deployments) {
@@ -104,7 +124,7 @@ export function buildDeployPlan(program: Program, programPath: string, version: 
     programHash: hashProgramArtifact(programPath),
     assignments,
     certifications,
-    certificationProof: buildCertificationProofSummary(program, programPath),
+    certificationProof: (prover ?? deployCertificationProver)?.buildProofSummary(program, programPath),
   };
 }
 

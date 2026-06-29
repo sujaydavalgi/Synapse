@@ -7,7 +7,26 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createServer as createHttpsServer } from "node:https";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { evaluateReadinessSource } from "./readiness.js";
+import type { ReadinessOptions, ReadinessReport } from "./readiness-types.js";
+
+export type ReadinessEvaluator = (
+  source: string,
+  options?: ReadinessOptions,
+) => ReadinessReport;
+
+const noopReadinessEvaluator: ReadinessEvaluator = () => ({
+  status: "Unknown",
+  mission_ready: false,
+  score: { total: 0, maximum: 100, factors: [] },
+  issues: [
+    {
+      factor: "Readiness",
+      severity: "Critical",
+      message: "Readiness evaluator not configured",
+    },
+  ],
+  robots: [],
+});
 
 export type AgentState = {
   target: string;
@@ -101,6 +120,7 @@ async function handleRequest(
   res: ServerResponse,
   state: AgentState,
   statePath: string,
+  evaluateReadiness: ReadinessEvaluator = noopReadinessEvaluator,
 ): Promise<void> {
   if (unauthorized(req, state)) {
     res.writeHead(401, { "Content-Type": "application/json" });
@@ -126,7 +146,7 @@ async function handleRequest(
     }
     const includeRuntime = parsedUrl.searchParams.get("runtime") === "true";
     const injectHealthFaults = parsedUrl.searchParams.get("inject_health_faults") === "true";
-    const report = evaluateReadinessSource(state.program, {
+    const report = evaluateReadiness(state.program, {
       target: state.target || undefined,
       includeRuntime: includeRuntime,
       injectHealthFaults,
@@ -277,11 +297,12 @@ async function handleRequest(
 export function createDeployAgentServer(
   state: AgentState,
   statePath = state.target ? agentStatePathFor(state.target) : defaultAgentStatePath(),
+  evaluateReadiness: ReadinessEvaluator = noopReadinessEvaluator,
 ): ReturnType<typeof createServer> {
   // Serve the deploy agent protocol over HTTP/1.1.
   const withRequestLock = createRequestLock();
   return createServer((req, res) => {
-    void withRequestLock(() => handleRequest(req, res, state, statePath));
+    void withRequestLock(() => handleRequest(req, res, state, statePath, evaluateReadiness));
   });
 }
 
@@ -296,6 +317,7 @@ export function startDeployAgentServer(options: {
   requireSignature?: boolean;
   requireCertify?: boolean;
   trustedPublicKey?: string;
+  evaluateReadiness?: ReadinessEvaluator;
 }): ReturnType<typeof createServer> {
   const statePath = options.statePath ?? agentStatePathFor(options.target);
   const state = readAgentStateFromDisk(statePath);
@@ -307,9 +329,10 @@ export function startDeployAgentServer(options: {
   if (options.requireCertify) state.requireCertify = true;
   if (options.trustedPublicKey) state.trustedPublicKey = options.trustedPublicKey;
   writeAgentStateToDisk(state, statePath);
+  const evaluateReadiness = options.evaluateReadiness ?? noopReadinessEvaluator;
   const withRequestLock = createRequestLock();
   const requestHandler = (req: IncomingMessage, res: ServerResponse) => {
-    void withRequestLock(() => handleRequest(req, res, state, statePath));
+    void withRequestLock(() => handleRequest(req, res, state, statePath, evaluateReadiness));
   };
   const scheme = options.tlsCert && options.tlsKey ? "https" : "http";
   const server =

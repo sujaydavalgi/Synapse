@@ -7,7 +7,23 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createServer as createHttpsServer } from "node:https";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { evaluateReadinessSource } from "./readiness.js";
+import type { ReadinessEvaluator } from "./deploy-agent.js";
+
+const noopReadinessEvaluator: ReadinessEvaluator = () => ({
+  status: "Unknown",
+  mission_ready: false,
+  score: { total: 0, maximum: 100, factors: [] },
+  issues: [
+    {
+      factor: "Readiness",
+      severity: "Critical",
+      message: "Readiness evaluator not configured",
+    },
+  ],
+  robots: [],
+});
+
+export type { ReadinessEvaluator };
 
 export type FleetAgentState = {
   robotName: string;
@@ -97,6 +113,7 @@ async function handleRequest(
   res: ServerResponse,
   state: FleetAgentState,
   statePath: string,
+  evaluateReadiness: ReadinessEvaluator = noopReadinessEvaluator,
 ): Promise<void> {
   if (unauthorized(req, state)) {
     res.writeHead(401, { "Content-Type": "application/json" });
@@ -122,7 +139,7 @@ async function handleRequest(
     }
     const includeRuntime = parsedUrl.searchParams.get("runtime") === "true";
     const injectHealthFaults = parsedUrl.searchParams.get("inject_health_faults") === "true";
-    const report = evaluateReadinessSource(state.program, {
+    const report = evaluateReadiness(state.program, {
       target: state.robotName || undefined,
       includeRuntime,
       injectHealthFaults,
@@ -205,6 +222,7 @@ export function startFleetAgentServer(options: {
   statePath?: string;
   tlsCert?: string;
   tlsKey?: string;
+  evaluateReadiness?: ReadinessEvaluator;
 }): ReturnType<typeof createServer> {
   const statePath = options.statePath ?? fleetAgentStatePathFor(options.robotName);
   const state = readFleetAgentStateFromDisk(statePath);
@@ -212,9 +230,10 @@ export function startFleetAgentServer(options: {
   state.robotName = options.robotName;
   if (options.token) state.token = options.token;
   writeFleetAgentStateToDisk(state, statePath);
+  const evaluateReadiness = options.evaluateReadiness ?? noopReadinessEvaluator;
   const withRequestLock = createRequestLock();
   const requestHandler = (req: IncomingMessage, res: ServerResponse) => {
-    void withRequestLock(() => handleRequest(req, res, state, statePath));
+    void withRequestLock(() => handleRequest(req, res, state, statePath, evaluateReadiness));
   };
   const scheme = options.tlsCert && options.tlsKey ? "https" : "http";
   const server =

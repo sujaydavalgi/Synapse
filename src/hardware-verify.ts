@@ -3,7 +3,7 @@
  * @module
  */
 
-import type { Program, RobotDecl, TopicDecl, AiConfigEntry } from "./ast/nodes.js";
+import type { Program, RobotDecl, TopicDecl, AiConfigEntry, ImportDecl } from "./ast/nodes.js";
 import type {
   RequiresHardwareDecl,
   RequiresNetworkDecl,
@@ -11,28 +11,44 @@ import type {
   ResourceBudgetDecl,
   MissionDecl,
 } from "./foundations.js";
-import type { CompatItem, VerifyResult } from "./rust-bridge.js";
+import type { CompatItem, VerifyResult } from "./rust-bridge-types.js";
 import {
   validateConnectivityPolicy,
   validateGeofence,
   verifyRequiresConnectivity,
 } from "./connectivity-positioning.js";
+import type { HardwareProfile } from "./hardware-profile-types.js";
 import {
   applyFault,
   buildProfileRegistry,
-  type HardwareProfile,
 } from "./hardware-profile.js";
 import { defaultMessageSize, estimateTopicBandwidthMbps } from "./comm/index.js";
-import { verifyFrameworkImports } from "./adapter-verify.js";
-import { verifyCertificationProof } from "./certify-verify.js";
 
 const ESTIMATED_TASK_COST_MS = 5;
+
+export type HardwareVerifyHost = {
+  verifyFrameworkImports(imports: ImportDecl[]): CompatItem[];
+  verifyCertificationProof(program: Program, strict: boolean): CompatItem[];
+};
+
+const noopHardwareVerifyHost: HardwareVerifyHost = {
+  verifyFrameworkImports: () => [],
+  verifyCertificationProof: () => [],
+};
+
+let defaultHardwareVerifyHost: HardwareVerifyHost | undefined;
+
+export function setDefaultHardwareVerifyHost(host: HardwareVerifyHost): void {
+  // Set the default verify host when verifyHardwareProgram is called without one.
+  defaultHardwareVerifyHost = host;
+}
 
 export type VerifyHardwareTsOptions = {
   target?: string;
   allTargets?: boolean;
   simulate?: boolean;
   strictCertify?: boolean;
+  host?: HardwareVerifyHost;
 };
 
 function compat(
@@ -806,7 +822,7 @@ export function verifyHardwareProgram(
 
   //     const result = verifyHardwareProgram(program, options);
 
-  const registry = buildProfileRegistry(program);
+  const host = options.host ?? defaultHardwareVerifyHost ?? noopHardwareVerifyHost;
   const items: CompatItem[] = [];
   const programTraits = traitNames(program);
 
@@ -828,9 +844,10 @@ export function verifyHardwareProgram(
       ),
     );
   }
-  items.push(...verifyFrameworkImports(program.imports));
-  items.push(...verifyCertificationProof(program, options.strictCertify ?? false));
+  items.push(...host.verifyFrameworkImports(program.imports));
+  items.push(...host.verifyCertificationProof(program, options.strictCertify ?? false));
 
+  const registry = buildProfileRegistry(program);
   const targets = resolveTargets(program, options, registry);
   const runSimulation = options.simulate || program.simulateCompatibility != null;
 

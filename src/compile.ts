@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import { tokenize } from "./lexer/index.js";
 import { parse } from "./parser/index.js";
-import { typeCheck, TypeCheckError, checkWithRegistry } from "./types/index.js";
+import { typeCheck, TypeCheckError, checkWithRegistry, type CheckerHost, builtinCheckerHost } from "./types/index.js";
 import type { ModuleRegistry } from "./modules/index.js";
 import type { Program } from "./ast/nodes.js";
 
@@ -28,6 +28,16 @@ export type Diagnostic = {
 };
 
 let preferredBackend: CompileBackend = "typescript";
+let compileCheckerHost: CheckerHost = builtinCheckerHost;
+
+export function setCompileCheckerHost(host: CheckerHost): void {
+  // Set the checker host used by compile() and checkWithRegistry() in this process.
+  compileCheckerHost = host;
+}
+
+export function getCompileCheckerHost(): CheckerHost {
+  return compileCheckerHost;
+}
 
 export function setPreferredBackend(backend: CompileBackend): void {
   // Description:
@@ -179,7 +189,7 @@ export function compileWithRegistry(
   }
   const tokens = tokenize(source);
   const program = parse(tokens);
-  checkWithRegistry(program, registry);
+  checkWithRegistry(program, registry, compileCheckerHost);
   return { program, source, backend: "typescript" };
 }
 
@@ -226,7 +236,7 @@ export function compile(source: string, backend?: CompileBackend): CompileResult
   }
   const tokens = tokenize(source);
   const program = parse(tokens);
-  typeCheck(program);
+  typeCheck(program, compileCheckerHost);
   return { program, source, backend: "typescript" };
 }
 
@@ -387,6 +397,7 @@ export type VerifyHardwareOptions = {
   allTargets?: boolean;
   simulate?: boolean;
   rustCli?: boolean;
+  host?: import("./hardware-verify.js").HardwareVerifyHost;
 };
 
 export async function verifyHardware(
@@ -438,6 +449,7 @@ export async function verifyHardware(
         target: options.target,
         allTargets: options.allTargets,
         simulate: options.simulate,
+        host: options.host,
       });
     } catch (err) {
       return {

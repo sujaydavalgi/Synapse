@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { compileFile } from "../compile.js";
+import { compileFile, setCompileCheckerHost } from "../compile.js";
 import { run } from "./run-program.js";
 import { createDefaultSimulator } from "../simulator/index.js";
 import { LexerError } from "../lexer/index.js";
@@ -61,6 +61,9 @@ import {
 } from "../deploy-remote.js";
 import { startDeployAgentServer } from "../deploy-agent.js";
 import { buildCertificationProof } from "../certify-prover.js";
+import { createFullCheckerHost } from "./checker-host.js";
+import { defaultCertificationProver } from "./certify-bridge.js";
+import { deployReadinessEvaluator } from "./deploy-readiness-bridge.js";
 import { defaultFleetMeshUrl } from "../fleet-mesh.js";
 import { runTelemetryCli } from "../telemetry-cli.js";
 import {
@@ -285,6 +288,7 @@ function flagBool(flags: Map<string, string | boolean>, key: string): boolean {
 }
 
 async function main(): Promise<void> {
+  setCompileCheckerHost(createFullCheckerHost());
   // Main.
   //
   // Parameters:
@@ -1072,7 +1076,7 @@ async function handleDeployOta(
   const filePath = args.find((arg) => !arg.startsWith("-"));
   const { abs, program } = compileProgramOrExit(filePath ?? "");
   const version = flagStr(flags, "version") ?? "1.0.0";
-  const plan = buildDeployPlan(program, abs, version);
+  const plan = buildDeployPlan(program, abs, version, defaultCertificationProver);
   let bundle: DeployArtifactBundle = buildDeployBundle(plan);
   const signKey = flagStr(flags, "sign-key") ?? process.env.SPANDA_DEPLOY_SIGN_KEY;
   if (signKey) {
@@ -1158,7 +1162,7 @@ async function handleDeployOta(
   if (subcommand === "rollback") {
     const remote = flagBool(flags, "remote");
     const state = readDeployStateFromDisk();
-    const rollbackPlan = buildDeployPlan(program, abs, "rollback");
+    const rollbackPlan = buildDeployPlan(program, abs, "rollback", defaultCertificationProver);
     const registry = readAgentRegistryFromDisk(agentsRegistryPath());
     const result = remote
       ? await executeRemoteRollback(rollbackPlan, registry)
@@ -1276,6 +1280,7 @@ function handleDeployAgent(subcommand: string | undefined, args: string[], json:
       requireSignature,
       requireCertify,
       trustedPublicKey,
+      evaluateReadiness: deployReadinessEvaluator,
     });
     return;
   }
@@ -1471,7 +1476,7 @@ function handleFleetAgent(subcommand: string | undefined, args: string[], json: 
       console.error("Both --tls-cert and --tls-key are required for HTTPS fleet agents");
       process.exit(1);
     }
-    startFleetAgentServer({ bind, robotName, token, tlsCert, tlsKey });
+    startFleetAgentServer({ bind, robotName, token, tlsCert, tlsKey, evaluateReadiness: deployReadinessEvaluator });
     return;
   }
 

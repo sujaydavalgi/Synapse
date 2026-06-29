@@ -19,13 +19,7 @@ import type {
 } from "../ast/nodes.js";
 import type { CapabilityDecl, ExternFnDecl, MatchArm, ModuleFnDecl, TraitImplDecl } from "../foundations.js";
 import { resolveModuleImport, resolveTypeAlias, validateSwarmFleet } from "../foundations.js";
-import { resolveFfiImport } from "../ffi/registry.js";
 import { resolveStdImport } from "../stdlib.js";
-import {
-  MessageRegistry,
-  isCommCapability,
-  transportFromIdent,
-} from "../comm/index.js";
 import {
   binaryPhysicalOpAllowed,
   isActionProposalType,
@@ -33,20 +27,8 @@ import {
   isSafeActionType,
   typeKindName,
 } from "../type-system.js";
-import { resolveImport } from "../lib/registry.js";
-import { resolveAiImport } from "../ai/registry.js";
 import type { ModuleRegistry } from "../modules/index.js";
-import { getSocProfile, validateHalAgainstSoc } from "../soc/index.js";
-import {
-  validateTaskTiming,
-  validateTaskPriority,
-  validatePipeline,
-  validateWatchdog,
-  validateResourceBudget,
-  validateRecover,
-} from "../reliability.js";
 import { compileRegex, RegexError } from "../regex.js";
-import { halMemberFromDecl } from "../hal/index.js";
 import {
   ACTION_TYPES,
   AI_MODEL_TYPES,
@@ -67,8 +49,12 @@ import {
   unitMatchesNamedType,
   type TypeError,
 } from "./units.js";
-import { isKnownCapability, parseTrustLevel } from "../security/index.js";
 import { unitCategory } from "../units/index.js";
+import {
+  builtinCheckerHost,
+  type CheckerHost,
+} from "./checker-host.js";
+import type { MessageRegistry } from "../comm/decls.js";
 
 /** Built-in hardware profiles (mirrors Rust `hardware::builtin_profiles`). */
 const BUILTIN_HARDWARE_PROFILES = new Set([
@@ -90,7 +76,7 @@ type SymbolEntry = {
   actionType?: string;
 };
 
-export function typeCheck(program: Program): void {
+export function typeCheck(program: Program, host: CheckerHost = builtinCheckerHost): void {
   // Description:
   //     TypeCheck.
   //
@@ -117,10 +103,10 @@ export function typeCheck(program: Program): void {
   //     const result = typeCheck(program);
 
   // const result = typeCheck(program);
-  check(program);
+  check(program, host);
 }
 
-export function check(program: Program): void {
+export function check(program: Program, host: CheckerHost = builtinCheckerHost): void {
   // Description:
   //     Check.
   //
@@ -147,10 +133,14 @@ export function check(program: Program): void {
   //     const result = check(program);
 
   // const result = check(program);
-  checkWithRegistry(program, undefined);
+  checkWithRegistry(program, undefined, host);
 }
 
-export function checkWithRegistry(program: Program, registry: ModuleRegistry | undefined): void {
+export function checkWithRegistry(
+  program: Program,
+  registry: ModuleRegistry | undefined,
+  host: CheckerHost = builtinCheckerHost,
+): void {
   // Description:
   //     CheckWithRegistry.
   //
@@ -181,7 +171,7 @@ export function checkWithRegistry(program: Program, registry: ModuleRegistry | u
   //     const result = checkWithRegistry(program, registry);
 
   // const result = checkWithRegistry(program, registry);
-  const checker = new TypeChecker(registry);
+  const checker = new TypeChecker(registry, host);
   checker.checkProgram(program);
 
   // continue when checker.errors.length > 0.
@@ -203,7 +193,7 @@ class TypeChecker {
   private agentTraits = new Map<string, Set<string>>();
   private stateMachineStates = new Set<string>();
   private currentRobot: RobotDecl | null = null;
-  private messageRegistry = MessageRegistry.new();
+  private messageRegistry: MessageRegistry;
   private subscribedTopics = new Set<string>();
   private agentNames = new Set<string>();
   private deviceNames = new Set<string>();
@@ -218,7 +208,12 @@ class TypeChecker {
   private programKillSwitchNames = new Set<string>();
   private expectedReturnType: SpandaType | null = null;
 
-  constructor(private moduleRegistry?: ModuleRegistry) {}
+  constructor(
+    private moduleRegistry?: ModuleRegistry,
+    private host: CheckerHost = builtinCheckerHost,
+  ) {
+    this.messageRegistry = host.createMessageRegistry();
+  }
 
   checkProgram(program: Program): void {
     // CheckProgram.
@@ -242,11 +237,11 @@ class TypeChecker {
     for (const imp of program.imports) {
       const registryExport = this.moduleRegistry?.exportsFor(imp.path);
       if (
-        !resolveImport(imp.path) &&
-        !resolveAiImport(imp.path) &&
+        !this.host.resolveImport(imp.path) &&
+        !this.host.resolveAiImport(imp.path) &&
         !resolveModuleImport(imp.path) &&
         !resolveStdImport(imp.path) &&
-        !resolveFfiImport(imp.path) &&
+        !this.host.resolveFfiImport(imp.path) &&
         !registryExport
       ) {
         this.error(`Unknown import '${imp.path}'`, imp.span.start.line, imp.span.start.column);
@@ -282,7 +277,7 @@ class TypeChecker {
       }
     }
 
-    this.messageRegistry = MessageRegistry.fromProgram(program.messages, program.structs);
+    this.messageRegistry = this.host.messageRegistryFromProgram(program.messages, program.structs);
     for (const msg of program.messages) {
       this.checkMessage(msg);
     }
@@ -1125,22 +1120,22 @@ class TypeChecker {
     if (robot.soc) {
 
       // continue when profile) is falsy.
-      if (!getSocProfile(robot.soc.profile)) {
+      if (!this.host.getSocProfile(robot.soc.profile)) {
         this.error(`Unknown SoC profile '${robot.soc.profile}'`, robot.soc.span.start.line, robot.soc.span.start.column);
       }
     }
 
     // continue when robot.hal && robot.soc.
     if (robot.hal && robot.soc) {
-      const profile = getSocProfile(robot.soc.profile);
+      const profile = this.host.getSocProfile(robot.soc.profile);
 
       // continue when profile.
       if (profile) {
-        const members = robot.hal.members.map(halMemberFromDecl);
+        const members = robot.hal.members.map((m) => this.host.halMemberFromDecl(m));
 
-        // Iterate over validateHalAgainstSoc.
-        for (const err of validateHalAgainstSoc(profile, members)) {
-          this.error(err.message, robot.hal.span.start.line, robot.hal.span.start.column);
+        // Iterate over this.host.validateHalAgainstSoc.
+        for (const err of this.host.validateHalAgainstSoc(profile, members)) {
+          this.error(err.message, err.line, err.column);
         }
       }
     }
@@ -1185,7 +1180,7 @@ class TypeChecker {
         if (!imported.has(sensor.library)) {
           this.error(`Library '${sensor.library}' must be imported before use`, sensor.span.start.line, sensor.span.start.column);
         }
-        const lib = resolveImport(sensor.library);
+        const lib = this.host.resolveImport(sensor.library);
 
         // continue when lib && !lib.sensors[sensor.sensorType].
         if (lib && !lib.sensors[sensor.sensorType]) {
@@ -1224,7 +1219,7 @@ class TypeChecker {
     for (const bus of robot.buses) {
 
       // continue when name) equals transport === "local".
-      if (transportFromIdent(bus.name) === null && bus.transport === "local") {
+      if (this.host.transportFromIdent(bus.name) === null && bus.transport === "local") {
         this.error(
           `Unknown transport '${bus.name}' in bus declaration`,
           bus.span.start.line,
@@ -1527,7 +1522,7 @@ class TypeChecker {
     if (robot.trust) {
 
       // continue when level) is falsy.
-      if (!parseTrustLevel(robot.trust.level)) {
+      if (!this.host.parseTrustLevel(robot.trust.level)) {
         this.error(`unknown trust level '${robot.trust.level}'`, robot.trust.span.start.line, robot.trust.span.start.column);
       }
     }
@@ -1543,8 +1538,8 @@ class TypeChecker {
       // Process each capabilitie.
       for (const cap of robot.permissions.capabilities) {
 
-        // continue when isKnownCapability is falsy.
-        if (!isKnownCapability(cap)) {
+        // continue when this.host.isKnownCapability is falsy.
+        if (!this.host.isKnownCapability(cap)) {
           this.error(`unknown package capability '${cap}'`, robot.permissions.span.start.line, robot.permissions.span.start.column);
         }
       }
@@ -1594,15 +1589,15 @@ class TypeChecker {
 
     // Process each task.
     for (const task of robot.tasks) {
-      for (const diag of validateTaskTiming(task)) {
+      for (const diag of this.host.validateTaskTiming(task)) {
         this.error(diag.message, diag.line, diag.column);
       }
-      for (const diag of validateTaskPriority(task)) {
+      for (const diag of this.host.validateTaskPriority(task)) {
         this.error(diag.message, diag.line, diag.column);
       }
 
       if (task.budget) {
-        for (const diag of validateResourceBudget(task.budget, task.span)) {
+        for (const diag of this.host.validateResourceBudget(task.budget, task.span)) {
           this.error(diag.message, diag.line, diag.column);
         }
       }
@@ -1656,14 +1651,14 @@ class TypeChecker {
     const taskNames = robot.tasks.map((task) => task.name);
 
     for (const pipeline of robot.pipelines) {
-      for (const diag of validatePipeline(pipeline)) {
+      for (const diag of this.host.validatePipeline(pipeline)) {
         this.error(diag.message, diag.line, diag.column);
       }
       this.checkBehaviorBody(pipeline.body);
     }
 
     for (const watchdog of robot.watchdogs) {
-      for (const diag of validateWatchdog(watchdog, taskNames)) {
+      for (const diag of this.host.validateWatchdog(watchdog, taskNames)) {
         this.error(diag.message, diag.line, diag.column);
       }
       this.checkBehaviorBody(watchdog.body);
@@ -1679,7 +1674,7 @@ class TypeChecker {
     }
 
     for (const recover of robot.recovers) {
-      for (const diag of validateRecover(recover)) {
+      for (const diag of this.host.validateRecover(recover)) {
         this.error(diag.message, diag.line, diag.column);
       }
       this.checkBehaviorBody(recover.body);
@@ -2086,8 +2081,8 @@ class TypeChecker {
     //
     // Example:
     //     const result = checkSecureBlock(block);
-    // continue when block.minTrust && !parseTrustLevel(block.minTrust).
-    if (block.minTrust && !parseTrustLevel(block.minTrust)) {
+    // continue when block.minTrust && !this.host.parseTrustLevel(block.minTrust).
+    if (block.minTrust && !this.host.parseTrustLevel(block.minTrust)) {
       this.error(
         `unknown trust level '${block.minTrust}' in secure block`,
         block.span.start.line,
@@ -2098,8 +2093,8 @@ class TypeChecker {
     // Process each require.
     for (const cap of block.requires) {
 
-      // continue when isKnownCapability is falsy.
-      if (!isKnownCapability(cap)) {
+      // continue when this.host.isKnownCapability is falsy.
+      if (!this.host.isKnownCapability(cap)) {
         this.error(
           `unknown capability '${cap}' in secure block`,
           block.span.start.line,
@@ -2385,7 +2380,7 @@ class TypeChecker {
     ];
 
     // continue when action) is falsy.
-    if (!allowed.includes(cap.action) && !isCommCapability(cap.action)) {
+    if (!allowed.includes(cap.action) && !this.host.isCommCapability(cap.action)) {
       this.error(`Unknown capability '${cap.action}'`, cap.span.start.line, cap.span.start.column);
       return;
     }

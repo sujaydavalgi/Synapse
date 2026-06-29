@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import { tokenize } from "../src/lexer/index.js";
 import { parse } from "../src/parser/index.js";
 import { typeCheck } from "../src/types/index.js";
+import { createFullCheckerHost } from "../src/cli/checker-host.js";
 import { resolveFfiImport, ffiBridgeKind } from "../src/ffi/registry.js";
+
+const fullCheckerHost = createFullCheckerHost();
 
 describe("FFI bridge import registry", () => {
   it("resolves known python and cpp bridge paths", () => {
@@ -31,7 +34,7 @@ robot R {
   behavior run() { wheels.stop(); }
 }
 `;
-    expect(() => typeCheck(parse(tokenize(source)))).not.toThrow();
+    expect(() => typeCheck(parse(tokenize(source)), fullCheckerHost)).not.toThrow();
   });
 
   it("still rejects unknown imports", () => {
@@ -39,6 +42,6 @@ robot R {
 import unknown.vendor.lib;
 robot R { actuator wheels: DifferentialDrive; behavior run() { wheels.stop(); } }
 `;
-    expect(() => typeCheck(parse(tokenize(source)))).toThrow();
+    expect(() => typeCheck(parse(tokenize(source)), fullCheckerHost)).toThrow();
   });
 });

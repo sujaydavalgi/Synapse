@@ -13,9 +13,9 @@ import {
   type RolloutOptions,
   type RolloutResult,
   type RolloutStep,
+  type CertificationProofSummary,
 } from "./deploy-service.js";
 import type { DeployArtifactBundle } from "./deploy-bundle.js";
-import type { CertificationProofSummary } from "./certify-prover.js";
 import { remoteFetch } from "./http-fetch.js";
 
 function certificationProofPayload(

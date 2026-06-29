@@ -4,7 +4,7 @@
  */
 
 import type { UnitKind, SpandaType } from "../ast/nodes.js";
-import { allLibrarySensorTypes } from "../lib/registry.js";
+import { allLibrarySensorTypes } from "./sensor-types.js";
 
 export { unitsCompatible, unitMatchesNamedType } from "../units/index.js";
 import { unitsCompatible, canonicalUnit, type PhysicalCategory } from "../units/index.js";
