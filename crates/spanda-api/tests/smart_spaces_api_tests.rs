@@ -1,6 +1,8 @@
 //! Smart Spaces REST handlers.
+use spanda_api::handlers::handle_request;
 use spanda_api::state::ControlCenterState;
 use spanda_config::ConfigResolver;
+use spanda_deploy_http::HttpRequest;
 use std::path::PathBuf;
 
 fn smart_spaces_state() -> ControlCenterState {
@@ -77,4 +79,33 @@ fn facilities_energy_and_emergency_from_smart_spaces_blueprint() {
 
     let occupancy = spanda_api::smart_spaces::zone_occupancy_get(&state, "floor-12");
     assert!(occupancy.body.contains("timeline"));
+}
+
+#[test]
+fn smart_spaces_routes_through_handle_request() {
+    let mut state = smart_spaces_state();
+    let (facilities, _) = handle_request(
+        &mut state,
+        &HttpRequest {
+            method: "GET".into(),
+            path: "/v1/facilities".into(),
+            body: String::new(),
+            authorization: None,
+        },
+        "",
+    );
+    assert_eq!(facilities.status, 200, "body: {}", facilities.body);
+    assert!(facilities.body.contains("tower-demo"));
+
+    let (summary, _) = handle_request(
+        &mut state,
+        &HttpRequest {
+            method: "GET".into(),
+            path: "/v1/smart-spaces/summary".into(),
+            body: String::new(),
+            authorization: None,
+        },
+        "",
+    );
+    assert_eq!(summary.status, 200, "body: {}", summary.body);
 }
