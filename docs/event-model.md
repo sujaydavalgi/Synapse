@@ -50,7 +50,7 @@ See [entity-apis.md](./entity-apis.md).
 
 Published by runtime HAL, watchdogs, and entity health evaluation.
 
-`HealthChanged` is emitted only when an entity's cached health status changes (not on every evaluation). The first observation uses `from: "unknown"`. `HealthCheckFailed` and `DegradedModeEntered` still emit when their conditions match each evaluation.
+`HealthChanged` is emitted only when an entity's cached health status changes (not on every evaluation). The first observation uses `from: "unknown"`. `ReadinessChanged` emits only when readiness status, mission-ready flag, or score changes (first observation uses `from.readiness_status: "unknown"`). `ReadinessGateFailed` emits on transition into a blocked state, not on every blocked evaluation. Entity-health `DegradedModeEntered` emits on entry into a critical/error diagnostic state. `HealthCheckFailed` still emits when failed checks are present on each evaluation.
 
 | Event | When | Key fields |
 |-------|------|------------|
@@ -65,6 +65,8 @@ See [entity-health.md](./entity-health.md), [runtime-health.md](./runtime-health
 ### Readiness events
 
 Published by `spanda-readiness` during evaluation.
+
+`ReadinessChanged` and `ReadinessGateFailed` use in-process transition caches (see Health events above). Gate-failed events fire when `mission_ready` transitions to `false`, not on every blocked evaluation.
 
 | Event | When | Key fields |
 |-------|------|------------|
@@ -202,7 +204,7 @@ gRPC events mirror the same fields in proto messages where defined.
 |-----------|----------------|-----------|
 | `spanda-config` / API | Entity* | Control Center, audit (`PlatformEvent` via `record_platform_event`) |
 | `spanda-readiness` | ReadinessChanged, ReadinessGateFailed, HealthChanged, HealthCheckFailed | CLI, API, assurance, telemetry |
-| `spanda-interpreter` | Mission*, Recovery*, DegradedModeEntered | Telemetry, replay |
+| `spanda-interpreter` | Mission*, Recovery*, DegradedModeEntered | Telemetry, replay (runtime degraded mode on transition) |
 | `spanda-package` / CLI | PackageInstalled, PackageVerified, PackageRemoved | Telemetry, audit |
 | `spanda-providers` | PackageInstalled | Telemetry, audit (runtime bootstrap) |
 | `spanda-trust` | TrustUpdated, TrustGateFailed | Explain, scorecard, telemetry |

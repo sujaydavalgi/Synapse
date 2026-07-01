@@ -29,6 +29,7 @@
 | Fleet agent interpreter recovery | HTTP deploy + `/v1/recovery/execute` | `scripts/fleet_agent_recovery_smoke.sh`, `crates/spanda-fleet/tests/mesh_integration.rs` |
 | Operational drift (full) | program + agent dimensions | `crates/spanda-config/src/operational_drift.rs` |
 | Platform architecture validation | layer classification, zero-waiver baseline, SCC, TypeScript layers, manifest sync | `scripts/validate_architecture.py --check-manifest-sync` (CI `rust` job) |
+| Platform event transitions | health/readiness/degraded emit-on-change | `crates/spanda-readiness/tests/platform_events.rs` |
 | Solution blueprint governance | no workspace crates or Rust in blueprint trees | `scripts/validate_blueprints.py` (CI `rust` job) |
 | Enterprise ops API | Control Center handlers, device pool | `crates/spanda-api/tests/` |
 | Smart Spaces API | facilities, readiness, occupancy, energy, emergency | `crates/spanda-api/tests/smart_spaces_api_tests.rs`, `scripts/smart_spaces_smoke.sh` |
