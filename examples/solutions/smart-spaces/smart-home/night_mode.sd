@@ -4,6 +4,10 @@
 //   spanda verify night_mode.sd --target SmartSpaceGatewayV1 --config ../spanda.toml
 //   spanda readiness night_mode.sd --profile smart_space --config ../spanda.toml
 
+certify ISO13849 {
+  level PLd;
+}
+
 hardware SmartSpaceGatewayV1 {
   cpu: CortexA55;
   memory: 4 GB;
@@ -22,6 +26,10 @@ requires_capability climate_control {}
 
 robot HomeOrchestrator {
   uses hardware SmartSpaceGatewayV1;
+
+  safety {
+    max_speed = 0 m/s;
+  }
 
   exposes capabilities [
     lighting_control,

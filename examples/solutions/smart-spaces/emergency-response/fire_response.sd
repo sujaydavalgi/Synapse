@@ -3,6 +3,10 @@
 //   spanda check fire_response.sd
 //   spanda verify fire_response.sd --target BuildingEdgeV1 --config ../spanda.toml
 
+certify ISO13849 {
+  level PLd;
+}
+
 hardware BuildingEdgeV1 {
   cpu: CortexA72;
   memory: 8 GB;
@@ -19,6 +23,10 @@ requires_capability emergency_notification {}
 
 robot EmergencyOrchestrator {
   uses hardware BuildingEdgeV1;
+
+  safety {
+    max_speed = 0 m/s;
+  }
 
   exposes capabilities [
     safety_monitoring,

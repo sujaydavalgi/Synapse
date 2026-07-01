@@ -3,6 +3,10 @@
 //   spanda check occupancy_climate.sd
 //   spanda verify occupancy_climate.sd --target SmartSpaceGatewayV1 --config ../spanda.toml
 
+certify ISO13849 {
+  level PLd;
+}
+
 hardware SmartSpaceGatewayV1 {
   cpu: CortexA55;
   memory: 4 GB;
@@ -11,6 +15,10 @@ hardware SmartSpaceGatewayV1 {
 
 robot OfficeOrchestrator {
   uses hardware SmartSpaceGatewayV1;
+
+  safety {
+    max_speed = 0 m/s;
+  }
 
   exposes capabilities [
     climate_control,

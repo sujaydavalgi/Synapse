@@ -3,6 +3,10 @@
 //   spanda check patient_monitoring.sd
 //   spanda verify patient_monitoring.sd --target SmartSpaceGatewayV1 --config ../spanda.toml
 
+certify ISO13849 {
+  level PLd;
+}
+
 hardware SmartSpaceGatewayV1 {
   cpu: CortexA55;
   memory: 4 GB;
@@ -13,6 +17,10 @@ requires_capability medical_monitoring {}
 
 robot CareOrchestrator {
   uses hardware SmartSpaceGatewayV1;
+
+  safety {
+    max_speed = 0 m/s;
+  }
 
   exposes capabilities [
     medical_monitoring,

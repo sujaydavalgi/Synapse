@@ -4,6 +4,66 @@
 [fleet]
 id = "smart-spaces-fleet"
 
+[[fleet.robots]]
+id = "HomeOrchestrator"
+entity_kind = "orchestrator"
+hardware_profile = "SmartSpaceGatewayV1"
+
+[fleet.robots.compute]
+id = "home-orchestrator-compute"
+type = "SmartSpaceGateway"
+serial = "SS-HOME-001"
+
+[[fleet.robots]]
+id = "OfficeOrchestrator"
+entity_kind = "orchestrator"
+hardware_profile = "SmartSpaceGatewayV1"
+
+[fleet.robots.compute]
+id = "office-orchestrator-compute"
+type = "SmartSpaceGateway"
+serial = "SS-OFFICE-001"
+
+[[fleet.robots]]
+id = "BuildingOrchestrator"
+entity_kind = "orchestrator"
+hardware_profile = "BuildingEdgeV1"
+
+[fleet.robots.compute]
+id = "building-orchestrator-compute"
+type = "BuildingEdge"
+serial = "SS-BUILDING-001"
+
+[[fleet.robots]]
+id = "CareOrchestrator"
+entity_kind = "orchestrator"
+hardware_profile = "SmartSpaceGatewayV1"
+
+[fleet.robots.compute]
+id = "care-orchestrator-compute"
+type = "SmartSpaceGateway"
+serial = "SS-CARE-001"
+
+[[fleet.robots]]
+id = "EnergyOrchestrator"
+entity_kind = "orchestrator"
+hardware_profile = "SmartSpaceGatewayV1"
+
+[fleet.robots.compute]
+id = "energy-orchestrator-compute"
+type = "SmartSpaceGateway"
+serial = "SS-ENERGY-001"
+
+[[fleet.robots]]
+id = "EmergencyOrchestrator"
+entity_kind = "orchestrator"
+hardware_profile = "BuildingEdgeV1"
+
+[fleet.robots.compute]
+id = "emergency-orchestrator-compute"
+type = "BuildingEdge"
+serial = "SS-EMERGENCY-001"
+
 [[facilities]]
 id = "tower-demo"
 name = "Demo Commercial Tower"

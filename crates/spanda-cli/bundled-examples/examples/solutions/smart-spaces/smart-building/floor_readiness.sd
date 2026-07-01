@@ -3,6 +3,10 @@
 //   spanda check floor_readiness.sd
 //   spanda verify floor_readiness.sd --target BuildingEdgeV1 --config ../spanda.toml
 
+certify ISO13849 {
+  level PLd;
+}
+
 hardware BuildingEdgeV1 {
   cpu: CortexA72;
   memory: 8 GB;
@@ -14,6 +18,10 @@ requires_capability safety_monitoring {}
 
 robot BuildingOrchestrator {
   uses hardware BuildingEdgeV1;
+
+  safety {
+    max_speed = 0 m/s;
+  }
 
   exposes capabilities [
     climate_control,
