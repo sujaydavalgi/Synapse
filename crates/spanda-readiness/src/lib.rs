@@ -48,7 +48,10 @@ pub use entity_readiness::{
     evaluate_entity_readiness, EntityReadinessFinding, EntityReadinessOptions,
     EntityReadinessReport,
 };
-pub use platform_events::{record_entity_health_platform_events, record_readiness_platform_event};
+pub use platform_events::{
+    record_entity_health_platform_events, record_readiness_platform_event,
+    reset_health_status_cache_for_tests,
+};
 pub use entity_verify::{
     verify_entity, EntityVerifyFinding, EntityVerifyOptions, EntityVerifyReport,
 };
