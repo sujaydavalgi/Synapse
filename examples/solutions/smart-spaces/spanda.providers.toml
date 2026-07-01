@@ -32,7 +32,7 @@ broker = "mqtt://localhost:1883"
 package = "spanda-home-assistant"
 enabled = false
 url = "http://localhost:8123"
-note = "Interop bridge — Home Assistant remains device authority"
+note = "BMS sidecar — HA remains device authority; see docs/smart-space-bms-bridge.md"
 
 [providers.energy]
 package = "spanda-energy"

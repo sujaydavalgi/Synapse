@@ -34,7 +34,7 @@ IoT integrations live in official packages. Core defines generic contracts; pack
 | `spanda-zwave` | Z-Wave (stub) |
 | `spanda-bacnet` | BACnet building automation (bacpypes3 + env bridge) |
 | `spanda-knx` | KNX building bus (xknx + env bridge) |
-| `spanda-home-assistant` | Home Assistant bridge (stub) |
+| `spanda-home-assistant` | Home Assistant bridge (REST + mock) |
 | `spanda-energy` | Solar, battery, and demand-response (stub) |
 | `spanda-building` | Facility zones and readiness orchestration (stub) |
 | `spanda-smart-locks` | Smart lock and access control (stub) |
@@ -109,12 +109,23 @@ Enable live reads with environment flags (build with `--features live-iot` on `s
 | `SPANDA_THREAD_CMD` | Shell template for Thread reads (`{device}`) |
 | `SPANDA_LIVE_ZWAVE=1` | Read Z-Wave values via `SPANDA_ZWAVE_CMD` or Python bridge |
 | `SPANDA_ZWAVE_CMD` | Shell template for Z-Wave reads (`{device}`, `{object_id}`) |
-| `SPANDA_LIVE_HOME_ASSISTANT=1` | Read HA entity state via `SPANDA_HOME_ASSISTANT_CMD` or Python bridge |
+| `SPANDA_LIVE_HOME_ASSISTANT=1` | Read HA entity state via `SPANDA_HOME_ASSISTANT_CMD`, registry script, or Python bridge |
 | `SPANDA_HOME_ASSISTANT_CMD` | Shell template for HA reads (`{entity}`) |
+| `SPANDA_HOME_ASSISTANT_URL` | Home Assistant base URL for REST reads (Python bridge) |
+| `SPANDA_HOME_ASSISTANT_TOKEN` | Long-lived HA access token |
+| `SPANDA_HOME_ASSISTANT_FORCE_MOCK` | Force mock HA reads (`1` for CI) |
+| `SPANDA_HOME_ASSISTANT_READ_SCRIPT` | Override path to `get_state.py` registry script |
+| `SPANDA_ROOT` | Repo root for locating registry BACnet/KNX/HA scripts |
+| `SPANDA_BACNET_READ_SCRIPT` | Override path to BACnet `read_point.py` |
+| `SPANDA_KNX_READ_SCRIPT` | Override path to KNX `read_group.py` |
+
+Build with `--features live-building` on `spanda-cli` to enable registry BACnet/KNX script dispatch before the Python bridge.
 
 Golden path (mock fallback without hardware): `./scripts/live_iot_golden_path.sh`
 
 Smart Spaces building I/O smoke: `./scripts/smart_spaces_live_iot_smoke.sh`
+
+BMS sidecar (Home Assistant / MQTT patterns): `./scripts/smart_spaces_bms_sidecar_smoke.sh` — see [smart-space-bms-bridge.md](smart-space-bms-bridge.md)
 
 ## Persistent storage
 

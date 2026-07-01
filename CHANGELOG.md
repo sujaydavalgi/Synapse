@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Smart Spaces extended panels:** device inventory, facility health/security/floor-map, zone environment, energy detail, occupancy timeline; six additional golden traces; `smart_spaces_stable_init.sh` and `smart_spaces_security_self_audit.sh`.
 - **Smart Spaces promotion hardening:** `smart-spaces-promotion-gate` CI job; promotion gate auto-builds release `spanda` when `SPANDA_BIN` unset; blueprint `certify` + `safety` blocks and fleet orchestrator robots; KNX package bridge docs parity with BACnet.
 - **Smart Spaces native BACnet/KNX:** bacpypes3 and xknx reads in `spanda_python_bridge.py` with mock fallback; package `read_point` / `read_group` scripts and optional `requirements-*.txt`; hardware smoke via `SPANDA_LIVE_IOT_HARDWARE=1`.
+- **Smart Spaces live-building Rust dispatch:** `live-building` feature on `spanda-cli` / `spanda-providers` routes BACnet/KNX reads through registry package scripts before the Python bridge; env `SPANDA_ROOT`, `SPANDA_BACNET_READ_SCRIPT`, `SPANDA_KNX_READ_SCRIPT`.
+- **Smart Spaces BMS sidecar:** Home Assistant REST reads in `spanda_python_bridge.py`; `spanda-home-assistant` `get_state.py` / `get_state.sh`; [smart-space-bms-bridge.md](docs/smart-space-bms-bridge.md); `scripts/smart_spaces_bms_sidecar_smoke.sh`.
 
 ### Changed
 

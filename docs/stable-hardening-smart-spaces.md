@@ -20,7 +20,8 @@ The Smart Spaces Solution Blueprint is shipped at **Experimental** tier with CI 
 | Grafana dashboard | `control-center-smart-spaces.json` template | **Shipped** |
 | Golden traces | Emergency / mode-change deterministic replay | **Shipped** — fire, gateway failover, power island, water leak fixtures |
 | Bundled offline registry | Smart Spaces packages in `bundled-registry` | **Shipped** |
-| Live building I/O | BACnet/KNX/Thread/Z-Wave/HA env bridges + bacpypes3/xknx | **Shipped** (experimental) — `SPANDA_LIVE_*`, package `read_*.sh` scripts, `scripts/smart_spaces_live_iot_smoke.sh` |
+| Live building I/O | BACnet/KNX/Thread/Z-Wave/HA env bridges + bacpypes3/xknx + `live-building` registry scripts | **Shipped** (experimental) — `SPANDA_LIVE_*`, package `read_*.sh` / `get_state.sh`, `scripts/smart_spaces_live_iot_smoke.sh` |
+| BMS sidecar bridge | Home Assistant REST + sidecar patterns (MQTT) | **Shipped** (experimental) — [smart-space-bms-bridge.md](./smart-space-bms-bridge.md), `scripts/smart_spaces_bms_sidecar_smoke.sh` |
 | Field soak | 30-day smart-building pilot without regression | **Pending** (operational) — `./scripts/smart_spaces_stable_init.sh` |
 | Security audit | Third-party review of life-safety and access-control paths | **Pending** (operational) — automated self-audit **shipped** |
 | Extended panels API | devices, health, security, environment, floor-map, energy detail | **Shipped** |
@@ -56,8 +57,10 @@ The gate runs:
 1. Field soak check (unless `SPANDA_SMART_SPACES_SKIP_SOAK=1`, default **skip**)
 2. Security audit prep artifact (unless `SPANDA_SMART_SPACES_SKIP_AUDIT=1`, default **skip**)
 3. `scripts/smart_spaces_smoke.sh`
-4. `cargo test -p spanda-api smart_spaces` and OpenAPI parity
-5. Live Control Center probe (`/v1/facilities`, readiness, occupancy, energy, emergency, summary)
+4. `scripts/smart_spaces_live_iot_smoke.sh` and `scripts/smart_spaces_bms_sidecar_smoke.sh`
+5. `cargo test -p spanda-providers --features live-building` (BACnet registry script)
+6. `cargo test -p spanda-api smart_spaces` and OpenAPI parity
+7. Live Control Center probe (`/v1/facilities`, readiness, occupancy, energy, emergency, summary)
 
 ---
 

@@ -20,7 +20,7 @@ Optional packages and ecosystem integration for [Smart Spaces & Ambient Intellig
 | `spanda-mqtt` | IoT | `iot.mqtt` | Experimental |
 | `spanda-ble` | Connectivity | `connectivity.ble` | Experimental |
 | `spanda-wifi` | Connectivity | `connectivity.wifi` | Experimental |
-| `spanda-home-assistant` | Bridge | `bridge.home_assistant` | Experimental (stub) |
+| `spanda-home-assistant` | Bridge | `bridge.home_assistant` | Experimental (REST + mock) |
 | `spanda-energy` | Energy | `energy.solar`, `energy.storage` | Experimental (stub) |
 | `spanda-building` | Blueprint | `building.entity` | Experimental (stub) |
 | `spanda-smart-locks` | Access | `access.lock` | Experimental (stub) |

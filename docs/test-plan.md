@@ -32,7 +32,7 @@
 | Platform event transitions | health/readiness/degraded emit-on-change | `crates/spanda-readiness/tests/platform_events.rs` |
 | Solution blueprint governance | no workspace crates or Rust in blueprint trees | `scripts/validate_blueprints.py` (CI `rust` job) |
 | Enterprise ops API | Control Center handlers, device pool | `crates/spanda-api/tests/` |
-| Smart Spaces API | facilities, readiness, occupancy, energy, emergency | `crates/spanda-api/tests/smart_spaces_api_tests.rs`, `scripts/smart_spaces_smoke.sh` |
+| Smart Spaces live-building | BACnet registry script dispatch (`live-building` feature) | `crates/spanda-providers/src/iot_live.rs` (`live_bacnet_registry_script_reads_mock_stdout`) |
 | Negative | `ai_safety_violation.sd` fails | `tests/integration.rs` |
 
 **Current count:** ~115+ Rust unit/integration tests (workspace total grows with platform crates).
@@ -65,9 +65,10 @@
 | `scripts/hri_stable_promotion_gate.sh` | HRI Stable promotion (soak + audit prep + spatial smoke + Control Center HRI API probe) |
 | `scripts/adas_smoke.sh` | ADAS Solution Blueprint (verify, readiness, replay, compliance, examples) |
 | `scripts/smart_spaces_smoke.sh` | Smart Spaces blueprint (six apps, verify + check) |
-| `scripts/smart_spaces_promotion_gate.sh` | Smart Spaces scaffold promotion (smoke, API tests, OpenAPI parity, Control Center probe) |
+| `scripts/smart_spaces_promotion_gate.sh` | Smart Spaces scaffold promotion (smoke, live IoT, BMS sidecar, `live-building` test, API tests, OpenAPI parity, Control Center probe) |
 | `scripts/smart_spaces_stable_init.sh` | Start field soak clock + security audit artifacts for Smart Spaces |
 | `scripts/smart_spaces_live_iot_smoke.sh` | BACnet/KNX/Thread/Z-Wave/HA bridges (mock CI; `SPANDA_LIVE_IOT_HARDWARE=1` for bacpypes3/xknx) |
+| `scripts/smart_spaces_bms_sidecar_smoke.sh` | Home Assistant REST sidecar (mock CI; `SPANDA_BMS_SIDECAR_LIVE=1` for live HA) |
 | `scripts/adas_stable_promotion_gate.sh` | ADAS Stable promotion (soak + audit prep + smoke + Control Center ADAS API probe) |
 | `scripts/adas_automotive_sensors_smoke.sh` | Automotive sensor hub + live `SPANDA_*_CMD` bridge tests |
 | `scripts/hri_field_soak_init.sh` | Start 30-day HRI field soak clock |

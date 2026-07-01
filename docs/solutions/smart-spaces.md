@@ -214,6 +214,10 @@ Commercial blueprints read BMS points through optional packages and env bridges 
 export SPANDA_LIVE_BACNET=1
 export SPANDA_BACNET_CMD='packages/registry/spanda-bacnet/scripts/read_point.sh {device} {object_id}'
 
+# Or build with registry script dispatch (no CMD required):
+cargo build -p spanda --features live-building
+export SPANDA_ROOT=/path/to/Spanda
+
 # KNX example
 export SPANDA_LIVE_KNX=1
 export SPANDA_KNX_GATEWAY=192.168.1.40
@@ -221,6 +225,17 @@ export SPANDA_KNX_CMD='packages/registry/spanda-knx/scripts/read_group.sh {addre
 
 ./scripts/smart_spaces_live_iot_smoke.sh          # mock CI path
 SPANDA_LIVE_IOT_HARDWARE=1 ./scripts/smart_spaces_live_iot_smoke.sh  # on-site hardware
+```
+
+### BMS sidecar (Home Assistant / MQTT)
+
+When BACnet/KNX are already aggregated by a hub, use a **sidecar bridge** instead of direct field-bus reads. See [smart-space-bms-bridge.md](../smart-space-bms-bridge.md).
+
+```bash
+export SPANDA_LIVE_HOME_ASSISTANT=1
+export SPANDA_HOME_ASSISTANT_URL=http://127.0.0.1:8123
+export SPANDA_HOME_ASSISTANT_TOKEN=your-long-lived-token
+./scripts/smart_spaces_bms_sidecar_smoke.sh
 ```
 
 ---

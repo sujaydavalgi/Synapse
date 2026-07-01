@@ -78,8 +78,19 @@ Example: [examples/solutions/smart-spaces/smart-building/](../examples/solutions
 
 1. Install optional Python deps: `requirements-bacnet.txt` / `requirements-knx.txt` under each registry package.
 2. Set `SPANDA_LIVE_BACNET=1` or `SPANDA_LIVE_KNX=1` and network env vars (see [iot.md](./iot.md#live-hardware-optional)).
-3. Point `SPANDA_BACNET_CMD` / `SPANDA_KNX_CMD` at the package `scripts/read_*.sh` helpers, or rely on `spanda_python_bridge.py` when no cmd is set.
+3. Point `SPANDA_BACNET_CMD` / `SPANDA_KNX_CMD` at the package `scripts/read_*.sh` helpers, or build with `--features live-building` so Rust dispatches registry `read_*.py` before the Python bridge.
 4. Verify with `./scripts/smart_spaces_live_iot_smoke.sh` (mock) before `SPANDA_LIVE_IOT_HARDWARE=1` on the building network.
+
+### BMS sidecar (Home Assistant / MQTT)
+
+When BACnet/KNX are already aggregated by a hub, use a **sidecar bridge** instead of direct field-bus reads. See [smart-space-bms-bridge.md](./smart-space-bms-bridge.md).
+
+```bash
+export SPANDA_LIVE_HOME_ASSISTANT=1
+export SPANDA_HOME_ASSISTANT_URL=http://127.0.0.1:8123
+export SPANDA_HOME_ASSISTANT_TOKEN=your-long-lived-token
+./scripts/smart_spaces_bms_sidecar_smoke.sh
+```
 
 Provider pattern: packages implement `iot.*` import paths; missions use `requires capabilities` — see [iot.md](./iot.md).
 

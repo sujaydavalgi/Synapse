@@ -81,6 +81,15 @@ else
   echo "Skipping smoke (SPANDA_SMART_SPACES_SKIP_SMOKE=1)"
 fi
 
+echo "--- Smart Spaces live IoT smoke ---"
+"$ROOT/scripts/smart_spaces_live_iot_smoke.sh"
+
+echo "--- Smart Spaces BMS sidecar smoke ---"
+"$ROOT/scripts/smart_spaces_bms_sidecar_smoke.sh"
+
+echo "--- Smart Spaces live-building registry test ---"
+cargo test -p spanda-providers --features live-building live_bacnet_registry_script_reads_mock_stdout -q
+
 echo "--- Smart Spaces API unit tests ---"
 cargo test -p spanda-api smart_spaces -q
 cargo test -p spanda-api openapi_documents_all_rest -q

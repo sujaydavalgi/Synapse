@@ -70,7 +70,7 @@ See [solutions/adas.md](solutions/adas.md) for the ADAS Solution Blueprint.
 | `spanda-zwave` | `iot.zwave` | Z-Wave home automation |
 | `spanda-bacnet` | `iot.bacnet` | BACnet building automation (bacpypes3 + env bridge) |
 | `spanda-knx` | `iot.knx` | KNX building control bus (xknx + env bridge) |
-| `spanda-home-assistant` | `bridge.home_assistant` | Home Assistant bridge |
+| `spanda-home-assistant` | `bridge.home_assistant` | Home Assistant bridge (REST + mock) |
 | `spanda-energy` | `energy.solar` | Solar, battery, and demand response |
 | `spanda-building` | `building.entity` | Facility zones and readiness |
 | `spanda-smart-locks` | `access.lock` | Smart lock and access control |

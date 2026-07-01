@@ -218,6 +218,7 @@
 | [smart-space-security.md](./smart-space-security.md) | **Smart space security and access** |
 | [smart-space-device-tree.md](./smart-space-device-tree.md) | **Smart space device tree examples** |
 | [smart-space-packages.md](./smart-space-packages.md) | **Smart space packages and integration strategy** |
+| [smart-space-bms-bridge.md](./smart-space-bms-bridge.md) | **BMS sidecar bridge (Home Assistant, MQTT, direct BACnet/KNX)** |
 | [human-interaction.md](./human-interaction.md) | **Human entity model and device tree** |
 | [operator-capabilities.md](./operator-capabilities.md) | **Operator capability verification** |
 | [wearables.md](./wearables.md) | **Wearable device registry and packages** |

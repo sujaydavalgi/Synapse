@@ -781,6 +781,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | **Reference Architecture** | [docs/solutions/smart-spaces.md](docs/solutions/smart-spaces.md) · [examples/solutions/smart-spaces/](examples/solutions/smart-spaces/) |
 | **Device Tree** | [docs/smart-space-device-tree.md](docs/smart-space-device-tree.md) — building, zone, gateway, IoT, robot, energy, human nodes |
 | **Packages** | [docs/smart-space-packages.md](docs/smart-space-packages.md) — Matter, BACnet, KNX, energy, building, HA bridge |
+| **BMS sidecar** | [docs/smart-space-bms-bridge.md](docs/smart-space-bms-bridge.md) — Home Assistant REST, MQTT patterns, direct BACnet/KNX |
 | **Providers** | Matter, Thread, Zigbee, Z-Wave, MQTT, BACnet, KNX, Modbus, Home Assistant interop |
 | **Mission Examples** | Night mode, fire response, demand response, patient monitoring, building lockdown |
 | **Health Policies** | Gateway, battery, critical sensor quorum — [docs/health-checks.md](docs/health-checks.md) |
