@@ -138,8 +138,9 @@ impl<B: RobotBackend> Interpreter<B> {
         //     let result = spanda_interpreter::runtime_reliability::enter_mode(&mut self, ode);
 
         // Update active mode and execute the declared body when present.
+        let previous_mode = self.active_mode.clone();
         self.active_mode = mode.to_string();
-        if is_degraded_operating_mode(mode) {
+        if is_degraded_operating_mode(mode) && !is_degraded_operating_mode(&previous_mode) {
             emit_degraded_mode_entered(mode, "runtime_mode_transition", "runtime/mission");
         }
         if let Some(body) = self.modes.get(mode).map(|m| m.body.clone()) {
