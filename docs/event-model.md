@@ -201,10 +201,13 @@ gRPC events mirror the same fields in proto messages where defined.
 | `spanda-config` / API | Entity* | Control Center, audit (`PlatformEvent` via `record_platform_event`) |
 | `spanda-readiness` | ReadinessChanged, ReadinessGateFailed, HealthChanged, HealthCheckFailed | CLI, API, assurance, telemetry |
 | `spanda-interpreter` | Mission*, Recovery*, DegradedModeEntered | Telemetry, replay |
-| `spanda-providers` | PackageInstalled | Telemetry, audit |
+| `spanda-package` / CLI | PackageInstalled, PackageVerified, PackageRemoved | Telemetry, audit |
+| `spanda-providers` | PackageInstalled | Telemetry, audit (runtime bootstrap) |
 | `spanda-trust` | TrustUpdated, TrustGateFailed | Explain, scorecard, telemetry |
 | `spanda-tamper` | TamperDetected | Trust, ops alerts, telemetry |
-| `spanda-fleet` | FleetMemberJoined | Control Center, telemetry |
+| `spanda-spoofing` | SpoofingDetected | Trust, ops alerts, telemetry |
+| `spanda-security` | AuthFailed, SecretRotated | Control Center, audit, telemetry |
+| `spanda-fleet` | FleetMemberJoined, FleetMemberLeft | Control Center, telemetry |
 | `spanda-ota` | OtaRolloutStarted, OtaRolloutCompleted | Control Center, telemetry |
 | `spanda-telemetry-store` | All (persisted) | Replay, Grafana, audit |
 | `spanda-ops` | Alert routing | PagerDuty, webhooks |

@@ -96,7 +96,7 @@ Validation: `python3 scripts/validate_architecture.py --check-manifest-sync` and
 
 ---
 
-## Phase 6 — Event model adoption (in progress)
+## Phase 6 — Event model adoption (complete)
 
 **Target:** Subsystems emit `spanda_audit::PlatformEvent` envelopes and persist via `publish_platform_event`.
 
@@ -105,15 +105,16 @@ Validation: `python3 scripts/validate_architecture.py --check-manifest-sync` and
 | Entity API mutations | `EntityCreated`, `EntityTagged`, `EntityRelated`, `EntityUpdated` | **Shipped** |
 | Readiness | `ReadinessChanged`, `ReadinessGateFailed` | **Shipped** |
 | Health | `HealthChanged`, `HealthCheckFailed`, `DegradedModeEntered` | **Shipped** (entity health evaluation) |
-| Interpreter missions | `MissionStarted`, `MissionCompleted`, `MissionPaused` | **Shipped** |
+| Interpreter missions | `MissionStarted`, `MissionCompleted`, `MissionPaused`, `MissionAborted` | **Shipped** |
 | Recovery | `RecoveryTriggered`, `RecoveryCompleted`, `RecoveryFailed` | **Shipped** (runtime recovery execution) |
 | Trust | `TrustUpdated`, `TrustGateFailed` | **Shipped** |
 | Tamper | `TamperDetected` | **Shipped** |
-| Fleet orchestration | `FleetMemberJoined` | **Shipped** |
+| Spoofing | `SpoofingDetected` | **Shipped** (spoof-check trace/program analysis) |
+| Security | `AuthFailed`, `SecretRotated` | **Shipped** (API RBAC + managed vault rotation) |
+| Fleet orchestration | `FleetMemberJoined`, `FleetMemberLeft` | **Shipped** |
 | OTA rollouts | `OtaRolloutStarted`, `OtaRolloutCompleted` | **Shipped** |
-| Packages | `PackageInstalled` | **Shipped** (provider bootstrap) |
+| Packages | `PackageInstalled`, `PackageVerified`, `PackageRemoved` | **Shipped** (install/verify/remove CLI + provider bootstrap) |
 | Telemetry store | Persist all platform events | **Shipped** |
-| Security / fleet lifecycle | `SpoofingDetected`, `FleetMemberLeft`, `MissionAborted`, … | **Planned** |
 
 See [event-model.md](./event-model.md).
 
