@@ -21,12 +21,30 @@ jobs:
           node-version: "24"
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+      - name: Extract desktop version
+        id: version
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" == desktop-v* ]]; then
+            echo "version=${GITHUB_REF_NAME#desktop-v}" >> "$GITHUB_OUTPUT"
+          else
+            node -p "require('./packages/control-center-desktop/package.json').version" | \
+              awk '{print "version="$0}' >> "$GITHUB_OUTPUT"
+          fi
       - run: npm ci
+      - name: Desktop smoke (compile)
+        run: ./scripts/control_center_desktop_smoke.sh
       - name: Build Tauri bundle
         env:
           TAURI_BUILD: "1"
           SPANDA_DESKTOP_UPDATER_ACTIVE: ${{ secrets.TAURI_UPDATER_PUBKEY != '' && '1' || '0' }}
-        run: npm run build --workspace=@spanda/control-center-desktop
+          TAURI_UPDATER_PUBKEY: ${{ secrets.TAURI_UPDATER_PUBKEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+            npm run build --workspace=@spanda/control-center-desktop -- --no-sign
+          else
+            npm run build --workspace=@spanda/control-center-desktop
+          fi
       - name: Sign and notarize (optional)
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -34,5 +52,28 @@ jobs:
         run: ./scripts/sign_tauri_macos.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: control-center-desktop-macos
-          path: packages/control-center-desktop/src-tauri/target/release/bundle/macos
+          name: control-center-desktop-macos-${{ steps.version.outputs.version }}
+          path: |
+            packages/control-center-desktop/src-tauri/target/release/bundle/macos
+            packages/control-center-desktop/src-tauri/target/release/bundle/dmg
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BUNDLE_ROOT="packages/control-center-desktop/src-tauri/target/release/bundle"
+          mapfile -t FILES < <(find "${BUNDLE_ROOT}" -type f \( -name '*.dmg' -o -name '*.app.tar.gz' \) 2>/dev/null || true)
+          TITLE="Spanda Control Center Desktop ${{ steps.version.outputs.version }}"
+          if ((${#FILES[@]} > 0)); then
+            gh release create "${GITHUB_REF_NAME}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${TITLE}" \
+              --generate-notes \
+              "${FILES[@]}"
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${TITLE}" \
+              --notes "No signed installer artifacts on disk. Download the workflow artifact **control-center-desktop-macos-${{ steps.version.outputs.version }}** from this run."
+          fi

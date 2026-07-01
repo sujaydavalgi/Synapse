@@ -70,6 +70,7 @@ Index of regression and promotion gates organized by **Platform Pillar** and **S
 | `entity_model_smoke.sh` | Unified entity model read + mutation + traceability APIs (REST, TypeScript, Python, Rust SDK) |
 | `entity_model_stable_promotion_gate.sh` | Entity model Experimental → Stable (soak + audit + smokes) |
 | `control_center_desktop_smoke.sh` | Tauri desktop shell |
+| `verify_desktop_release_ready.sh` | Desktop version sync + compile before `desktop-v*` tag |
 | `telemetry_store_golden_path.sh` | Persistent telemetry |
 | `device_pool_perf_bench.sh` | 1000-device perf gate |
 | `field_soak_gate.sh` | 30-day field pilot wrapper |

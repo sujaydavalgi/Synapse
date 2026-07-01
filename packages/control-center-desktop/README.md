@@ -81,10 +81,6 @@ The Tauri shell includes `tauri-plugin-updater`. In development builds, `active`
 
 See [docs/desktop-release-runbook.md](../../docs/desktop-release-runbook.md).
 
-Until the first production release is published, operators update via platform installers from CI (`TAURI_BUILD=1` on macOS).
-
-Optional macOS codesign/notarization after bundle: set `APPLE_SIGNING_IDENTITY` and `APPLE_NOTARIZE_PROFILE`, then run `./scripts/sign_tauri_macos.sh` (also wired in CI when secrets are present).
-
 ## Status
 
-**Experimental** — dev workflow, CI signing scaffold, and env-gated updater wiring are shipped. **First signed production release** is pending maintainer tags and Apple/registry secrets. Stable promotion: [docs/stable-hardening-enterprise-ops.md](../../docs/stable-hardening-enterprise-ops.md).
+**Stable** — dev workflow, CI signing scaffold, env-gated updater wiring, and **production release tags** (`desktop-v*`) are shipped. First production release: **`desktop-v0.4.2`** (GitHub Release + macOS workflow artifacts). Optional Apple codesign/notarization when `APPLE_SIGNING_IDENTITY` and `APPLE_NOTARIZE_PROFILE` secrets are configured. See [docs/stable-hardening-enterprise-ops.md](../../docs/stable-hardening-enterprise-ops.md) and [docs/desktop-release-runbook.md](../../docs/desktop-release-runbook.md).
