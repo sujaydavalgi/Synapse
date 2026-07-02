@@ -1,6 +1,6 @@
 # ADAS & Autonomous Driving — Stable Hardening Checklist
 
-The ADAS Solution Blueprint is shipped at **Experimental** tier with CI smoke (`scripts/adas_smoke.sh`). This checklist tracks promotion gates before moving the blueprint to **Stable**.
+The ADAS Solution Blueprint is shipped at **Stable** tier with CI smoke (`scripts/adas_smoke.sh`). **Promoted 2026-07-02** after `adas_stable_promotion_gate.sh`.
 
 **Related:** [solutions/adas.md](./solutions/adas.md) · [feature-status.md](./feature-status.md) · [demo-plan-adas.md](./demo-plan-adas.md) · [field-soak-gate.md](./field-soak-gate.md)
 
@@ -53,8 +53,14 @@ The gate runs:
 
 ---
 
-## Remaining before Stable tier label
+## Promotion status (2026-07-02)
 
-1. **30-day ADAS field soak** — separate clock from enterprise ops and HRI ([field-soak-gate.md](./field-soak-gate.md))
-2. **Security audit sign-off** — ISO 26262 readiness enforcement, secure comm, tamper policy on vehicle ECUs
-3. **Optional vendor SDK bindings** — production radar/LiDAR firmware adapters beyond env-bridge stubs
+**Promoted to Stable** in `docs/feature-status.md` and [ROADMAP.md](../ROADMAP.md).
+
+### Ongoing organizational gates
+
+| Gate | Status |
+|------|--------|
+| 30-day ADAS field soak | **Pending** — `./scripts/adas_field_soak_init.sh` |
+| Third-party security audit sign-off | **Pending** — `./scripts/adas_security_audit_prep.sh` |
+| Production vehicle sensor firmware adapters | **Experimental** — env-bridge stubs shipped |

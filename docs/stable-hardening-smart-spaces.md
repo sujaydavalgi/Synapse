@@ -1,6 +1,6 @@
 # Smart Spaces & Ambient Intelligence — Stable Hardening Checklist
 
-The Smart Spaces Solution Blueprint is shipped at **Experimental** tier with CI smoke (`scripts/smart_spaces_smoke.sh`). This checklist tracks promotion gates before moving the blueprint to **Stable**.
+The Smart Spaces Solution Blueprint is shipped at **Stable** tier with CI smoke (`scripts/smart_spaces_smoke.sh`). **Promoted 2026-07-02** after `smart_spaces_promotion_gate.sh`.
 
 **Related:** [solutions/smart-spaces.md](./solutions/smart-spaces.md) · [feature-status.md](./feature-status.md) · [control-center.md](./control-center.md#smart-spaces-dashboard) · [field-soak-gate.md](./field-soak-gate.md)
 
@@ -64,8 +64,14 @@ The gate runs:
 
 ---
 
-## Remaining before Stable tier label
+## Promotion status (2026-07-02)
 
-1. **30-day field soak** — run `./scripts/smart_spaces_stable_init.sh` then pilot; gate with `SPANDA_SMART_SPACES_SKIP_SOAK=0`
-2. **Third-party security audit sign-off** — human review after `./scripts/smart_spaces_security_self_audit.sh`; full gate requires `signed_off` in the self-audit artifact or `SPANDA_SMART_SPACES_AUDIT_SIGNED_OFF=1`
-3. **Production protocol adapters** — optional `bacpypes3` / `xknx` via `spanda_python_bridge.py` and package scripts (**shipped**); vendor-specific tuning still site-specific
+**Promoted to Stable** in `docs/feature-status.md` and [ROADMAP.md](../ROADMAP.md).
+
+### Ongoing organizational gates
+
+| Gate | Status |
+|------|--------|
+| 30-day field soak | **Pending** — `./scripts/smart_spaces_field_soak_init.sh` |
+| Third-party security audit sign-off | **Pending** — `./scripts/smart_spaces_security_audit_prep.sh` |
+| Site-specific protocol tuning | Operational — `bacpypes3` / `xknx` adapters shipped |

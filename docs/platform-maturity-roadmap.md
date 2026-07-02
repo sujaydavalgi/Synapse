@@ -8,7 +8,7 @@ For **enterprise control plane** pillars (Control Center, Device Pool, RBAC, API
 
 **Related:** [roadmap.md](./roadmap.md) · [enterprise-operations-roadmap.md](./enterprise-operations-roadmap.md) · [differentiation-roadmap.md](./differentiation-roadmap.md) · [product-strategy.md](./product-strategy.md) · [feature-status.md](./feature-status.md) · [platform-overview.md](./platform-overview.md)
 
-**Last updated:** 2026-06-25
+**Last updated:** 2026-07-02
 
 ---
 
@@ -18,22 +18,22 @@ Each area is classified by lifecycle phase, maturity tier, and primary outcome.
 
 | # | Area | Phase(s) | Tier | Outcome | New crate (proposed) |
 |---|------|----------|------|---------|----------------------|
-| 1 | AI-assisted development (`generate`, `explain`, `suggest`) | Build, Operate | Experimental (mock-first) | Faster authoring; explain failures | `spanda-generate` |
-| 2 | Dependency graph visualization | Build, Operate | Experimental | System understandability | `spanda-graph` |
-| 3 | Threat modeling | Verify, Deploy | Experimental | Pre-deploy security awareness | `spanda-threat` |
-| 4 | Configuration drift detection | Deploy, Operate | Experimental | Expected vs actual parity | `spanda-config::drift` |
-| 5 | Policy engine | Verify, Operate | Experimental | Declarative operational rules | `spanda-policy` |
-| 6 | Compliance profiles | Verify, Deploy | Future | Industry-specific gates | `spanda-compliance` — **Experimental** |
-| 7 | Explainability reports | Operate, Recover | Experimental | Decision transparency | `spanda-explain` |
-| 8 | Chaos engineering | Simulate, Recover | Experimental | Resilience validation | `spanda-chaos` |
-| 9 | Mission resource estimation | Simulate, Deploy | Experimental | Pre-flight cost awareness | `spanda-estimate` |
-| 10 | Readiness trend analysis | Operate | Experimental | Predictive degradation | extends `spanda-readiness` |
-| 11 | Package trust framework | Verify, Build | Experimental | Ecosystem trust | `spanda-trust` |
-| 12 | Architecture decision records | Build | Experimental | Design rationale capture | `spanda-adr` |
-| 13 | Mission differencing | Build, Verify | Experimental | Change-impact analysis | `spanda-diff` |
-| 14 | Deployment gates | Deploy | Experimental | Unsafe deploy prevention | extends `spanda-readiness` |
-| 15 | Autonomous systems scorecard | Operate | Experimental | Executive visibility | `spanda-score` |
-| 16 | Hack / tamper detection | Verify, Operate, Recover | Experimental (verify-time) | Runtime trust & integrity | `spanda-tamper` |
+| 1 | AI-assisted development (`generate`, `explain`, `suggest`) | Build, Operate | **Stable** (mock-first) | Faster authoring; explain failures | `spanda-generate` |
+| 2 | Dependency graph visualization | Build, Operate | **Stable** | System understandability | `spanda-graph` |
+| 3 | Threat modeling | Verify, Deploy | **Stable** | Pre-deploy security awareness | `spanda-threat` |
+| 4 | Configuration drift detection | Deploy, Operate | **Stable** | Expected vs actual parity | `spanda-config::drift` |
+| 5 | Policy engine | Verify, Operate | **Stable** | Declarative operational rules | `spanda-policy` |
+| 6 | Compliance profiles | Verify, Deploy | **Stable** | Industry-specific gates | `spanda-compliance` |
+| 7 | Explainability reports | Operate, Recover | **Stable** | Decision transparency | `spanda-explain` |
+| 8 | Chaos engineering | Simulate, Recover | **Stable** | Resilience validation | `spanda-chaos` |
+| 9 | Mission resource estimation | Simulate, Deploy | **Stable** | Pre-flight cost awareness | `spanda-estimate` |
+| 10 | Readiness trend analysis | Operate | **Stable** | Predictive degradation | extends `spanda-readiness` |
+| 11 | Package trust framework | Verify, Build | **Stable** | Ecosystem trust | `spanda-trust` |
+| 12 | Architecture decision records | Build | **Stable** | Design rationale capture | `spanda-adr` |
+| 13 | Mission differencing | Build, Verify | **Stable** | Change-impact analysis | `spanda-diff` |
+| 14 | Deployment gates | Deploy | **Stable** | Unsafe deploy prevention | extends `spanda-readiness` |
+| 15 | Autonomous systems scorecard | Operate | **Stable** | Executive visibility | `spanda-score` |
+| 16 | Hack / tamper detection | Verify, Operate, Recover | **Stable** (verify-time) | Runtime trust & integrity | `spanda-tamper` |
 
 ### Tier definitions
 
@@ -41,7 +41,7 @@ Each area is classified by lifecycle phase, maturity tier, and primary outcome.
 |------|---------|
 | **Planned** | Design spec + CLI contract agreed; implementation scheduled |
 | **Future** | Depends on Planned foundations; larger scope or external AI integration |
-| **Stable** | Shipped, CI-backed (none of the 16 areas yet — builds on existing stable engines) |
+| **Stable** | Shipped, CI-backed — **all 16 areas promoted 2026-07-02** (Phases A–D); live AI and learned-anomaly runtime paths retain **Experimental** caveats |
 
 ### Existing foundations (do not rebuild)
 

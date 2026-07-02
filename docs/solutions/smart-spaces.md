@@ -1,6 +1,6 @@
 # Smart Spaces & Ambient Intelligence — Solution Blueprint
 
-**Status:** Experimental (scaffold) · **Profile:** `smart_space` · **Path:** `examples/solutions/smart-spaces/`
+**Status:** **Stable** · **Profile:** `smart_space` · **Path:** `examples/solutions/smart-spaces/`
 
 Official Solution Blueprint for **safety-first verification, orchestration, readiness, assurance, and trust** in intelligent environments — from homes and offices to hospitals, factories, campuses, and cities.
 

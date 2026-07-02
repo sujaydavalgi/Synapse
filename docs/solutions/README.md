@@ -13,7 +13,7 @@ Spanda ships **Official Solution Blueprints** — reference architectures built 
 | **Warehouse Automation** | Experimental | Now | [warehouse.md](./warehouse.md) · [examples/end_to_end/warehouse_delivery/](../../examples/end_to_end/warehouse_delivery/) |
 | **Search & Rescue** | Experimental | Next | [examples/solutions/spatial-computing/search-and-rescue-ar/](../../examples/solutions/spatial-computing/search-and-rescue-ar/) |
 | **Connected Healthcare** | Experimental | Next | [examples/solutions/spatial-computing/wearable-health/](../../examples/solutions/spatial-computing/wearable-health/) |
-| **ADAS & Autonomous Driving** | Experimental | Now | [examples/solutions/adas/](../../examples/solutions/adas/) · [adas.md](./adas.md) |
+| **ADAS & Autonomous Driving** | **Stable** | Now | [examples/solutions/adas/](../../examples/solutions/adas/) · [adas.md](./adas.md) |
 | **Smart Factory** | Experimental | Now | [smart-factory.md](./smart-factory.md) · [examples/end_to_end/pick_and_place_cell/](../../examples/end_to_end/pick_and_place_cell/) |
 | **Agriculture** | Experimental (scaffold) | Later | [agriculture.md](./agriculture.md) · [examples/solutions/agriculture/](../../examples/solutions/agriculture/) |
 | **Critical Infrastructure** | Experimental | Next | [examples/showcase/compliance/](../../examples/showcase/compliance/) |
@@ -23,8 +23,8 @@ Spanda ships **Official Solution Blueprints** — reference architectures built 
 | **Space** | Research | Long Term | — |
 | **Defense** | Experimental | Next | [defense.md](./defense.md) · [examples/showcase/secure_boot/](../../examples/showcase/secure_boot/) |
 | **Research & Education** | Stable | Now | [examples/showcase/autonomous_rover/](../../examples/showcase/autonomous_rover/) |
-| **Spatial Computing & HRI** | Experimental | Next | [examples/solutions/spatial-computing/](../../examples/solutions/spatial-computing/) · [spatial-computing.md](./spatial-computing.md) |
-| **Smart Spaces & Ambient Intelligence** | Experimental (scaffold) | Next | [smart-spaces.md](./smart-spaces.md) · [examples/solutions/smart-spaces/](../../examples/solutions/smart-spaces/) |
+| **Spatial Computing & HRI** | **Stable** | Next | [examples/solutions/spatial-computing/](../../examples/solutions/spatial-computing/) · [spatial-computing.md](./spatial-computing.md) |
+| **Smart Spaces & Ambient Intelligence** | **Stable** | Next | [smart-spaces.md](./smart-spaces.md) · [examples/solutions/smart-spaces/](../../examples/solutions/smart-spaces/) |
 
 **Also:** Compliance profiles showcase — [examples/showcase/compliance/](../../examples/showcase/compliance/)
 

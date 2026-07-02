@@ -1,6 +1,6 @@
 # Spatial Computing & Human-Robot Collaboration — Solution Blueprint
 
-**Status:** Planned · **Profile:** `human_collaboration` · **Path:** `examples/solutions/spatial-computing/`
+**Status:** **Stable** · **Profile:** `human_collaboration` · **Path:** `examples/solutions/spatial-computing/`
 
 Official Solution Blueprint demonstrating safe collaboration between **humans**, **wearables**, **AR/VR/XR devices**, **robots**, **drones**, **IoT**, **AI agents**, and **fleets** — built entirely on existing platform capabilities. No HRI-specific core language extensions.
 

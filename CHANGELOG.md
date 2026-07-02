@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Stable tier promotions (2026-07-02):** Human Interaction & Spatial Computing (H1–H6), Smart Spaces blueprint, ADAS blueprint, and Platform maturity Phases A–D promoted to **Stable** in `feature-status.md`, `ROADMAP.md`, and stable-hardening runbooks; per-blueprint field soak and security audit sign-off remain organizational gates.
 - **Documentation sync (desktop 0.4.2):** Updated control-center, getting-started, feature-snapshot, sdk, platform-overview, product-strategy, and desktop-release-runbook for `desktop-v0.4.2` production releases and Stable enterprise ops tier.
 - **Control Center desktop 0.4.2 release:** `@spanda/control-center-desktop` bumped to **0.4.2**; `desktop-v0.4.2` tag triggers macOS bundle build, GitHub Release, and workflow artifacts; `scripts/verify_desktop_release_ready.sh` checks version sync before tagging.
 - **SDK 0.4.2 published:** Rust, Python, and TypeScript official SDKs bumped to **0.4.2** — ships post-0.4.1 entity parity (`entityReadiness`, `entityRelationships`, gRPC `entity_health`/`entity_trust`); tags `crates-sdk-v0.4.2`, `sdk-python-v0.4.2`, `npm-sdk-v0.4.2`.

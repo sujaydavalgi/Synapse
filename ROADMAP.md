@@ -186,22 +186,22 @@ Cross-cutting verification and operations capabilities — full analysis: [docs/
 
 | # | Area | Phase | Priority | Tier | Timeline | Ownership |
 |---|------|-------|----------|------|----------|-----------|
-| 1 | AI-assisted development (`generate`, `explain`, `suggest`) | Build, Operate | P0.3 / P3.3 | **Experimental** | Next | Core |
-| 2 | Dependency graph visualization | Build, Operate | P0.1 | **Experimental** | Now | Core |
-| 3 | Threat modeling | Verify, Deploy | P1.2 | **Experimental** | Next | Core |
-| 4 | Configuration drift detection | Deploy, Operate | P1.1 | **Experimental** | Next | Core |
-| 5 | Policy engine | Verify, Operate | P1.5 | **Experimental** | Next | Core |
-| 6 | Compliance profiles | Verify, Deploy | P2.4 | **Experimental** | Later | Core |
-| 7 | Explainability reports | Operate, Recover | P0.3 / P3.2 | **Experimental** | Now | Core |
-| 8 | Chaos engineering | Simulate, Recover | P2.1 | **Experimental** | Later | Core |
-| 9 | Mission resource estimation | Simulate, Deploy | P2.3 | **Experimental** | Later | Core |
-| 10 | Readiness trend analysis | Operate | P2.2 | **Experimental** | Later | Core |
-| 11 | Package trust framework | Verify, Build | P0.4 | **Experimental** | Now | Core |
-| 12 | Architecture decision records | Build | P2.5 | **Experimental** | Later | Core |
-| 13 | Mission differencing | Build, Verify | P1.3 | **Experimental** | Next | Core |
-| 14 | Deployment gates | Deploy | P0.2 | **Experimental** | Now | Core |
-| 15 | Autonomous systems scorecard | Operate | P1.4 | **Experimental** | Next | Core |
-| 16 | Hack / tamper detection | Verify, Operate, Recover | P3.1 | **Experimental** (verify-time) | Now | Core |
+| 1 | AI-assisted development (`generate`, `explain`, `suggest`) | Build, Operate | **Stable** (mock-first live paths **Experimental**) | Next | Core |
+| 2 | Dependency graph visualization | Build, Operate | **Stable** | Now | Core |
+| 3 | Threat modeling | Verify, Deploy | **Stable** | Next | Core |
+| 4 | Configuration drift detection | Deploy, Operate | **Stable** | Next | Core |
+| 5 | Policy engine | Verify, Operate | **Stable** | Next | Core |
+| 6 | Compliance profiles | Verify, Deploy | **Stable** | Later | Core |
+| 7 | Explainability reports | Operate, Recover | **Stable** | Now | Core |
+| 8 | Chaos engineering | Simulate, Recover | **Stable** | Later | Core |
+| 9 | Mission resource estimation | Simulate, Deploy | **Stable** | Later | Core |
+| 10 | Readiness trend analysis | Operate | **Stable** | Later | Core |
+| 11 | Package trust framework | Verify, Build | **Stable** | Now | Core |
+| 12 | Architecture decision records | Build | **Stable** | Later | Core |
+| 13 | Mission differencing | Build, Verify | **Stable** | Next | Core |
+| 14 | Deployment gates | Deploy | **Stable** | Now | Core |
+| 15 | Autonomous systems scorecard | Operate | **Stable** | Next | Core |
+| 16 | Hack / tamper detection | Verify, Operate, Recover | **Stable** (verify-time; runtime hardening **Experimental**) | Now | Core |
 
 #### Differentiation & signature capabilities
 
@@ -253,8 +253,8 @@ Full analysis: [docs/differentiation-roadmap.md](docs/differentiation-roadmap.md
 | **Swarm** | Quorum, mesh health, `spanda swarm coordinate` | **Experimental** | Next | Core |
 | **Fleet** | In-process + HTTP agents + mesh telemetry | **Stable** / distributed **Experimental** | Now | Core |
 | **OTA** | Deploy plan, rollout, rollback, canary | **Stable** local / remote **Experimental** | Now | Core |
-| **Human entity model** | Roles, identity, certifications (HRI) | **Experimental** | Next | Core |
-| **Operator capabilities** | Capability verification for humans | **Experimental** | Next | Core |
+| **Human entity model** | Roles, identity, certifications (HRI) | **Stable** | Next | Core |
+| **Operator capabilities** | Capability verification for humans | **Stable** | Next | Core |
 | **ROS2 golden path** | rclpy bridge, `spanda ros2 check` | **Stable** / **Experimental** | Now | Package |
 
 **Mission continuity detail:**
@@ -406,7 +406,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | [Warehouse Automation](#warehouse-automation) | **Experimental** | Now | Device & Fleet, Verification, Operations |
 | [Search & Rescue](#search--rescue) | **Experimental** | Next | Verification, Operations, Device & Fleet |
 | [Connected Healthcare](#connected-healthcare) | **Experimental** (wearable-health scaffold) | Next | Verification, Security, Device & Fleet |
-| [ADAS & Autonomous Driving](#adas--autonomous-driving) | **Experimental** | Now | Verification, Device & Fleet, Security |
+| [ADAS & Autonomous Driving](#adas--autonomous-driving) | **Stable** | Now | Verification, Device & Fleet, Security |
 | [Smart Factory](#smart-factory) | **Experimental** | Now | Verification, Device & Fleet, Operations |
 | [Agriculture](#agriculture) | **Experimental** (scaffold) | Later | Device & Fleet, Verification, Packages |
 | [Critical Infrastructure](#critical-infrastructure) | **Experimental** | Next | Security, Verification, Operations |
@@ -416,8 +416,8 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 | [Space](#space) | **Research** | Long Term | Verification, Device & Fleet, Assurance |
 | [Defense](#defense) | **Experimental** | Next | Security, Verification, Operations |
 | [Research & Education](#research--education) | **Stable** | Now | Developer Platform, Language |
-| [Spatial Computing & HRI](#spatial-computing--human-robot-collaboration) | **Experimental** | Next | Device & Fleet, Operations, Developer |
-| [Smart Spaces & Ambient Intelligence](#smart-spaces--ambient-intelligence) | **Experimental** (scaffold) | Next | Verification, Device & Fleet, Operations, Security |
+| [Spatial Computing & HRI](#spatial-computing--human-robot-collaboration) | **Stable** | Next | Device & Fleet, Operations, Developer |
+| [Smart Spaces & Ambient Intelligence](#smart-spaces--ambient-intelligence) | **Stable** | Next | Verification, Device & Fleet, Operations, Security |
 
 **Index:** [docs/solutions/README.md](docs/solutions/README.md) · **Website:** [website/solutions.html](website/solutions.html)
 
@@ -519,7 +519,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 
 **Uses pillars:** Verification Platform · Device & Fleet Platform · Security Platform · Operations Platform · Packages & Ecosystem
 
-**Stable promotion:** [docs/stable-hardening-adas.md](docs/stable-hardening-adas.md)
+**Stable promotion (2026-07-02):** [docs/stable-hardening-adas.md](docs/stable-hardening-adas.md)
 
 ---
 
@@ -769,7 +769,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 
 **Uses pillars:** Device & Fleet Platform · Operations Platform · Verification Platform · Developer Platform · Packages & Ecosystem
 
-**Phased delivery (H1–H6):** all **Experimental**. Promotion: [docs/stable-hardening-human-interaction.md](docs/stable-hardening-human-interaction.md)
+**Phased delivery (H1–H6):** **Stable** (2026-07-02). Registry vendor SDK packages remain **Experimental**. Promotion: [docs/stable-hardening-human-interaction.md](docs/stable-hardening-human-interaction.md)
 
 ---
 
@@ -798,7 +798,7 @@ Full enterprise analysis: [docs/enterprise-operations-roadmap.md](docs/enterpris
 
 **Integrates:** [Connected Healthcare](#connected-healthcare) · [Spatial Computing & HRI](#spatial-computing--human-robot-collaboration) · [Environmental Monitoring](#environmental-monitoring)
 
-**Status:** **Experimental** (scaffold) — CI via `scripts/smart_spaces_smoke.sh`
+**Status:** **Stable** (2026-07-02) — CI via `scripts/smart_spaces_smoke.sh` + `smart_spaces_promotion_gate.sh`
 
 ---
 
@@ -979,10 +979,10 @@ Maturity-based horizons — **not arbitrary calendar dates**.
 | Mission assurance | Static analysis + learned anomaly (experimental) | Package-backed ML anomaly backends |
 | Mission continuity | Runtime takeover, checkpoints, fleet mesh (**Stable**) | Field validation; swarm quorum hardening |
 | Self-healing | Recovery planner + CLI + runtime dispatch (**Stable**) | Recovery coverage hardening |
-| Platform maturity | 16 areas shipped **Experimental** | Stable hardening for Phase A–D deliverables |
+| Platform maturity | 16 areas **Stable** (Phases A–D) | Live AI / learned anomaly paths **Experimental** |
 | Differentiation | NOW items shipped **Experimental** | Stable hardening; NEXT signature capabilities |
-| Enterprise operations | E1–E4 **Experimental** | **Stable promotion:** operational gates |
-| Solution Blueprints | ADAS **Experimental** | Spatial Computing; warehouse ops; medical devices |
+| Enterprise operations | E1–E4 **Stable** | Organizational soak + audit gates |
+| Solution Blueprints | ADAS, Spatial Computing, Smart Spaces **Stable** | Warehouse, medical, agriculture scaffolds **Experimental** |
 
 ---
 

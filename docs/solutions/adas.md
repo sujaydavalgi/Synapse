@@ -1,6 +1,6 @@
 # ADAS & Autonomous Driving — Solution Blueprint
 
-**Status:** Experimental · **Profile:** ISO 26262 template · **Path:** `examples/solutions/adas/`
+**Status:** **Stable** · **Profile:** ISO 26262 template · **Path:** `examples/solutions/adas/`
 
 Official Solution Blueprint demonstrating how Spanda supports intelligent vehicles using existing platform capabilities — no automotive-specific core language extensions.
 

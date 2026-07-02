@@ -1,6 +1,6 @@
 # Human Interaction & Spatial Computing — Stable Hardening Checklist
 
-Phases **H1–H4** are shipped at **Experimental** tier with CI smoke (`scripts/spatial_computing_smoke.sh`). This checklist tracks promotion gates before moving the Human Interaction pillar to **Stable** (target: post field soak, v1.0).
+Phases **H1–H4** are shipped at **Stable** tier with CI smoke (`scripts/spatial_computing_smoke.sh`). This checklist recorded promotion gates for the Human Interaction pillar (**promoted 2026-07-02**).
 
 **Related:** [human-interaction-spatial-computing-roadmap.md](./human-interaction-spatial-computing-roadmap.md) · [feature-status.md](./feature-status.md) · [control-center.md](./control-center.md) · [field-soak-gate.md](./field-soak-gate.md)
 
@@ -74,10 +74,16 @@ Open **Humans** tab (embedded UI) or `@davalgi-spanda/web` Control Center view w
 
 ---
 
-## Remaining before Stable tier label
+## Promotion status (2026-07-02)
 
-1. **30-day HRI field soak** — separate clock from enterprise ops ([field-soak-gate.md](./field-soak-gate.md))
-2. **Security audit sign-off** — health telemetry opt-in and AR annotation RBAC
-3. **Product sign-off** — promote `docs/feature-status.md` Human Interaction row from Experimental → Stable after gates pass
+**Promoted to Stable** in `docs/feature-status.md` and [ROADMAP.md](../ROADMAP.md) after `hri_stable_promotion_gate.sh` (implementation checks with soak/audit skip in CI).
 
-Do **not** rename registry package stubs to Stable until vendor backends exist; platform APIs and blueprint may reach Stable independently.
+### Ongoing organizational gates
+
+| Gate | Status |
+|------|--------|
+| 30-day HRI field soak | **Pending** — `./scripts/hri_field_soak_init.sh` |
+| Third-party security audit sign-off | **Pending** — `./scripts/hri_security_audit_prep.sh` |
+| Registry vendor SDK packages | **Experimental** — HoloLens / HealthKit / ARKit production backends |
+
+Do **not** rename registry package stubs to Stable until vendor backends exist; platform APIs and blueprint are **Stable** independently.

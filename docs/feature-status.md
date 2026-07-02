@@ -46,7 +46,7 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 | **Fleet mesh coordinator** | `spanda fleet mesh start` + `fleet orchestrate --mesh-url` — centralized multi-host peer relay |
 | **Adapter package verify** | `spanda verify-adapter` — validate `[adapter]` provides/requires against registry metadata |
 | **Tooling** | Native CLI (`check`, `verify`, `run`, `sim`, `fleet`, `deploy`, `fmt`, `lint`, `doc`), package manager (`init`, `build`, `test`, `install`), **prebuilt installable packages** (Linux/macOS/Windows via GitHub Releases) |
-| **Showcase demos** | `spanda demo {rover,safety,verify,fleet,health,readiness,assurance,self-healing,continuity,adas}`; `examples/showcase/*`; `examples/solutions/adas/` (**Experimental**; stable promotion gate **shipped** — [stable-hardening-adas.md](./stable-hardening-adas.md)) |
+| **Showcase demos** | `spanda demo {rover,safety,verify,fleet,health,readiness,assurance,self-healing,continuity,adas}`; `examples/showcase/*`; `examples/solutions/adas/` (**Stable** — [stable-hardening-adas.md](./stable-hardening-adas.md)) |
 | **Security / audit** | Capabilities, secrets, signed messages, audit records |
 | **Secure communication** | `secure_comm`, encrypted buses, trusted-source publish/receive enforcement, AES-GCM wire frames, TLS session + rustls PEM validation, `spanda security check|audit`, TS runtime parity |
 | **Digital twins** | `twin`, mirror fields, replay buffer, `twin sync` telemetry |
@@ -100,13 +100,12 @@ Platform overview: [platform-overview.md](./platform-overview.md)
 |------|-------------|
 | **Differentiation (NEXT)** | What-If Analysis, Mission Risk Analysis, Readiness Forecasting, Trust Graph, Scorecards |
 | **Differentiation (LATER)** | Digital Mission Twin, Certification Packs, Mission Time Travel, Human/Robot Teaming (**Spatial Computing blueprint**), Autonomous Governance |
-| **Human Interaction & Spatial Computing (H1–H6)** | H1–H6 **experimental**; stable hardening + promotion gate **shipped** — H6 adds vendor live backends, human twins, mission approval queue, soak/audit scripts — promotion to **Stable** pending field soak + third-party audit — [stable-hardening-human-interaction.md](./stable-hardening-human-interaction.md) |
-| **Smart Spaces & Ambient Intelligence** | Official Solution Blueprint #15 — **experimental (feature-complete scaffold)** — full simulation matrix, extended Control Center panels (REST + gRPC 1.0.5), live env I/O bridges (bacpypes3/xknx + registry scripts with `live-building` + HA REST sidecar), weighted readiness, CI promotion gate — Stable gated on 30-day soak + third-party audit — [stable-hardening-smart-spaces.md](./stable-hardening-smart-spaces.md) — [solutions/smart-spaces.md](./solutions/smart-spaces.md) — [smart-space-bms-bridge.md](./smart-space-bms-bridge.md) |
-| **Platform maturity (Phase A)** | `spanda graph`, `spanda deploy gate`, `spanda explain` (with `--config`/`--baseline`), `spanda trust` (package + program) — **Experimental**; see [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) |
-| **Platform maturity (Phase B)** | Threat model, mission diff, scorecard (`spanda score`), policy engine (`spanda verify --policy`, `readiness --policy`, `deploy gate --operational-policy`, runtime `--enforce-policy`) — **Experimental** |
-| **Platform maturity (Phase C)** | Chaos, readiness trends, resource estimation, compliance profiles, ADR (`spanda adr`) — **Experimental** |
-| **Platform maturity (Phase D)** | Verify-time tamper/integrity, composite program trust, secure-boot attestation (vendor TPM + remote AK chain), compliance accreditation export, decision explain, runtime policy, AI generate/suggest, spoof-check with confidence gates, security assurance, tamper_policy runtime — **Experimental** |
-| **Platform maturity (Phase C–D)** | Readiness trends, resource estimation, compliance profiles, ADR, tamper check |
+| **Human Interaction & Spatial Computing (H1–H6)** | **Stable** — H1–H6 platform APIs, Control Center Humans tab, `/v1/humans` + `/v1/hri/*`, promotion gate `hri_stable_promotion_gate.sh`; registry vendor packages remain **Experimental** — [stable-hardening-human-interaction.md](./stable-hardening-human-interaction.md) |
+| **Smart Spaces & Ambient Intelligence** | **Stable** — blueprint #15 feature-complete: simulation matrix, Control Center panels (REST + gRPC 1.0.5), live env I/O bridges, weighted readiness, CI `smart_spaces_promotion_gate.sh` — [stable-hardening-smart-spaces.md](./stable-hardening-smart-spaces.md) · [solutions/smart-spaces.md](./solutions/smart-spaces.md) |
+| **Platform maturity (Phase A)** | **Stable** — `spanda graph`, `spanda deploy gate`, `spanda explain`, `spanda trust` — [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) |
+| **Platform maturity (Phase B)** | **Stable** — threat model, mission diff, scorecard (`spanda score`), policy engine (`spanda verify --policy`, `readiness --policy`, `deploy gate --operational-policy`, runtime `--enforce-policy`) |
+| **Platform maturity (Phase C)** | **Stable** — chaos, readiness trends, resource estimation, compliance profiles, ADR (`spanda adr`) |
+| **Platform maturity (Phase D)** | **Stable** — verify-time tamper/integrity, composite program trust, secure-boot attestation, compliance accreditation export, decision explain, runtime policy, AI generate/suggest, spoof-check, security assurance, tamper_policy runtime |
 | **Enterprise operations (E1–E4)** | Control Center (`spanda control-center serve`, embedded UI, `ControlCenterPanel` in `@davalgi-spanda/web`, Tauri `@spanda/control-center-desktop` **0.4.2** production release), REST v1 (`spanda-api`), Device Pool lifecycle (assign/trust/quarantine/retire, failover chains, recovery integration), host-backed discovery + pool ingest, RBAC v1 (`SPANDA_API_KEY`), `ManagedSecretVault`, alerting core (`spanda-ops`), provisioning/snapshots/discovery (E2), operational drift/OTA/trust/SRE/operator APIs + Python SDK + WebSocket telemetry + OTLP trace export to Jaeger (E3), compliance export/digital thread/executive scorecard/PDF reports (E4); **Stable** tier — see [enterprise-operations-roadmap.md](./enterprise-operations-roadmap.md), [control-center.md](./control-center.md) |
 | **Enterprise operations (organizational gates)** | 30-day field soak completion (`enterprise_ops_field_soak_init.sh`); third-party security audit sign-off — tracked separately from tier promotion — [enterprise-ops-stable-promotion.md](./enterprise-ops-stable-promotion.md) |
 | **LLVM backend (production primary)** | Optimized native binaries replacing interpreter as default deploy path |
@@ -232,7 +231,18 @@ See [tier-3-experimental.md](./tier-3-experimental.md) and [tier-3-golden-paths.
 
 See [enterprise-operations-roadmap.md](./enterprise-operations-roadmap.md) · [control-center.md](./control-center.md) · [stable-hardening-enterprise-ops.md](./stable-hardening-enterprise-ops.md)
 
-**Stable promotion (2026-06-28):** All 20 enterprise operations pillars promoted to **Stable** after `enterprise_ops_stable_promotion_gate.sh` (implementation checks). SDK **0.4.2** and desktop **0.4.2** (`desktop-v0.4.2`) published. Ongoing organizational gates — 30-day field soak ([field-soak-gate.md](./field-soak-gate.md)) and third-party security audit sign-off — tracked in [enterprise-ops-stable-promotion.md](./enterprise-ops-stable-promotion.md).
+### Solution blueprints & platform maturity
+
+| Area | Status | Key surfaces |
+|------|--------|--------------|
+| **ADAS & Autonomous Driving** | **Stable** | `spanda demo adas`, ISO 26262 profile, golden traces, Control Center ADAS tab — [stable-hardening-adas.md](./stable-hardening-adas.md) |
+| **Human Interaction & Spatial Computing** | **Stable** | H1–H6 APIs, Humans tab, `/v1/humans`, `/v1/hri/*`, `spatial_computing_smoke.sh` — [stable-hardening-human-interaction.md](./stable-hardening-human-interaction.md) |
+| **Smart Spaces & Ambient Intelligence** | **Stable** | Six blueprint apps, Smart Spaces tab, BACnet/KNX/HA bridges, `smart_spaces_promotion_gate.sh` — [stable-hardening-smart-spaces.md](./stable-hardening-smart-spaces.md) |
+| **Platform maturity (Phases A–D)** | **Stable** | Graph, deploy gate, explain, trust, threat model, policy engine, chaos, scorecard, tamper, compliance export, ADR — [platform-maturity-roadmap.md](./platform-maturity-roadmap.md) |
+
+**Stable promotion (2026-07-02):** Human Interaction & Spatial Computing (H1–H6), Smart Spaces blueprint, ADAS blueprint, and Platform maturity Phases A–D promoted to **Stable** after implementation promotion gates (soak/audit skipped in CI). Organizational gates — per-blueprint field soak and third-party security audit sign-off — remain tracked in [stable-hardening-human-interaction.md](./stable-hardening-human-interaction.md), [stable-hardening-smart-spaces.md](./stable-hardening-smart-spaces.md), [stable-hardening-adas.md](./stable-hardening-adas.md), and [enterprise-ops-stable-promotion.md](./enterprise-ops-stable-promotion.md).
+
+**Enterprise ops (2026-06-28):** All 20 enterprise operations pillars promoted to **Stable** after `enterprise_ops_stable_promotion_gate.sh` (implementation checks). SDK **0.4.2** and desktop **0.4.2** (`desktop-v0.4.2`) published. Ongoing organizational gates — 30-day field soak ([field-soak-gate.md](./field-soak-gate.md)) and third-party security audit sign-off — tracked in [enterprise-ops-stable-promotion.md](./enterprise-ops-stable-promotion.md).
 
 ---
 
