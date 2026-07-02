@@ -45,5 +45,11 @@ pub enum PluginError {
     Semver(#[from] semver::Error),
 }
 
+impl From<String> for PluginError {
+    fn from(value: String) -> Self {
+        Self::Registry(value)
+    }
+}
+
 /// Convenience alias for plugin operations that may fail with [`PluginError`].
 pub type PluginResult<T> = Result<T, PluginError>;

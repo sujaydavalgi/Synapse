@@ -35,4 +35,20 @@ impl PluginAuditLog {
     pub fn entries(&self) -> &[PluginAuditEntry] {
         &self.entries
     }
+
+    pub fn append_to_file(&self, path: &std::path::Path) -> std::io::Result<()> {
+        use std::io::Write;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)?;
+        for entry in &self.entries {
+            let line = serde_json::to_string(entry).unwrap_or_default();
+            writeln!(file, "{line}")?;
+        }
+        Ok(())
+    }
 }

@@ -76,6 +76,115 @@ impl PluginStore {
         &self.audit
     }
 
+    pub fn persist_audit_log(&self) -> PluginResult<()> {
+        let path = self.root.join(crate::registry_fetch::AUDIT_LOG_FILENAME);
+        self.audit
+            .append_to_file(&path)
+            .map_err(PluginError::from)
+    }
+
+    pub fn enabled_plugin_names(&self) -> Vec<String> {
+        self.state
+            .plugins
+            .values()
+            .filter(|p| p.state == PluginState::Enabled)
+            .map(|p| p.name.clone())
+            .collect()
+    }
+
+    pub fn dispatch_hook_to_enabled(
+        &mut self,
+        hook: PluginHook,
+        payload: serde_json::Value,
+    ) -> PluginResult<Vec<crate::hooks::HookExecutionResult>> {
+        let names = self.enabled_plugin_names();
+        let mut results = Vec::new();
+        for name in names {
+            match self.dispatch_hook(&name, hook, payload.clone()) {
+                Ok(result) => results.push(result),
+                Err(err) => {
+                    self.audit
+                        .record(&name, hook.as_str(), format!("hook failed: {err}"));
+                }
+            }
+        }
+        let _ = self.persist_audit_log();
+        Ok(results)
+    }
+
+    pub fn install_from_registry(
+        &mut self,
+        name: &str,
+        version: Option<&str>,
+        project_root: &Path,
+        host_version: &str,
+        dangerous_approved: bool,
+    ) -> PluginResult<InstalledPlugin> {
+        let entry = lookup_plugin_entry(name).ok_or_else(|| {
+            PluginError::Registry(format!("plugin not found in registry: {name}"))
+        })?;
+        let version = version
+            .map(str::to_string)
+            .or_else(|| entry.latest_version().map(str::to_string))
+            .ok_or_else(|| PluginError::Registry(format!("no version for plugin: {name}")))?;
+        let source = crate::registry_fetch::fetch_plugin_sources(name, &version, project_root)?;
+        self.install_from_dir(&source, host_version, dangerous_approved)
+    }
+
+    pub fn list_control_center_plugins(&self) -> PluginResult<Vec<PluginInspectReport>> {
+        let mut out = Vec::new();
+        for record in self.list() {
+            if record.plugin_type == crate::types::PluginType::ControlCenterUi.as_str()
+                && record.state == PluginState::Enabled
+            {
+                out.push(self.inspect(&record.name)?);
+            }
+        }
+        Ok(out)
+    }
+
+    pub fn cli_command_matches(&self, namespace: &str, command: &str) -> Option<PluginInspectReport> {
+        for record in self.list() {
+            if record.state != PluginState::Enabled {
+                continue;
+            }
+            let manifest = PluginManifest::load_from_dir(&record.install_path).ok()?;
+            for decl in &manifest.cli.commands {
+                let ns = decl.namespace.as_deref().unwrap_or("");
+                if ns == namespace && decl.name == command {
+                    return self.inspect(&record.name).ok();
+                }
+            }
+        }
+        None
+    }
+
+    pub fn run_cli_command(
+        &mut self,
+        namespace: &str,
+        command: &str,
+        args: &[String],
+    ) -> PluginResult<Option<crate::hooks::HookExecutionResult>> {
+        let Some(report) = self.cli_command_matches(namespace, command) else {
+            return Ok(None);
+        };
+        let hook = match command {
+            "readiness" => PluginHook::OnReadinessCompleted,
+            "health" => PluginHook::OnHealthChanged,
+            "diagnose" | "diagnosis" => PluginHook::OnDiagnosisCompleted,
+            "recover" | "recovery" => PluginHook::OnRecoveryCompleted,
+            _ => PluginHook::OnReportRequested,
+        };
+        let payload = serde_json::json!({
+            "namespace": namespace,
+            "command": command,
+            "args": args,
+        });
+        let result = self.dispatch_hook(&report.installed.name, hook, payload)?;
+        let _ = self.persist_audit_log();
+        Ok(Some(result))
+    }
+
     pub fn list(&self) -> Vec<&InstalledPlugin> {
         let mut items: Vec<_> = self.state.plugins.values().collect();
         items.sort_by(|a, b| a.name.cmp(&b.name));
@@ -291,6 +400,51 @@ impl PluginManager {
 
     pub fn host_version(&self) -> &str {
         &self.host_version
+    }
+
+    pub fn dispatch_hook_to_enabled(
+        &mut self,
+        hook: PluginHook,
+        payload: serde_json::Value,
+    ) -> PluginResult<Vec<crate::hooks::HookExecutionResult>> {
+        self.store.dispatch_hook_to_enabled(hook, payload)
+    }
+
+    pub fn install_from_registry(
+        &mut self,
+        name: &str,
+        version: Option<&str>,
+        project_root: &Path,
+        dangerous_approved: bool,
+    ) -> PluginResult<InstalledPlugin> {
+        self.store.install_from_registry(
+            name,
+            version,
+            project_root,
+            &self.host_version,
+            dangerous_approved,
+        )
+    }
+
+    pub fn list_control_center_plugins(&self) -> PluginResult<Vec<PluginInspectReport>> {
+        self.store.list_control_center_plugins()
+    }
+
+    pub fn try_cli_command(
+        &self,
+        namespace: &str,
+        command: &str,
+    ) -> Option<PluginInspectReport> {
+        self.store.cli_command_matches(namespace, command)
+    }
+
+    pub fn run_cli_command(
+        &mut self,
+        namespace: &str,
+        command: &str,
+        args: &[String],
+    ) -> PluginResult<Option<crate::hooks::HookExecutionResult>> {
+        self.store.run_cli_command(namespace, command, args)
     }
 
     pub fn validate_security(

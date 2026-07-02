@@ -53,12 +53,56 @@ impl PluginApiContext {
         &self.capabilities
     }
 
-    fn gate(&self, surface: PluginApiSurface) -> PluginResult<()> {
+    pub fn plugin_name(&self) -> &str {
+        &self.plugin_name
+    }
+
+    pub(crate) fn gate(&self, surface: PluginApiSurface) -> PluginResult<()> {
+        enforce_capability(&self.capabilities, surface.read_capability())
+    }
+
+    pub(crate) fn gate_entity(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Entity)
+    }
+
+    pub(crate) fn gate_readiness(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Readiness)
+    }
+
+    pub(crate) fn gate_assurance(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Assurance)
+    }
+
+    pub(crate) fn gate_diagnosis(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Diagnosis)
+    }
+
+    pub(crate) fn gate_recovery(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Recovery)
+    }
+
+    pub(crate) fn gate_health(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Health)
+    }
+
+    pub(crate) fn gate_trust(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Trust)
+    }
+
+    pub(crate) fn gate_telemetry(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Telemetry)
+    }
+
+    pub(crate) fn gate_report(&self) -> PluginResult<()> {
+        self.gate_surface(PluginApiSurface::Report)
+    }
+
+    fn gate_surface(&self, surface: PluginApiSurface) -> PluginResult<()> {
         enforce_capability(&self.capabilities, surface.read_capability())
     }
 
     pub fn entity_read(&self, entity_id: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Entity)?;
+        self.gate_surface(PluginApiSurface::Entity)?;
         Ok(json!({
             "entity_id": entity_id,
             "source": "entity-api",
@@ -67,7 +111,7 @@ impl PluginApiContext {
     }
 
     pub fn readiness_read(&self, mission_id: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Readiness)?;
+        self.gate_surface(PluginApiSurface::Readiness)?;
         Ok(json!({
             "mission_id": mission_id,
             "status": "unknown",
@@ -76,37 +120,37 @@ impl PluginApiContext {
     }
 
     pub fn assurance_read(&self, subject: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Assurance)?;
+        self.gate_surface(PluginApiSurface::Assurance)?;
         Ok(json!({ "subject": subject, "source": "assurance-api" }))
     }
 
     pub fn diagnosis_read(&self, target: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Diagnosis)?;
+        self.gate_surface(PluginApiSurface::Diagnosis)?;
         Ok(json!({ "target": target, "source": "diagnosis-api" }))
     }
 
     pub fn recovery_read(&self, incident_id: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Recovery)?;
+        self.gate_surface(PluginApiSurface::Recovery)?;
         Ok(json!({ "incident_id": incident_id, "source": "recovery-api" }))
     }
 
     pub fn health_read(&self, entity_id: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Health)?;
+        self.gate_surface(PluginApiSurface::Health)?;
         Ok(json!({ "entity_id": entity_id, "source": "health-api" }))
     }
 
     pub fn trust_read(&self, subject: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Trust)?;
+        self.gate_surface(PluginApiSurface::Trust)?;
         Ok(json!({ "subject": subject, "source": "trust-api" }))
     }
 
     pub fn telemetry_read(&self, stream: &str) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Telemetry)?;
+        self.gate_surface(PluginApiSurface::Telemetry)?;
         Ok(json!({ "stream": stream, "source": "telemetry-api" }))
     }
 
     pub fn report_generate(&self, template: &str, data: Value) -> PluginResult<Value> {
-        self.gate(PluginApiSurface::Report)?;
+        self.gate_surface(PluginApiSurface::Report)?;
         Ok(json!({
             "template": template,
             "data": data,

@@ -8,9 +8,10 @@ description = "Versioned, capability-controlled plugin system for Spanda"
 dist = false
 
 [features]
-default = []
+default = ["api-host"]
 wasm-loader = ["dep:wasmtime"]
 native-loader = ["dep:libloading"]
+api-host = ["dep:spanda-config", "dep:spanda-readiness", "dep:spanda-trust", "dep:spanda-runtime", "dep:spanda-telemetry-store"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -21,6 +22,11 @@ thiserror = "2"
 sha2 = "0.10"
 spanda-audit = { path = "../spanda-audit" }
 spanda-package = { path = "../spanda-package" }
+spanda-config = { path = "../spanda-config", optional = true }
+spanda-readiness = { path = "../spanda-readiness", optional = true }
+spanda-trust = { path = "../spanda-trust", optional = true }
+spanda-runtime = { path = "../spanda-runtime", optional = true }
+spanda-telemetry-store = { path = "../spanda-telemetry-store", optional = true }
 wasmtime = { version = "28", optional = true }
 libloading = { version = "0.8", optional = true }
 

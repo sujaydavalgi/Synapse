@@ -202,3 +202,34 @@ fn manifest_only_loader_uses_wasm_format() {
     let loaded = spanda_plugin::loader::PluginLoader::load(dir.path(), &mut audit).unwrap();
     assert_eq!(loaded.format, LoadFormat::Wasm);
 }
+
+#[test]
+fn platform_event_maps_to_readiness_hook() {
+    use spanda_plugin::bridge::hook_for_platform_event;
+    assert_eq!(
+        hook_for_platform_event("ReadinessChanged").map(|h| h.as_str()),
+        Some("on_readiness_completed")
+    );
+}
+
+#[test]
+fn cli_command_matching_and_dispatch() {
+    let workspace = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let example = workspace.join("examples/plugins/readiness-plugin");
+    assert!(example.is_dir(), "missing {}", example.display());
+    let root = tempfile::tempdir().unwrap();
+    let mut manager = PluginManager::open(root.path(), "0.4.0").unwrap();
+    manager
+        .store_mut()
+        .install_from_dir(&example, "0.4.0", true)
+        .unwrap();
+    manager.store_mut().enable("spanda-plugin-readiness-example").unwrap();
+    assert!(manager
+        .try_cli_command("healthcare", "check")
+        .is_some());
+    let result = manager
+        .run_cli_command("healthcare", "check", &[])
+        .unwrap()
+        .expect("hook result");
+    assert!(result.success);
+}

@@ -53,7 +53,6 @@ impl SandboxPermissions {
     }
 }
 
-#[derive(Debug)]
 pub struct LoadedPlugin {
     pub manifest: PluginManifest,
     pub format: LoadFormat,
@@ -236,7 +235,7 @@ impl LoadedPlugin {
             .map_err(|e| PluginError::Hook(format!("WASM instantiate failed: {e}")))?;
 
         let export_name = hook.as_str();
-        if instance.get_func(&mut store, export_name).is_ok() {
+        if instance.get_func(&mut store, export_name).is_some() {
             audit.record(
                 &self.manifest.plugin.name,
                 hook.as_str(),
