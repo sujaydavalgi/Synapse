@@ -27,7 +27,7 @@ spanda-readiness = { path = "../spanda-readiness", optional = true }
 spanda-trust = { path = "../spanda-trust", optional = true }
 spanda-runtime = { path = "../spanda-runtime", optional = true }
 spanda-telemetry-store = { path = "../spanda-telemetry-store", optional = true }
-wasmtime = { version = "28", optional = true }
+wasmtime = { version = "36", optional = true }
 libloading = { version = "0.8", optional = true }
 
 [dev-dependencies]
